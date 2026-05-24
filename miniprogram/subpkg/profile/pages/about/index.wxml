@@ -1,0 +1,8 @@
+<view class="page">
+  <image class="about-logo" src="/static/brand/logo.png" mode="aspectFit" />
+  <view class="content-card section">
+    <view class="eyebrow">ABOUT ROOT</view>
+    <view class="h1">身体 自有其序</view>
+    <view class="body">Root 是一个专注益生元与长期身体稳定性的科学补剂品牌。我们相信数据，但不宣扬所谓神奇功效；我们更在意当你选择 Root 的那一刻，你开始与自己的身体合作。</view>
+  </view>
+</view>

@@ -1,0 +1,50 @@
+.login-page {
+  padding-top: var(--spacing-xl);
+}
+
+.login-copy {
+  margin-top: var(--spacing-md);
+}
+
+.agreement {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+  margin: var(--spacing-lg) 0 var(--spacing-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1.45;
+}
+
+.checkbox {
+  display: flex;
+  flex: 0 0 36rpx;
+  align-items: center;
+  justify-content: center;
+  width: 36rpx;
+  height: 36rpx;
+  color: var(--color-surface);
+  border: 2rpx solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+}
+
+.checkbox.checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.login-btn {
+  width: 100%;
+}
+
+.dev-login-btn {
+  margin-top: var(--spacing-md);
+}
+
+.login-note {
+  margin-top: var(--spacing-md);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+  text-align: center;
+}

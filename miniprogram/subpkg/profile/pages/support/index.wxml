@@ -1,0 +1,8 @@
+<view class="page">
+  <view class="content-card">
+    <view class="eyebrow">SUPPORT</view>
+    <view class="h1">联系 ROOT 顾问</view>
+    <view class="body">订单、打卡、免单审核或身体反馈问题，都可以联系顾问协助。</view>
+    <button class="btn-primary contact-btn" open-type="contact" session-from="support">联系客服</button>
+  </view>
+</view>

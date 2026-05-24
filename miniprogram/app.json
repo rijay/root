@@ -1,0 +1,65 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/login/index",
+    "pages/register/index",
+    "pages/activity/index",
+    "pages/order/match",
+    "pages/profile/index"
+  ],
+  "subPackages": [
+    {
+      "root": "subpkg/checkin",
+      "pages": [
+        "pages/today/index",
+        "pages/history/index",
+        "pages/result/index",
+        "pages/questionnaire/index"
+      ]
+    },
+    {
+      "root": "subpkg/refund",
+      "pages": [
+        "pages/apply/index",
+        "pages/status/index"
+      ]
+    },
+    {
+      "root": "subpkg/profile",
+      "pages": [
+        "pages/tags/index",
+        "pages/orders/index",
+        "pages/about/index",
+        "pages/support/index"
+      ]
+    }
+  ],
+  "window": {
+    "navigationBarTitleText": "ROOT 7日身体重启",
+    "navigationBarBackgroundColor": "#FBF9F4",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#FBF9F4"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#5B8DBF",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页",
+        "iconPath": "static/tabbar/home.png",
+        "selectedIconPath": "static/tabbar/home_active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "static/tabbar/profile.png",
+        "selectedIconPath": "static/tabbar/profile_active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

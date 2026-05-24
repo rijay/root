@@ -1,0 +1,24 @@
+<view class="page history-page">
+  <view class="panel">
+    <view class="eyebrow">CHECK-IN HISTORY</view>
+    <view class="h1">7天记录</view>
+    <view class="body">这些记录会成为最终免单审核和身体趋势总结的依据。</view>
+  </view>
+
+  <view class="section panel">
+    <view wx:for="{{records}}" wx:key="dayIndex" class="list-item history-row" data-day="{{item.dayIndex}}" bindtap="select">
+      <view>
+        <view class="row-title">{{item.title}} · {{item.date}}</view>
+        <view class="body">{{item.statusText}}{{item.isMakeup ? ' · 补卡' : ''}}</view>
+      </view>
+      <view class="row-pill {{item.checkedIn ? 'done' : ''}}">{{item.checkedIn ? '✓' : '-'}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{selected && selected.detail}}" class="section panel">
+    <view class="section-title">{{selected.title}} 详情</view>
+    <view class="body">服用：{{selected.detail.took_product ? '是' : '否'}}</view>
+    <view class="body">排便：{{selected.detail.had_stool ? '是' : '否'}} · {{selected.detail.stool_type || '未记录便型'}}</view>
+    <view class="body">反馈：{{selected.detail.feedback || '暂无文字反馈'}}</view>
+  </view>
+</view>

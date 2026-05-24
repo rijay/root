@@ -1,0 +1,34 @@
+<view class="page checkin-page">
+  <view class="panel">
+    <view class="eyebrow">CHECK-IN ACTIVE</view>
+    <view class="h1">今日是 Day {{session.currentDayIndex}}</view>
+    <view class="body">从肠道健康，延伸到生活的每一面。每天30秒，记录身体给你的细微信号。</view>
+  </view>
+
+  <view class="section progress-dots">
+    <view wx:for="{{progress}}" wx:key="dayIndex" class="progress-dot {{item.status}}">
+      <text class="progress-label">D{{item.dayIndex}}</text>
+      <text class="progress-status">{{item.statusText}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{banner}}" class="section banner">{{banner}}</view>
+
+  <view class="section panel today-card">
+    <view class="section-title">当日打卡</view>
+    <view class="body">
+      <block wx:if="{{session.todayChecked}}">今天已经完成记录，可以查看历史打卡。</block>
+      <block wx:else>完成服用后，记录排便、便型与今日感受。</block>
+    </view>
+    <view class="button-row today-actions">
+      <button class="btn" bindtap="goToday" disabled="{{session.todayChecked}}">{{session.todayChecked ? '已完成' : '立即打卡'}}</button>
+      <button class="btn secondary" bindtap="goHistory">查看记录</button>
+    </view>
+  </view>
+
+  <view class="section panel">
+    <view class="section-title">剩余天数</view>
+    <view class="countdown">{{remainingDays}}</view>
+    <view class="body">断卡累计达到3次后将进入人工介入，无法自动申请免单。</view>
+  </view>
+</view>

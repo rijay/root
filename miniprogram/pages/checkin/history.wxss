@@ -1,0 +1,30 @@
+.history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.row-title {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+}
+
+.row-pill {
+  display: flex;
+  flex: 0 0 52rpx;
+  align-items: center;
+  justify-content: center;
+  width: 52rpx;
+  height: 52rpx;
+  color: var(--color-text-secondary);
+  background: var(--color-border);
+  border-radius: 50%;
+  font-weight: 900;
+}
+
+.row-pill.done {
+  color: var(--color-surface);
+  background: var(--color-success);
+}

@@ -1,0 +1,18 @@
+<view class="page refund-status-page">
+  <view class="panel">
+    <view class="eyebrow">REFUND STATUS</view>
+    <view class="h1">{{refundStatus}}</view>
+    <view class="body">审核通过后会在有赞订单原支付路径完成退款。</view>
+  </view>
+
+  <view wx:if="{{refund}}" class="section panel">
+    <view class="list-item">
+      <view class="section-title">{{refund.youzan_order_no}}</view>
+      <view class="body">金额：{{refund.amount}} 元</view>
+    </view>
+    <view class="list-item">
+      <view class="section-title">提交时间</view>
+      <view class="body">{{refund.created_at}}</view>
+    </view>
+  </view>
+</view>

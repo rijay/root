@@ -1,0 +1,14 @@
+.content-card {
+  padding: var(--spacing-lg);
+  background: var(--color-surface);
+  border: 1rpx solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.empty-image {
+  display: block;
+  width: 360rpx;
+  height: 360rpx;
+  margin: var(--spacing-xl) auto;
+}

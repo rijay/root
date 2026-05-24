@@ -1,0 +1,30 @@
+<view class="page questionnaire-page">
+  <view class="panel">
+    <view class="eyebrow">{{type === 'DAY8_SUMMARY' ? 'DAY 8' : 'DAY 4'}}</view>
+    <view class="h1">{{type === 'DAY8_SUMMARY' ? '收尾问卷' : '中期问卷'}}</view>
+    <view class="body">请根据这几天的真实感受填写。问卷会帮助 ROOT 运营更好地跟进。</view>
+  </view>
+
+  <view wx:if="{{questionnaire}}" class="section panel">
+    <view wx:for="{{questionnaire.questions}}" wx:key="field" class="question-block">
+      <view class="section-title">{{item.title}}</view>
+
+      <view wx:if="{{item.type === 'single'}}" class="option-row">
+        <button wx:for="{{item.options}}" wx:for-item="option" wx:key="*this" class="option-btn {{answers[item.field] === option ? 'active' : ''}}" data-field="{{item.field}}" data-value="{{option}}" bindtap="setAnswer">{{option}}</button>
+      </view>
+
+      <view wx:elif="{{item.type === 'scale'}}" class="option-row">
+        <button wx:for="{{[1,2,3,4,5]}}" wx:for-item="score" wx:key="*this" class="option-btn {{answers[item.field] == score ? 'active' : ''}}" data-field="{{item.field}}" data-value="{{score}}" bindtap="setAnswer">{{score}}</button>
+      </view>
+
+      <view wx:elif="{{item.type === 'boolean'}}" class="option-row">
+        <button class="option-btn {{answers[item.field] === true ? 'active' : ''}}" data-field="{{item.field}}" data-value="true" bindtap="setBoolean">需要</button>
+        <button class="option-btn {{answers[item.field] === false ? 'active' : ''}}" data-field="{{item.field}}" data-value="false" bindtap="setBoolean">暂不需要</button>
+      </view>
+
+      <textarea wx:else class="textarea" data-field="{{item.field}}" value="{{answers[item.field]}}" bindinput="onText" placeholder="可选填写" />
+    </view>
+  </view>
+
+  <button class="btn submit-btn" bindtap="submit" loading="{{loading}}">提交问卷</button>
+</view>

@@ -1,0 +1,39 @@
+<view class="page register-page">
+  <view class="progress-line">
+    <view class="progress-fill" style="width: {{(step + 1) * 100 / total}}%;"></view>
+  </view>
+
+  <view class="section panel">
+    <view class="eyebrow">{{step + 1}}/{{total}}</view>
+    <view class="h1">{{current.title}}</view>
+    <view class="body">让 ROOT 更好地理解你的身体节奏。</view>
+  </view>
+
+  <view wx:if="{{current.type !== 'stool'}}" class="section option-grid">
+    <view
+      wx:for="{{current.options}}"
+      wx:key="value"
+      class="option-card {{item.selected ? 'active' : ''}}"
+      data-value="{{item.value}}"
+      bindtap="selectOption"
+    >{{item.label}}</view>
+  </view>
+
+  <view wx:else class="section stool-grid">
+    <view
+      wx:for="{{current.options}}"
+      wx:key="value"
+      class="stool-card {{item.selected ? 'active' : ''}}"
+      data-value="{{item.value}}"
+      bindtap="selectOption"
+    >
+      <image src="{{item.image}}" mode="aspectFit" />
+      <text>{{item.label}}</text>
+    </view>
+  </view>
+
+  <view class="section button-row footer-actions">
+    <button class="btn secondary" bindtap="previous" disabled="{{step === 0}}">上一题</button>
+    <button class="btn" bindtap="next" disabled="{{!canNext}}" loading="{{loading}}">{{step === total - 1 ? '完成' : '下一题'}}</button>
+  </view>
+</view>

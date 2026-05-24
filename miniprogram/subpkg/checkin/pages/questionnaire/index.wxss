@@ -1,0 +1,49 @@
+.questionnaire-page {
+  min-height: 100vh;
+  padding: 40rpx 32rpx 80rpx;
+  background: var(--color-bg);
+}
+
+.question-block {
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid var(--color-border);
+}
+
+.question-block:last-child {
+  border-bottom: 0;
+}
+
+.option-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.option-btn {
+  min-width: 128rpx;
+  padding: 16rpx 24rpx;
+  color: var(--color-text);
+  background: #fff;
+  border: 1rpx solid var(--color-border);
+}
+
+.option-btn.active {
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 160rpx;
+  margin-top: 20rpx;
+  padding: 20rpx;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1rpx solid var(--color-border);
+}
+
+.submit-btn {
+  margin-top: 32rpx;
+}

@@ -1,0 +1,14 @@
+.about-logo {
+  display: block;
+  width: 220rpx;
+  height: 220rpx;
+  margin: var(--spacing-xl) auto 0;
+}
+
+.content-card {
+  padding: var(--spacing-lg);
+  background: var(--color-surface);
+  border: 1rpx solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}

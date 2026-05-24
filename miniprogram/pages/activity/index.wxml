@@ -1,0 +1,27 @@
+<view class="page activity-page">
+  <image class="hero-image" src="/static/banner/activity.png" mode="widthFix" />
+
+  <view class="section panel">
+    <view class="eyebrow">以肠为始，ROOT益生元</view>
+    <view class="h1">7日身体重启计划</view>
+    <view class="body">连续7天记录服用、排便与身体反馈，完成后可申请免单奖励。ROOT相信稳定的条件，会让健康自然生长。</view>
+  </view>
+
+  <view class="section panel">
+    <view class="section-title">活动规则</view>
+    <view class="rule-row">每日一签：30秒记录使用感受</view>
+    <view class="rule-row">关于坚持：连续打卡7天才有效</view>
+    <view class="rule-row">关于补卡：错过后次日仍可补救，断卡3次将无法免单</view>
+  </view>
+
+  <view class="section panel">
+    <view class="section-title">你的身体线索</view>
+    <view class="body">我们了解到你当前关注 {{tags}}，接下来的7天会围绕真实反馈建立记录。</view>
+  </view>
+
+  <view class="section start-panel">
+    <button class="btn start-btn" bindtap="goMatch">匹配我的订单</button>
+    <view class="start-caption">输入下单手机号，自动匹配有赞订单。免单申请需要先匹配订单。</view>
+    <button class="btn ghost start-btn" bindtap="confirmStart" loading="{{loading}}">我已收到货</button>
+  </view>
+</view>

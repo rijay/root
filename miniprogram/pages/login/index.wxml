@@ -1,0 +1,28 @@
+<view class="page login-page">
+  <image class="top-logo" src="/static/brand/logo.png" mode="aspectFit" />
+
+  <view class="section">
+    <image class="hero-image" src="/static/brand/splash.png" mode="widthFix" />
+  </view>
+
+  <view class="section panel">
+    <view class="eyebrow">以肠为始，重启你的健康</view>
+    <view class="h1">ROOT 7日身体重启计划</view>
+    <view class="body login-copy">登录后将完成画像问卷，随后匹配有赞订单或确认收货开启打卡。</view>
+
+    <view class="agreement" bindtap="toggleAgree">
+      <view class="checkbox {{agreed ? 'checked' : ''}}">{{agreed ? '✓' : ''}}</view>
+      <text>我已阅读并同意《ROOT用户协议》和《隐私政策》</text>
+    </view>
+
+    <button
+      wx:if="{{!isDevelop}}"
+      class="btn login-btn"
+      loading="{{loading}}"
+      open-type="getPhoneNumber"
+      bindgetphonenumber="loginWithPhone"
+    >微信一键登录</button>
+    <button wx:else class="btn login-btn dev-login-btn" loading="{{loading}}" bindtap="loginWithDemoPhone">开发调试登录</button>
+    <view class="login-note">登录即代表您同意《ROOT用户协议》和《ROOT隐私政策》</view>
+  </view>
+</view>

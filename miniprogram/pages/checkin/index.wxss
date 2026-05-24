@@ -1,0 +1,25 @@
+.banner {
+  padding: var(--spacing-md);
+  color: var(--color-text-primary);
+  background: var(--color-warning);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-base);
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.today-actions {
+  margin-top: var(--spacing-md);
+}
+
+.today-actions .btn {
+  flex: 1;
+}
+
+.countdown {
+  margin: var(--spacing-sm) 0;
+  color: var(--color-primary-dark);
+  font-size: 76rpx;
+  font-weight: 900;
+  line-height: 1;
+}

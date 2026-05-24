@@ -1,0 +1,14 @@
+<view class="page">
+  <view class="content-card">
+    <view class="eyebrow">YOUZAN ORDER</view>
+    <view class="h1">我的订单</view>
+  </view>
+  <view class="section content-card">
+    <view wx:for="{{orders}}" wx:key="order_id" class="list-item">
+      <view class="section-title">{{item.youzan_order_no}}</view>
+      <view class="body">金额 {{item.amount}} 元 · {{item.delivery_status}}</view>
+      <view class="body">匹配方式：{{item.match_source || '未匹配'}}</view>
+    </view>
+    <image wx:if="{{!orders.length}}" class="empty-image" src="/static/empty/no-order.png" mode="aspectFit" />
+  </view>
+</view>

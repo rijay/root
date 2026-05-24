@@ -1,0 +1,43 @@
+.progress-line {
+  height: 10rpx;
+  overflow: hidden;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+  border-radius: var(--radius-full);
+}
+
+.stool-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+.stool-card {
+  min-height: 250rpx;
+  padding: var(--spacing-sm);
+  background: var(--color-surface);
+  border: 2rpx solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1.35;
+}
+
+.stool-card.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.stool-card image {
+  width: 100%;
+  height: 154rpx;
+}
+
+.footer-actions .btn {
+  flex: 1;
+}

@@ -1,0 +1,24 @@
+<view class="page refund-page">
+  <view class="panel">
+    <view class="eyebrow">FREE ORDER</view>
+    <view class="h1">免单申请</view>
+    <view class="body">免单将按原路退回有赞订单。无订单关联或断卡达到3次时，需要联系客服人工处理。</view>
+  </view>
+
+  <view class="section panel">
+    <view class="list-item">
+      <view class="section-title">周期</view>
+      <view class="body">{{session.startDate}} 至 {{session.endDate}}</view>
+    </view>
+    <view class="list-item">
+      <view class="section-title">订单状态</view>
+      <view class="body">{{session.orderId ? '已匹配订单，可提交免单' : '未匹配订单，无法自动免单'}}</view>
+    </view>
+    <view class="list-item">
+      <view class="section-title">断卡次数</view>
+      <view class="body">{{session.missCount}} 次</view>
+    </view>
+  </view>
+
+  <button class="btn apply-btn" bindtap="apply" loading="{{loading}}" disabled="{{!session.orderId || session.missCount >= 3}}">提交申请</button>
+</view>
