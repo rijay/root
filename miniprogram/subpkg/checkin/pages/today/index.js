@@ -1,6 +1,9 @@
 const { stoolOptions } = require("../../../../utils/options");
+const { getTodayPageCopy } = require("../../../../utils/checkin-presenter");
 const { request } = require("../../../../utils/request");
 const router = require("../../../../utils/router");
+
+const feelingChips = ["暂无明显变化", "腹部感觉有变化", "排便节律有变化", "整体状态有变化"];
 
 Page({
   data: {
@@ -8,6 +11,8 @@ Page({
     session: {
       currentDayIndex: 1,
     },
+    todayCopy: getTodayPageCopy("checkin", { currentDayIndex: 1 }),
+    feelingChips,
     stoolOptions,
     tookProduct: null,
     hadStool: null,
@@ -15,6 +20,7 @@ Page({
     feedback: "",
     imageUrls: [],
     canSubmit: false,
+    missingHint: "请选择今日是否服用",
     loading: false,
   },
 
@@ -28,11 +34,12 @@ Page({
       const state = await request({ url: "/api/v1/user/state" });
       if (state.user.state === "DAILY_USER") {
         const stats = await request({ url: "/api/v1/daily/stats" });
-        this.setData({ mode: "daily", session: { currentDayIndex: stats.totalDays + 1 } });
+        const session = { currentDayIndex: stats.totalDays + 1 };
+        this.setData({ mode: "daily", session, todayCopy: getTodayPageCopy("daily", session) });
         return;
       }
       const data = await request({ url: "/api/v1/checkin/session" });
-      this.setData({ mode: "checkin", session: data.session });
+      this.setData({ mode: "checkin", session: data.session, todayCopy: getTodayPageCopy("checkin", data.session) });
     } catch (error) {
       wx.showToast({ title: error.message || "加载失败", icon: "none" });
     }
@@ -41,7 +48,11 @@ Page({
   refreshValid(next = {}) {
     const data = { ...this.data, ...next };
     const canSubmit = data.tookProduct !== null && data.hadStool !== null && (!data.hadStool || Boolean(data.stoolType));
-    this.setData({ ...next, canSubmit });
+    let missingHint = "";
+    if (data.tookProduct === null) missingHint = "请选择今日是否服用";
+    else if (data.hadStool === null) missingHint = "请选择昨日是否排便";
+    else if (data.hadStool && !data.stoolType) missingHint = "请选择昨日便型";
+    this.setData({ ...next, canSubmit, missingHint });
   },
 
   selectTook(event) {
@@ -61,6 +72,11 @@ Page({
     this.setData({ feedback: event.detail.value });
   },
 
+  selectFeelingChip(event) {
+    const text = event.currentTarget.dataset.text || "";
+    this.setData({ feedback: text });
+  },
+
   chooseImages() {
     wx.chooseMedia({
       count: 3,
@@ -73,7 +89,10 @@ Page({
   },
 
   async submit() {
-    if (!this.data.canSubmit) return;
+    if (!this.data.canSubmit) {
+      wx.showToast({ title: this.data.missingHint || "请补全记录", icon: "none" });
+      return;
+    }
     this.setData({ loading: true });
     try {
       const uploaded = [];
@@ -89,7 +108,7 @@ Page({
         dayIndex: this.data.session.currentDayIndex,
         tookProduct: this.data.tookProduct,
         hadStool: this.data.hadStool,
-        stoolType: this.data.stoolType,
+        stoolType: this.data.hadStool ? this.data.stoolType : "",
         feedback: this.data.feedback,
         imageUrls: uploaded,
       };
@@ -116,17 +135,18 @@ Page({
         return;
       }
       if (data.coupon && data.coupon.visible) {
-        wx.showModal({
-          title: "复购礼已解锁",
-          content: data.coupon.claimable ? "你已完成第6天记录，回到首页可以领取复购礼。" : "你的复购礼状态已更新。",
-          showCancel: false,
-          confirmText: "回首页",
-          success: () => router.go("/pages/home/index"),
-        });
-        return;
+        wx.showToast({ title: data.coupon.claimable ? "复购礼已解锁" : "复购礼已更新", icon: "none" });
       }
-      wx.showToast({ title: "打卡成功", icon: "success" });
-      router.go("/pages/home/index");
+      wx.setStorageSync("ROOT_LAST_RESULT", {
+        mode: this.data.mode,
+        record: data.record || payload,
+        stats: data.stats || null,
+        session: data.session || this.data.session,
+        user: data.user || null,
+        completedDays: data.session && data.session.records ? data.session.records.filter((item) => item.checkedIn).length : 0,
+        savedAt: Date.now(),
+      });
+      wx.redirectTo({ url: `/subpkg/checkin/pages/result/index?mode=${this.data.mode}` });
     } catch (error) {
       wx.showToast({ title: error.message || "提交失败", icon: "none" });
     } finally {

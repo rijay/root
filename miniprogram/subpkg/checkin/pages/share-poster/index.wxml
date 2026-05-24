@@ -1,0 +1,18 @@
+<view class="root-page share-page">
+  <view class="share-header">
+    <view class="h1">今日分享图</view>
+    <view class="root-helper-text">保存图片后，可自行发布到朋友圈或小红书。</view>
+  </view>
+
+  <view class="poster-shell">
+    <canvas canvas-id="rootSharePoster" class="poster-canvas" style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"></canvas>
+    <image wx:if="{{posterPath}}" class="poster-preview" src="{{posterPath}}" mode="widthFix" />
+    <view wx:if="{{generating}}" class="poster-loading">正在生成...</view>
+  </view>
+
+  <view class="share-actions">
+    <button class="root-button" loading="{{saving}}" bindtap="savePoster">保存到相册</button>
+    <button class="root-button root-button--secondary" bindtap="sharePoster">微信发送/分享</button>
+    <view class="share-link" bindtap="goHome">返回首页</view>
+  </view>
+</view>

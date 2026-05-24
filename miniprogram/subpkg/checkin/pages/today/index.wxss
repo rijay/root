@@ -116,6 +116,25 @@
   margin-top: var(--spacing-md);
 }
 
+.feeling-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.feeling-chip {
+  min-height: 56rpx;
+  padding: 0 var(--spacing-md);
+  color: var(--color-root-moss);
+  background: var(--color-primary-tint);
+  border: 1rpx solid var(--color-root-line);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  line-height: 56rpx;
+}
+
 .upload-btn {
   width: 100%;
   margin-top: var(--spacing-md);
@@ -131,6 +150,14 @@
 .submit-btn {
   width: 100%;
   margin-top: var(--spacing-lg);
+}
+
+.missing-hint {
+  margin-top: var(--spacing-sm);
+  color: var(--color-root-clay);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-align: center;
 }
 
 .submit-help {

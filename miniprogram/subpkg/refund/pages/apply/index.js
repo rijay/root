@@ -1,4 +1,5 @@
 const { request } = require("../../../../utils/request");
+const { formatDateRangeCn } = require("../../../../utils/date-display");
 const router = require("../../../../utils/router");
 
 Page({
@@ -9,6 +10,7 @@ Page({
       endDate: "",
       missCount: 0,
     },
+    sessionDateRange: "",
     eligibility: null,
     loading: false,
   },
@@ -24,7 +26,11 @@ Page({
         request({ url: "/api/v1/checkin/session" }),
         request({ url: "/api/v1/refund/status" }),
       ]);
-      this.setData({ session: session.session, eligibility: refund.eligibility || null });
+      this.setData({
+        session: session.session,
+        sessionDateRange: formatDateRangeCn(session.session.startDate, session.session.endDate),
+        eligibility: refund.eligibility || null,
+      });
     } catch (error) {
       wx.showToast({ title: error.message || "加载失败", icon: "none" });
     }

@@ -51,7 +51,7 @@ npm run adapters -- --base-url http://127.0.0.1:8787 --source youzan --mode prev
 1. 用微信开发者工具打开 `/Users/rijay/Documents/Root/root_seven_day_checkin/miniprogram`。
 2. 使用测试 AppID，或保留 `touristappid`。
 3. 本地联调时关闭合法域名校验，项目已在 `project.config.json` 中设置 `urlCheck: false`。
-4. 演示手机号默认是 `13800000001`，可在 `miniprogram/config/env.js` 修改。
+4. 登录链路始终使用微信手机号授权；开发调试入口不进入发布包。
 
 ## 已覆盖的 PRD 范围
 

@@ -8,28 +8,24 @@ const configs = {
   develop: {
     requestAdapter: "wxRequest",
     apiBaseUrl: "http://127.0.0.1:8787",
-    allowMockPhoneLogin: true,
   },
   trial: {
     requestAdapter: "cloudContainer",
     apiBaseUrl: productionApiBaseUrl,
     cloudEnvId,
     cloudServiceName,
-    allowMockPhoneLogin: false,
   },
   release: {
     requestAdapter: "cloudContainer",
     apiBaseUrl: productionApiBaseUrl,
     cloudEnvId,
     cloudServiceName,
-    allowMockPhoneLogin: false,
   },
 };
 
 module.exports = {
   envVersion,
   ...(configs[envVersion] || configs.develop),
-  demoPhone: "13800000001",
   youzanAppId: "wx1234567890abcdef",
   youzanProductPath: "pages/product/detail?id=ROOT_PREBIOTIC",
 };

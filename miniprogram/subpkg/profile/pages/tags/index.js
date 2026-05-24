@@ -1,4 +1,10 @@
 const { request } = require("../../../../utils/request");
+const {
+  formatOptionList,
+  gutHealthLabel,
+  improvementLabel,
+  joinReasonLabel,
+} = require("../../../../utils/option-labels");
 const router = require("../../../../utils/router");
 
 Page({
@@ -20,10 +26,9 @@ Page({
         profile,
         rows: profile
           ? [
-              { label: "参与原因", value: profile.join_reasons.join("、") },
-              { label: "肠道状态", value: profile.gut_health_status },
-              { label: "改善方式", value: profile.improvement_methods.join("、") },
-              { label: "日常便型", value: profile.stool_type },
+              { label: "参与原因", value: formatOptionList(profile.join_reasons, joinReasonLabel) },
+              { label: "肠道状态", value: gutHealthLabel(profile.gut_health_status) },
+              { label: "改善方式", value: formatOptionList(profile.improvement_methods, improvementLabel) },
             ]
           : [],
       });

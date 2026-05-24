@@ -8,7 +8,7 @@
   <view class="section panel">
     <view class="list-item">
       <view class="section-title">周期</view>
-      <view class="body">{{session.startDate}} 至 {{session.endDate}}</view>
+      <view class="body">{{sessionDateRange}}</view>
     </view>
     <view class="list-item">
       <view class="section-title">订单状态</view>

@@ -45,6 +45,7 @@ function syntaxCheck() {
     ...collectFiles(path.join(backendDir, "src"), (file) => file.endsWith(".js")),
     ...collectFiles(path.join(backendDir, "scripts"), (file) => file.endsWith(".js")),
     ...collectFiles(path.join(backendDir, "tests"), (file) => file.endsWith(".js")),
+    ...collectFiles(miniprogramDir, (file) => file.endsWith(".js")),
     path.join(backendDir, "public", "admin.js"),
   ];
   const failures = [];

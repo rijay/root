@@ -13,7 +13,7 @@
   </view>
 
   <view class="root-card status-card">
-    <view class="root-section-title">当前活动状态</view>
+    <view class="root-section-title">当前记录状态</view>
     <view wx:if="{{progress.length}}" class="mini-progress">
       <view wx:for="{{progress}}" wx:key="dayIndex" class="mini-dot {{item.className}}"></view>
     </view>
@@ -33,14 +33,14 @@
     </view>
     <view wx:else class="root-helper-text">完成登录和画像后，即可开启 7 日重启计划。</view>
     <view class="status-meta">
-      <text>累计打卡 {{dailyStats ? dailyStats.totalDays : checkedDays}} 天</text>
+      <text>累计记录 {{dailyStats ? dailyStats.totalDays : checkedDays}} 天</text>
       <text>免单状态：{{refundStatus}}</text>
     </view>
   </view>
 
   <view class="root-cell-group menu-card">
     <view wx:if="{{showRecords}}" class="menu-row" data-url="/subpkg/checkin/pages/history/index" bindtap="goLink">
-      <text>7 天记录</text><text class="menu-arrow">›</text>
+      <text>记录历史</text><text class="menu-arrow">›</text>
     </view>
     <view class="menu-row" data-url="/subpkg/profile/pages/tags/index" bindtap="goLink">
       <text>身体反馈画像</text><text class="menu-arrow">›</text>
@@ -57,5 +57,5 @@
   </view>
 
   <button class="root-button root-button--secondary logout-btn" bindtap="logout">退出登录</button>
-  <view class="version">v1.0.0</view>
+  <view class="version">v0.3.0</view>
 </view>

@@ -14,8 +14,7 @@
       <view class="root-promise">不追求完美答案，只关注身体反馈</view>
       <view class="root-promise">异常状态可进入人工协助</view>
     </view>
-    <button wx:if="{{!isDevelop}}" class="root-button login-button" loading="{{loading}}" open-type="getPhoneNumber" bindgetphonenumber="loginWithPhone">微信授权并开始</button>
-    <button wx:else class="root-button dev-login-button" loading="{{loading}}" bindtap="loginWithDemoPhone">开发调试登录</button>
+    <button class="root-button login-button" loading="{{loading}}" open-type="getPhoneNumber" bindgetphonenumber="loginWithPhone">微信授权并开始</button>
     <view class="agreement root-agreement" bindtap="toggleAgree">
       <view class="checkbox {{agreed ? 'checked' : ''}}">{{agreed ? '✓' : ''}}</view>
       <text>我已阅读并同意《用户协议》和《隐私政策》</text>
@@ -137,7 +136,7 @@
         <view wx:for="{{progress}}" wx:key="dayIndex" class="calendar-row {{item.status}}">
           <view class="calendar-marker">{{item.checkedIn ? '✓' : item.dayIndex}}</view>
           <view>
-            <view class="row-title">第 {{item.dayIndex}} 天 · {{item.date}}</view>
+            <view class="row-title">第 {{item.dayIndex}} 天 · {{item.dateText}}</view>
             <view class="body">{{item.statusText}}</view>
           </view>
         </view>
@@ -148,15 +147,15 @@
       <image class="complete-badge" src="/static/badge/complete.png" mode="aspectFit" />
       <view class="root-card section">
         <view class="eyebrow">{{isFailed ? '人工协助' : '完成记录'}}</view>
-        <view class="home-title">{{isFailed ? '需要人工协助' : '7天完成'}}</view>
-        <view class="body">{{isFailed ? '当前周期断卡达到3次，请联系 ROOT 顾问确认后续安排。' : '你已完成7天身体记录，可以申请免单，也可以继续日常打卡。'}}</view>
+        <view class="home-title">{{isFailed ? '需要人工协助' : '试饮记录已完成'}}</view>
+        <view class="body">{{isFailed ? '当前周期断卡达到3次，请联系 ROOT 顾问确认后续安排。' : '收尾反馈和免单状态会继续保留，你也可以进入日常记录。'}}</view>
       </view>
       <view class="chart-card section">
-        <view class="section-title">7天数据总结</view>
+        <view class="section-title">试饮记录概览</view>
         <view class="bar-chart">
           <view wx:for="{{progress}}" wx:key="dayIndex" class="bar {{item.checkedIn ? 'active' : ''}}" style="height: {{item.checkedIn ? 128 : 36}}rpx;"></view>
         </view>
-        <view class="body">完成 {{completedDays}}/7 天 · 免单状态：{{refundStatus || '待申请'}}</view>
+        <view class="body">完成 {{completedDays}}/7 天试饮记录 · 免单状态：{{refundStatus || '待申请'}}</view>
       </view>
       <view wx:if="{{couponStatus && couponStatus.visible}}" class="coupon-card section">
         <view class="eyebrow">复购礼</view>
@@ -175,11 +174,16 @@
   </view>
 
   <view wx:elif="{{viewType === 'daily'}}" class="page daily-view">
-    <view class="daily-welcome">{{user.nickname}}，今天也要记录身体的反馈呀～</view>
+    <view class="root-card daily-hero-card">
+      <view class="eyebrow">{{dailyHome.eyebrow}}</view>
+      <view class="daily-hero-title">{{dailyHome.title}}</view>
+      <view class="daily-hero-copy">{{dailyHome.description}}</view>
+      <button class="root-button daily-main-button" bindtap="handleDailyCta">{{dailyHome.primaryText}}</button>
+    </view>
     <view class="stats-grid section">
       <view class="stats-card">
         <text class="stat-value">{{dailyStats.totalDays}}</text>
-        <text class="stat-label">累计打卡</text>
+        <text class="stat-label">累计记录</text>
       </view>
       <view class="stats-card">
         <text class="stat-value">{{dailyStats.currentStreak}}</text>
@@ -190,27 +194,18 @@
         <text class="stat-label">最长连续</text>
       </view>
     </view>
-    <view class="daily-cta section" bindtap="goToday">
-      <image class="daily-cta-icon" src="/static/icon/checkin.png" mode="aspectFit" />
-      <text>{{dailyStats.todayChecked ? '今日已记录 ✓' : '今日打卡'}}</text>
-    </view>
-    <view class="trend-card section">
-      <view class="section-head">
-        <view class="section-title">我的便型趋势</view>
-        <view class="range-tabs">
-          <text class="{{dailyRange === '7d' ? 'active' : ''}}" data-range="7d" bindtap="switchDailyRange">近7天</text>
-          <text class="{{dailyRange === '30d' ? 'active' : ''}}" data-range="30d" bindtap="switchDailyRange">近30天</text>
-        </view>
+    <view class="root-card daily-history-entry section" bindtap="goHistory">
+      <view>
+        <view class="section-title">记录历史</view>
+        <view class="body">查看试饮与日常记录</view>
       </view>
-      <view class="mini-bars">
-        <view wx:for="{{dailyTrend}}" wx:key="date" class="mini-bar {{item.checked ? 'active' : ''}}"></view>
-      </view>
+      <view class="daily-entry-arrow">›</view>
     </view>
     <view class="shop-card section">
       <image class="shop-card-icon" src="/static/icon/shop.png" mode="aspectFit" />
       <view>
-        <view class="section-title">你已经坚持 {{dailyStats.totalDays}} 天啦！</view>
-        <view class="body">产品快用完了？立即复购，保持你的好状态。</view>
+        <view class="section-title">ROOT 补充计划</view>
+        <view class="body">如果需要继续使用，可前往店铺查看。</view>
         <button class="btn-primary shop-btn" bindtap="navigateToShop">前往店铺</button>
       </view>
     </view>

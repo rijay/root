@@ -1,8 +1,8 @@
 <view class="root-page history-page">
   <view class="root-card">
-    <view class="eyebrow">7日进度</view>
-    <view class="h1">7天记录</view>
-    <view class="root-helper-text">这些记录会成为最终免单审核和身体趋势总结的依据。页面只呈现真实反馈，不把身体感受包装成成绩单。</view>
+    <view class="eyebrow">{{mode === 'daily' ? '日常记录' : '试饮记录'}}</view>
+    <view class="h1">记录历史</view>
+    <view class="root-helper-text">{{mode === 'daily' ? '试饮记录和日常记录分开展示，日期使用中文表达。' : '这些记录会成为最终免单审核和身体趋势总结的依据。页面只呈现真实反馈。'}}</view>
   </view>
 
   <view class="section root-card history-list">
@@ -10,7 +10,7 @@
       <view wx:for="{{records}}" wx:key="dayIndex" class="list-item history-row" data-day="{{item.dayIndex}}" bindtap="select">
         <view class="row-marker {{item.checkedIn ? 'done' : ''}}">{{item.marker}}</view>
         <view class="history-row-content">
-          <view class="row-title">{{item.title}} · {{item.date}}</view>
+          <view class="row-title">{{item.title}} · {{item.dateText}}</view>
           <view class="history-summary">{{item.summary}}{{item.isMakeup ? ' · 补卡' : ''}}</view>
         </view>
         <view class="row-pill {{item.checkedIn ? 'done' : ''}}">{{item.statusLabel}}</view>
@@ -24,7 +24,7 @@
 
   <view wx:if="{{selected}}" class="section root-card history-detail">
     <view class="section-title">{{selected.title}} 详情</view>
-    <view class="root-helper-text detail-date">{{selected.date}} · {{selected.statusText}}</view>
+    <view class="root-helper-text detail-date">{{selected.dateText}} · {{selected.statusText}}</view>
     <view wx:for="{{selected.detailRows}}" wx:key="label" class="detail-row {{item.long ? 'detail-row--long' : ''}}">
       <view class="detail-label">{{item.label}}</view>
       <view class="detail-value">{{item.value}}</view>

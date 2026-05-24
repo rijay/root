@@ -1,30 +1,23 @@
 const { request } = require("../../../../utils/request");
-const { stoolOptions } = require("../../../../utils/options");
+const { formatDateCn } = require("../../../../utils/date-display");
+const { stoolLabel } = require("../../../../utils/option-labels");
 const router = require("../../../../utils/router");
 
-const stoolLabelMap = stoolOptions.reduce((acc, item) => {
-  acc[item.value] = item.label;
-  return acc;
-}, {});
-
 function yesNo(value) {
-  return value ? "是" : "否";
-}
-
-function stoolLabel(value) {
-  return stoolLabelMap[value] || value || "未记录便型";
+  return value ? "有" : "没有";
 }
 
 function detailRows(detail) {
   if (!detail) {
     return [{ label: "记录状态", value: "这一天还没有提交记录" }];
   }
-  return [
+  const rows = [
     { label: "服用 ROOT", value: yesNo(detail.took_product) },
     { label: "是否排便", value: yesNo(detail.had_stool) },
-    { label: "便型", value: detail.had_stool ? stoolLabel(detail.stool_type) : "未排便" },
-    { label: "身体反馈", value: detail.feedback || "暂无文字反馈", long: true },
   ];
+  if (detail.had_stool) rows.push({ label: "便型", value: stoolLabel(detail.stool_type) });
+  rows.push({ label: "身体反馈", value: detail.feedback || "暂无文字反馈", long: true });
+  return rows;
 }
 
 Page({
@@ -48,14 +41,15 @@ Page({
         const records = data.records.map((item, index) => ({
           dayIndex: index + 1,
           date: item.checkin_date,
+          dateText: formatDateCn(item.checkin_date),
           checkedIn: true,
           detail: item,
           detailRows: detailRows(item),
           marker: "日",
-          title: "日常记录",
+          title: "今日记录",
           statusText: `连续 ${item.streak_count} 天`,
           statusLabel: "已记录",
-          summary: item.feedback || stoolLabel(item.stool_type),
+          summary: item.feedback || (item.had_stool ? stoolLabel(item.stool_type) : "仍可记录身体感受"),
         }));
         this.setData({ mode: "daily", session: null, records });
         return;
@@ -65,6 +59,7 @@ Page({
         const detail = data.records.find((record) => record.day_index === item.dayIndex);
         return {
           ...item,
+          dateText: formatDateCn(item.date),
           detail,
           detailRows: detailRows(detail),
           marker: item.checkedIn ? "✓" : item.dayIndex,

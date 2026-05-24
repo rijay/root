@@ -2,7 +2,7 @@
   <view class="root-card">
     <view class="eyebrow">身体画像</view>
     <view class="h1">身体反馈画像</view>
-    <view class="root-helper-text">这些信息用于个性化欢迎与后续顾问沟通。</view>
+    <view class="root-helper-text">这些信息来自你的入组选择，用于后续记录与顾问沟通。</view>
   </view>
   <view class="section root-card profile-list">
     <view wx:for="{{rows}}" wx:key="label" class="profile-row">

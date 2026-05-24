@@ -12,7 +12,7 @@
     </view>
     <view class="list-item">
       <view class="section-title">提交时间</view>
-      <view class="body">{{refund.created_at}}</view>
+      <view class="body">{{refundCreatedAt}}</view>
     </view>
   </view>
 </view>

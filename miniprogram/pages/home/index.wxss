@@ -79,11 +79,6 @@
   margin-top: var(--spacing-xl);
 }
 
-.dev-login-button {
-  width: 670rpx;
-  margin-top: var(--spacing-md);
-}
-
 .login-safe-note {
   width: 670rpx;
   margin-top: var(--spacing-md);
@@ -480,14 +475,28 @@
   background: linear-gradient(180deg, var(--color-primary-light), var(--color-primary));
 }
 
-.daily-welcome {
-  padding: var(--spacing-lg);
-  color: var(--color-surface);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-success));
-  border-radius: var(--radius-card);
-  font-size: var(--font-size-lg);
-  font-weight: 800;
-  box-shadow: var(--shadow-md);
+.daily-hero-card {
+  padding: 40rpx;
+}
+
+.daily-hero-title {
+  margin-top: var(--spacing-md);
+  color: var(--color-root-ink);
+  font-size: 48rpx;
+  font-weight: 900;
+  line-height: 1.18;
+}
+
+.daily-hero-copy {
+  margin-top: var(--spacing-md);
+  color: var(--color-root-copy);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+}
+
+.daily-main-button {
+  width: 100%;
+  margin-top: var(--spacing-lg);
 }
 
 .stats-grid {
@@ -497,11 +506,11 @@
 }
 
 .stats-card {
-  padding: var(--spacing-md);
-  text-align: center;
+  padding: var(--spacing-lg) var(--spacing-md);
   background: var(--color-surface);
   border: 1rpx solid var(--color-border);
   border-radius: var(--radius-card);
+  text-align: left;
 }
 
 .stat-value {
@@ -516,6 +525,17 @@
   margin-top: var(--spacing-xs);
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
+}
+
+.daily-history-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.daily-entry-arrow {
+  color: var(--color-root-muted);
+  font-size: 42rpx;
 }
 
 .section-head {

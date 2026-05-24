@@ -15,13 +15,11 @@
     </view>
 
     <button
-      wx:if="{{!isDevelop}}"
       class="root-button login-btn"
       loading="{{loading}}"
       open-type="getPhoneNumber"
       bindgetphonenumber="loginWithPhone"
     >微信授权并开始</button>
-    <button wx:else class="root-button login-btn dev-login-btn" loading="{{loading}}" bindtap="loginWithDemoPhone">开发调试登录</button>
     <view class="login-note">授权仅用于身份识别与打卡服务，可随时停止记录。</view>
   </view>
 </view>

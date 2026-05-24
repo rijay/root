@@ -14,7 +14,8 @@
         "pages/today/index",
         "pages/history/index",
         "pages/result/index",
-        "pages/questionnaire/index"
+        "pages/questionnaire/index",
+        "pages/share-poster/index"
       ]
     },
     {

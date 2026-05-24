@@ -61,7 +61,7 @@ const productionApiBaseUrl = "https://express-x7te-258599-9-1404419431.sh.run.tc
 - 微信公众平台已配置 `request 合法域名`。
 - 后端 HTTPS 证书有效，`/health` 可访问。
 - 后端已配置 `WECHAT_APPID` 和 `WECHAT_APPSECRET`。
-- 演示手机号登录只在开发版开启。
+- 小程序发布包不包含开发调试登录入口，后端未启用直接手机号登录测试开关。
 - 生产数据已接入 SQLite、PostgreSQL 或 MySQL 等正式数据仓库 Adapter；如使用 `ROOT_STORE_FILE`，仅作为内部灰度。
 - 已按 `docs/release_readiness.md` 跑完最小手工验收矩阵。
 - 有赞订单、物流、企业微信 Adapter 字段已用真实样本核对。

@@ -81,10 +81,6 @@
   margin-top: var(--spacing-lg);
 }
 
-.dev-login-btn {
-  margin-top: var(--spacing-md);
-}
-
 .login-note {
   margin-top: var(--spacing-md);
   color: var(--color-text-tertiary);

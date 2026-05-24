@@ -1,5 +1,7 @@
-const env = require("../../config/env");
 const options = require("../../utils/options");
+const { formatDateCn } = require("../../utils/date-display");
+const { getHomeStageCopy } = require("../../utils/checkin-presenter");
+const { gutHealthLabel, stoolLabel } = require("../../utils/option-labels");
 const { clearToken, getToken, request, setToken, stringifyError } = require("../../utils/request");
 
 const questions = [
@@ -13,6 +15,7 @@ function buildProgress(session) {
   if (!session) return [];
   return session.records.map((record) => ({
     ...record,
+    dateText: formatDateCn(record.date),
     status: record.checkedIn ? "done" : record.dayIndex === session.currentDayIndex ? "today" : "pending",
     statusText: record.checkedIn ? "已完成" : record.dayIndex === session.currentDayIndex ? "今日" : "未到",
     badge: `/static/badge/day${record.dayIndex}.png`,
@@ -21,7 +24,6 @@ function buildProgress(session) {
 
 Page({
   data: {
-    isDevelop: env.envVersion === "develop",
     state: "GUEST",
     viewType: "loading",
     user: null,
@@ -60,6 +62,7 @@ Page({
       longestStreak: 0,
       todayChecked: false,
     },
+    dailyHome: getHomeStageCopy("DAILY_USER", "", null, { todayChecked: false }),
     dailyTrend: [],
     dailyRange: "7d",
     couponStatus: null,
@@ -126,39 +129,26 @@ Page({
     this.submitLogin((event && event.detail) || {});
   },
 
-  loginWithDemoPhone() {
-    this.submitLogin({ errMsg: "getPhoneNumber:fail devtools mock", code: "dev_phone_code", forceMock: true });
-  },
-
   submitLogin(detail) {
     if (!this.data.agreed) {
       wx.showToast({ title: "请先阅读并同意协议", icon: "none" });
       return;
     }
     const phoneAuthFailed = detail.errMsg && detail.errMsg.includes("fail");
-    if (phoneAuthFailed && !env.allowMockPhoneLogin) {
+    if (phoneAuthFailed) {
       wx.showToast({ title: "需要手机号才能继续", icon: "none" });
       return;
     }
-    if (phoneAuthFailed && env.allowMockPhoneLogin) {
-      wx.showToast({ title: "调试模式使用演示手机号", icon: "none" });
-    }
     this.setData({ loading: true });
-    if (env.allowMockPhoneLogin && env.envVersion === "develop") {
-      this.submitMockLogin(detail);
-      return;
-    }
     wx.login({
       success: async (loginResult) => {
         try {
-          const useMockPhone = Boolean(env.allowMockPhoneLogin && (phoneAuthFailed || detail.forceMock || env.envVersion === "develop"));
           const data = await request({
             url: "/api/v1/auth/login",
             method: "POST",
             data: {
-              wxCode: loginResult.code || "dev_wx_code",
+              wxCode: loginResult.code || "",
               phoneCode: detail.code || "",
-              ...(useMockPhone ? { phone: env.demoPhone, useMockPhone: true } : {}),
             },
           });
           setToken(data.token);
@@ -170,55 +160,11 @@ Page({
           this.setData({ loading: false });
         }
       },
-      fail: async (error) => {
-        if (env.allowMockPhoneLogin) {
-          try {
-            const data = await request({
-              url: "/api/v1/auth/login",
-              method: "POST",
-              data: {
-                wxCode: "dev_wx_login_failed",
-                phoneCode: detail.code || "dev_phone_code",
-                phone: env.demoPhone,
-                useMockPhone: true,
-              },
-            });
-            setToken(data.token);
-            await this.refresh();
-            return;
-          } catch (requestError) {
-            wx.showToast({ title: (stringifyError(requestError) || "登录失败").slice(0, 28), icon: "none" });
-          } finally {
-            this.setData({ loading: false });
-          }
-          return;
-        }
+      fail: (error) => {
         this.setData({ loading: false });
         wx.showToast({ title: (stringifyError(error) || "登录失败，请重试").slice(0, 28), icon: "none" });
       },
     });
-  },
-
-  async submitMockLogin(detail) {
-    try {
-      const data = await request({
-        url: "/api/v1/auth/login",
-        method: "POST",
-        data: {
-          wxCode: "dev_wx_code",
-          phoneCode: detail.code || "dev_phone_code",
-          phone: env.demoPhone,
-          useMockPhone: true,
-        },
-      });
-      setToken(data.token);
-      await this.refresh();
-    } catch (error) {
-      const message = stringifyError(error) || "登录失败，请重试";
-      wx.showToast({ title: message.slice(0, 28), icon: "none" });
-    } finally {
-      this.setData({ loading: false });
-    }
   },
 
   decorateQuestion(step, answers) {
@@ -300,7 +246,9 @@ Page({
   async loadProfile() {
     const data = await request({ url: "/api/v1/user/profile" });
     const profile = data.profile;
-    const tags = profile ? [profile.gut_health_status, profile.stool_type].filter(Boolean).join(" / ") : "身体节奏";
+    const tags = profile
+      ? [gutHealthLabel(profile.gut_health_status), stoolLabel(profile.stool_type)].filter(Boolean).join(" / ")
+      : "身体节奏";
     this.setData({ profile, tags });
   },
 
@@ -398,7 +346,19 @@ Page({
       request({ url: "/api/v1/daily/stats" }),
       request({ url: `/api/v1/daily/trend?range=${this.data.dailyRange}` }),
     ]);
-    this.setData({ dailyStats: stats, dailyTrend: trend.points });
+    this.setData({
+      dailyStats: stats,
+      dailyHome: getHomeStageCopy("DAILY_USER", "", null, stats),
+      dailyTrend: trend.points,
+    });
+  },
+
+  handleDailyCta() {
+    if (this.data.dailyStats && this.data.dailyStats.todayChecked) {
+      this.goHistory();
+      return;
+    }
+    this.goToday();
   },
 
   switchDailyRange(event) {

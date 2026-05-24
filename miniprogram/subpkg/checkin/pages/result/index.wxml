@@ -1,32 +1,31 @@
 <view class="root-page result-page">
   <view class="result-hero {{failed ? 'result-hero--support' : ''}}">
     <image class="result-logo" src="/static/brand/root-logo-horizontal-light.png" mode="aspectFit" />
-    <view class="result-kicker">{{failed ? '人工协助' : '阶段完成'}}</view>
-    <view class="result-title">{{failed ? '需要人工协助' : '秩序已记录'}}</view>
-    <view class="result-copy">
-      <block wx:if="{{failed}}">当前周期断卡达到 3 次，ROOT 顾问会协助确认后续安排。</block>
-      <block wx:else>你已经完成 {{completedDays}}/7 天记录。真实反馈会成为下一步建议的依据。</block>
+    <view class="result-kicker">{{resultCopy.kicker}}</view>
+    <view class="result-title">{{resultCopy.title}}</view>
+    <view class="result-copy">{{resultCopy.description}}</view>
+  </view>
+
+  <view wx:if="{{record}}" class="root-card result-summary-card">
+    <view class="section-title">今日摘要</view>
+    <view wx:if="{{recordDate}}" class="root-helper-text result-date">{{recordDate}}</view>
+    <view wx:for="{{summaryRows}}" wx:key="label" class="summary-row {{item.long ? 'summary-row--long' : ''}}">
+      <view class="summary-label">{{item.label}}</view>
+      <view class="summary-value">{{item.value}}</view>
     </view>
   </view>
 
-  <view class="root-cell-group result-summary">
-    <view class="root-cell">
-      <text>完成天数</text>
-      <text class="root-cell__value">{{completedDays}}/7</text>
-    </view>
-    <view class="root-cell">
-      <text>断卡次数</text>
-      <text class="root-cell__value">{{session.missCount}}</text>
-    </view>
-    <view class="root-cell">
-      <text>当前状态</text>
-      <text class="root-cell__value">{{failed ? '人工协助中' : '已完成记录'}}</text>
+  <view wx:if="{{statsItems.length}}" class="result-stat-strip">
+    <view wx:for="{{statsItems}}" wx:key="label" class="result-stat-item">
+      <text class="result-stat-value">{{item.value}}</text>
+      <text class="result-stat-label">{{item.label}}</text>
     </view>
   </view>
 
   <view class="result-actions">
-    <button class="root-button" bindtap="goHistory">查看 7 天进度</button>
-    <button wx:if="{{!failed && completedDays >= 7}}" class="root-button root-button--secondary" bindtap="goRefund">申请免单</button>
+    <button wx:if="{{!failed && record}}" class="root-button" bindtap="goSharePoster">生成今日分享图</button>
+    <button class="root-button root-button--secondary" bindtap="goHistory">{{mode === 'daily' ? '查看记录历史' : '查看试饮进度'}}</button>
+    <button wx:if="{{!failed && mode === 'checkin' && completedDays >= 7}}" class="root-button root-button--secondary" bindtap="goRefund">申请免单</button>
     <view class="result-link" bindtap="goHome">返回首页</view>
   </view>
 </view>

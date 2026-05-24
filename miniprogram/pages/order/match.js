@@ -3,7 +3,7 @@ const router = require("../../utils/router");
 
 Page({
   data: {
-    phone: "13800000001",
+    phone: "",
     loading: false,
   },
 

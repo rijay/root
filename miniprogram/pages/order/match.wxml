@@ -7,7 +7,7 @@
 
   <view class="section panel">
     <view class="form-label">收货手机号</view>
-    <input class="input" type="number" maxlength="11" value="{{phone}}" bindinput="onPhoneInput" placeholder="例如 13800000001" />
+    <input class="input" type="number" maxlength="11" value="{{phone}}" bindinput="onPhoneInput" placeholder="请输入收货手机号" />
     <button class="btn match-btn" bindtap="submit" loading="{{loading}}">确认订单</button>
     <view class="body hint">订单送达后才能启动 Day1。若微信手机号和收货手机号不同，请以收货手机号为准。</view>
   </view>

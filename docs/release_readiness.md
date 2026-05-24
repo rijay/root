@@ -147,7 +147,7 @@ npm run check --prefix root_seven_day_checkin/miniprogram
 正式上线前必须关闭：
 
 1. 数据仓库风险：内存 Adapter 重启会丢失记录；JSON 文件 Adapter 只适合内部灰度；SQLite Adapter 仅适合单实例小范围上线前验证，多实例和高并发仍需要 PostgreSQL/MySQL。
-2. 演示手机号风险：生产环境必须配置真实微信登录密钥，并关闭 mock 登录。
+2. 正式登录风险：生产环境必须配置真实微信登录密钥，并确保未启用直接手机号登录测试开关。
 3. 正式域名风险：小程序体验版和正式版不能访问 `127.0.0.1`。
 4. 数据保留风险：用户明细保留期限、图片保留规则和后台可见范围需要最终确认。
 5. 外部字段和平台请求风险：有赞、物流、企业微信字段或凭证未验证前，只能按 `MANUAL_SAMPLE` Adapter 灰度试跑；三类 HTTP Implementation 需要真实账号校准后再进入正式上线。

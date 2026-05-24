@@ -80,8 +80,8 @@ Page({
 
   buildStatusBadge(state, session, dailyStats) {
     if (state === "CHECKIN_ACTIVE" && session) return `打卡中 Day${session.currentDayIndex || 1}/7`;
-    if (state === "CHECKIN_COMPLETED") return "7天已完成";
-    if (state === "DAILY_USER" && dailyStats) return `日常打卡 ${dailyStats.currentStreak} 天连续`;
+    if (state === "CHECKIN_COMPLETED") return "试饮记录已完成";
+    if (state === "DAILY_USER" && dailyStats) return `日常记录中 · 连续 ${dailyStats.currentStreak} 天`;
     if (state === "REGISTERED_IDLE") return "待开启打卡";
     if (state === "UNREGISTERED") return "待完成画像";
     return state || "未登录";

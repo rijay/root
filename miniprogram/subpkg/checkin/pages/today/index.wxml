@@ -1,15 +1,15 @@
 <view class="root-page today-page">
   <view class="root-card today-intro">
-    <view class="today-day">第 {{session.currentDayIndex}} 天</view>
-    <view class="root-section-title">今天，和身体对一次话</view>
-    <view class="root-helper-text">无需完美，真实记录即可。每一条真实反馈，都会帮助 ROOT 更好地理解你的身体节奏。</view>
+    <view class="today-day">{{todayCopy.eyebrow}}</view>
+    <view class="root-section-title">{{todayCopy.title}}</view>
+    <view class="root-helper-text">{{todayCopy.description}}</view>
   </view>
 
   <view class="root-cell-group today-form">
     <view class="root-cell today-question">
       <view>
         <view class="question-title">今日是否服用 ROOT</view>
-        <view class="question-copy">按实际情况记录即可</view>
+        <view class="question-copy">若今天未服用，也可以继续记录身体感受。</view>
       </view>
       <view class="segmented-choice">
         <view class="choice-pill {{tookProduct === true ? 'active' : ''}}" data-value="true" bindtap="selectTook">已完成</view>
@@ -46,10 +46,14 @@
   <view class="root-card feedback-card">
     <view class="root-section-title">身体感受</view>
     <textarea class="textarea feedback-textarea" maxlength="500" value="{{feedback}}" bindinput="onFeedback" placeholder="例如：腹胀减少、睡得更稳、暂时无明显变化" />
+    <view class="feeling-chip-row">
+      <view wx:for="{{feelingChips}}" wx:key="*this" class="feeling-chip" data-text="{{item}}" bindtap="selectFeelingChip">{{item}}</view>
+    </view>
     <button class="root-button root-button--secondary upload-btn" bindtap="chooseImages">添加图片（可选）</button>
     <view wx:if="{{imageUrls.length}}" class="image-count">已选择 {{imageUrls.length}} 张</view>
   </view>
 
   <button class="root-button submit-btn" disabled="{{!canSubmit}}" loading="{{loading}}" bindtap="submit">保存今日记录</button>
+  <view wx:if="{{!canSubmit}}" class="missing-hint">{{missingHint}}</view>
   <view class="root-helper-text submit-help">如出现明显不适，提交后可联系人工协助。</view>
 </view>
