@@ -1,5 +1,5 @@
-const { formatDateCn } = require("./date-display");
-const { stoolLabel } = require("./option-labels");
+const { formatDateCn } = require("../../../utils/date-display");
+const { stoolLabel } = require("../../../utils/option-labels");
 
 function read(record, snakeKey, camelKey) {
   if (!record) return "";

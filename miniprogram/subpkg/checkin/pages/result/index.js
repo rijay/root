@@ -1,7 +1,7 @@
 const { formatDateCn } = require("../../../../utils/date-display");
 const { getResultPageCopy } = require("../../../../utils/checkin-presenter");
 const { request } = require("../../../../utils/request");
-const { buildSharePosterPayload } = require("../../../../utils/share-poster");
+const { buildSharePosterPayload } = require("../../utils/share-poster");
 const { stoolLabel } = require("../../../../utils/option-labels");
 const router = require("../../../../utils/router");
 

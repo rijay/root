@@ -20,16 +20,12 @@ app.pages.forEach(checkPage);
 
 [
   "static/brand/logo.png",
-  "static/brand/splash.png",
   "static/banner/activity.png",
   "static/badge/complete.png",
-  "static/empty/no-record.png",
-  "static/empty/no-order.png",
   "static/tabbar/home.png",
   "static/tabbar/home_active.png",
   "static/tabbar/profile.png",
   "static/tabbar/profile_active.png",
-  "static/celebration/confetti.png",
   "static/icon/checkin.png",
   "static/icon/refund.png",
   "static/icon/shop.png",
@@ -38,10 +34,8 @@ app.pages.forEach(checkPage);
 });
 
 for (let index = 1; index <= 7; index += 1) {
-  ["static/stool", "static/badge"].forEach((dir) => {
-    const name = dir.includes("stool") ? `type${index}.png` : `day${index}.png`;
-    if (!fs.existsSync(path.join(root, dir, name))) missing.push(path.join(root, dir, name));
-  });
+  const name = `type${index}.png`;
+  if (!fs.existsSync(path.join(root, "static/stool", name))) missing.push(path.join(root, "static/stool", name));
 }
 
 require("../utils/options.js");
@@ -54,7 +48,7 @@ const {
 } = require("../utils/date-display.js");
 require("../utils/option-labels.js");
 require("../utils/checkin-presenter.js");
-require("../utils/share-poster.js");
+require("../subpkg/checkin/utils/share-poster.js");
 
 const dateChecks = [
   [formatDateCn("2026-05-24", { referenceYear: 2026 }), "5月24日"],

@@ -18,7 +18,6 @@ function buildProgress(session) {
     dateText: formatDateCn(record.date),
     status: record.checkedIn ? "done" : record.dayIndex === session.currentDayIndex ? "today" : "pending",
     statusText: record.checkedIn ? "已完成" : record.dayIndex === session.currentDayIndex ? "今日" : "未到",
-    badge: `/static/badge/day${record.dayIndex}.png`,
   }));
 }
 
