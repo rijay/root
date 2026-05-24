@@ -36,14 +36,14 @@
   ],
   "window": {
     "navigationBarTitleText": "ROOT 7日身体重启",
-    "navigationBarBackgroundColor": "#FBF9F4",
+    "navigationBarBackgroundColor": "#FDFBF6",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#FBF9F4"
+    "backgroundColor": "#F7F4EC"
   },
   "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#5B8DBF",
-    "backgroundColor": "#FFFFFF",
+    "color": "#8A8172",
+    "selectedColor": "#586B3F",
+    "backgroundColor": "#FDFBF6",
     "borderStyle": "white",
     "list": [
       {

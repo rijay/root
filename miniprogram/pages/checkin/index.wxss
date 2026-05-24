@@ -2,7 +2,7 @@
   padding: var(--spacing-md);
   color: var(--color-text-primary);
   background: var(--color-warning);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   font-size: var(--font-size-base);
   font-weight: 800;
   line-height: 1.45;

@@ -1,22 +1,28 @@
-<view class="page register-page">
-  <view class="progress-line">
-    <view class="progress-fill" style="width: {{(step + 1) * 100 / total}}%;"></view>
+<view class="root-page register-page">
+  <view class="root-progress">
+    <view class="progress-meta">身体画像 {{step + 1}}/{{total}}</view>
+    <view class="root-progress__bar">
+      <view class="root-progress__fill" style="width: {{(step + 1) * 100 / total}}%;"></view>
+    </view>
   </view>
 
-  <view class="section panel">
-    <view class="eyebrow">{{step + 1}}/{{total}}</view>
+  <view class="section root-card">
+    <view class="eyebrow">身体画像</view>
     <view class="h1">{{current.title}}</view>
-    <view class="body">让 ROOT 更好地理解你的身体节奏。</view>
+    <view class="root-helper-text">让 ROOT 更好地理解你的身体节奏，后续只用于打卡服务与人工协助。</view>
   </view>
 
-  <view wx:if="{{current.type !== 'stool'}}" class="section option-grid">
+  <view wx:if="{{current.type !== 'stool'}}" class="section root-option-grid">
     <view
       wx:for="{{current.options}}"
       wx:key="value"
-      class="option-card {{item.selected ? 'active' : ''}}"
+      class="root-option {{item.selected ? 'active' : ''}}"
       data-value="{{item.value}}"
       bindtap="selectOption"
-    >{{item.label}}</view>
+    >
+      <text>{{item.label}}</text>
+      <text wx:if="{{item.selected}}" class="root-option__mark">✓</text>
+    </view>
   </view>
 
   <view wx:else class="section stool-grid">
@@ -27,13 +33,13 @@
       data-value="{{item.value}}"
       bindtap="selectOption"
     >
-      <image src="{{item.image}}" mode="aspectFit" />
+      <image class="stool-card-image" src="{{item.image}}" mode="aspectFit" />
       <text>{{item.label}}</text>
     </view>
   </view>
 
   <view class="section button-row footer-actions">
-    <button class="btn secondary" bindtap="previous" disabled="{{step === 0}}">上一题</button>
-    <button class="btn" bindtap="next" disabled="{{!canNext}}" loading="{{loading}}">{{step === total - 1 ? '完成' : '下一题'}}</button>
+    <button class="root-button root-button--secondary" bindtap="previous" disabled="{{step === 0}}">上一题</button>
+    <button class="root-button" bindtap="next" disabled="{{!canNext}}" loading="{{loading}}">{{step === total - 1 ? '完成' : '下一题'}}</button>
   </view>
 </view>

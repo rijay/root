@@ -1,7 +1,26 @@
-.content-card {
-  padding: var(--spacing-lg);
-  background: var(--color-surface);
-  border: 1rpx solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+.profile-subpage {
+  padding-top: 44rpx;
+}
+
+.profile-subpage .h1 {
+  margin-top: var(--spacing-sm);
+}
+
+.profile-subpage .root-helper-text {
+  margin-top: var(--spacing-md);
+  font-size: var(--font-size-sm);
+}
+
+.profile-list {
+  padding-top: var(--spacing-sm);
+  padding-bottom: var(--spacing-sm);
+}
+
+.profile-row {
+  padding: var(--spacing-md) 0;
+  border-bottom: 1rpx solid var(--color-root-line);
+}
+
+.profile-row:last-child {
+  border-bottom: 0;
 }

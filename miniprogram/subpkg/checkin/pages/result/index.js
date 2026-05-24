@@ -37,4 +37,8 @@ Page({
   goHistory() {
     wx.navigateTo({ url: "/subpkg/checkin/pages/history/index" });
   },
+
+  goHome() {
+    router.go("/pages/home/index");
+  },
 });

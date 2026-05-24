@@ -1,6 +1,6 @@
 <view class="page history-page">
   <view class="panel">
-    <view class="eyebrow">CHECK-IN HISTORY</view>
+    <view class="eyebrow">7日进度</view>
     <view class="h1">7天记录</view>
     <view class="body">这些记录会成为最终免单审核和身体趋势总结的依据。</view>
   </view>

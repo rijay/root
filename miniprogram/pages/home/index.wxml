@@ -4,59 +4,70 @@
     <view class="body">正在恢复你的身体记录...</view>
   </view>
 
-  <view wx:elif="{{viewType === 'login'}}" class="page login-view">
-    <image class="splash-image" src="/static/brand/splash.png" mode="aspectFill" />
-    <view class="login-content">
-      <view class="home-title">以肠为始，开启 7 日重启之旅</view>
-      <view class="body">让科学成为陪伴，让健康变成习惯。</view>
-      <button wx:if="{{!isDevelop}}" class="btn-primary login-button" loading="{{loading}}" open-type="getPhoneNumber" bindgetphonenumber="loginWithPhone">微信一键登录</button>
-      <button wx:else class="btn-primary dev-login-button" loading="{{loading}}" bindtap="loginWithDemoPhone">开发调试登录</button>
-      <view class="agreement" bindtap="toggleAgree">
-        <view class="checkbox {{agreed ? 'checked' : ''}}">{{agreed ? '✓' : ''}}</view>
-        <text>我已阅读并同意《用户协议》和《隐私政策》</text>
-      </view>
+  <view wx:elif="{{viewType === 'login'}}" class="page login-view root-login-view">
+    <image class="root-login-logo" src="/static/brand/root-logo-horizontal.png" mode="aspectFit" />
+    <view class="root-login-title">身体，自有其序</view>
+    <view class="root-login-copy">Root 希望你不只是服用补剂，而是在 7 天里重新建立与身体的关系。</view>
+    <view class="root-login-card root-card">
+      <view class="root-card-title">7 天身体重启计划</view>
+      <view class="root-promise">记录服用、排便和真实感受</view>
+      <view class="root-promise">不追求完美答案，只关注身体反馈</view>
+      <view class="root-promise">异常状态可进入人工协助</view>
     </view>
+    <button wx:if="{{!isDevelop}}" class="root-button login-button" loading="{{loading}}" open-type="getPhoneNumber" bindgetphonenumber="loginWithPhone">微信授权并开始</button>
+    <button wx:else class="root-button dev-login-button" loading="{{loading}}" bindtap="loginWithDemoPhone">开发调试登录</button>
+    <view class="agreement root-agreement" bindtap="toggleAgree">
+      <view class="checkbox {{agreed ? 'checked' : ''}}">{{agreed ? '✓' : ''}}</view>
+      <text>我已阅读并同意《用户协议》和《隐私政策》</text>
+    </view>
+    <view class="root-helper-text login-safe-note">授权仅用于身份识别与打卡服务，可随时停止记录。</view>
   </view>
 
-  <view wx:elif="{{viewType === 'register'}}" class="page register-view">
-    <view class="step-bars">
-      <view wx:for="{{registerSteps}}" wx:key="*this" class="step-bar {{item <= registerStep ? 'active' : ''}}"></view>
+  <view wx:elif="{{viewType === 'register'}}" class="root-page register-view">
+    <view class="root-progress register-progress">
+      <view class="register-progress-meta">身体画像 {{registerStep + 1}}/{{registerTotal}}</view>
+      <view class="root-progress__bar">
+        <view class="root-progress__fill" style="width: {{(registerStep + 1) * 100 / registerTotal}}%;"></view>
+      </view>
     </view>
-    <view class="question-card">
-      <view class="eyebrow">{{registerStep + 1}}/{{registerTotal}}</view>
+    <view class="root-card question-card">
+      <view class="eyebrow">身体画像</view>
       <view class="question-title">{{registerQuestion.title}}</view>
+      <view class="root-helper-text question-helper">这些信息只用于识别你的身体反馈倾向，便于后续打卡与人工协助。</view>
     </view>
 
-    <view wx:if="{{registerQuestion.type !== 'stool'}}" class="option-grid section">
-      <view wx:for="{{registerQuestion.options}}" wx:key="value" class="option-card {{item.selected ? 'active' : ''}}" data-value="{{item.value}}" bindtap="selectRegisterOption">
+    <view wx:if="{{registerQuestion.type !== 'stool'}}" class="root-option-grid section">
+      <view wx:for="{{registerQuestion.options}}" wx:key="value" class="root-option {{item.selected ? 'active' : ''}}" data-value="{{item.value}}" bindtap="selectRegisterOption">
         <text>{{item.label}}</text>
-        <text wx:if="{{item.selected}}" class="checkmark">✓</text>
+        <text wx:if="{{item.selected}}" class="root-option__mark">✓</text>
       </view>
     </view>
 
     <view wx:else class="stool-grid section">
       <view wx:for="{{registerQuestion.options}}" wx:key="value" class="stool-card {{item.selected ? 'active' : ''}}" data-value="{{item.value}}" bindtap="selectRegisterOption">
-        <image src="{{item.image}}" mode="aspectFit" />
+        <image class="stool-card-image" src="{{item.image}}" mode="aspectFit" />
         <text>{{item.label}}</text>
       </view>
     </view>
 
-    <view class="section button-row">
-      <button class="btn-secondary flex-btn" bindtap="previousRegisterQuestion" disabled="{{registerStep === 0}}">上一题</button>
-      <button class="btn-primary flex-btn" bindtap="nextRegisterQuestion" disabled="{{!canRegisterNext}}" loading="{{loading}}">{{registerStep === registerTotal - 1 ? '完成' : '下一题'}}</button>
+    <view class="section button-row register-actions">
+      <button class="root-button root-button--secondary flex-btn" bindtap="previousRegisterQuestion" disabled="{{registerStep === 0}}">上一题</button>
+      <button class="root-button flex-btn" bindtap="nextRegisterQuestion" disabled="{{!canRegisterNext}}" loading="{{loading}}">{{registerStep === registerTotal - 1 ? '完成' : '下一题'}}</button>
     </view>
   </view>
 
   <view wx:elif="{{viewType === 'activity'}}" class="page activity-view">
-    <image class="activity-banner" src="/static/banner/activity.png" mode="widthFix" />
-    <view class="content-card section">
+    <view class="root-card section">
       <view class="eyebrow">以肠为始</view>
       <view class="home-title">ROOT 7 日身体重启计划</view>
       <view class="body">连续7天记录服用、排便与身体反馈。完成有效打卡后，可申请免单奖励。</view>
     </view>
-    <view class="content-card section">
+    <view class="root-card section">
       <view class="section-title">我们了解到你关心 {{tags}}</view>
       <view class="body">真正的健康，不是局部修复，而是身体能量重新建立秩序时的安稳与清晰。</view>
+    </view>
+    <view class="activity-visual-card section">
+      <image class="activity-banner" src="/static/banner/activity.png" mode="widthFix" />
     </view>
     <view class="sticky-actions">
       <button class="btn-primary" bindtap="goOrderMatch">确认收货手机号</button>
@@ -65,22 +76,20 @@
   </view>
 
   <view wx:elif="{{viewType === 'manualReview'}}" class="page activity-view">
-    <image class="activity-banner" src="/static/banner/activity.png" mode="widthFix" />
-    <view class="content-card section">
+    <view class="root-card section">
       <view class="eyebrow">人工确认中</view>
       <view class="home-title">{{homeView.title || '等待人工确认'}}</view>
       <view class="body">{{homeView.description || '订单、物流或启动资格需要运营协助确认，请留意企业微信消息。'}}</view>
     </view>
-    <view class="content-card section">
+    <view class="root-card section">
       <view class="section-title">下一步</view>
       <view class="body">ROOT 运营会通过企业微信确认订单和物流。确认后首页会自动更新为可开始状态。</view>
     </view>
   </view>
 
   <view wx:elif="{{viewType === 'questionnairePrompt'}}" class="page activity-view">
-    <image class="activity-banner" src="/static/banner/activity.png" mode="widthFix" />
-    <view class="content-card section">
-      <view class="eyebrow">{{flowView === 'DAY8_PENDING' ? 'DAY 8' : 'DAY 4'}}</view>
+    <view class="root-card section">
+      <view class="eyebrow">{{flowView === 'DAY8_PENDING' ? '收尾反馈' : '中期反馈'}}</view>
       <view class="home-title">{{homeView.title}}</view>
       <view class="body">{{homeView.description}}</view>
     </view>
@@ -92,22 +101,31 @@
 
   <view wx:elif="{{viewType === 'checkin'}}" class="page checkin-view">
     <view wx:if="{{!isCompleted && !isFailed}}">
-      <view class="progress-dots">
-        <view wx:for="{{progress}}" wx:key="dayIndex" class="progress-dot {{item.status}}">
-          <text>D{{item.dayIndex}}</text>
-        </view>
+      <view class="root-status-card root-card--dark">
+        <view class="root-status-meta">第 {{session.currentDayIndex}} 天 / 7</view>
+        <view class="root-status-progress">{{completedDays}}/7</view>
+        <view class="root-status-title">身体秩序恢复中</view>
+        <view class="root-status-copy">今天记录服用、排便与身体反馈，约 1 分钟。</view>
+        <view class="root-status-cta {{session.todayChecked ? 'root-status-cta--done' : ''}}" bindtap="handleStatusCta">{{session.todayChecked ? '查看今日记录' : '开始今日打卡'}}</view>
       </view>
-      <view class="today-card section">
-        <view class="eyebrow">DAY {{session.currentDayIndex}}</view>
-        <view class="home-title">今日身体记录</view>
-        <view class="circle-cta" bindtap="goToday">
-          <image src="/static/icon/checkin.png" mode="aspectFit" />
-          <text>{{session.todayChecked ? '今日已记录' : '今日打卡'}}</text>
+      <view class="root-mantra">让科学成为陪伴，让健康变成习惯</view>
+      <view class="root-section-title home-observation-title">今日观察</view>
+      <view class="root-cell-group home-observation-card">
+        <view class="root-cell">
+          <text>服用</text>
+          <text class="root-cell__value">{{session.todayChecked ? '今日已记录' : '待记录'}}</text>
         </view>
-        <view class="body">剩余 {{remainingDays}} 天。断卡累计 3 次后将无法自动申请免单。</view>
+        <view class="root-cell">
+          <text>排便</text>
+          <text class="root-cell__value">{{session.todayChecked ? '已完成记录' : '待记录'}}</text>
+        </view>
+        <view class="root-cell">
+          <text>人工协助</text>
+          <text class="root-cell__value">订单或身体不适可进入</text>
+        </view>
       </view>
       <view wx:if="{{couponStatus && couponStatus.visible}}" class="coupon-card section">
-        <view class="eyebrow">DAY 6 GIFT</view>
+        <view class="eyebrow">第 6 天复购礼</view>
         <view class="section-title">{{couponStatus.coupon.title}}</view>
         <view class="body">{{couponStatus.coupon.description}}</view>
         <view class="coupon-code">{{couponStatus.coupon.status === 'CLAIMED' || couponStatus.coupon.status === 'USED' ? couponStatus.coupon.code : couponStatus.coupon.discountText}}</view>
@@ -116,10 +134,10 @@
         <button wx:else class="btn-secondary" disabled>{{couponStatus.coupon.status === 'USED' ? '已使用' : '已领取'}}</button>
       </view>
       <view class="calendar-card section">
-        <view wx:for="{{progress}}" wx:key="dayIndex" class="calendar-row">
-          <image src="{{item.checkedIn ? item.badge : '/static/empty/no-record.png'}}" mode="aspectFit" />
+        <view wx:for="{{progress}}" wx:key="dayIndex" class="calendar-row {{item.status}}">
+          <view class="calendar-marker">{{item.checkedIn ? '✓' : item.dayIndex}}</view>
           <view>
-            <view class="row-title">Day {{item.dayIndex}} · {{item.date}}</view>
+            <view class="row-title">第 {{item.dayIndex}} 天 · {{item.date}}</view>
             <view class="body">{{item.statusText}}</view>
           </view>
         </view>
@@ -128,8 +146,8 @@
 
     <view wx:else>
       <image class="complete-badge" src="/static/badge/complete.png" mode="aspectFit" />
-      <view class="content-card section">
-        <view class="eyebrow">{{isFailed ? 'NEEDS SUPPORT' : 'COMPLETE'}}</view>
+      <view class="root-card section">
+        <view class="eyebrow">{{isFailed ? '人工协助' : '完成记录'}}</view>
         <view class="home-title">{{isFailed ? '需要人工协助' : '7天完成'}}</view>
         <view class="body">{{isFailed ? '当前周期断卡达到3次，请联系 ROOT 顾问确认后续安排。' : '你已完成7天身体记录，可以申请免单，也可以继续日常打卡。'}}</view>
       </view>
@@ -159,21 +177,21 @@
   <view wx:elif="{{viewType === 'daily'}}" class="page daily-view">
     <view class="daily-welcome">{{user.nickname}}，今天也要记录身体的反馈呀～</view>
     <view class="stats-grid section">
-      <view>
+      <view class="stats-card">
         <text class="stat-value">{{dailyStats.totalDays}}</text>
         <text class="stat-label">累计打卡</text>
       </view>
-      <view>
+      <view class="stats-card">
         <text class="stat-value">{{dailyStats.currentStreak}}</text>
         <text class="stat-label">当前连续</text>
       </view>
-      <view>
+      <view class="stats-card">
         <text class="stat-value">{{dailyStats.longestStreak}}</text>
         <text class="stat-label">最长连续</text>
       </view>
     </view>
     <view class="daily-cta section" bindtap="goToday">
-      <image src="/static/icon/checkin.png" mode="aspectFit" />
+      <image class="daily-cta-icon" src="/static/icon/checkin.png" mode="aspectFit" />
       <text>{{dailyStats.todayChecked ? '今日已记录 ✓' : '今日打卡'}}</text>
     </view>
     <view class="trend-card section">
@@ -189,7 +207,7 @@
       </view>
     </view>
     <view class="shop-card section">
-      <image src="/static/icon/shop.png" mode="aspectFit" />
+      <image class="shop-card-icon" src="/static/icon/shop.png" mode="aspectFit" />
       <view>
         <view class="section-title">你已经坚持 {{dailyStats.totalDays}} 天啦！</view>
         <view class="body">产品快用完了？立即复购，保持你的好状态。</view>

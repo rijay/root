@@ -1,14 +1,23 @@
-<view class="page">
-  <view class="content-card">
-    <view class="eyebrow">YOUZAN ORDER</view>
+<view class="root-page profile-subpage">
+  <view class="root-card">
+    <view class="eyebrow">订单记录</view>
     <view class="h1">我的订单</view>
+    <view class="root-helper-text">用于确认试饮资格、物流送达与后续免单处理。若状态不一致，可联系 ROOT 顾问协助核对。</view>
   </view>
-  <view class="section content-card">
-    <view wx:for="{{orders}}" wx:key="order_id" class="list-item">
-      <view class="section-title">{{item.youzan_order_no}}</view>
-      <view class="body">金额 {{item.amount}} 元 · {{item.delivery_status}}</view>
-      <view class="body">匹配方式：{{item.match_source || '未匹配'}}</view>
+  <view class="section root-card profile-list">
+    <view wx:if="{{orders.length}}">
+      <view wx:for="{{orders}}" wx:key="order_id" class="profile-row order-row">
+        <view class="order-row-head">
+          <view class="root-section-title">{{item.youzan_order_no || '订单待同步'}}</view>
+          <view class="order-status">{{item.delivery_status || '待确认'}}</view>
+        </view>
+        <view class="body">金额 {{item.amount || 0}} 元</view>
+        <view class="body">匹配方式：{{item.match_source || '未匹配'}}</view>
+      </view>
     </view>
-    <image wx:if="{{!orders.length}}" class="empty-image" src="/static/empty/no-order.png" mode="aspectFit" />
+    <view wx:else class="empty-state">
+      <view class="empty-title">暂未匹配到订单</view>
+      <view class="root-helper-text">如果你已经下单，稍后再刷新；仍未出现时可进入人工协助。</view>
+    </view>
   </view>
 </view>

@@ -21,7 +21,7 @@ Page({
         return {
           ...item,
           detail,
-          title: `Day ${item.dayIndex}`,
+          title: `第 ${item.dayIndex} 天`,
           statusText: item.checkedIn ? "已完成" : "未打卡",
         };
       });

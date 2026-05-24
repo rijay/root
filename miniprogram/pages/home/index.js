@@ -364,6 +364,14 @@ Page({
     wx.navigateTo({ url: "/subpkg/checkin/pages/history/index" });
   },
 
+  handleStatusCta() {
+    if (this.data.session && this.data.session.todayChecked) {
+      this.goHistory();
+      return;
+    }
+    this.goToday();
+  },
+
   goRefund() {
     wx.navigateTo({ url: "/subpkg/refund/pages/apply/index" });
   },

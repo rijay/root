@@ -1,5 +1,31 @@
 const { request } = require("../../../../utils/request");
+const { stoolOptions } = require("../../../../utils/options");
 const router = require("../../../../utils/router");
+
+const stoolLabelMap = stoolOptions.reduce((acc, item) => {
+  acc[item.value] = item.label;
+  return acc;
+}, {});
+
+function yesNo(value) {
+  return value ? "是" : "否";
+}
+
+function stoolLabel(value) {
+  return stoolLabelMap[value] || value || "未记录便型";
+}
+
+function detailRows(detail) {
+  if (!detail) {
+    return [{ label: "记录状态", value: "这一天还没有提交记录" }];
+  }
+  return [
+    { label: "服用 ROOT", value: yesNo(detail.took_product) },
+    { label: "是否排便", value: yesNo(detail.had_stool) },
+    { label: "便型", value: detail.had_stool ? stoolLabel(detail.stool_type) : "未排便" },
+    { label: "身体反馈", value: detail.feedback || "暂无文字反馈", long: true },
+  ];
+}
 
 Page({
   data: {
@@ -24,8 +50,12 @@ Page({
           date: item.checkin_date,
           checkedIn: true,
           detail: item,
-          title: item.checkin_date,
+          detailRows: detailRows(item),
+          marker: "日",
+          title: "日常记录",
           statusText: `连续 ${item.streak_count} 天`,
+          statusLabel: "已记录",
+          summary: item.feedback || stoolLabel(item.stool_type),
         }));
         this.setData({ mode: "daily", session: null, records });
         return;
@@ -36,8 +66,12 @@ Page({
         return {
           ...item,
           detail,
-          title: `Day ${item.dayIndex}`,
+          detailRows: detailRows(detail),
+          marker: item.checkedIn ? "✓" : item.dayIndex,
+          title: `第 ${item.dayIndex} 天`,
           statusText: item.checkedIn ? "已完成" : "未打卡",
+          statusLabel: item.checkedIn ? "已记录" : "待记录",
+          summary: detail ? (detail.feedback || stoolLabel(detail.stool_type)) : "等待真实记录",
         };
       });
       this.setData({ mode: "checkin", session: data.session, records });

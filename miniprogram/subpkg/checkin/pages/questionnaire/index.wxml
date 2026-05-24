@@ -1,30 +1,43 @@
-<view class="page questionnaire-page">
-  <view class="panel">
-    <view class="eyebrow">{{type === 'DAY8_SUMMARY' ? 'DAY 8' : 'DAY 4'}}</view>
+<view class="root-page questionnaire-page">
+  <view class="root-card questionnaire-hero">
+    <view class="eyebrow">{{type === 'DAY8_SUMMARY' ? '收尾反馈' : '中期反馈'}}</view>
     <view class="h1">{{type === 'DAY8_SUMMARY' ? '收尾问卷' : '中期问卷'}}</view>
-    <view class="body">请根据这几天的真实感受填写。问卷会帮助 ROOT 运营更好地跟进。</view>
-  </view>
-
-  <view wx:if="{{questionnaire}}" class="section panel">
-    <view wx:for="{{questionnaire.questions}}" wx:key="field" class="question-block">
-      <view class="section-title">{{item.title}}</view>
-
-      <view wx:if="{{item.type === 'single'}}" class="option-row">
-        <button wx:for="{{item.options}}" wx:for-item="option" wx:key="*this" class="option-btn {{answers[item.field] === option ? 'active' : ''}}" data-field="{{item.field}}" data-value="{{option}}" bindtap="setAnswer">{{option}}</button>
-      </view>
-
-      <view wx:elif="{{item.type === 'scale'}}" class="option-row">
-        <button wx:for="{{[1,2,3,4,5]}}" wx:for-item="score" wx:key="*this" class="option-btn {{answers[item.field] == score ? 'active' : ''}}" data-field="{{item.field}}" data-value="{{score}}" bindtap="setAnswer">{{score}}</button>
-      </view>
-
-      <view wx:elif="{{item.type === 'boolean'}}" class="option-row">
-        <button class="option-btn {{answers[item.field] === true ? 'active' : ''}}" data-field="{{item.field}}" data-value="true" bindtap="setBoolean">需要</button>
-        <button class="option-btn {{answers[item.field] === false ? 'active' : ''}}" data-field="{{item.field}}" data-value="false" bindtap="setBoolean">暂不需要</button>
-      </view>
-
-      <textarea wx:else class="textarea" data-field="{{item.field}}" value="{{answers[item.field]}}" bindinput="onText" placeholder="可选填写" />
+    <view class="root-helper-text">请根据这几天的真实感受填写。问卷会帮助 ROOT 运营更好地跟进。</view>
+    <view wx:if="{{questionnaire}}" class="questionnaire-meta">
+      <text class="questionnaire-meta-pill">{{questionnaire.versionText}}</text>
+      <text class="questionnaire-meta-pill">{{questionnaire.requiredCount}} 个必填项</text>
+      <text class="questionnaire-meta-pill">{{questionnaire.skip_allowed ? '可稍后补充' : '提交后进入审核'}}</text>
     </view>
   </view>
 
-  <button class="btn submit-btn" bindtap="submit" loading="{{loading}}">提交问卷</button>
+  <view wx:if="{{questionnaire}}" class="section root-card questionnaire-card">
+    <view wx:for="{{questionnaire.questions}}" wx:key="field" class="question-block {{missingFields[item.field] ? 'question-block--error' : ''}}">
+      <view class="question-title-row">
+        <view class="section-title">{{item.title}}</view>
+        <view wx:if="{{item.required}}" class="required-pill">必填</view>
+      </view>
+      <view wx:if="{{missingFields[item.field]}}" class="error-text">请完成这一项</view>
+
+      <view wx:if="{{item.type === 'single'}}" class="option-row">
+        <button wx:for="{{item.options}}" wx:for-item="option" wx:key="value" class="option-btn {{answers[item.field] === option.value ? 'active' : ''}}" data-field="{{item.field}}" data-value="{{option.value}}" bindtap="setAnswer">{{option.label}}</button>
+      </view>
+
+      <view wx:elif="{{item.type === 'scale'}}" class="option-row">
+        <button wx:for="{{item.scaleOptions}}" wx:for-item="score" wx:key="value" class="option-btn scale-btn {{answers[item.field] == score.value ? 'active' : ''}}" data-field="{{item.field}}" data-value="{{score.value}}" bindtap="setAnswer">{{score.label}}</button>
+        <view class="scale-caption">
+          <text>不明显</text>
+          <text>很舒服</text>
+        </view>
+      </view>
+
+      <view wx:elif="{{item.type === 'boolean'}}" class="option-row">
+        <button class="option-btn {{answers[item.field] === true ? 'active' : ''}}" data-field="{{item.field}}" data-value="true" bindtap="setBoolean">需要联系</button>
+        <button class="option-btn {{answers[item.field] === false ? 'active' : ''}}" data-field="{{item.field}}" data-value="false" bindtap="setBoolean">暂不需要</button>
+      </view>
+
+      <textarea wx:else class="textarea" data-field="{{item.field}}" value="{{answers[item.field]}}" bindinput="onText" maxlength="500" placeholder="可选填写真实感受" />
+    </view>
+  </view>
+
+  <button class="root-button submit-btn" bindtap="submit" loading="{{loading}}" disabled="{{loading}}">提交问卷</button>
 </view>

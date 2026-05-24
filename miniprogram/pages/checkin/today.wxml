@@ -1,6 +1,6 @@
 <view class="page today-page">
   <view class="panel">
-    <view class="eyebrow">DAY {{session.currentDayIndex}}</view>
+    <view class="eyebrow">第 {{session.currentDayIndex}} 天</view>
     <view class="h1">今日身体记录</view>
     <view class="body">只记录真实状态，不需要迎合任何“理想答案”。</view>
   </view>
@@ -31,7 +31,7 @@
         data-value="{{item.value}}"
         bindtap="selectStool"
       >
-        <image src="{{item.image}}" mode="aspectFit" />
+        <image class="stool-card-image" src="{{item.image}}" mode="aspectFit" />
         <text>{{item.label}}</text>
       </view>
     </view>

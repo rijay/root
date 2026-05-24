@@ -1,72 +1,93 @@
-.user-card {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-  border-radius: var(--radius-lg);
+.profile-page {
+  padding-top: var(--spacing-lg);
+  padding-bottom: calc(184rpx + env(safe-area-inset-bottom));
+}
+
+.profile-hero {
+  padding: 32rpx;
+  color: var(--color-root-nav);
+  background: var(--color-root-moss);
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-md);
 }
 
+.profile-logo {
+  width: 210rpx;
+  height: 34rpx;
+}
+
+.profile-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-top: 36rpx;
+}
+
 .avatar {
-  width: 132rpx;
-  height: 132rpx;
+  width: 96rpx;
+  height: 96rpx;
   background: var(--color-surface);
-  border: 6rpx solid var(--color-white-strong);
+  border: 4rpx solid rgba(253, 251, 246, 0.78);
   border-radius: 50%;
 }
 
 .user-main {
+  flex: 1;
   min-width: 0;
 }
 
 .nickname {
-  color: var(--color-surface);
+  color: var(--color-root-nav);
   font-size: var(--font-size-lg);
   font-weight: 800;
+  line-height: 1.25;
 }
 
 .phone {
   margin-top: var(--spacing-xs);
-  color: var(--color-white-soft);
+  color: rgba(253, 251, 246, 0.72);
   font-size: var(--font-size-sm);
 }
 
 .state-badge {
-  display: inline-flex;
-  margin-top: var(--spacing-sm);
-  padding: 8rpx 16rpx;
-  color: var(--color-primary-dark);
-  background: var(--color-surface);
+  flex-shrink: 0;
+  max-width: 220rpx;
+  padding: 10rpx 18rpx;
+  color: var(--color-root-ink);
+  background: var(--color-root-nav);
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
   font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
 }
 
-.status-card,
-.menu-card {
-  padding: var(--spacing-lg);
-  background: var(--color-surface);
-  border: 1rpx solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+.profile-quote {
+  margin-top: 28rpx;
+  color: rgba(253, 251, 246, 0.78);
+  font-size: 26rpx;
+  line-height: 1.6;
+}
+
+.status-card {
+  margin-top: var(--spacing-lg);
 }
 
 .mini-progress {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: var(--spacing-sm);
+  gap: 12rpx;
   margin-top: var(--spacing-md);
 }
 
 .mini-dot {
-  height: 34rpx;
-  background: var(--color-border);
+  height: 28rpx;
+  background: var(--color-root-line);
   border-radius: var(--radius-full);
 }
 
 .mini-dot.done {
-  background: var(--color-success);
+  background: var(--color-root-moss);
 }
 
 .daily-status {
@@ -77,17 +98,17 @@
   text-align: center;
 }
 
-.daily-status > view {
+.daily-status-item {
   padding: var(--spacing-sm);
-  background: var(--color-bg);
+  background: var(--color-root-bg);
   border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
+  color: var(--color-root-muted);
   font-size: var(--font-size-xs);
 }
 
 .num {
   display: block;
-  color: var(--color-primary-dark);
+  color: var(--color-root-moss);
   font-size: var(--font-size-xl);
   font-weight: 900;
 }
@@ -97,24 +118,32 @@
   justify-content: space-between;
   gap: var(--spacing-md);
   margin-top: var(--spacing-md);
-  color: var(--color-text-secondary);
+  color: var(--color-root-muted);
   font-size: var(--font-size-xs);
+  line-height: 1.5;
+}
+
+.menu-card {
+  margin-top: var(--spacing-lg);
 }
 
 .menu-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 96rpx;
-  padding: 0;
-  color: var(--color-text-primary);
+  min-height: 92rpx;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 0 var(--spacing-lg);
+  color: var(--color-root-ink);
   background: transparent;
   border: 0;
-  border-bottom: 1rpx solid var(--color-border);
+  border-bottom: 1rpx solid var(--color-root-line);
   border-radius: 0;
   font-size: var(--font-size-base);
-  font-weight: 600;
-  line-height: 96rpx;
+  font-weight: 700;
+  line-height: normal;
   text-align: left;
 }
 
@@ -128,16 +157,24 @@
 
 .contact-row {
   width: 100%;
+  overflow: visible;
+}
+
+.menu-arrow {
+  color: var(--color-root-muted);
+  font-size: 38rpx;
+  font-weight: 400;
 }
 
 .logout-btn {
   width: 100%;
-  margin-top: var(--spacing-xl);
+  margin-top: var(--spacing-lg);
+  padding: 0;
 }
 
 .version {
   margin-top: var(--spacing-md);
-  color: var(--color-text-tertiary);
+  color: var(--color-root-muted);
   font-size: var(--font-size-xs);
   text-align: center;
 }

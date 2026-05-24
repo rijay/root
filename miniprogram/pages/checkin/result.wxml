@@ -1,10 +1,10 @@
 <view class="page result-page">
   <view class="medal">
-    <image src="/static/badge/complete.png" mode="aspectFit" />
+    <image class="medal-image" src="/static/badge/complete.png" mode="aspectFit" />
   </view>
 
   <view class="section panel">
-    <view class="eyebrow">{{failed ? 'NEEDS SUPPORT' : 'FOUNDATION COMPLETE'}}</view>
+    <view class="eyebrow">{{failed ? '人工协助' : '阶段完成'}}</view>
     <view class="h1">{{failed ? '需要人工协助' : '7天完成'}}</view>
     <view class="body">
       <block wx:if="{{failed}}">当前周期断卡达到3次，已进入人工介入。请联系 ROOT 顾问确认后续安排。</block>
@@ -15,11 +15,11 @@
   <view class="section panel">
     <view class="section-title">可视化总结</view>
     <view class="summary-grid">
-      <view>
+      <view class="summary-item">
         <text class="big">{{completedDays}}</text>
         <text class="label">完成天数</text>
       </view>
-      <view>
+      <view class="summary-item">
         <text class="big">{{session.missCount}}</text>
         <text class="label">断卡次数</text>
       </view>

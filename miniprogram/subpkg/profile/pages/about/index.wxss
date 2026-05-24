@@ -1,14 +1,29 @@
-.about-logo {
-  display: block;
-  width: 220rpx;
-  height: 220rpx;
-  margin: var(--spacing-xl) auto 0;
+.profile-subpage {
+  padding-top: 44rpx;
 }
 
-.content-card {
-  padding: var(--spacing-lg);
-  background: var(--color-surface);
-  border: 1rpx solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+.about-logo {
+  display: block;
+  width: 360rpx;
+  height: 58rpx;
+  margin: var(--spacing-xl) auto var(--spacing-lg);
+}
+
+.about-page .h1 {
+  margin-top: var(--spacing-sm);
+}
+
+.about-page .body {
+  margin-top: var(--spacing-md);
+}
+
+.brand-line {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  color: var(--color-root-moss);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-base);
+  font-weight: 800;
+  line-height: 1.45;
 }

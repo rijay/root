@@ -1,37 +1,68 @@
-.medal {
-  height: 360rpx;
-  overflow: hidden;
-  border-radius: var(--radius-lg);
+.result-page {
+  padding-top: var(--spacing-lg);
 }
 
-.medal image {
-  width: 100%;
-  height: 100%;
+.result-hero {
+  min-height: 520rpx;
+  padding: 48rpx 40rpx;
+  color: var(--color-root-nav);
+  background: var(--color-root-moss);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
 }
 
-.summary-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-md);
+.result-hero--support {
+  background: var(--color-root-clay);
 }
 
-.summary-grid > view {
-  padding: var(--spacing-md);
-  background: var(--color-primary-tint);
-  border-radius: var(--radius-md);
+.result-logo {
+  width: 260rpx;
+  height: 44rpx;
 }
 
-.big {
-  display: block;
-  color: var(--color-primary-dark);
-  font-size: 64rpx;
-  font-weight: 900;
+.result-kicker {
+  margin-top: 88rpx;
+  color: rgba(253, 251, 246, 0.72);
+  font-size: 24rpx;
+  font-weight: 800;
+  letter-spacing: 0;
 }
 
-.label {
-  display: block;
+.result-title {
   margin-top: var(--spacing-xs);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
+  font-size: 54rpx;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.result-copy {
+  max-width: 560rpx;
+  margin-top: var(--spacing-md);
+  color: rgba(253, 251, 246, 0.82);
+  font-size: 28rpx;
+  line-height: 1.7;
+}
+
+.result-summary {
+  margin-top: var(--spacing-lg);
+}
+
+.result-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+}
+
+.result-actions .root-button {
+  width: 100%;
+}
+
+.result-link {
+  min-height: 88rpx;
+  color: var(--color-root-muted);
+  font-size: 28rpx;
+  font-weight: 700;
+  line-height: 88rpx;
+  text-align: center;
 }

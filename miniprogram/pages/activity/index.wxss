@@ -15,7 +15,7 @@
   padding: var(--spacing-md);
   background: var(--color-glass);
   border: 1rpx solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
 }
 
 .start-btn {

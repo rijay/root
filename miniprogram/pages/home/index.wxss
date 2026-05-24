@@ -17,16 +17,54 @@
 .login-view {
   display: flex;
   flex-direction: column;
-  padding: 0;
 }
 
-.splash-image {
-  width: 100%;
-  height: 60vh;
+.root-login-view {
+  align-items: center;
+  padding-top: 88rpx;
 }
 
-.login-content {
-  padding: var(--spacing-lg);
+.root-login-logo {
+  width: 500rpx;
+  height: 84rpx;
+  margin-top: var(--spacing-xl);
+}
+
+.root-login-title {
+  margin-top: 56rpx;
+  color: var(--color-root-ink);
+  font-size: 48rpx;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.root-login-copy {
+  width: 590rpx;
+  margin-top: var(--spacing-md);
+  color: var(--color-root-copy);
+  font-size: var(--font-size-base);
+  line-height: 1.65;
+  text-align: center;
+}
+
+.root-login-card {
+  width: 670rpx;
+  margin-top: 72rpx;
+  box-sizing: border-box;
+}
+
+.root-card-title {
+  color: var(--color-root-ink);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.root-promise {
+  margin-top: var(--spacing-md);
+  color: var(--color-root-copy);
+  font-size: var(--font-size-base);
+  line-height: 1.45;
 }
 
 .home-title {
@@ -37,11 +75,19 @@
 }
 
 .login-button {
+  width: 670rpx;
   margin-top: var(--spacing-xl);
 }
 
 .dev-login-button {
+  width: 670rpx;
   margin-top: var(--spacing-md);
+}
+
+.login-safe-note {
+  width: 670rpx;
+  margin-top: var(--spacing-md);
+  text-align: center;
 }
 
 .agreement {
@@ -69,6 +115,10 @@
   border-color: var(--color-primary);
 }
 
+.root-agreement {
+  width: 670rpx;
+}
+
 .step-bars {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -85,8 +135,22 @@
   background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
 }
 
+.register-view {
+  padding-top: 44rpx;
+}
+
+.register-progress {
+  margin-bottom: var(--spacing-lg);
+}
+
+.register-progress-meta {
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-root-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
 .question-card,
-.content-card,
 .today-card,
 .calendar-card,
 .chart-card,
@@ -96,8 +160,16 @@
   padding: var(--spacing-lg);
   background: var(--color-surface);
   border: 1rpx solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-sm);
+}
+
+.question-card {
+  border-radius: var(--radius-card);
+}
+
+.question-helper {
+  margin-top: var(--spacing-md);
 }
 
 .coupon-card {
@@ -143,9 +215,11 @@
   color: var(--color-text-secondary);
   background: var(--color-surface);
   border: 2rpx solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-control);
   font-size: var(--font-size-xs);
   line-height: 1.35;
+  box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
 }
 
 .stool-card.active {
@@ -153,7 +227,7 @@
   border-color: var(--color-primary);
 }
 
-.stool-card image {
+.stool-card-image {
   width: 100%;
   height: 190rpx;
 }
@@ -162,10 +236,27 @@
   flex: 1;
 }
 
+.register-actions {
+  position: sticky;
+  bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
+  padding: var(--spacing-md);
+  background: var(--color-glass);
+  border: 1rpx solid var(--color-root-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+}
+
 .activity-banner {
   width: 100%;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-control);
+}
+
+.activity-visual-card {
+  padding: var(--spacing-sm);
+  background: var(--color-root-surface);
+  border: 1rpx solid var(--color-root-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
 }
 
 .sticky-actions {
@@ -177,7 +268,7 @@
   padding: var(--spacing-md);
   background: var(--color-glass);
   border: 1rpx solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
 }
 
 .progress-dots {
@@ -209,6 +300,91 @@
   background: var(--color-primary);
 }
 
+.root-status-card {
+  position: relative;
+  min-height: 356rpx;
+  padding: 40rpx;
+  box-sizing: border-box;
+  border-radius: var(--radius-card);
+}
+
+.root-status-meta {
+  color: var(--color-root-soft);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.root-status-progress {
+  position: absolute;
+  top: 48rpx;
+  right: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 112rpx;
+  height: 112rpx;
+  color: var(--color-root-ink);
+  background: var(--color-root-nav);
+  border-radius: 50%;
+  font-size: 40rpx;
+  font-weight: 800;
+}
+
+.root-status-title {
+  margin-top: 46rpx;
+  color: var(--color-root-surface);
+  font-size: 48rpx;
+  line-height: 1.18;
+  font-weight: 800;
+}
+
+.root-status-copy {
+  width: 440rpx;
+  margin-top: var(--spacing-md);
+  color: #D8D1C2;
+  font-size: var(--font-size-base);
+  line-height: 1.48;
+}
+
+.root-status-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88rpx;
+  margin-top: var(--spacing-lg);
+  color: var(--color-root-ink);
+  background: var(--color-root-sprout);
+  border-radius: 24rpx;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.root-status-cta--done {
+  color: var(--color-root-surface);
+  background: rgba(253, 251, 246, 0.18);
+  border: 1rpx solid rgba(253, 251, 246, 0.28);
+}
+
+.root-status-cta:active {
+  transform: scale(0.98);
+}
+
+.root-mantra {
+  margin-top: var(--spacing-lg);
+  color: var(--color-root-moss);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  text-align: center;
+}
+
+.home-observation-title {
+  margin-top: 56rpx;
+}
+
+.home-observation-card {
+  margin-top: var(--spacing-md);
+}
+
 .circle-cta,
 .daily-cta {
   display: flex;
@@ -226,8 +402,8 @@
   font-weight: 800;
 }
 
-.circle-cta image,
-.daily-cta image {
+.circle-cta-icon,
+.daily-cta-icon {
   width: 96rpx;
   height: 96rpx;
   margin-bottom: var(--spacing-sm);
@@ -245,9 +421,31 @@
   border-bottom: 0;
 }
 
-.calendar-row image {
+.calendar-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 72rpx;
   height: 72rpx;
+  flex-shrink: 0;
+  color: var(--color-root-muted);
+  background: var(--color-root-nav);
+  border: 1rpx solid var(--color-root-line);
+  border-radius: 50%;
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+}
+
+.calendar-row.done .calendar-marker {
+  color: var(--color-root-surface);
+  background: var(--color-root-moss);
+  border-color: var(--color-root-moss);
+}
+
+.calendar-row.today .calendar-marker {
+  color: var(--color-root-ink);
+  background: var(--color-root-soft);
+  border-color: var(--color-root-sprout);
 }
 
 .row-title {
@@ -286,7 +484,7 @@
   padding: var(--spacing-lg);
   color: var(--color-surface);
   background: linear-gradient(135deg, var(--color-primary), var(--color-success));
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   font-size: var(--font-size-lg);
   font-weight: 800;
   box-shadow: var(--shadow-md);
@@ -298,12 +496,12 @@
   gap: var(--spacing-md);
 }
 
-.stats-grid > view {
+.stats-card {
   padding: var(--spacing-md);
   text-align: center;
   background: var(--color-surface);
   border: 1rpx solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
 }
 
 .stat-value {
@@ -357,7 +555,7 @@
   gap: var(--spacing-md);
 }
 
-.shop-card image {
+.shop-card-icon {
   width: 120rpx;
   height: 120rpx;
 }

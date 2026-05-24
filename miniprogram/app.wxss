@@ -1,21 +1,33 @@
 page {
-  --color-primary: #5B8DBF;
-  --color-primary-light: #A8C8E1;
-  --color-primary-dark: #3B6A99;
-  --color-primary-tint: #EEF6FB;
-  --color-glass: rgba(251, 249, 244, 0.94);
+  --color-root-ink: #080806;
+  --color-root-bg: #F7F4EC;
+  --color-root-nav: #FDFBF6;
+  --color-root-surface: #FFFFFF;
+  --color-root-moss: #586B3F;
+  --color-root-sprout: #A6B77A;
+  --color-root-clay: #B67855;
+  --color-root-line: #E8E0D0;
+  --color-root-muted: #8A8172;
+  --color-root-copy: #433E34;
+  --color-root-soft: #DDE8C4;
+  --color-primary: var(--color-root-moss);
+  --color-primary-light: var(--color-root-sprout);
+  --color-primary-dark: #3F4F2B;
+  --color-primary-tint: #F1F5E6;
+  --color-glass: rgba(253, 251, 246, 0.94);
   --color-white-strong: rgba(255, 255, 255, 0.72);
   --color-white-soft: rgba(255, 255, 255, 0.78);
-  --color-accent: #F4A261;
-  --color-success: #7FB069;
-  --color-warning: #E9C46A;
-  --color-danger: #E76F51;
-  --color-bg: #FBF9F4;
-  --color-surface: #FFFFFF;
-  --color-text-primary: #2C3E50;
-  --color-text-secondary: #6B7C8E;
-  --color-text-tertiary: #A0AEC0;
-  --color-border: #E8E8E8;
+  --color-accent: var(--color-root-clay);
+  --color-success: var(--color-root-moss);
+  --color-warning: #C49A4A;
+  --color-danger: #B5523C;
+  --color-bg: var(--color-root-bg);
+  --color-surface: var(--color-root-surface);
+  --color-text-primary: var(--color-root-ink);
+  --color-text-secondary: var(--color-root-copy);
+  --color-text-tertiary: var(--color-root-muted);
+  --color-text: var(--color-root-ink);
+  --color-border: var(--color-root-line);
   --font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
   --font-size-xs: 22rpx;
   --font-size-sm: 26rpx;
@@ -33,12 +45,14 @@ page {
   --radius-md: 16rpx;
   --radius-lg: 24rpx;
   --radius-xl: 32rpx;
+  --radius-card: 32rpx;
+  --radius-control: 24rpx;
   --radius-full: 9999rpx;
-  --shadow-sm: 0 2rpx 8rpx rgba(91, 141, 191, 0.06);
-  --shadow-md: 0 8rpx 24rpx rgba(91, 141, 191, 0.10);
-  --shadow-lg: 0 16rpx 48rpx rgba(91, 141, 191, 0.14);
-  --shadow-primary-cta: 0 8rpx 24rpx rgba(91, 141, 191, 0.30);
-  --shadow-accent-cta: 0 8rpx 24rpx rgba(244, 162, 97, 0.28);
+  --shadow-sm: 0 2rpx 10rpx rgba(8, 8, 6, 0.04);
+  --shadow-md: 0 8rpx 24rpx rgba(8, 8, 6, 0.08);
+  --shadow-lg: 0 16rpx 48rpx rgba(8, 8, 6, 0.10);
+  --shadow-primary-cta: 0 8rpx 24rpx rgba(8, 8, 6, 0.18);
+  --shadow-accent-cta: 0 8rpx 24rpx rgba(182, 120, 85, 0.22);
   min-height: 100vh;
   color: var(--color-text-primary);
   background: var(--color-bg);
@@ -47,8 +61,9 @@ page {
 
 .page {
   min-height: 100vh;
-  padding: var(--spacing-lg) var(--spacing-md) calc(var(--spacing-xl) + env(safe-area-inset-bottom));
+  padding: var(--spacing-lg) var(--spacing-md) calc(128rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  background: var(--color-root-bg);
 }
 
 .section {
@@ -63,15 +78,16 @@ page {
 .hero-image {
   width: 100%;
   overflow: hidden;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
 }
 
 .panel,
-.brand-card {
+.brand-card,
+.content-card {
   padding: var(--spacing-lg);
   background: var(--color-surface);
   border: 1rpx solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-sm);
 }
 
@@ -118,7 +134,7 @@ page {
   min-height: 88rpx;
   padding: 0 var(--spacing-lg);
   border: 0;
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-control);
   font-size: var(--font-size-lg);
   font-weight: 600;
   line-height: 88rpx;
@@ -136,7 +152,7 @@ page {
 .btn,
 .btn-primary {
   color: var(--color-surface);
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  background: var(--color-root-ink);
   box-shadow: var(--shadow-primary-cta);
 }
 
@@ -150,7 +166,7 @@ page {
 
 .btn.secondary,
 .btn-secondary {
-  color: var(--color-primary-dark);
+  color: var(--color-root-ink);
   background: var(--color-surface);
   border: 1rpx solid var(--color-border);
   box-shadow: var(--shadow-sm);
@@ -158,14 +174,14 @@ page {
 
 .btn.ghost,
 .btn-outline {
-  color: var(--color-primary-dark);
+  color: var(--color-root-moss);
   background: transparent;
-  border: 2rpx solid var(--color-primary-light);
+  border: 2rpx solid var(--color-root-sprout);
 }
 
 .btn-accent {
   color: var(--color-surface);
-  background: linear-gradient(135deg, var(--color-accent), var(--color-danger));
+  background: var(--color-root-clay);
   box-shadow: var(--shadow-accent-cta);
 }
 
@@ -207,20 +223,25 @@ page {
 }
 
 .option-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   min-height: 112rpx;
   padding: var(--spacing-md);
   color: var(--color-text-primary);
   background: var(--color-surface);
   border: 2rpx solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-control);
   font-size: var(--font-size-sm);
   line-height: 1.45;
   box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
 }
 
 .option-card.active {
   background: var(--color-primary-tint);
   border-color: var(--color-primary);
+  box-shadow: 0 8rpx 24rpx rgba(88, 107, 63, 0.12);
 }
 
 .list-item {
@@ -234,4 +255,160 @@ page {
 
 .safe-bottom {
   height: calc(var(--spacing-lg) + env(safe-area-inset-bottom));
+}
+
+.root-page {
+  min-height: 100vh;
+  padding: var(--spacing-lg) var(--spacing-md) calc(128rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: var(--color-root-bg);
+}
+
+.root-card {
+  padding: var(--spacing-lg);
+  background: var(--color-root-surface);
+  border: 1rpx solid var(--color-root-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.root-card--dark {
+  color: var(--color-root-nav);
+  background: var(--color-root-ink);
+  border-color: var(--color-root-ink);
+}
+
+.root-button {
+  min-height: 96rpx;
+  padding: 0 var(--spacing-lg);
+  color: var(--color-root-surface);
+  background: var(--color-root-ink);
+  border: 0;
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  line-height: 96rpx;
+  text-align: center;
+}
+
+.root-button::after {
+  border: 0;
+}
+
+.root-button:active {
+  transform: scale(0.98);
+}
+
+.root-button[disabled] {
+  color: var(--color-root-muted);
+  background: var(--color-root-line);
+  box-shadow: none;
+}
+
+.root-button--secondary {
+  color: var(--color-root-moss);
+  background: var(--color-root-surface);
+  border: 1rpx solid var(--color-root-line);
+}
+
+.root-cell-group {
+  overflow: hidden;
+  background: var(--color-root-surface);
+  border: 1rpx solid var(--color-root-line);
+  border-radius: var(--radius-card);
+}
+
+.root-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 96rpx;
+  padding: 0 var(--spacing-lg);
+  border-bottom: 1rpx solid var(--color-root-line);
+  color: var(--color-root-ink);
+  font-size: var(--font-size-base);
+}
+
+.root-cell:last-child {
+  border-bottom: 0;
+}
+
+.root-cell__value {
+  color: var(--color-root-muted);
+  text-align: right;
+}
+
+.root-section-title {
+  color: var(--color-root-ink);
+  font-size: var(--font-size-lg);
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.root-helper-text {
+  color: var(--color-root-muted);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+}
+
+.root-brand-logo {
+  width: 260rpx;
+  height: 42rpx;
+}
+
+.root-form-card {
+  margin-top: var(--spacing-lg);
+}
+
+.root-option-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+.root-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 112rpx;
+  padding: var(--spacing-md);
+  color: var(--color-root-ink);
+  background: var(--color-root-surface);
+  border: 2rpx solid var(--color-root-line);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.root-option.active {
+  background: var(--color-primary-tint);
+  border-color: var(--color-root-moss);
+  box-shadow: 0 8rpx 24rpx rgba(88, 107, 63, 0.12);
+}
+
+.root-option__mark {
+  flex-shrink: 0;
+  color: var(--color-root-moss);
+  font-weight: 900;
+}
+
+.root-progress {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.root-progress__bar {
+  height: 10rpx;
+  overflow: hidden;
+  background: var(--color-root-line);
+  border-radius: var(--radius-full);
+}
+
+.root-progress__fill {
+  height: 100%;
+  background: var(--color-root-moss);
+  border-radius: var(--radius-full);
 }

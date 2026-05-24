@@ -1,7 +1,7 @@
 <view class="page checkin-page">
   <view class="panel">
-    <view class="eyebrow">CHECK-IN ACTIVE</view>
-    <view class="h1">今日是 Day {{session.currentDayIndex}}</view>
+    <view class="eyebrow">打卡进行中</view>
+    <view class="h1">今日是第 {{session.currentDayIndex}} 天</view>
     <view class="body">从肠道健康，延伸到生活的每一面。每天30秒，记录身体给你的细微信号。</view>
   </view>
 

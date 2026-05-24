@@ -1,14 +1,13 @@
 <view class="page login-page">
-  <image class="top-logo" src="/static/brand/logo.png" mode="aspectFit" />
+  <image class="login-logo" src="/static/brand/root-logo-horizontal.png" mode="aspectFit" />
+  <view class="login-title">身体，自有其序</view>
+  <view class="login-copy">Root 希望你不只是服用补剂，而是在 7 天里重新建立与身体的关系。</view>
 
-  <view class="section">
-    <image class="hero-image" src="/static/brand/splash.png" mode="widthFix" />
-  </view>
-
-  <view class="section panel">
-    <view class="eyebrow">以肠为始，重启你的健康</view>
-    <view class="h1">ROOT 7日身体重启计划</view>
-    <view class="body login-copy">登录后将完成画像问卷，随后匹配有赞订单或确认收货开启打卡。</view>
+  <view class="section root-card login-card">
+    <view class="root-card-title">7 天身体重启计划</view>
+    <view class="root-promise">记录服用、排便和真实感受</view>
+    <view class="root-promise">不追求完美答案，只关注身体反馈</view>
+    <view class="root-promise">异常状态可进入人工协助</view>
 
     <view class="agreement" bindtap="toggleAgree">
       <view class="checkbox {{agreed ? 'checked' : ''}}">{{agreed ? '✓' : ''}}</view>
@@ -17,12 +16,12 @@
 
     <button
       wx:if="{{!isDevelop}}"
-      class="btn login-btn"
+      class="root-button login-btn"
       loading="{{loading}}"
       open-type="getPhoneNumber"
       bindgetphonenumber="loginWithPhone"
-    >微信一键登录</button>
-    <button wx:else class="btn login-btn dev-login-btn" loading="{{loading}}" bindtap="loginWithDemoPhone">开发调试登录</button>
-    <view class="login-note">登录即代表您同意《ROOT用户协议》和《ROOT隐私政策》</view>
+    >微信授权并开始</button>
+    <button wx:else class="root-button login-btn dev-login-btn" loading="{{loading}}" bindtap="loginWithDemoPhone">开发调试登录</button>
+    <view class="login-note">授权仅用于身份识别与打卡服务，可随时停止记录。</view>
   </view>
 </view>
