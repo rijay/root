@@ -89,9 +89,21 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  flex-wrap: wrap;
   margin-top: var(--spacing-md);
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
+}
+
+.agreement-check {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.agreement-link {
+  color: var(--color-root-moss);
+  font-weight: 700;
 }
 
 .checkbox {

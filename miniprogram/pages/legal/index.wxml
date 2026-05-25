@@ -1,0 +1,12 @@
+<view class="page legal-page">
+  <view class="legal-header">
+    <view class="eyebrow">ROOT 服务说明</view>
+    <view class="legal-title">{{doc.title}}</view>
+    <view class="legal-meta">更新日期：{{doc.updatedAt}}</view>
+  </view>
+
+  <view wx:for="{{doc.sections}}" wx:key="title" class="legal-section">
+    <view class="section-title">{{item.title}}</view>
+    <view wx:for="{{item.items}}" wx:for-item="line" wx:key="*this" class="body legal-copy">{{line}}</view>
+  </view>
+</view>

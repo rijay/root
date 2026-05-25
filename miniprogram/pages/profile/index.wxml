@@ -5,7 +5,7 @@
       <image class="avatar" src="{{avatarSrc}}" mode="aspectFill" />
       <view class="user-main">
         <view class="nickname">{{user.nickname || 'ROOT用户'}}</view>
-        <view class="phone">{{user.phone || '未授权手机号'}}</view>
+        <view class="phone">{{user.phone || '未绑定手机号'}}</view>
       </view>
       <view class="state-badge">{{statusBadge}}</view>
     </view>
@@ -57,5 +57,5 @@
   </view>
 
   <button class="root-button root-button--secondary logout-btn" bindtap="logout">退出登录</button>
-  <view class="version">v0.3.0</view>
+  <view class="version">v0.3.1</view>
 </view>

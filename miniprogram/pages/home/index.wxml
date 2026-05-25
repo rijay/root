@@ -14,12 +14,17 @@
       <view class="root-promise">不追求完美答案，只关注身体反馈</view>
       <view class="root-promise">异常状态可进入人工协助</view>
     </view>
-    <button class="root-button login-button" loading="{{loading}}" open-type="getPhoneNumber" bindgetphonenumber="loginWithPhone">微信授权并开始</button>
-    <view class="agreement root-agreement" bindtap="toggleAgree">
-      <view class="checkbox {{agreed ? 'checked' : ''}}">{{agreed ? '✓' : ''}}</view>
-      <text>我已阅读并同意《用户协议》和《隐私政策》</text>
+    <button class="root-button login-button" loading="{{loading}}" open-type="getPhoneNumber" bindgetphonenumber="loginWithPhone">手机号快捷登录</button>
+    <view class="agreement root-agreement">
+      <view class="agreement-check" bindtap="toggleAgree">
+        <view class="checkbox {{agreed ? 'checked' : ''}}">{{agreed ? '✓' : ''}}</view>
+        <text>我已阅读并同意</text>
+      </view>
+      <text class="agreement-link" catchtap="openUserAgreement">《用户协议》</text>
+      <text>和</text>
+      <text class="agreement-link" catchtap="openPrivacyPolicy">《隐私政策》</text>
     </view>
-    <view class="root-helper-text login-safe-note">授权仅用于身份识别与打卡服务，可随时停止记录。</view>
+    <view class="root-helper-text login-safe-note">手机号仅用于身份识别与打卡服务，可随时停止记录。</view>
   </view>
 
   <view wx:elif="{{viewType === 'register'}}" class="root-page register-view">

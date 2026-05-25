@@ -1,0 +1,30 @@
+.legal-page {
+  padding-top: 56rpx;
+}
+
+.legal-header {
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1rpx solid var(--color-border);
+}
+
+.legal-title {
+  margin-top: var(--spacing-sm);
+  color: var(--color-root-ink);
+  font-size: 44rpx;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.legal-meta {
+  margin-top: var(--spacing-sm);
+  color: var(--color-root-muted);
+  font-size: var(--font-size-xs);
+}
+
+.legal-section {
+  margin-top: var(--spacing-xl);
+}
+
+.legal-copy {
+  margin-top: var(--spacing-sm);
+}

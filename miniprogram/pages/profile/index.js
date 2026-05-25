@@ -95,7 +95,7 @@ Page({
   logout() {
     wx.showModal({
       title: "确认退出",
-      content: "退出后需重新授权登录",
+      content: "退出后需重新进行手机号快捷登录",
       success: (res) => {
         if (!res.confirm) return;
         clearToken();

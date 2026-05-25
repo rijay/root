@@ -52,10 +52,22 @@
   display: flex;
   gap: var(--spacing-sm);
   align-items: center;
+  flex-wrap: wrap;
   margin: var(--spacing-lg) 0 var(--spacing-md);
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
   line-height: 1.45;
+}
+
+.agreement-check {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.agreement-link {
+  color: var(--color-root-moss);
+  font-weight: 700;
 }
 
 .checkbox {

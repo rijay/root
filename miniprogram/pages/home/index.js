@@ -2,6 +2,7 @@ const options = require("../../utils/options");
 const { formatDateCn } = require("../../utils/date-display");
 const { getHomeStageCopy } = require("../../utils/checkin-presenter");
 const { gutHealthLabel, stoolLabel } = require("../../utils/option-labels");
+const { openLegalPage } = require("../../utils/legal");
 const { clearToken, getToken, request, setToken, stringifyError } = require("../../utils/request");
 
 const questions = [
@@ -122,6 +123,14 @@ Page({
 
   toggleAgree() {
     this.setData({ agreed: !this.data.agreed });
+  },
+
+  openUserAgreement() {
+    openLegalPage("agreement");
+  },
+
+  openPrivacyPolicy() {
+    openLegalPage("privacy");
   },
 
   loginWithPhone(event) {

@@ -2,6 +2,7 @@
   "pages": [
     "pages/home/index",
     "pages/login/index",
+    "pages/legal/index",
     "pages/register/index",
     "pages/activity/index",
     "pages/order/match",

@@ -40,6 +40,7 @@ for (let index = 1; index <= 7; index += 1) {
 
 require("../utils/options.js");
 require("../utils/router.js");
+require("../utils/legal.js");
 const {
   formatDateCn,
   formatDateRangeCn,
@@ -80,6 +81,8 @@ const disallowedCopy = [
   "dev_wx_code",
   "useMockPhone",
   "allowMockPhoneLogin",
+  "微信授权并开始",
+  "微信授权登录",
 ];
 const copyProblems = [];
 
@@ -91,6 +94,20 @@ scannedPages.forEach((pagePath) => {
       if (content.includes(phrase)) copyProblems.push(`${file}: contains ${phrase}`);
     });
   });
+});
+
+const homeLogin = fs.readFileSync(path.join(root, "pages/home/index.wxml"), "utf8");
+const standaloneLogin = fs.readFileSync(path.join(root, "pages/login/index.wxml"), "utf8");
+[
+  ["pages/home/index.wxml", homeLogin],
+  ["pages/login/index.wxml", standaloneLogin],
+].forEach(([file, content]) => {
+  if (!content.includes("手机号快捷登录")) {
+    copyProblems.push(`${path.join(root, file)}: missing 手机号快捷登录 copy`);
+  }
+  if (!content.includes("openPrivacyPolicy")) {
+    copyProblems.push(`${path.join(root, file)}: privacy policy link is not wired`);
+  }
 });
 
 if (missing.length) {
