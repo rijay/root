@@ -16,7 +16,7 @@
 }
 
 .result-logo {
-  width: 260rpx;
+  width: 228rpx;
   height: 44rpx;
 }
 

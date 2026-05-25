@@ -2,9 +2,9 @@
   <view class="profile-hero">
     <image class="profile-logo" src="/static/brand/root-logo-horizontal-light.png" mode="aspectFit" />
     <view class="profile-identity">
-      <image class="avatar" src="{{avatarSrc}}" mode="aspectFill" />
+      <image class="avatar {{hasCustomAvatar ? 'avatar--photo' : 'avatar--default'}}" src="{{avatarSrc}}" mode="{{hasCustomAvatar ? 'aspectFill' : 'aspectFit'}}" />
       <view class="user-main">
-        <view class="nickname">{{user.nickname || 'ROOT用户'}}</view>
+        <view class="nickname">{{user.nickname || 'ROOT体验官'}}</view>
         <view class="phone">{{user.phone || '未绑定手机号'}}</view>
       </view>
       <view class="state-badge">{{statusBadge}}</view>

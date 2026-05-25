@@ -4,7 +4,7 @@
 
 .about-logo {
   display: block;
-  width: 360rpx;
+  width: 310rpx;
   height: 58rpx;
   margin: var(--spacing-xl) auto var(--spacing-lg);
 }

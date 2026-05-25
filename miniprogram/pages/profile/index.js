@@ -13,12 +13,13 @@ function emptySession() {
 Page({
   data: {
     user: {
-      nickname: "ROOT用户",
+      nickname: "ROOT体验官",
       phone: "",
       state: "",
       avatarUrl: "",
     },
     avatarSrc: "/static/brand/logo.png",
+    hasCustomAvatar: false,
     profile: null,
     session: emptySession(),
     refundStatus: "未申请",
@@ -62,6 +63,7 @@ Page({
       this.setData({
         user: state.user,
         avatarSrc: state.user.avatarUrl || "/static/brand/logo.png",
+        hasCustomAvatar: Boolean(state.user.avatarUrl),
         profile: profileResult.status === "fulfilled" ? profileResult.value.profile : null,
         orders: ordersResult.status === "fulfilled" ? ordersResult.value.orders : [],
         session,

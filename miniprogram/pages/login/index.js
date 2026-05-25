@@ -1,6 +1,7 @@
 const { request, setToken, stringifyError } = require("../../utils/request");
 const router = require("../../utils/router");
 const { openLegalPage } = require("../../utils/legal");
+const { getWechatDisplayProfile } = require("../../utils/wechat-profile");
 
 Page({
   data: {
@@ -36,9 +37,11 @@ Page({
     }
 
     this.setData({ loading: true });
+    const displayProfilePromise = getWechatDisplayProfile();
     wx.login({
       success: async (loginResult) => {
         try {
+          const displayProfile = await displayProfilePromise;
           const data = await request({
             url: "/api/v1/auth/login",
             method: "POST",
@@ -46,6 +49,8 @@ Page({
             data: {
               wxCode: loginResult.code || "",
               phoneCode: detail.code || "",
+              nickname: displayProfile.nickname || "",
+              avatarUrl: displayProfile.avatarUrl || "",
             },
           });
           setToken(data.token);

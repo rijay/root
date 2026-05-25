@@ -71,7 +71,7 @@ page {
 }
 
 .top-logo {
-  width: 232rpx;
+  width: 218rpx;
   height: 72rpx;
 }
 
@@ -352,7 +352,7 @@ page {
 }
 
 .root-brand-logo {
-  width: 260rpx;
+  width: 218rpx;
   height: 42rpx;
 }
 

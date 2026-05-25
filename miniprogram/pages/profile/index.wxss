@@ -12,7 +12,7 @@
 }
 
 .profile-logo {
-  width: 210rpx;
+  width: 176rpx;
   height: 34rpx;
 }
 
@@ -29,6 +29,15 @@
   background: var(--color-surface);
   border: 4rpx solid rgba(253, 251, 246, 0.78);
   border-radius: 50%;
+}
+
+.avatar--default {
+  padding: 22rpx;
+  box-sizing: border-box;
+}
+
+.avatar--photo {
+  padding: 0;
 }
 
 .user-main {

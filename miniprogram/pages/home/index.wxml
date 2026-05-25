@@ -67,7 +67,10 @@
       <view class="body">连续7天记录服用、排便与身体反馈。完成有效打卡后，可申请免单奖励。</view>
     </view>
     <view class="root-card section">
-      <view class="section-title">我们了解到你关心 {{tags}}</view>
+      <view class="section-title">{{profileSummary.title}}</view>
+      <view class="profile-summary-list">
+        <view wx:for="{{profileSummary.lines}}" wx:key="*this" class="profile-summary-line">{{item}}</view>
+      </view>
       <view class="body">真正的健康，不是局部修复，而是身体能量重新建立秩序时的安稳与清晰。</view>
     </view>
     <view class="activity-visual-card section">

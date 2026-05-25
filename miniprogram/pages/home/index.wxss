@@ -25,7 +25,7 @@
 }
 
 .root-login-logo {
-  width: 500rpx;
+  width: 435rpx;
   height: 84rpx;
   margin-top: var(--spacing-xl);
 }
@@ -264,6 +264,23 @@
   border: 1rpx solid var(--color-root-line);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-sm);
+}
+
+.profile-summary-list {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.profile-summary-line {
+  padding: 18rpx 22rpx;
+  color: var(--color-root-copy);
+  background: var(--color-root-bg);
+  border: 1rpx solid var(--color-root-line);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  line-height: 1.45;
 }
 
 .sticky-actions {

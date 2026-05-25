@@ -4,6 +4,7 @@ const { getHomeStageCopy } = require("../../utils/checkin-presenter");
 const { gutHealthLabel, stoolLabel } = require("../../utils/option-labels");
 const { openLegalPage } = require("../../utils/legal");
 const { clearToken, getToken, request, setToken, stringifyError } = require("../../utils/request");
+const { getWechatDisplayProfile } = require("../../utils/wechat-profile");
 
 const questions = [
   { key: "joinReasons", type: "multi", title: "参与本次试饮的原因", options: options.joinReasonOptions },
@@ -41,7 +42,10 @@ Page({
     },
     canRegisterNext: false,
     profile: null,
-    tags: "身体节奏",
+    profileSummary: {
+      title: "你的身体反馈画像",
+      lines: [],
+    },
     session: {
       currentDayIndex: 1,
       todayChecked: false,
@@ -148,9 +152,11 @@ Page({
       return;
     }
     this.setData({ loading: true });
+    const displayProfilePromise = getWechatDisplayProfile();
     wx.login({
       success: async (loginResult) => {
         try {
+          const displayProfile = await displayProfilePromise;
           const data = await request({
             url: "/api/v1/auth/login",
             method: "POST",
@@ -158,6 +164,8 @@ Page({
             data: {
               wxCode: loginResult.code || "",
               phoneCode: detail.code || "",
+              nickname: displayProfile.nickname || "",
+              avatarUrl: displayProfile.avatarUrl || "",
             },
           });
           setToken(data.token);
@@ -255,10 +263,23 @@ Page({
   async loadProfile() {
     const data = await request({ url: "/api/v1/user/profile" });
     const profile = data.profile;
-    const tags = profile
-      ? [gutHealthLabel(profile.gut_health_status), stoolLabel(profile.stool_type)].filter(Boolean).join(" / ")
-      : "身体节奏";
-    this.setData({ profile, tags });
+    this.setData({ profile, profileSummary: this.buildProfileSummary(profile) });
+  },
+
+  buildProfileSummary(profile) {
+    if (!profile) {
+      return {
+        title: "我们会先了解你的身体反馈画像",
+        lines: ["完成画像后，ROOT 会把你的关注点、肠道状态和日常便型整理成清晰记录。"],
+      };
+    }
+    return {
+      title: "你的身体反馈画像",
+      lines: [
+        `关注重点：${gutHealthLabel(profile.gut_health_status)}`,
+        `日常便型：${stoolLabel(profile.stool_type)}`,
+      ],
+    };
   },
 
   goOrderMatch() {
