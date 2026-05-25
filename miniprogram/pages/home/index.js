@@ -276,8 +276,8 @@ Page({
     return {
       title: "你的身体反馈画像",
       lines: [
-        `关注重点：${gutHealthLabel(profile.gut_health_status)}`,
-        `日常便型：${stoolLabel(profile.stool_type)}`,
+        `肠道状态：${gutHealthLabel(profile.gut_health_status)}`,
+        `日常便型：${stoolLabel(profile.stool_type).replace("：", "，")}`,
       ],
     };
   },
