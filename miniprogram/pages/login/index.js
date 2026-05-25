@@ -42,6 +42,7 @@ Page({
           const data = await request({
             url: "/api/v1/auth/login",
             method: "POST",
+            timeout: 45000,
             data: {
               wxCode: loginResult.code || "",
               phoneCode: detail.code || "",

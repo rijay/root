@@ -1,5 +1,8 @@
 const env = require("../config/env");
 
+const DEFAULT_REQUEST_TIMEOUT = 10000;
+const CLOUD_REQUEST_TIMEOUT = 30000;
+
 function getToken() {
   return wx.getStorageSync("ROOT_TOKEN") || "";
 }
@@ -31,8 +34,8 @@ function toError(value, fallback) {
 
 function requestFailMessage(error, adapter) {
   const message = stringifyError(error);
-  if (message.includes("timeout")) return "请求超时，请确认后台服务和代理设置";
-  if (adapter === "cloudContainer") return "云托管调用失败，请确认云环境和服务名配置";
+  if (message.includes("timeout") || message.includes("timed out")) return "服务响应较慢，请稍后重试";
+  if (adapter === "cloudContainer") return "服务暂时不可用，请稍后重试";
   if (message.includes("ERR_CONNECTION_REFUSED")) return "后台服务未连接，请先启动本地后端";
   return "网络连接失败，请确认后台服务已启动";
 }
@@ -62,7 +65,7 @@ function requestByWxRequest(options, token, requestId) {
     wx.request({
       url: `${env.apiBaseUrl}${options.url}`,
       method: options.method || "GET",
-      timeout: options.timeout || 10000,
+      timeout: options.timeout || DEFAULT_REQUEST_TIMEOUT,
       data: options.data || {},
       header: buildHeader(token, requestId, options.header),
       success(res) {
@@ -95,7 +98,7 @@ function requestByCloudContainer(options, token, requestId) {
       },
       path: options.url,
       method: options.method || "GET",
-      timeout: options.timeout || 10000,
+      timeout: options.timeout || CLOUD_REQUEST_TIMEOUT,
       data: options.data || {},
       header: {
         ...buildHeader(token, requestId, options.header),
