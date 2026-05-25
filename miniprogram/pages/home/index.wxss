@@ -278,6 +278,18 @@
   border-radius: var(--radius-card);
 }
 
+.sticky-actions .btn-primary,
+.sticky-actions .btn-outline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 96rpx;
+  box-sizing: border-box;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
 .progress-dots {
   display: grid;
   grid-template-columns: repeat(7, 1fr);

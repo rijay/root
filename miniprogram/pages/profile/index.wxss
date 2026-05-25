@@ -151,16 +151,32 @@
   border: 0;
 }
 
+.menu-label {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
 .menu-row:last-child {
   border-bottom: 0;
 }
 
 .contact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
+  min-height: 92rpx;
+  padding: 0 var(--spacing-lg);
+  box-sizing: border-box;
   overflow: visible;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .menu-arrow {
+  flex-shrink: 0;
   color: var(--color-root-muted);
   font-size: 38rpx;
   font-weight: 400;

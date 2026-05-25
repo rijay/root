@@ -40,19 +40,19 @@
 
   <view class="root-cell-group menu-card">
     <view wx:if="{{showRecords}}" class="menu-row" data-url="/subpkg/checkin/pages/history/index" bindtap="goLink">
-      <text>记录历史</text><text class="menu-arrow">›</text>
+      <text class="menu-label">记录历史</text><text class="menu-arrow">›</text>
     </view>
     <view class="menu-row" data-url="/subpkg/profile/pages/tags/index" bindtap="goLink">
-      <text>身体反馈画像</text><text class="menu-arrow">›</text>
+      <text class="menu-label">身体反馈画像</text><text class="menu-arrow">›</text>
     </view>
     <view wx:if="{{showOrders}}" class="menu-row" data-url="/subpkg/profile/pages/orders/index" bindtap="goLink">
-      <text>订单与物流</text><text class="menu-arrow">›</text>
+      <text class="menu-label">订单与物流</text><text class="menu-arrow">›</text>
     </view>
-    <button class="menu-row contact-row" open-type="contact" session-from="profile">
-      <text>人工协助</text><text class="menu-arrow">›</text>
+    <button class="menu-row contact-row" open-type="contact" session-from="profile" plain="true" hover-class="none">
+      <text class="menu-label">人工协助</text><text class="menu-arrow">›</text>
     </button>
     <view class="menu-row" data-url="/subpkg/profile/pages/about/index" bindtap="goLink">
-      <text>关于 ROOT</text><text class="menu-arrow">›</text>
+      <text class="menu-label">关于 ROOT</text><text class="menu-arrow">›</text>
     </view>
   </view>
 
