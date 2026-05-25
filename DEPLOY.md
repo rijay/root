@@ -17,9 +17,11 @@ ROOT_SQLITE_FILE=/tmp/root-checkin.sqlite
 
 `ROOT_SQLITE_FILE=/tmp/root-checkin.sqlite` 只适合云托管冒烟和小范围体验；容器重启或多实例扩缩容可能导致数据丢失。正式生产需要把 Store Module 的 Adapter 切到云托管配套 MySQL 或其他可备份、可迁移、可审计的 Implementation。
 
-5. 部署完成后访问 `https://express-x7te-258599-9-1404419431.sh.run.tcloudbase.com/health`，确认返回 `{"code":0}`。
-6. 访问 `https://express-x7te-258599-9-1404419431.sh.run.tcloudbase.com/`，确认后台页面可打开。
-7. 再执行 `npm run calibrate -- --base-url https://express-x7te-258599-9-1404419431.sh.run.tcloudbase.com --target gray`，确认发布记录能返回 ROOT 后端状态。
+5. 在微信云托管控制台打开该服务的云调用/开放接口服务能力，并放行 `wxa/business/getuserphonenumber`。正式小程序手机号快捷登录依赖这个开放接口；服务端会优先使用 `wx.cloud.callContainer` 注入的 `x-wx-openid` 和云托管开放接口取手机号，AppSecret 直连只作为本地或非云托管 Adapter 的兜底路径。
+6. 如果普通用户仍偶发 `cloud.callContainer:fail timeout`，在云托管服务配置里把最小实例数设置为 1，或确保小程序端已发布包含 45 秒登录超时的版本；云托管从 0 实例冷启动时可能超过 10 秒。
+7. 部署完成后访问 `https://express-x7te-258599-9-1404419431.sh.run.tcloudbase.com/health`，确认返回 `{"code":0}`。
+8. 访问 `https://express-x7te-258599-9-1404419431.sh.run.tcloudbase.com/`，确认后台页面可打开。
+9. 再执行 `npm run calibrate -- --base-url https://express-x7te-258599-9-1404419431.sh.run.tcloudbase.com --target gray`，确认发布记录能返回 ROOT 后端状态。
 
 ## 2. 小程序改正式接口
 
@@ -61,6 +63,7 @@ const productionApiBaseUrl = "https://express-x7te-258599-9-1404419431.sh.run.tc
 - 微信公众平台已配置 `request 合法域名`。
 - 后端 HTTPS 证书有效，`/health` 可访问。
 - 后端已配置 `WECHAT_APPID` 和 `WECHAT_APPSECRET`。
+- 云托管开放接口服务已放行 `wxa/business/getuserphonenumber`，手机号快捷登录真机可用。
 - 小程序发布包不包含开发调试登录入口，后端未启用直接手机号登录测试开关。
 - 生产数据已接入 SQLite、PostgreSQL 或 MySQL 等正式数据仓库 Adapter；如使用 `ROOT_STORE_FILE`，仅作为内部灰度。
 - 已按 `docs/release_readiness.md` 跑完最小手工验收矩阵。
