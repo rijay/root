@@ -1,5 +1,6 @@
 const { clearToken, request } = require("../../utils/request");
 const router = require("../../utils/router");
+const { uploadCloudAvatar } = require("../../utils/avatar-upload");
 
 function emptySession() {
   return {
@@ -8,6 +9,11 @@ function emptySession() {
     refundStatus: "",
     orderId: "",
   };
+}
+
+function isDefaultNickname(value) {
+  const text = String(value || "").trim();
+  return !text || text === "ROOT体验官" || text === "微信用户";
 }
 
 Page({
@@ -20,6 +26,13 @@ Page({
     },
     avatarSrc: "/static/brand/logo.png",
     hasCustomAvatar: false,
+    displayForm: {
+      nickname: "",
+      avatarPreview: "/static/brand/logo.png",
+      avatarFilePath: "",
+    },
+    displaySaving: false,
+    showDisplayProfileCard: false,
     profile: null,
     session: emptySession(),
     refundStatus: "未申请",
@@ -59,11 +72,19 @@ Page({
       const checkedDays = progress.filter((record) => record.checkedIn).length;
       const dailyStats = dailyResult.status === "fulfilled" ? dailyResult.value : null;
       const statusBadge = this.buildStatusBadge(userState, session, dailyStats);
+      const avatarSrc = state.user.avatarUrl || "/static/brand/logo.png";
+      const nickname = isDefaultNickname(state.user.nickname) ? "" : state.user.nickname;
 
       this.setData({
         user: state.user,
-        avatarSrc: state.user.avatarUrl || "/static/brand/logo.png",
+        avatarSrc,
         hasCustomAvatar: Boolean(state.user.avatarUrl),
+        displayForm: {
+          nickname,
+          avatarPreview: avatarSrc,
+          avatarFilePath: "",
+        },
+        showDisplayProfileCard: !state.user.avatarUrl || isDefaultNickname(state.user.nickname),
         profile: profileResult.status === "fulfilled" ? profileResult.value.profile : null,
         orders: ordersResult.status === "fulfilled" ? ordersResult.value.orders : [],
         session,
@@ -77,6 +98,73 @@ Page({
       });
     } catch (error) {
       wx.showToast({ title: error.message || "加载失败", icon: "none" });
+    }
+  },
+
+  onChooseAvatar(event) {
+    const avatarUrl = event.detail && event.detail.avatarUrl;
+    if (!avatarUrl) return;
+    this.setData({
+      displayForm: {
+        ...this.data.displayForm,
+        avatarPreview: avatarUrl,
+        avatarFilePath: avatarUrl,
+      },
+    });
+  },
+
+  onNicknameInput(event) {
+    this.setData({
+      displayForm: {
+        ...this.data.displayForm,
+        nickname: event.detail.value,
+      },
+    });
+  },
+
+  async submitDisplayProfile(event) {
+    const formNickname = event.detail && event.detail.value ? event.detail.value.nickname : "";
+    const nickname = String(formNickname || this.data.displayForm.nickname || "").trim();
+    const avatarFilePath = this.data.displayForm.avatarFilePath;
+
+    if (!nickname && !avatarFilePath) {
+      wx.showToast({ title: "请填写昵称或选择头像", icon: "none" });
+      return;
+    }
+
+    this.setData({ displaySaving: true });
+    try {
+      let avatarUrl = "";
+      if (avatarFilePath) {
+        avatarUrl = await uploadCloudAvatar(avatarFilePath, this.data.user.userId);
+        if (!avatarUrl) {
+          wx.showToast({ title: "头像上传失败，请重试", icon: "none" });
+          return;
+        }
+      }
+
+      const data = await request({
+        url: "/api/v1/user/display-profile",
+        method: "POST",
+        data: { nickname, avatarUrl },
+      });
+      const avatarSrc = data.user.avatarUrl || "/static/brand/logo.png";
+      this.setData({
+        user: data.user,
+        avatarSrc,
+        hasCustomAvatar: Boolean(data.user.avatarUrl),
+        displayForm: {
+          nickname: isDefaultNickname(data.user.nickname) ? "" : data.user.nickname,
+          avatarPreview: avatarSrc,
+          avatarFilePath: "",
+        },
+        showDisplayProfileCard: !data.user.avatarUrl || isDefaultNickname(data.user.nickname),
+      });
+      wx.showToast({ title: "资料已更新", icon: "success" });
+    } catch (error) {
+      wx.showToast({ title: error.message || "保存失败", icon: "none" });
+    } finally {
+      this.setData({ displaySaving: false });
     }
   },
 

@@ -4,7 +4,6 @@ const { getHomeStageCopy } = require("../../utils/checkin-presenter");
 const { gutHealthLabel, stoolLabel } = require("../../utils/option-labels");
 const { openLegalPage } = require("../../utils/legal");
 const { clearToken, getToken, request, setToken, stringifyError } = require("../../utils/request");
-const { getWechatDisplayProfile } = require("../../utils/wechat-profile");
 
 const questions = [
   { key: "joinReasons", type: "multi", title: "参与本次试饮的原因", options: options.joinReasonOptions },
@@ -152,11 +151,9 @@ Page({
       return;
     }
     this.setData({ loading: true });
-    const displayProfilePromise = getWechatDisplayProfile();
     wx.login({
       success: async (loginResult) => {
         try {
-          const displayProfile = await displayProfilePromise;
           const data = await request({
             url: "/api/v1/auth/login",
             method: "POST",
@@ -164,8 +161,6 @@ Page({
             data: {
               wxCode: loginResult.code || "",
               phoneCode: detail.code || "",
-              nickname: displayProfile.nickname || "",
-              avatarUrl: displayProfile.avatarUrl || "",
             },
           });
           setToken(data.token);

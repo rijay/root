@@ -78,6 +78,87 @@
   line-height: 1.6;
 }
 
+.display-profile-card {
+  margin-top: var(--spacing-lg);
+}
+
+.display-profile-note {
+  margin-top: var(--spacing-xs);
+}
+
+.display-profile-form {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.avatar-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 136rpx;
+  margin: 0;
+  padding: 0;
+  color: var(--color-root-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+}
+
+.avatar-picker::after {
+  border: 0;
+}
+
+.avatar-picker-image {
+  width: 104rpx;
+  height: 104rpx;
+  padding: 22rpx;
+  box-sizing: border-box;
+  background: var(--color-root-bg);
+  border: 1rpx solid var(--color-root-line);
+  border-radius: 50%;
+}
+
+.avatar-picker-image--photo {
+  padding: 0;
+}
+
+.avatar-picker-text {
+  margin-top: var(--spacing-xs);
+}
+
+.nickname-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-label {
+  color: var(--color-root-muted);
+  font-size: var(--font-size-xs);
+}
+
+.nickname-input {
+  height: 76rpx;
+  margin-top: var(--spacing-xs);
+  padding: 0 var(--spacing-md);
+  box-sizing: border-box;
+  color: var(--color-root-ink);
+  background: var(--color-root-bg);
+  border: 1rpx solid var(--color-root-line);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+}
+
+.display-save-btn {
+  width: 100%;
+  margin-top: var(--spacing-md);
+  padding: 0;
+}
+
 .status-card {
   margin-top: var(--spacing-lg);
 }
@@ -171,17 +252,30 @@
   border-bottom: 0;
 }
 
-.contact-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.contact-menu-row {
+  position: relative;
+}
+
+.contact-hitarea {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
   width: 100%;
-  min-height: 92rpx;
-  padding: 0 var(--spacing-lg);
-  box-sizing: border-box;
-  overflow: visible;
-  -webkit-appearance: none;
-  appearance: none;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  opacity: 0;
+  line-height: 1;
+}
+
+.contact-hitarea::after {
+  border: 0;
 }
 
 .menu-arrow {

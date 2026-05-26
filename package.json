@@ -1,6 +1,6 @@
 {
   "name": "root-seven-day-checkin",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "description": "ROOT 7 day check-in mini-program and operations backend",
   "scripts": {
