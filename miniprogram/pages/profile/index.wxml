@@ -12,29 +12,32 @@
     <view class="profile-quote">身体自有其序，记录会让它被看见。</view>
   </view>
 
-  <form wx:if="{{showDisplayProfileCard}}" class="root-card display-profile-card" bindsubmit="submitDisplayProfile">
-    <view class="root-section-title">完善头像和昵称</view>
-    <view class="root-helper-text display-profile-note">用于“我的”页面展示，可跳过，之后也能继续使用 ROOT。</view>
-    <view class="display-profile-form">
-      <button class="avatar-picker" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" plain="true" hover-class="none">
-        <image class="avatar-picker-image {{displayForm.avatarFilePath || hasCustomAvatar ? 'avatar-picker-image--photo' : ''}}" src="{{displayForm.avatarPreview}}" mode="{{displayForm.avatarFilePath || hasCustomAvatar ? 'aspectFill' : 'aspectFit'}}" />
-        <text class="avatar-picker-text">选择头像</text>
-      </button>
-      <view class="nickname-field">
-        <view class="field-label">昵称</view>
-        <input
-          class="nickname-input"
-          type="nickname"
-          name="nickname"
-          value="{{displayForm.nickname}}"
-          maxlength="24"
-          placeholder="填写昵称"
-          bindinput="onNicknameInput"
-        />
+  <view wx:if="{{showDisplayProfileCard}}" class="root-card display-profile-card">
+    <form bindsubmit="submitDisplayProfile">
+      <view class="root-section-title">完善头像和昵称</view>
+      <view class="root-helper-text display-profile-note">用于“我的”页面展示，可跳过，之后也能继续使用 ROOT。</view>
+      <view class="display-profile-form">
+        <view class="avatar-picker">
+          <image class="avatar-picker-image {{displayForm.avatarFilePath || hasCustomAvatar ? 'avatar-picker-image--photo' : ''}}" src="{{displayForm.avatarPreview}}" mode="{{displayForm.avatarFilePath || hasCustomAvatar ? 'aspectFill' : 'aspectFit'}}" />
+          <text class="avatar-picker-text">选择头像</text>
+          <button class="avatar-picker-hitarea" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" hover-class="none" aria-label="选择头像"></button>
+        </view>
+        <view class="nickname-field">
+          <view class="field-label">昵称</view>
+          <input
+            class="nickname-input"
+            type="nickname"
+            name="nickname"
+            value="{{displayForm.nickname}}"
+            maxlength="24"
+            placeholder="填写昵称"
+            bindinput="onNicknameInput"
+          />
+        </view>
       </view>
-    </view>
-    <button class="root-button display-save-btn" form-type="submit" loading="{{displaySaving}}">保存资料</button>
-  </form>
+      <button class="root-button display-save-btn" form-type="submit" loading="{{displaySaving}}">保存资料</button>
+    </form>
+  </view>
 
   <view class="root-card status-card">
     <view class="root-section-title">当前记录状态</view>

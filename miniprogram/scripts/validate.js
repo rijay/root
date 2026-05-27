@@ -85,6 +85,7 @@ const disallowedCopy = [
   "微信授权登录",
 ];
 const copyProblems = [];
+const nativeControlProblems = [];
 
 scannedPages.forEach((pagePath) => {
   ["js", "wxml"].forEach((ext) => {
@@ -93,6 +94,22 @@ scannedPages.forEach((pagePath) => {
     disallowedCopy.forEach((phrase) => {
       if (content.includes(phrase)) copyProblems.push(`${file}: contains ${phrase}`);
     });
+  });
+});
+
+scannedPages.forEach((pagePath) => {
+  const file = path.join(root, `${pagePath}.wxml`);
+  const content = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+  const buttonPattern = /<button\b[^>]*\bopen-type="[^"]+"[^>]*>/g;
+  const layoutClassPattern = /\b(menu-row|avatar-picker|root-card|root-cell-group|display-profile-card)\b/;
+  const matches = content.match(buttonPattern) || [];
+  matches.forEach((tag) => {
+    const classMatch = tag.match(/\bclass="([^"]*)"/);
+    const className = classMatch ? classMatch[1] : "";
+    if (/\bhitarea\b/.test(className)) return;
+    if (layoutClassPattern.test(className)) {
+      nativeControlProblems.push(`${file}: native open-type button must not own layout class "${className}"`);
+    }
   });
 });
 
@@ -117,6 +134,11 @@ if (missing.length) {
 
 if (copyProblems.length) {
   console.error(`Disallowed user-facing copy:\\n${copyProblems.join("\\n")}`);
+  process.exit(1);
+}
+
+if (nativeControlProblems.length) {
+  console.error(`Native control layout risks:\\n${nativeControlProblems.join("\\n")}`);
   process.exit(1);
 }
 
