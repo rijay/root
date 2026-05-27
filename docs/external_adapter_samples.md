@@ -217,7 +217,7 @@ curl -s http://127.0.0.1:8788/api/v1/admin/external-adapters/run \
 5. JSON、CSV 和表格文本应得到一致的字段映射结果。
 6. 每次预览或导入都应生成一条取样评审记录。
 7. 取样评审记录应包含字段覆盖率、缺失项、未知状态枚举和决策状态。
-8. 所有样本导入在 `ROOT_STORE_FILE` 模式下应被 JSON 文件保存，在 `ROOT_SQLITE_FILE` 模式下应被 SQLite 文件保存。
+8. 所有样本导入在 `ROOT_STORE_FILE` 模式下应被 JSON 文件保存，在 `ROOT_SQLITE_FILE` 模式下应被 SQLite 文件保存；云托管正式环境应通过 `ROOT_STORE_ADAPTER=mysql` 写入 MySQL。
 9. 通过 `MANUAL_SAMPLE` Adapter 运行预览或导入时，应生成 Adapter 运行记录和取样评审记录。
 10. 真实平台 Adapter 缺少配置、缺少 Implementation 或运行失败时，应生成 `FAILED` 运行记录并展示失败原因。
 

@@ -63,8 +63,8 @@
   <view wx:elif="{{viewType === 'activity'}}" class="page activity-view">
     <view class="root-card section">
       <view class="eyebrow">以肠为始</view>
-      <view class="home-title">ROOT 7 日身体重启计划</view>
-      <view class="body">连续7天记录服用、排便与身体反馈。完成有效打卡后，可申请免单奖励。</view>
+      <view class="home-title">{{homeView.title || 'ROOT 7 日身体重启计划'}}</view>
+      <view class="body">{{homeView.description || '连续7天记录服用、排便与身体反馈。完成有效打卡后，可申请免单奖励。'}}</view>
     </view>
     <view class="root-card section">
       <view class="section-title">{{profileSummary.title}}</view>
@@ -76,9 +76,22 @@
     <view class="activity-visual-card section">
       <image class="activity-banner" src="/static/banner/activity.png" mode="widthFix" />
     </view>
+    <view wx:if="{{homeView.orders && homeView.orders.length}}" class="root-card section order-state-card">
+      <view class="section-title">订单与物流</view>
+      <view wx:for="{{homeView.orders}}" wx:key="orderId" class="order-state-row">
+        <view>
+          <view class="row-title">{{item.youzanOrderNo}}</view>
+          <view class="body">{{item.receiverName}} · {{item.deliveryStatusLabel || item.deliveryStatus}}</view>
+        </view>
+        <view class="order-state-pill">{{item.deliveryStatus === 'DELIVERED' ? '已送达' : item.deliveryStatus === 'EXCEPTION' ? '异常' : '配送中'}}</view>
+      </view>
+    </view>
     <view class="sticky-actions">
-      <button class="btn-primary" bindtap="goOrderMatch">确认收货手机号</button>
-      <button class="btn-outline" bindtap="confirmStart" loading="{{loading}}">物流送达后开始打卡</button>
+      <button wx:if="{{flowView === 'ORDER_PENDING'}}" class="btn-primary" bindtap="goOrderMatch">确认收货手机号</button>
+      <button wx:elif="{{flowView === 'READY_TO_START'}}" class="btn-primary" bindtap="confirmStart" loading="{{loading}}">开始打卡</button>
+      <button wx:elif="{{flowView === 'WAITING_DELIVERY'}}" class="btn-secondary" bindtap="goOrders">查看订单与物流</button>
+      <button wx:else class="btn-primary" bindtap="confirmStart" loading="{{loading}}">物流送达后开始打卡</button>
+      <button wx:if="{{flowView === 'ORDER_PENDING' || flowView === 'WAITING_DELIVERY'}}" class="btn-outline" bindtap="goSupport">人工协助</button>
     </view>
   </view>
 

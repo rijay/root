@@ -6,13 +6,18 @@
   </view>
   <view class="section root-card profile-list">
     <view wx:if="{{orders.length}}">
-      <view wx:for="{{orders}}" wx:key="order_id" class="profile-row order-row">
+      <view wx:for="{{orders}}" wx:key="orderId" class="profile-row order-row">
         <view class="order-row-head">
-          <view class="root-section-title">{{item.youzan_order_no || '订单待同步'}}</view>
-          <view class="order-status">{{item.delivery_status || '待确认'}}</view>
+          <view class="root-section-title">{{item.youzanOrderNo || '订单待同步'}}</view>
+          <view class="order-status">{{item.deliveryStatusLabel || item.deliveryStatus || '待确认'}}</view>
         </view>
         <view class="body">金额 {{item.amount || 0}} 元</view>
-        <view class="body">匹配方式：{{item.match_source || '未匹配'}}</view>
+        <view class="body">匹配方式：{{item.matchSource || item.match_source || '未匹配'}}</view>
+        <view wx:if="{{item.fulfillment && (item.fulfillment.carrier || item.fulfillment.trackingNo)}}" class="order-logistics">
+          <view wx:if="{{item.fulfillment.carrier}}" class="body">物流公司：{{item.fulfillment.carrier}}</view>
+          <view wx:if="{{item.fulfillment.trackingNo}}" class="body">运单号：{{item.fulfillment.trackingNo}}</view>
+          <view wx:if="{{item.fulfillment.lastEventText}}" class="body">最新节点：{{item.fulfillment.lastEventText}}</view>
+        </view>
       </view>
     </view>
     <view wx:else class="empty-state">

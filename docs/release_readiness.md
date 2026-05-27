@@ -1,7 +1,7 @@
 # ROOT 7 日打卡上线前验收清单
 
 日期：2026-05-16
-状态：演示/灰度验收通过；已具备 JSON 文件 Adapter、SQLite Adapter、真实样本导入校验、取样模板、取样评审台账、未知枚举映射、Adapter 准入、上线闸口、真实平台 Adapter Seam、运行记录、增量游标、三类可配置 HTTP Implementation 和 Adapter 上线校准包，正式上线仍需用真实账号执行校准流程。
+状态：演示/灰度验收通过；已具备 JSON 文件 Adapter、SQLite Adapter、MySQL Adapter、真实样本导入校验、取样模板、取样评审台账、未知枚举映射、微信授权手机号自动匹配有赞订单、后台访问口令、Adapter 准入、上线闸口、真实平台 Adapter Seam、运行记录、增量游标、三类可配置 HTTP Implementation 和 Adapter 上线校准包，正式上线仍需用真实账号执行校准流程。
 
 ## 1. 当前结论
 
@@ -24,11 +24,11 @@
 
 当前版本不适合直接正式上线，除非先完成：
 
-1. 数据仓库 Implementation 切换到 SQLite 或生产级数据库；若多实例或高并发，需要 PostgreSQL/MySQL Adapter。
+1. 数据仓库 Implementation 切换到 MySQL Adapter，并完成云托管重启后的数据保留验证。
 2. 有赞订单 Adapter 真实字段、请求地址、token 位置、数据路径和字段映射确认。
 3. 物流 Adapter 真实字段、请求地址、密钥位置、数据路径和字段映射确认。
 4. 企业微信线索 Adapter 真实字段、请求地址、token/secret 位置、数据路径和字段映射确认。
-5. 微信正式登录密钥、合法域名和 HTTPS 环境配置。
+5. 微信正式登录密钥、后台访问口令、合法域名和 HTTPS 环境配置。
 
 ## 2. 自动验收
 
@@ -53,19 +53,20 @@ npm run check --prefix root_seven_day_checkin/miniprogram
 10. 小程序 canonical 打卡路径指向 `subpkg/checkin/pages/*`。
 11. JSON 文件 Adapter 能在 HTTP Interface 请求后保存变更，并在重启后恢复用户资料。
 12. SQLite Adapter 能在 HTTP Interface 请求后事务保存变更，并在重启后恢复用户资料。
-13. 有赞订单、物流状态和企业微信线索样本可先预览校验，再导入灰度数据仓库；样本支持 JSON、CSV 和表格文本。
-14. 每次样本预览/导入会记录字段覆盖率、缺失项、未知状态枚举和决策状态。
-15. 未知订单/物流状态可在后台保存映射，映射后重新预览样本。
-16. 后台提供三类取样模板，避免运营导出字段缺失。
-17. Adapter 准入会要求每类真实样本最新评审至少 3 条，且无未知枚举和必填字段缺口。
-18. 上线闸口会把数据仓库 Adapter、微信登录密钥、正式域名和样本评审转成 `READY`、`NEEDS_REVIEW`、`BLOCKED`。
-19. 真实平台 Adapter 状态台会展示手工 Adapter、待配置真实 Adapter 和最近运行记录。
-20. 真实平台 Adapter 运行失败也会落账；成功导入后会保存增量游标，下一次可从上次位置继续。
-21. 有赞订单可通过可配置 HTTP Implementation 拉取，响应仍会进入样本校验、评审台账和 Adapter 准入。
-22. 物流状态可通过可配置 HTTP Implementation 拉取，响应仍会进入样本校验、履约更新、待办生成和 Adapter 准入。
-23. 企业微信线索可通过可配置 HTTP Implementation 拉取，响应仍会进入样本校验、线索写入、人工匹配待办和 Adapter 准入。
-24. Adapter 校准会把样本准入、配置、真实 Adapter 状态、最近成功运行和游标转成只读检查结果。
-25. 发布记录会把上线闸口、Adapter 校准、最近运行、签字位和回滚动作汇总成可评审凭证。
+13. MySQL Adapter 可通过云托管 MySQL 环境变量启用，上线闸口会阻塞非 MySQL 的生产发布。
+14. 有赞订单、物流状态和企业微信线索样本可先预览校验，再导入灰度数据仓库；样本支持 JSON、CSV 和表格文本。
+15. 每次样本预览/导入会记录字段覆盖率、缺失项、未知状态枚举和决策状态。
+16. 未知订单/物流状态可在后台保存映射，映射后重新预览样本。
+17. 后台提供三类取样模板，避免运营导出字段缺失。
+18. Adapter 准入会要求每类真实样本最新评审至少 3 条，且无未知枚举和必填字段缺口。
+19. 上线闸口会把数据仓库 Adapter、微信登录密钥、后台访问口令、正式域名和样本评审转成 `READY`、`NEEDS_REVIEW`、`BLOCKED`。
+20. 真实平台 Adapter 状态台会展示手工 Adapter、待配置真实 Adapter 和最近运行记录。
+21. 真实平台 Adapter 运行失败也会落账；成功导入后会保存增量游标，下一次可从上次位置继续。
+22. 有赞订单可通过可配置 HTTP Implementation 拉取，响应仍会进入样本校验、评审台账和 Adapter 准入。
+23. 物流状态可通过可配置 HTTP Implementation 拉取，响应仍会进入样本校验、履约更新、待办生成和 Adapter 准入。
+24. 企业微信线索可通过可配置 HTTP Implementation 拉取，响应仍会进入样本校验、线索写入、人工匹配待办和 Adapter 准入。
+25. Adapter 校准会把样本准入、配置、真实 Adapter 状态、最近成功运行和游标转成只读检查结果。
+26. 发布记录会把上线闸口、Adapter 校准、最近运行、签字位和回滚动作汇总成可评审凭证。
 
 ## 3. 手工验收矩阵
 
@@ -146,17 +147,25 @@ npm run check --prefix root_seven_day_checkin/miniprogram
 
 正式上线前必须关闭：
 
-1. 数据仓库风险：内存 Adapter 重启会丢失记录；JSON 文件 Adapter 只适合内部灰度；SQLite Adapter 仅适合单实例小范围上线前验证，多实例和高并发仍需要 PostgreSQL/MySQL。
+1. 数据仓库风险：内存 Adapter 重启会丢失记录；JSON 文件 Adapter 只适合内部灰度；SQLite Adapter 只适合本地验证，云托管正式环境必须使用 MySQL Adapter。
 2. 正式登录风险：生产环境必须配置真实微信登录密钥，并确保未启用直接手机号登录测试开关。
 3. 正式域名风险：小程序体验版和正式版不能访问 `127.0.0.1`。
 4. 数据保留风险：用户明细保留期限、图片保留规则和后台可见范围需要最终确认。
-5. 外部字段和平台请求风险：有赞、物流、企业微信字段或凭证未验证前，只能按 `MANUAL_SAMPLE` Adapter 灰度试跑；三类 HTTP Implementation 需要真实账号校准后再进入正式上线。
+5. 后台访问风险：正式环境必须配置 `ROOT_ADMIN_TOKEN` 或 `ROOT_ADMIN_TOKENS`，否则运营数据 Interface 会被上线闸口阻塞。
+6. 外部字段和平台请求风险：有赞、物流、企业微信字段或凭证未验证前，只能按 `MANUAL_SAMPLE` Adapter 灰度试跑；三类 HTTP Implementation 需要真实账号校准后再进入正式上线。
 
 后台「上线闸口」和 `GET /api/v1/admin/launch-readiness?target=production` 会把其中可自动判断的项目标记为 `BLOCKED`；后台「Adapter 校准」和 `GET /api/v1/admin/adapter-calibration` 会把三类真实 Adapter 的校准状态拆开。后台「发布记录」和 `GET /api/v1/admin/release-record?target=production` 会把决策建议、阻塞项、灰度确认项、签字位和回滚动作汇总到一处。数据保留期限和后台可见范围仍需要人工确认后写入发布记录。
+
+迁移 MySQL 前必须先执行快照校验和 dry-run：
+
+```bash
+npm run store:verify -- --json ./data/dev-store.json
+npm run store:migrate:mysql -- --json ./data/dev-store.json --dry-run
+```
 
 ## 6. 推荐发布顺序
 
 1. 内部演示：继续使用内存数据仓库和人工 Adapter。
 2. 运营试跑：使用 JSON 文件 Adapter，导入真实订单样本，手工更新物流，验证企业微信话术。
-3. 小范围灰度：切换到 SQLite Adapter，保留人工 Adapter。
-4. 正式上线：用真实账号校准有赞、物流、企业微信三类 Adapter 配置，并保留后台人工修正入口；若要多实例部署，再迁移到 PostgreSQL/MySQL Adapter。
+3. 小范围灰度：可用 SQLite Adapter 做本地验证，云托管灰度建议直接使用 MySQL Adapter，保留人工 Adapter。
+4. 正式上线：使用 MySQL Adapter、配置 `ROOT_ADMIN_TOKEN` 或 `ROOT_ADMIN_TOKENS`，用真实账号校准有赞、物流、企业微信三类 Adapter 配置，并保留后台人工修正入口。

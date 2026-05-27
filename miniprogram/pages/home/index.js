@@ -281,6 +281,14 @@ Page({
     wx.navigateTo({ url: "/pages/order/match" });
   },
 
+  goOrders() {
+    wx.navigateTo({ url: "/subpkg/profile/pages/orders/index" });
+  },
+
+  goSupport() {
+    wx.navigateTo({ url: "/subpkg/profile/pages/support/index" });
+  },
+
   confirmStart() {
     wx.showModal({
       title: "开始打卡",

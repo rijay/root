@@ -296,7 +296,8 @@
 }
 
 .sticky-actions .btn-primary,
-.sticky-actions .btn-outline {
+.sticky-actions .btn-outline,
+.sticky-actions .btn-secondary {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -305,6 +306,30 @@
   box-sizing: border-box;
   line-height: 1.25;
   white-space: nowrap;
+}
+
+.order-state-card {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.order-state-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) 0;
+  border-top: 1rpx solid var(--color-border);
+}
+
+.order-state-pill {
+  flex-shrink: 0;
+  padding: 10rpx 18rpx;
+  color: var(--color-root-moss);
+  background: var(--color-root-nav);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
 }
 
 .progress-dots {
