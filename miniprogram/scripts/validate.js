@@ -3,6 +3,11 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 const app = JSON.parse(fs.readFileSync(path.join(root, "app.json"), "utf8"));
+const projectConfig = JSON.parse(fs.readFileSync(path.join(root, "project.config.json"), "utf8"));
+const privateConfigPath = path.join(root, "project.private.config.json");
+const privateConfig = fs.existsSync(privateConfigPath)
+  ? JSON.parse(fs.readFileSync(privateConfigPath, "utf8"))
+  : null;
 const requiredExts = ["js", "json", "wxml", "wxss"];
 const missing = [];
 
@@ -94,6 +99,12 @@ if (runtimeEnv.requestAdapter !== "cloudContainer") {
 }
 if (!runtimeEnv.cloudEnvId || !runtimeEnv.cloudServiceName) {
   networkProblems.push("config/env.js: cloudEnvId and cloudServiceName are required for wx.cloud.callContainer");
+}
+if (projectConfig.setting && projectConfig.setting.urlCheck !== true) {
+  networkProblems.push("project.config.json: setting.urlCheck must be true before upload");
+}
+if (privateConfig && privateConfig.setting && privateConfig.setting.urlCheck === false) {
+  networkProblems.push("project.private.config.json: setting.urlCheck must not disable domain checks");
 }
 
 scannedPages.forEach((pagePath) => {
