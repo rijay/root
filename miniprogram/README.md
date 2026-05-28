@@ -27,7 +27,7 @@ const cloudEnvId = "prod-d3grtjkva76c93e00";
 const cloudServiceName = "express-x7te";
 ```
 
-开发版会自动使用 `http://127.0.0.1:8787` 直连本地后台，方便调试。体验版和正式版会自动使用 `wx.cloud.callContainer` 调用微信云托管，不需要单独配置 request 合法域名；登录链路统一使用微信手机号授权。
+开发版、体验版和正式版都会默认使用 `wx.cloud.callContainer` 调用微信云托管，不走 `wx.request` 直连公网域名，因此不需要单独配置 request 合法域名；登录链路统一使用微信手机号授权。如需本机临时联调 `http://127.0.0.1:8787`，只能在本地临时修改请求 Adapter，上传审核前必须恢复为云托管 Adapter 并执行 `npm run check`。
 
 ## 调试排错
 

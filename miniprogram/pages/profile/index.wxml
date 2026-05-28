@@ -85,5 +85,5 @@
   </view>
 
   <button class="root-button root-button--secondary logout-btn" bindtap="logout">退出登录</button>
-  <view class="version">v0.4.0</view>
+  <view class="version">v0.4.1</view>
 </view>

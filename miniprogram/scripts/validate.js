@@ -41,6 +41,7 @@ for (let index = 1; index <= 7; index += 1) {
 require("../utils/options.js");
 require("../utils/router.js");
 require("../utils/legal.js");
+const runtimeEnv = require("../config/env.js");
 const {
   formatDateCn,
   formatDateRangeCn,
@@ -86,6 +87,14 @@ const disallowedCopy = [
 ];
 const copyProblems = [];
 const nativeControlProblems = [];
+const networkProblems = [];
+
+if (runtimeEnv.requestAdapter !== "cloudContainer") {
+  networkProblems.push(`config/env.js: default requestAdapter must be cloudContainer, got ${runtimeEnv.requestAdapter}`);
+}
+if (!runtimeEnv.cloudEnvId || !runtimeEnv.cloudServiceName) {
+  networkProblems.push("config/env.js: cloudEnvId and cloudServiceName are required for wx.cloud.callContainer");
+}
 
 scannedPages.forEach((pagePath) => {
   ["js", "wxml"].forEach((ext) => {
@@ -139,6 +148,11 @@ if (copyProblems.length) {
 
 if (nativeControlProblems.length) {
   console.error(`Native control layout risks:\\n${nativeControlProblems.join("\\n")}`);
+  process.exit(1);
+}
+
+if (networkProblems.length) {
+  console.error(`Network config risks:\\n${networkProblems.join("\\n")}`);
   process.exit(1);
 }
 
