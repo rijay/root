@@ -1,4 +1,5 @@
 const options = require("../../utils/options");
+const env = require("../../config/env");
 const { formatDateCn } = require("../../utils/date-display");
 const { getHomeStageCopy } = require("../../utils/checkin-presenter");
 const { gutHealthLabel, stoolLabel } = require("../../utils/option-labels");
@@ -11,6 +12,10 @@ const questions = [
   { key: "improvementMethods", type: "multi", title: "您目前肠道健康改善的方式", options: options.improvementOptions },
   { key: "stoolType", type: "stool", title: "便便日常是什么类型", options: options.stoolOptions },
 ];
+
+function isShopAvailable() {
+  return Boolean(env.youzanAppId && env.youzanProductPath && env.youzanAppId !== "wx1234567890abcdef");
+}
 
 function buildProgress(session) {
   if (!session) return [];
@@ -69,6 +74,7 @@ Page({
     dailyTrend: [],
     dailyRange: "7d",
     couponStatus: null,
+    shopAvailable: isShopAvailable(),
   },
 
   onLoad() {
@@ -399,6 +405,10 @@ Page({
   },
 
   async navigateToShop() {
+    if (!this.data.shopAvailable) {
+      wx.showToast({ title: "店铺暂未开放", icon: "none" });
+      return;
+    }
     const couponItem = this.data.couponStatus && this.data.couponStatus.coupon;
     if (couponItem && couponItem.couponId) {
       await request({

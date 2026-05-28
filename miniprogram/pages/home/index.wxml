@@ -222,7 +222,7 @@
       </view>
       <view class="daily-entry-arrow">›</view>
     </view>
-    <view class="shop-card section">
+    <view wx:if="{{shopAvailable}}" class="shop-card section">
       <image class="shop-card-icon" src="/static/icon/shop.png" mode="aspectFit" />
       <view>
         <view class="section-title">ROOT 补充计划</view>
