@@ -520,6 +520,8 @@ function productionEnvMatrixCheck() {
     ROOT_CLOUDBASE_STORE_BACKUP_PLAN: "每日快照 + 发布前手工快照",
     ROOT_CLOUDBASE_STORE_ROLLBACK_PLAN: "按发布前快照回滚",
     ROOT_CLOUDBASE_STORE_PROOF: "release-proof-cloudbase-store",
+    ROOT_CLOUDBASE_STORAGE_TRANSPORT: "HTTP",
+    CLOUDBASE_APIKEY: "cloudbase-server-api-key",
     ROOT_MEMBER_CENTER_APPID: "wx_root_member_center",
     ROOT_MEMBER_CENTER_PRODUCT_PATH: "pages/product/detail?id=ROOT_PREBIOTIC",
     ROOT_MEMBER_CENTER_ENV_VERSION: "release",
@@ -589,8 +591,16 @@ function productionEnvMatrixCheck() {
     },
     {
       id: "runtime_store_job_groups",
-      status: ["runtime", "privacy_compliance", "store", "cloudbase_store", "cloudbase_jobs", "checkin_reminder_subscription", "root_member_center_jump"].every((id) =>
+      status: ["runtime", "privacy_compliance", "store", "cloudbase_store", "cloudbase_object_storage", "cloudbase_jobs", "checkin_reminder_subscription", "root_member_center_jump"].every((id) =>
         ready.groups.some((group) => group.id === id && group.status === "PASS")) ? "PASS" : "FAIL",
+    },
+    {
+      id: "cloudbase_object_storage_http_env",
+      status: ready.groups.some((group) =>
+        group.id === "cloudbase_object_storage" &&
+        group.status === "PASS" &&
+        group.required.some((item) => item.name === "ROOT_CLOUDBASE_STORAGE_TRANSPORT" && item.valid) &&
+        group.anyOf.some((item) => item.presentNames.includes("CLOUDBASE_APIKEY"))) ? "PASS" : "FAIL",
     },
     {
       id: "job_token_rotation_env",

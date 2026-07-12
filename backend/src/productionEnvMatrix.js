@@ -61,6 +61,24 @@ const ENV_GROUPS = [
     action: "确认 CloudBase 生产环境、Store 决策、备份计划、回滚计划和发布证明引用。",
   },
   {
+    id: "cloudbase_object_storage",
+    label: "CloudBase 对象存储",
+    ownerRole: "研发",
+    required: ["ROOT_CLOUDBASE_STORAGE_TRANSPORT"],
+    requiredValues: {
+      ROOT_CLOUDBASE_STORAGE_TRANSPORT: ["http", "http_api"],
+    },
+    anyOf: [
+      ["ROOT_CLOUDBASE_ENV_ID", "CLOUDBASE_ENV_ID", "TCB_ENV_ID"],
+      ["CLOUDBASE_APIKEY", "ROOT_CLOUDBASE_API_KEY"],
+    ],
+    optional: [
+      "ROOT_CLOUDBASE_STORAGE_API_BASE_URL",
+      "ROOT_CLOUDBASE_STORAGE_TIMEOUT_MS",
+    ],
+    action: "容器型云托管使用 CloudBase HTTP Interface，并从生产密钥配置注入服务端 API Key；不得把 Key 写入仓库、日志或客户端。",
+  },
+  {
     id: "cloudbase_jobs",
     label: "CloudBase 定时 Job",
     ownerRole: "研发",

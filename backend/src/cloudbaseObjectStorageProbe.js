@@ -60,6 +60,24 @@ async function runCloudbaseObjectStorageProbe(data, input = {}, context = {}) {
     if (!removed || removed.deleted !== true) error = "CloudBase object delete was not confirmed";
   } catch (probeError) {
     error = errorPreview(probeError);
+    const failureFileId = text(probeError && (probeError.fileId || probeError.externalRef));
+    if (!uploaded && failureFileId.startsWith("cloud://")) {
+      uploaded = {
+        externalRef: failureFileId,
+        fileId: failureFileId,
+        objectKey,
+        uploadConfirmed: false,
+      };
+      try {
+        removed = await adapter.deleteObject({
+          objectKey,
+          externalRef: failureFileId,
+          fileId: failureFileId,
+        });
+      } catch (cleanupError) {
+        error = `${error}; cleanup: ${errorPreview(cleanupError)}`.slice(0, 180);
+      }
+    }
   }
 
   const status = uploaded && removed && removed.deleted === true && !error ? "VERIFIED" : "FAILED";
@@ -68,7 +86,7 @@ async function runCloudbaseObjectStorageProbe(data, input = {}, context = {}) {
     provider: "CLOUDBASE",
     envId: text(env.ROOT_CLOUDBASE_ENV_ID),
     objectKey,
-    uploadConfirmed: Boolean(uploaded && uploaded.fileId),
+    uploadConfirmed: Boolean(uploaded && uploaded.fileId && uploaded.uploadConfirmed !== false),
     deleteConfirmed: Boolean(removed && removed.deleted === true),
     residualObjectPossible: Boolean(uploaded && (!removed || removed.deleted !== true)),
     externalRef: text(uploaded && uploaded.externalRef),

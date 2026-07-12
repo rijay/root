@@ -604,6 +604,8 @@ test("production environment matrix groups launch and Adapter variables", () => 
     ROOT_CLOUDBASE_REGION: "ap-shanghai",
     ROOT_CLOUDBASE_STORE_BACKUP_PLAN: "每日快照 + 发布前快照",
     ROOT_CLOUDBASE_STORE_ROLLBACK_PLAN: "按发布前快照回滚",
+    ROOT_CLOUDBASE_STORAGE_TRANSPORT: "HTTP",
+    CLOUDBASE_APIKEY: "cloudbase-server-api-key",
     ROOT_JOB_BASE_URL: "https://root.example.com",
     ROOT_ADMIN_JOB_TOKEN: "job-secret",
     ROOT_CHECKIN_REMINDER_ENABLED: "true",
@@ -669,6 +671,12 @@ test("production environment matrix groups launch and Adapter variables", () => 
   assert.equal(ready.summary.blockers, 0);
   assert.equal(ready.groups.find((group) => group.id === "youzan_order").required.some((item) => item.name === "YOUZAN_CLIENT_SECRET"), false);
   assert.ok(ready.groups.some((group) => group.id === "cloudbase_store" && group.status === "PASS"));
+  assert.ok(ready.groups.some((group) => group.id === "cloudbase_object_storage" && group.status === "PASS"));
+  assert.ok(buildProductionEnvMatrix({
+    ...readyEnv,
+    CLOUDBASE_APIKEY: "",
+  }, { target: "production" }).groups.some((group) =>
+    group.id === "cloudbase_object_storage" && group.status === "BLOCKER"));
   assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.status === "PASS"));
   assert.ok(ready.groups.some((group) => group.id === "privacy_compliance" && group.status === "PASS"));
   assert.ok(disabledConsent.groups.some((group) => group.id === "privacy_compliance" && group.status === "BLOCKER"));

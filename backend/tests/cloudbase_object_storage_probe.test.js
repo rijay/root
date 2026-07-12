@@ -64,3 +64,52 @@ test("admin CloudBase object storage probe uploads, deletes, audits, and stays i
   assert.deepEqual(calls.map((item) => item.action), ["put", "delete"]);
   assert.equal(server.store.auditLogs.filter((item) => item.action === "CLOUDBASE_OBJECT_STORAGE_PROBE").length, 1);
 });
+
+test("admin CloudBase object storage probe cleans an ambiguous upload by its exact returned fileID", async (t) => {
+  const calls = [];
+  const fileId = "cloud://myroot-prod.bucket/release-probes/ambiguous.json";
+  const server = createApp({
+    env: {
+      NODE_ENV: "production",
+      ROOT_ADMIN_TOKEN: "probe-admin-token",
+      ROOT_CLOUDBASE_ENV_ID: "myroot-prod",
+      ROOT_RELEASE_ID: "myroot-api-023",
+    },
+    objectStorageAdapter: {
+      async putObject(payload) {
+        calls.push({ action: "put", objectKey: payload.objectKey });
+        const error = new Error("upload response timed out");
+        error.fileId = fileId;
+        error.externalRef = fileId;
+        throw error;
+      },
+      async deleteObject(payload) {
+        calls.push({ action: "delete", fileId: payload.fileId });
+        return { ...payload, deleted: true };
+      },
+    },
+  });
+  await server.readyPromise;
+  const baseUrl = await listen(server);
+  t.after(() => close(server));
+
+  const response = await fetch(`${baseUrl}/api/v1/admin/cloudbase-object-storage/probe`, {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer probe-admin-token",
+      "Content-Type": "application/json",
+      "X-Request-Id": "ambiguous-object-probe-1",
+    },
+    body: JSON.stringify({ requestId: "ambiguous-object-probe-1" }),
+  }).then((result) => result.json());
+
+  assert.equal(response.code, 0);
+  assert.equal(response.data.probe.status, "FAILED");
+  assert.equal(response.data.probe.uploadConfirmed, false);
+  assert.equal(response.data.probe.deleteConfirmed, true);
+  assert.equal(response.data.probe.residualObjectPossible, false);
+  assert.deepEqual(calls, [
+    { action: "put", objectKey: response.data.probe.objectKey },
+    { action: "delete", fileId },
+  ]);
+});
