@@ -1,7 +1,7 @@
 # ROOT 7 日打卡上线前验收清单
 
-更新日期：2026-07-11
-状态：P0/P1 本地实现、CloudBase MySQL 真实部署、20 并发写、双实例、滚动重启、关系表、小程序云调用、9 个定时 Job dry-run 和数据库隔离恢复均已验证；正式发布仍由真机购买跳转、真实外部 Adapter、execute 校准、完整业务回滚和签字 Gate 阻塞。既有产品、运营、Adapter、后台和发布 Gate 能力继续有效，本轮新增连接池、数据库级迁移锁、快照修订号行锁、提交后响应、核心关系表同事务同步和 `/ready` 证明；发布 Gate 不再接受只有 `ROOT_STORE_ADAPTER=mysql`、但无连接和迁移证据的配置。
+更新日期：2026-07-12
+状态：P0/P1、本地 `15/15`、CloudBase MySQL、20 并发、双实例、滚动重启、数据库恢复、`myroot-api-022` 0% 定向候选、schema 级最小权限、隐私 180 天配置和 11/11 Cloud Function dry-run 均已验证；正式发布仍由对象存储候选探针、体验版真机、真实外部 Adapter、execute 校准、完整业务回滚和签字 Gate 阻塞。
 
 最新生产只读状态与 `v0.5.6` 数据最小化迁移见 [2026-07-12 正式上线检查点](./formal_launch_checkpoint_2026-07-12.md)。
 
@@ -306,7 +306,7 @@ Root 会员中心购买跳转 Gate 当前只剩体验版跳转证明阻塞：需
 5. 后台访问风险：正式环境必须配置 `ROOT_ADMIN_TOKEN` 或 `ROOT_ADMIN_TOKENS`，否则运营数据 Interface 会被上线闸口阻塞。
 6. 权限风险：Element Plus Admin 已按 capabilities 隐藏菜单并禁用主要写按钮，但安全判断仍以后台角色能力为准；正式环境需要核对 viewer、finance、operator、admin 四类 token 与按钮提示是否一致。
 7. Production Env Matrix 风险：代码仓库已提供变量矩阵和缺失判断，但真实生产密钥不能写入仓库，必须由 CloudBase 环境变量、密钥管理或外部平台控制台注入。
-8. CloudBase Job 风险：平台单函数最多 10 个触发器，生产已拆为 `myroot-job-dispatcher` 10 个和 `myroot-health-retention` 1 个，合计覆盖 11 个 Job；两函数均 `Active`，沿用原 5 项变量且 `ROOT_JOB_DRY_RUN=true`。两个新 Job 手工调用均到达调度代码，但稳定版后端尚无对应路由而返回 404；必须在 `v0.5.6` 后端生效后取得 HTTP 200 dry-run 证明，相关负责人确认前不得开启 execute 模式。
+8. CloudBase Job 风险：平台单函数最多 10 个触发器，生产已拆为 `myroot-job-dispatcher` 10 个和 `myroot-health-retention` 1 个，合计覆盖 11 个 Job；两函数均 `Active / Available`，通过 022 定向路由取得 11/11 HTTP 200、业务码 0、`dryRun=true` 证明。真实 Adapter 小批量校准、负责人和告警路由确认前不得开启 execute 模式。
 9. CloudBase 身份风险：已从 myRoot 小程序真实调用 `myroot-prod-d5gl3gzg7115f149a`，验证 `x-wx-openid`、`x-wx-unionid`、登录链路和隐私脱敏，身份探针为 `READY`；后续更换 AppID、开放平台绑定或 CloudBase 环境时必须重新验证，不能沿用本次证明。
 10. 外部字段和平台请求风险：有赞、物流、企业微信字段或凭证未验证前，只能按 `MANUAL_SAMPLE` 或 `MANUAL` Adapter 灰度试跑；四类 HTTP Implementation、动作 Adapter 校准 Gate、售后状态映射、`WEWORK_CONTACT_WRITEBACK_URL` 和 `WEWORK_TOUCH_SEND_URL` 需要真实账号校准、小批量成功回执和发布证据包留档后再进入正式上线。
 11. Admin 构建产物风险：正式镜像或云托管产物必须包含 Admin build。backend-only 云托管部署前应执行 `npm run admin:build && npm run deploy:prepare-admin`，确认 `backend/public/admin-dist` 存在；灰度验收必须确认 `/admin/assets/*.js` 返回 200。
@@ -406,7 +406,7 @@ curl -s https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com/ready
 3. 对账默认 dry-run；execute 必须同时具备 User Query URL、可用 token、`ROOT_YOUZAN_IDENTITY_RECONCILE_ENABLED=true` 和稳定 `request_id`。失败按 15 分钟、1 小时、4 小时、12 小时和 24 小时退避；成功身份默认 168 小时后复核，捕获后续新增的有赞身份。
 4. Store 只保存 UnionID 的 24 位 SHA-256 指纹、状态、次数与聚合计数；Job 输出和审计不保存原始 UnionID、手机号、OpenID、token 或完整响应。
 5. 新增 `POST /api/v1/jobs/youzan-identity-reconcile`、命令行 Runner、Production Env Matrix Gate 和第 11 个 CloudBase 定时触发器；仓库目标为 11 个，线上仍为 9 个且 `ROOT_JOB_DRY_RUN=true`，本轮未部署或改流量。
-6. 根项目、后端、小程序、Admin 与 Cloud Function 版本统一为 `0.5.6`。完整 `npm run verify` 为 `14/14 PASS`，覆盖 213 个 JavaScript 文件、228 个后端测试、版本一致性、11 个 Job、双函数触发器容量拓扑、生产依赖审计、Admin 构建、小程序校验、发布源清单和 HTTP Interface smoke。
+6. 根项目、后端、小程序、Admin 与 Cloud Function 版本统一为 `0.5.6`。后续增加不可变迁移校验和 Gate 后，完整 `npm run verify` 为 `15/15 PASS`，覆盖 213 个 JavaScript 文件、228 个后端测试、版本一致性、11 个 Job、双函数触发器容量拓扑、生产依赖审计、Admin 构建、小程序校验、发布源清单和 HTTP Interface smoke。
 7. 小程序 `packOptions.ignore` 显式排除验证脚本、开发身份诊断页、README、package 元数据、`.gitignore` 和私有项目配置；诊断页同时从 `app.json` 移除。发布源清单 Module 应用开发者工具默认的 `.git`、`.svn`、`node_modules`、`.DS_Store` 排除并拒绝符号链接，不额外排除未来可能成为运行依赖的 `miniprogram_npm`。当前清单为 155 文件、496,769 bytes，SHA-256 `3da8acc98202d0fa9ac8d4effee5be8af1e0f118589c5d9908032136dd29fbfb`；误纳入内嵌 `.git` 的旧摘要已作废。
 8. 云托管失败日志改为安全摘要，JSON 字段、查询参数和无标签微信标识均已脱敏，用户端只显示稳定的传输失败提示；订阅授权只保存标准化状态。打卡结果与海报载荷从微信持久化缓存迁入一次性内存状态并在启动时清除旧键。生产 `notification_subscription` 当前 0 行，无历史原始订阅响应需要迁移。小程序发布校验还覆盖 Root 会员中心短链的真实调用参数。
 9. 本地镜像 `myroot-api:0.5.6-local` 构建成功；`/health`、`/ready` 和 `/admin` 通过，Job 无 token 返回 401、带一次性本地 token 时 dry-run 返回 200，容器已停止。
@@ -421,4 +421,14 @@ curl -s https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com/ready
 18. Cloud Function 返回 `releaseVersion=0.5.6`，Admin 构建 manifest 记录 `releaseVersion=0.5.6`；后端镜像、云函数包和小程序源文件清单已生成本地 SHA-256 对照，正式上传时应与同一提交重新生成并核对。
 19. Production Env Matrix 已把次日打卡提醒与 Root 会员中心购买跳转从可选说明提升为生产必过组。真实线上 31 个变量回读后为 6 组通过、6 组可选、8 组阻塞；Root 会员中心组通过，提醒组缺 `ROOT_CHECKIN_REMINDER_ENABLED`、模板 ID 和模板版本。
 20. 2026-07-12 云端实测确认单函数触发器上限为 10；第 11 个触发器直接部署会以 `LimitExceeded.Trigger` 失败。当前正式拓扑为主函数 10 个触发器与独立健康保留期函数 1 个，仓库 Gate 同时检查每函数不超过 10、总计 11 个唯一 Job 和共享代码目录。
-21. 同日已回滚占用灰度通道的旧候选任务，并把一次被平台拒绝的灰度请求暂存到 CloudRun 基础配置的 46 项变量恢复为稳定版 `012` 的 31 项。恢复后只读回读确认 MySQL Store、稳定密码非空、`OA/PUBLIC/MINIAPP`、1 至 2 实例均未变化，公网 `/health` 与 `/ready` 均为 HTTP 200；`v0.5.6` 0% 候选仍等待 macOS 钥匙串解锁后的候选密码安全回读，不得把该准备动作记为候选已部署。
+21. 同日先回滚占用灰度通道的旧候选任务，并把一次被平台拒绝的灰度请求暂存到 CloudRun 基础配置的 46 项变量恢复为稳定版 `012` 的 31 项。该 12:57 状态随后已由本页第 13 节的 022 候选部署结果取代。
+
+## 13. 2026-07-12 v0.5.6 生产 0% 候选
+
+1. `myroot-api-020` 与 `021` 的镜像构建成功但探针拒绝连接；版本回读确认两者丢失 VPC，而稳定版 `012` 和正常候选 `019` 均具备 VPC。022 从稳定版本快照显式继承 `VpcConf` 后部署为 `normal`。
+2. 候选包为 182 个条目、1,052,249 bytes，SHA-256 `fe5e81763426fd7fa1a8164a05b076acc51e9d59f04fa1246403676156e07dc0`。不可变迁移校验和 Gate 已把完整验收提升为 `15/15 PASS`。
+3. 022 使用 `myroot_app_v2`，46 个变量齐全；`/ready` 返回 MySQL connected、迁移 004、`leastPrivilegeReady=true`、`privilegeScope=SCHEMA`、`privilegePolicyEnforced=true`。
+4. 候选公开隐私说明返回处理者存在、联系方式有效、保存期限 180 天和政策版本存在；隐私与次日打卡提醒生产变量已关闭候选配置阻断。
+5. 发布模式为 `URL_PARAMS`，012 是无参数默认版本，022 只匹配一次性非秘密参数。20 次无参数 `/health` 均未观察到 `0.5.6`；带参数的 `/health`、`/ready` 和隐私说明首次命中 022 并通过。
+6. 两个 Cloud Function 各保留原配置并临时增加候选路由变量，触发器保持 10+1；11/11 同步调用均为 `releaseVersion=0.5.6`、HTTP 200、业务码 0、`dryRun=true`。
+7. 当前尚未执行对象存储上传/删除候选探针、真实订阅发送、健康数据 execute 清理、外部 Adapter 动作、5% 灰度或 100% 切流。完整脱敏证据见 [候选 022 证据](./production_gray_release_022_2026-07-12.md)。

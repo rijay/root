@@ -110,9 +110,11 @@ ROOT_ALERT_CAMPAIGN_ID=ROOT_7D_RESET
 
 提醒模板、微信凭据和发送状态只配置在 CloudRun `myroot-api`；Cloud Function 仅以 Job token 调用后端，不重复保存这些值。
 
-仓库已提供共享代码目录 `cloudfunctions/myroot-job-dispatcher` 与根目录 `cloudbaserc.json`。CloudBase 单函数最多 10 个定时触发器，因此生产拓扑拆为 `myroot-job-dispatcher` 10 个触发器和 `myroot-health-retention` 1 个健康数据清理触发器，合计覆盖 11 个 Job；两个函数复用同一代码目录。配置只保存函数代码、规格和触发器，不保存任何环境变量；否则再次执行 `tcb fn deploy` 可能把生产 token 写进仓库，或用不完整变量覆盖云端配置。`ROOT_JOB_BASE_URL`、`ROOT_ADMIN_JOB_TOKEN`、`ROOT_JOB_DRY_RUN` 等变量统一在 CloudBase 控制台维护。2026-07-12 两个生产函数均为 `Active`，环境变量保持 5 项且 `ROOT_JOB_DRY_RUN=true`；新 Job 手工调用已到达调度代码，但稳定版后端尚无对应路由而返回 HTTP 404，必须在 `v0.5.6` 后端生效后重新验证，当前不得开启 execute。
+仓库已提供共享代码目录 `cloudfunctions/myroot-job-dispatcher` 与根目录 `cloudbaserc.json`。CloudBase 单函数最多 10 个定时触发器，因此生产拓扑拆为 `myroot-job-dispatcher` 10 个触发器和 `myroot-health-retention` 1 个健康数据清理触发器，合计覆盖 11 个 Job；两个函数复用同一代码目录。配置只保存函数代码、规格和触发器，不保存任何环境变量；否则再次执行 `tcb fn deploy` 可能把生产 token 写进仓库，或用不完整变量覆盖云端配置。`ROOT_JOB_BASE_URL`、`ROOT_ADMIN_JOB_TOKEN`、`ROOT_JOB_DRY_RUN` 等变量统一在 CloudBase 控制台维护。2026-07-12 两个生产函数均为 `Active / Available`，各保留原 5 项变量并临时增加 `ROOT_JOB_ROUTE_QUERY`，且 `ROOT_JOB_DRY_RUN=true`；通过 0% 候选定向路由后，11/11 个 Job 均返回 `releaseVersion=0.5.6`、HTTP 200、业务码 0 和 `dryRun=true`。真实外部 Adapter 完成小批量校准及负责人确认前不得开启 execute。
 
 0% 候选验收可使用 CloudBase 官方 URL 参数定向流量：稳定版保持默认版本，候选版只匹配一次性非秘密参数。Cloud Function 临时设置 `ROOT_JOB_ROUTE_QUERY=<key>=<value>`，灰度验证脚本设置同值 `ROOT_CANARY_ROUTE_QUERY` 或传 `--route-query <key>=<value>`；调度器会把参数附加到 Job Interface，默认未配置时 URL 完全不变。验收结束后移除两个变量并恢复百分比流量配置，路由参数不能替代鉴权，也不得承载 token、密码或用户标识。
+
+生产 MySQL 使用私网地址时，CloudRun 候选必须显式继承当前稳定版本的 `VpcConf`。CloudBase CLI `3.5.7` 的差异配置转换不会自动提交 `VpcConf`；2026-07-12 的 `020/021` 因遗漏该项，在应用监听 80 端口前无法连接 MySQL，探针均以 `connection refused` 失败。发布脚本必须从稳定版本 `DescribeVersionDetail` 回读 VPC 配置，在 `UpdateCloudRunServer.Items` 中显式提交 `{ Key: "VpcConf", VpcConf: ... }`，并在候选创建后再次回读 `DescribeVersionDetail.VpcConf`。缺 VPC、稳定版不是默认版本或候选百分比不为 0 时立即停止，不进入探针。
 
 有赞身份对账首次开放 execute 前，必须先完成 User Query Interface 权限与 token 生命周期确认，再把 `ROOT_YOUZAN_IDENTITY_RECONCILE_ENABLED` 改为 `true`。自用型无容器 token 由 `client_id + client_secret + grant_id` 换取；当前版本采用单一负责人集中轮换，不允许两个实例各自换 token。生产调用会检查轮换模式与到期时间，缺失或已过期时在请求有赞前失败关闭。建议先运行：
 
@@ -201,7 +203,7 @@ const productionApiBaseUrl = "https://myroot-api-273748-8-1437260454.sh.run.tclo
 - `GET /api/v1/admin/cloudbase-identity-probe` 已在真实 CloudBase 请求下验证 openid 与 unionid，身份探针为 `READY`，且已留存脱敏证明。
 - 小程序发布包不包含开发调试登录入口，后端未启用直接手机号登录测试开关。
 - 生产数据已接入 CloudBase MySQL Adapter；连接池、迁移版本、修订号与核心关系表均有实测证据。
-- 两个 Cloud Function 当前合计 11 个触发器，原 9 个已有云端 dry-run 证明；健康数据保留期清理和有赞身份对账已部署但仍需在 `v0.5.6` 后端生效后取得 HTTP 200 dry-run 证明，正式外部动作校准完成前保持 `ROOT_JOB_DRY_RUN=true`。
+- 两个 Cloud Function 当前合计 11 个触发器；11/11 已在 `v0.5.6` 候选定向路由上取得 HTTP 200、业务码 0、`dryRun=true` 证明，正式外部动作校准完成前继续保持 `ROOT_JOB_DRY_RUN=true`。
 - 迁移后快照已非破坏性恢复到隔离库并回读 24 张表、迁移版本与快照版本；恢复演练库保留至审计结束。
 - 已按 `docs/release_readiness.md` 跑完最小手工验收矩阵。
 - 正式发布前仍需用真实账号核对有赞订单、物流、企业微信和奖励履约 Adapter 字段与回执。
