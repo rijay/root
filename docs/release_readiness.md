@@ -1,7 +1,7 @@
 # ROOT 7 日打卡上线前验收清单
 
 更新日期：2026-07-12
-状态：P0/P1、本地 `15/15`、CloudBase MySQL、20 并发、双实例、滚动重启、数据库恢复、`myroot-api-022` 0% 定向候选、schema 级最小权限、隐私 180 天配置和 11/11 Cloud Function dry-run 均已验证；正式发布仍由对象存储候选探针、体验版真机、真实外部 Adapter、execute 校准、完整业务回滚和签字 Gate 阻塞。
+状态：P0/P1、本地 `15/15`、CloudBase MySQL、20 并发、双实例、滚动重启、数据库恢复、`myroot-api-023` 0% 定向候选、schema 级最小权限、隐私 180 天、CloudBase 对象存储写删和 11/11 Cloud Function dry-run 均已验证；正式发布仍由体验版真机、真实外部 Adapter、execute 校准、5% 灰度、完整业务回滚和签字 Gate 阻塞。
 
 最新生产只读状态与 `v0.5.6` 数据最小化迁移见 [2026-07-12 正式上线检查点](./formal_launch_checkpoint_2026-07-12.md)。
 
@@ -306,7 +306,7 @@ Root 会员中心购买跳转 Gate 当前只剩体验版跳转证明阻塞：需
 5. 后台访问风险：正式环境必须配置 `ROOT_ADMIN_TOKEN` 或 `ROOT_ADMIN_TOKENS`，否则运营数据 Interface 会被上线闸口阻塞。
 6. 权限风险：Element Plus Admin 已按 capabilities 隐藏菜单并禁用主要写按钮，但安全判断仍以后台角色能力为准；正式环境需要核对 viewer、finance、operator、admin 四类 token 与按钮提示是否一致。
 7. Production Env Matrix 风险：代码仓库已提供变量矩阵和缺失判断，但真实生产密钥不能写入仓库，必须由 CloudBase 环境变量、密钥管理或外部平台控制台注入。
-8. CloudBase Job 风险：平台单函数最多 10 个触发器，生产已拆为 `myroot-job-dispatcher` 10 个和 `myroot-health-retention` 1 个，合计覆盖 11 个 Job；两函数均 `Active / Available`，通过 022 定向路由取得 11/11 HTTP 200、业务码 0、`dryRun=true` 证明。真实 Adapter 小批量校准、负责人和告警路由确认前不得开启 execute 模式。
+8. CloudBase Job 风险：平台单函数最多 10 个触发器，生产已拆为 `myroot-job-dispatcher` 10 个和 `myroot-health-retention` 1 个，合计覆盖 11 个 Job；两函数均 `Active / Available`，通过 023 定向路由取得 11/11 HTTP 200、业务码 0、`dryRun=true` 证明。真实 Adapter 小批量校准、负责人和告警路由确认前不得开启 execute 模式。
 9. CloudBase 身份风险：已从 myRoot 小程序真实调用 `myroot-prod-d5gl3gzg7115f149a`，验证 `x-wx-openid`、`x-wx-unionid`、登录链路和隐私脱敏，身份探针为 `READY`；后续更换 AppID、开放平台绑定或 CloudBase 环境时必须重新验证，不能沿用本次证明。
 10. 外部字段和平台请求风险：有赞、物流、企业微信字段或凭证未验证前，只能按 `MANUAL_SAMPLE` 或 `MANUAL` Adapter 灰度试跑；四类 HTTP Implementation、动作 Adapter 校准 Gate、售后状态映射、`WEWORK_CONTACT_WRITEBACK_URL` 和 `WEWORK_TOUCH_SEND_URL` 需要真实账号校准、小批量成功回执和发布证据包留档后再进入正式上线。
 11. Admin 构建产物风险：正式镜像或云托管产物必须包含 Admin build。backend-only 云托管部署前应执行 `npm run admin:build && npm run deploy:prepare-admin`，确认 `backend/public/admin-dist` 存在；灰度验收必须确认 `/admin/assets/*.js` 返回 200。
@@ -432,3 +432,14 @@ curl -s https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com/ready
 5. 发布模式为 `URL_PARAMS`，012 是无参数默认版本，022 只匹配一次性非秘密参数。20 次无参数 `/health` 均未观察到 `0.5.6`；带参数的 `/health`、`/ready` 和隐私说明首次命中 022 并通过。
 6. 两个 Cloud Function 各保留原配置并临时增加候选路由变量，触发器保持 10+1；11/11 同步调用均为 `releaseVersion=0.5.6`、HTTP 200、业务码 0、`dryRun=true`。
 7. 当前尚未执行对象存储上传/删除候选探针、真实订阅发送、健康数据 execute 清理、外部 Adapter 动作、5% 灰度或 100% 切流。完整脱敏证据见 [候选 022 证据](./production_gray_release_022_2026-07-12.md)。
+
+## 14. 2026-07-12 CloudBase 对象存储与候选 023
+
+1. 022 的对象存储探针返回 HTTP 502，未取得上传确认；随后列举 `release-probes/2026-07-12/` 为 0 个对象，并取消 022 灰度。发布单回读 `IsReleasing=false`，稳定版 012 保持 100%。
+2. 后端对象存储 Adapter 改为 CloudBase 服务端 HTTP Interface，覆盖上传授权、精确 PUT、按返回 `cloudObjectId` 删除、对象不存在幂等清理和含糊上传补偿删除；完整 `npm run verify` 仍为 `15/15 PASS`。
+3. 服务端 API Key 以 180 天有效期创建，只保存于 macOS 钥匙串；生产文档、仓库、命令参数和输出均不保存明文。Production Env Matrix 新增 CloudBase 对象存储必过组。
+4. 023 候选包为 180 个条目、1,048,175 bytes，SHA-256 `055e904bff74288589bbdafbfc6c98dbccc5bf309d25f3cf6a5905a318d2a156`；状态 `normal`，VPC 已继承，48 个变量齐全，发布模式为 `URL_PARAMS / 0%`。
+5. 定向 `/health` 与 `/ready` 返回 `0.5.6`、MySQL connected 和迁移 004；配置路由前、配置后和对象探针后三组各 5 次无参数 `/health` 均未观察到 `0.5.6`。
+6. 023 对象探针返回 HTTP 200、业务码 0、`VERIFIED`，上传与精确删除均确认，残留可能性为 false，审计匹配；随后直接列举探针目录仍为 0 个对象。
+7. 两个 Cloud Function 的候选路由已更新为 023，仍保持 10+1 触发器和全局 dry-run；11/11 Job 再次全部通过，未执行任何真实外部动作或健康数据清理。
+8. 当前正式发布阻塞已收敛为体验版真机、真实外部 Adapter 小批量校准、5% 灰度与告警观察、完整业务回滚、最终证据包和三方签字。完整脱敏证据见 [候选 023 证据](./production_gray_release_023_2026-07-12.md)。
