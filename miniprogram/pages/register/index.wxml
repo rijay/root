@@ -1,45 +1,41 @@
-<view class="root-page register-page">
-  <view class="root-progress">
-    <view class="progress-meta">身体画像 {{step + 1}}/{{total}}</view>
-    <view class="root-progress__bar">
-      <view class="root-progress__fill" style="width: {{(step + 1) * 100 / total}}%;"></view>
+<view class="root-page register-auth-page">
+  <view class="auth-hero root-card--dark">
+    <view class="eyebrow">MYROOT</view>
+    <view class="auth-title">开始 Root 成长任务</view>
+    <view class="auth-copy">授权后可参与打卡、问卷、咨询与活动结算。</view>
+  </view>
+
+  <view class="root-card auth-card">
+    <view class="section-title">账号状态</view>
+    <view class="auth-row">
+      <text>小程序身份</text>
+      <text class="auth-row-value">{{hasToken ? '已建立' : '待授权'}}</text>
+    </view>
+    <view class="auth-row">
+      <text>手机号</text>
+      <text class="auth-row-value">{{hasPhone ? '已记录' : '可选'}}</text>
+    </view>
+    <view class="auth-row">
+      <text>跨小程序识别</text>
+      <text class="auth-row-value">{{identity.unionidStatus === 'LINKED' ? '已连通' : '待认证补齐'}}</text>
     </view>
   </view>
 
-  <view class="section root-card">
-    <view class="eyebrow">身体画像</view>
-    <view class="h1">{{current.title}}</view>
-    <view class="root-helper-text">让 ROOT 更好地理解你的身体节奏，后续只用于打卡服务与人工协助。</view>
+  <view class="root-card auth-card">
+    <view class="section-title">不强制绑定订单</view>
+    <view class="root-helper-text">你可以先参与打卡、问卷和咨询；如活动规则需要购买条件，系统会在订单同步后自动判断。</view>
   </view>
 
-  <view wx:if="{{current.type !== 'stool'}}" class="section root-option-grid">
-    <view
-      wx:for="{{current.options}}"
-      wx:key="value"
-      class="root-option {{item.selected ? 'active' : ''}}"
-      data-value="{{item.value}}"
-      bindtap="selectOption"
-    >
-      <text>{{item.label}}</text>
-      <text wx:if="{{item.selected}}" class="root-option__mark">✓</text>
-    </view>
-  </view>
-
-  <view wx:else class="section stool-grid">
-    <view
-      wx:for="{{current.options}}"
-      wx:key="value"
-      class="stool-card {{item.selected ? 'active' : ''}}"
-      data-value="{{item.value}}"
-      bindtap="selectOption"
-    >
-      <image class="stool-card-image" src="{{item.image}}" mode="aspectFit" />
-      <text>{{item.label}}</text>
-    </view>
-  </view>
-
-  <view class="section button-row footer-actions">
-    <button class="root-button root-button--secondary" bindtap="previous" disabled="{{step === 0}}">上一题</button>
-    <button class="root-button" bindtap="next" disabled="{{!canNext}}" loading="{{loading}}">{{step === total - 1 ? '完成' : '下一题'}}</button>
+  <view class="auth-actions">
+    <button wx:if="{{!hasToken}}" class="root-button" loading="{{loading}}" bindtap="authorizeEntry">授权进入</button>
+    <button
+      wx:if="{{hasToken && !hasPhone}}"
+      class="root-button root-button--secondary"
+      loading="{{phoneLoading}}"
+      open-type="getPhoneNumber"
+      bindgetphonenumber="authorizePhone"
+    >授权手机号</button>
+    <button wx:if="{{hasToken}}" class="root-button" bindtap="continueToHome">进入首页</button>
   </view>
 </view>
+<privacy-consent />

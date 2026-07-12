@@ -1,0 +1,333 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="2240" viewBox="0 0 1440 2240">
+  <defs>
+    <style>
+      .bg { fill: #F7F4EC; }
+      .ink { fill: #080806; }
+      .copy { fill: #433E34; }
+      .muted { fill: #8A8172; }
+      .moss { fill: #586B3F; }
+      .sprout { fill: #A6B77A; }
+      .clay { fill: #B67855; }
+      .line { stroke: #E8E0D0; }
+      .surface { fill: #FFFFFF; }
+      .paper { fill: #F8F3E8; }
+      .soft { fill: #EEF3DE; }
+      .phone { fill: #FDFBF6; stroke: #D8CEBC; stroke-width: 2; }
+      .card { fill: #FFFFFF; stroke: #E8E0D0; stroke-width: 1.5; }
+      .dark-card { fill: #080806; }
+      .button { fill: #080806; }
+      .button-secondary { fill: #FFFFFF; stroke: #E8E0D0; stroke-width: 1.5; }
+      .pill { fill: #F1F5E6; stroke: #A6B77A; stroke-width: 1.5; }
+      .tab { fill: #FDFBF6; stroke: #E8E0D0; stroke-width: 1.2; }
+      .title { font: 700 34px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #080806; }
+      .subtitle { font: 500 18px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #8A8172; }
+      .screen-title { font: 700 20px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #080806; }
+      .h1 { font: 800 24px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #080806; }
+      .h1-light { font: 800 24px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #FDFBF6; }
+      .h2 { font: 700 17px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #080806; }
+      .small { font: 500 13px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #8A8172; }
+      .small-dark { font: 500 13px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #433E34; }
+      .small-light { font: 500 13px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #FDFBF6; }
+      .label { font: 700 12px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #586B3F; }
+      .button-text { font: 700 15px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #FFFFFF; }
+      .secondary-text { font: 700 15px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #586B3F; }
+      .nav { font: 600 12px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; fill: #8A8172; }
+      .flow { fill: none; stroke: #586B3F; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+      .flow-muted { fill: none; stroke: #B67855; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 7 8; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#586B3F" />
+    </marker>
+    <marker id="arrow-clay" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#B67855" />
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1440" height="2240" />
+  <text class="title" x="72" y="70">ROOT 打卡小程序原型图</text>
+  <text class="subtitle" x="72" y="104">用于 AI 设计工具继续优化：保留当前状态流、微信小程序约束与 ROOT 品牌语气</text>
+  <rect class="dark-card" x="1018" y="42" width="62" height="28" rx="14" />
+  <text class="small-light" x="1034" y="61">主路</text>
+  <rect class="clay" x="1098" y="42" width="82" height="28" rx="14" />
+  <text class="small-light" x="1114" y="61">异常/支线</text>
+  <rect class="card" x="1198" y="42" width="150" height="28" rx="14" />
+  <text class="small" x="1214" y="61">375 x 812 参考</text>
+
+  <!-- Flow connectors -->
+  <path class="flow" marker-end="url(#arrow)" d="M318 402 C346 402 354 402 382 402" />
+  <path class="flow" marker-end="url(#arrow)" d="M638 402 C666 402 674 402 702 402" />
+  <path class="flow-muted" marker-end="url(#arrow-clay)" d="M958 402 C986 402 994 402 1022 402" />
+  <path class="flow" marker-end="url(#arrow)" d="M1180 662 C1180 710 160 710 160 758" />
+  <path class="flow" marker-end="url(#arrow)" d="M318 1058 C346 1058 354 1058 382 1058" />
+  <path class="flow" marker-end="url(#arrow)" d="M638 1058 C666 1058 674 1058 702 1058" />
+  <path class="flow" marker-end="url(#arrow)" d="M958 1058 C986 1058 994 1058 1022 1058" />
+  <path class="flow" marker-end="url(#arrow)" d="M1180 1318 C1180 1366 160 1366 160 1414" />
+  <path class="flow" marker-end="url(#arrow)" d="M318 1714 C346 1714 354 1714 382 1714" />
+  <path class="flow-muted" marker-end="url(#arrow-clay)" d="M638 1714 C666 1714 674 1714 702 1714" />
+  <path class="flow-muted" marker-end="url(#arrow-clay)" d="M958 1714 C986 1714 994 1714 1022 1714" />
+
+  <!-- Screen 1 -->
+  <g transform="translate(72 150)">
+    <text class="screen-title" x="0" y="-18">1. 登录欢迎</text>
+    <rect class="phone" x="0" y="0" width="246" height="512" rx="34" />
+    <rect class="paper" x="14" y="16" width="218" height="480" rx="26" />
+    <rect class="ink" x="72" y="58" width="102" height="36" rx="8" />
+    <text class="small-light" x="101" y="81">ROOT</text>
+    <text class="h1" x="42" y="144">身体，自有其序</text>
+    <text class="small-dark" x="32" y="176">重新建立与身体的关系</text>
+    <rect class="card" x="28" y="216" width="190" height="120" rx="18" />
+    <text class="h2" x="48" y="248">7 天身体重启计划</text>
+    <text class="small" x="48" y="280">记录服用、排便和真实感受</text>
+    <text class="small" x="48" y="306">异常状态可进入人工协助</text>
+    <rect class="button" x="28" y="368" width="190" height="48" rx="18" />
+    <text class="button-text" x="74" y="398">手机号快捷登录</text>
+    <text class="small" x="38" y="450">已阅读并同意 用户协议 / 隐私政策</text>
+  </g>
+
+  <!-- Screen 2 -->
+  <g transform="translate(392 150)">
+    <text class="screen-title" x="0" y="-18">2. 身体画像</text>
+    <rect class="phone" x="0" y="0" width="246" height="512" rx="34" />
+    <rect class="paper" x="14" y="16" width="218" height="480" rx="26" />
+    <text class="label" x="28" y="54">身体画像 2/4</text>
+    <rect class="line" x="28" y="70" width="190" height="8" rx="4" fill="#E8E0D0" />
+    <rect class="moss" x="28" y="70" width="95" height="8" rx="4" />
+    <rect class="card" x="28" y="108" width="190" height="100" rx="18" />
+    <text class="label" x="46" y="138">身体画像</text>
+    <text class="h2" x="46" y="168">您的肠道健康状况</text>
+    <text class="small" x="46" y="192">用于后续记录与顾问沟通</text>
+    <rect class="pill" x="28" y="238" width="90" height="58" rx="18" />
+    <text class="small-dark" x="52" y="273">规律</text>
+    <rect class="card" x="128" y="238" width="90" height="58" rx="18" />
+    <text class="small" x="146" y="273">偶尔不适</text>
+    <rect class="card" x="28" y="310" width="90" height="58" rx="18" />
+    <text class="small" x="52" y="345">容易胀</text>
+    <rect class="card" x="128" y="310" width="90" height="58" rx="18" />
+    <text class="small" x="151" y="345">其他</text>
+    <rect class="button-secondary" x="28" y="424" width="84" height="44" rx="16" />
+    <text class="secondary-text" x="50" y="452">上一题</text>
+    <rect class="button" x="124" y="424" width="94" height="44" rx="16" />
+    <text class="button-text" x="150" y="452">下一题</text>
+  </g>
+
+  <!-- Screen 3 -->
+  <g transform="translate(712 150)">
+    <text class="screen-title" x="0" y="-18">3. 活动与订单资格</text>
+    <rect class="phone" x="0" y="0" width="246" height="512" rx="34" />
+    <rect class="paper" x="14" y="16" width="218" height="480" rx="26" />
+    <rect class="card" x="28" y="42" width="190" height="108" rx="18" />
+    <text class="label" x="46" y="72">以肠为始</text>
+    <text class="h2" x="46" y="102">ROOT 7 日身体重启</text>
+    <text class="small" x="46" y="128">连续记录服用、排便与反馈</text>
+    <rect class="card" x="28" y="166" width="190" height="90" rx="18" />
+    <text class="h2" x="46" y="198">你的身体反馈画像</text>
+    <text class="small" x="46" y="224">参与原因 / 肠道状态 / 改善方式</text>
+    <rect class="soft" x="28" y="272" width="190" height="68" rx="18" />
+    <text class="h2" x="46" y="303">订单与物流</text>
+    <text class="small-dark" x="46" y="326">配送中，送达后开启 Day1</text>
+    <rect class="button" x="28" y="386" width="190" height="46" rx="18" />
+    <text class="button-text" x="78" y="415">查看订单与物流</text>
+    <rect class="button-secondary" x="28" y="442" width="190" height="42" rx="16" />
+    <text class="secondary-text" x="94" y="469">人工协助</text>
+  </g>
+
+  <!-- Screen 4 -->
+  <g transform="translate(1032 150)">
+    <text class="screen-title" x="0" y="-18">4. 订单匹配</text>
+    <rect class="phone" x="0" y="0" width="246" height="512" rx="34" />
+    <rect class="paper" x="14" y="16" width="218" height="480" rx="26" />
+    <rect class="card" x="28" y="50" width="190" height="122" rx="18" />
+    <text class="label" x="46" y="82">有赞订单匹配</text>
+    <text class="h1" x="46" y="116">找到你的试饮订单</text>
+    <text class="small" x="46" y="144">登录手机号和收货手机号可不同</text>
+    <rect class="card" x="28" y="204" width="190" height="184" rx="18" />
+    <text class="h2" x="46" y="238">收货手机号</text>
+    <rect class="paper" x="46" y="258" width="154" height="42" rx="12" />
+    <text class="small" x="58" y="285">请输入收货手机号</text>
+    <rect class="button" x="46" y="320" width="154" height="44" rx="16" />
+    <text class="button-text" x="92" y="348">确认订单</text>
+    <text class="small" x="40" y="432">匹配失败时进入人工确认</text>
+  </g>
+
+  <!-- Screen 5 -->
+  <g transform="translate(72 806)">
+    <text class="screen-title" x="0" y="-18">5. 试饮首页</text>
+    <rect class="phone" x="0" y="0" width="246" height="512" rx="34" />
+    <rect class="paper" x="14" y="16" width="218" height="480" rx="26" />
+    <rect class="dark-card" x="28" y="44" width="190" height="160" rx="22" />
+    <text class="small-light" x="48" y="76">第 3 天 / 7</text>
+    <text class="h1-light" x="48" y="112">身体秩序恢复中</text>
+    <text class="small-light" x="48" y="142">今天记录服用、排便与反馈</text>
+    <rect class="sprout" x="48" y="164" width="150" height="30" rx="15" />
+    <text class="small-dark" x="84" y="184">开始今日打卡</text>
+    <text class="small" x="36" y="232">让科学成为陪伴，让健康变成习惯</text>
+    <rect class="card" x="28" y="262" width="190" height="116" rx="18" />
+    <text class="h2" x="46" y="292">今日观察</text>
+    <text class="small" x="46" y="320">服用：待记录</text>
+    <text class="small" x="46" y="346">排便：待记录</text>
+    <text class="small" x="46" y="372">人工协助：可进入</text>
+    <rect class="card" x="28" y="400" width="190" height="62" rx="18" />
+    <text class="small" x="46" y="436">1  2  [3]  4  5  6  7</text>
+  </g>
+
+  <!-- Screen 6 -->
+  <g transform="translate(392 806)">
+    <text class="screen-title" x="0" y="-18">6. 今日打卡</text>
+    <rect class="phone" x="0" y="0" width="246" height="512" rx="34" />
+    <rect class="paper" x="14" y="16" width="218" height="480" rx="26" />
+    <rect class="card" x="28" y="38" width="190" height="82" rx="18" />
+    <text class="label" x="46" y="66">今日记录</text>
+    <text class="h2" x="46" y="94">今天，和身体对一次话</text>
+    <rect class="card" x="28" y="140" width="190" height="158" rx="18" />
+    <text class="h2" x="46" y="170">今日是否服用 ROOT</text>
+    <rect class="pill" x="46" y="188" width="70" height="34" rx="14" />
+    <text class="small-dark" x="61" y="210">已完成</text>
+    <rect class="card" x="126" y="188" width="70" height="34" rx="14" />
+    <text class="small" x="141" y="210">未服用</text>
+    <text class="h2" x="46" y="254">昨日是否排便</text>
+    <rect class="pill" x="46" y="272" width="46" height="30" rx="13" />
+    <text class="small-dark" x="62" y="292">有</text>
+    <rect class="card" x="102" y="272" width="46" height="30" rx="13" />
+    <text class="small" x="112" y="292">没有</text>
+    <rect class="card" x="28" y="318" width="190" height="94" rx="18" />
+    <text class="h2" x="46" y="348">昨日便型</text>
+    <text class="small" x="46" y="374">第四型 光滑柔软的腊肠状</text>
+    <text class="small" x="46" y="396">已选择</text>
+    <rect class="button" x="28" y="438" width="190" height="46" rx="18" />
+    <text class="button-text" x="80" y="467">保存今日记录</text>
+  </g>
+
+  <!-- Screen 7 -->
+  <g transform="translate(712 806)">
+    <text class="screen-title" x="0" y="-18">7. 结果页</text>
+    <rect class="phone" x="0" y="0" width="246" height="512" rx="34" />
+    <rect class="paper" x="14" y="16" width="218" height="480" rx="26" />
+    <rect class="dark-card" x="28" y="40" width="190" height="138" rx="22" />
+    <text class="small-light" x="48" y="76">ROOT</text>
+    <text class="small-light" x="48" y="104">今日记录</text>
+    <text class="h1-light" x="48" y="134">今天已记录</text>
+    <text class="small-light" x="48" y="160">真实反馈已保存</text>
+    <rect class="card" x="28" y="198" width="190" height="132" rx="18" />
+    <text class="h2" x="46" y="230">今日摘要</text>
+    <text class="small" x="46" y="258">服用 ROOT：已服用</text>
+    <text class="small" x="46" y="282">昨日排便：有</text>
+    <text class="small" x="46" y="306">感受：腹部感觉有变化</text>
+    <rect class="soft" x="28" y="350" width="190" height="48" rx="18" />
+    <text class="small-dark" x="48" y="381">累计记录 12 天 · 连续 4 天</text>
+    <rect class="button" x="28" y="420" width="190" height="44" rx="16" />
+    <text class="button-text" x="76" y="448">生成今日分享图</text>
+  </g>
+
+  <!-- Screen 8 -->
+  <g transform="translate(1032 806)">
+    <text class="screen-title" x="0" y="-18">8. 分享图预览</text>
+    <rect class="phone" x="0" y="0" width="246" height="512" rx="34" />
+    <rect class="paper" x="14" y="16" width="218" height="480" rx="26" />
+    <text class="h1" x="38" y="58">今日分享图</text>
+    <text class="small" x="38" y="84">保存后可自行发布</text>
+    <rect class="paper" x="48" y="110" width="150" height="200" rx="8" stroke="#E8E0D0" />
+    <text class="h2" x="68" y="146">ROOT</text>
+    <text class="small" x="138" y="145">5月29日</text>
+    <text class="h2" x="68" y="184">今天，身体记录</text>
+    <text class="h2" x="68" y="210">已完成</text>
+    <rect class="card" x="66" y="230" width="114" height="46" rx="8" />
+    <text class="small" x="76" y="258">服用 / 排便 / 便型</text>
+    <rect class="soft" x="66" y="286" width="114" height="34" rx="8" />
+    <text class="small-dark" x="78" y="309">今日感受</text>
+    <rect class="button" x="28" y="356" width="190" height="44" rx="16" />
+    <text class="button-text" x="82" y="384">保存到相册</text>
+    <rect class="button-secondary" x="28" y="412" width="190" height="42" rx="16" />
+    <text class="secondary-text" x="80" y="439">微信发送/分享</text>
+  </g>
+
+  <!-- Screen 9 -->
+  <g transform="translate(72 1462)">
+    <text class="screen-title" x="0" y="-18">9. 日常记录首页</text>
+    <rect class="phone" x="0" y="0" width="246" height="512" rx="34" />
+    <rect class="paper" x="14" y="16" width="218" height="480" rx="26" />
+    <rect class="card" x="28" y="42" width="190" height="148" rx="20" />
+    <text class="label" x="46" y="74">今日身体记录</text>
+    <text class="h1" x="46" y="108">今天，也记录</text>
+    <text class="h1" x="46" y="136">身体反馈</text>
+    <rect class="button" x="46" y="154" width="154" height="36" rx="14" />
+    <text class="button-text" x="95" y="178">记录今天</text>
+    <rect class="soft" x="28" y="214" width="58" height="70" rx="18" />
+    <text class="h2" x="48" y="246">12</text>
+    <text class="small" x="44" y="270">累计</text>
+    <rect class="soft" x="94" y="214" width="58" height="70" rx="18" />
+    <text class="h2" x="114" y="246">4</text>
+    <text class="small" x="106" y="270">当前</text>
+    <rect class="soft" x="160" y="214" width="58" height="70" rx="18" />
+    <text class="h2" x="180" y="246">9</text>
+    <text class="small" x="172" y="270">最长</text>
+    <rect class="card" x="28" y="310" width="190" height="74" rx="18" />
+    <text class="h2" x="46" y="344">记录历史</text>
+    <text class="small" x="46" y="370">查看试饮与日常记录</text>
+    <rect class="card" x="28" y="410" width="190" height="54" rx="18" />
+    <text class="h2" x="46" y="444">ROOT 补充计划</text>
+  </g>
+
+  <!-- Screen 10 -->
+  <g transform="translate(392 1462)">
+    <text class="screen-title" x="0" y="-18">10. 记录历史</text>
+    <rect class="phone" x="0" y="0" width="246" height="512" rx="34" />
+    <rect class="paper" x="14" y="16" width="218" height="480" rx="26" />
+    <rect class="card" x="28" y="42" width="190" height="100" rx="18" />
+    <text class="label" x="46" y="74">日常记录</text>
+    <text class="h1" x="46" y="108">记录历史</text>
+    <rect class="card" x="28" y="166" width="190" height="166" rx="18" />
+    <text class="small-dark" x="46" y="200">今日记录 · 5月29日</text>
+    <text class="small" x="46" y="226">腹部感觉有变化</text>
+    <line class="line" x1="46" y1="246" x2="200" y2="246" />
+    <text class="small-dark" x="46" y="278">第 7 天 · 5月24日</text>
+    <text class="small" x="46" y="304">光滑柔软的腊肠状</text>
+    <rect class="soft" x="28" y="356" width="190" height="98" rx="18" />
+    <text class="h2" x="46" y="388">详情</text>
+    <text class="small-dark" x="46" y="416">服用 ROOT：已服用</text>
+    <text class="small-dark" x="46" y="442">身体反馈：真实记录</text>
+  </g>
+
+  <!-- Screen 11 -->
+  <g transform="translate(712 1462)">
+    <text class="screen-title" x="0" y="-18">11. 我的</text>
+    <rect class="phone" x="0" y="0" width="246" height="512" rx="34" />
+    <rect class="paper" x="14" y="16" width="218" height="480" rx="26" />
+    <rect class="dark-card" x="28" y="42" width="190" height="134" rx="22" />
+    <text class="small-light" x="46" y="72">ROOT</text>
+    <circle cx="62" cy="112" r="22" fill="#FDFBF6" />
+    <text class="h2" x="92" y="110" fill="#FDFBF6">ROOT体验官</text>
+    <text class="small-light" x="92" y="134">日常记录中 · 连续 4 天</text>
+    <text class="small-light" x="46" y="160">身体自有其序，记录会让它被看见。</text>
+    <rect class="card" x="28" y="198" width="190" height="92" rx="18" />
+    <text class="h2" x="46" y="230">当前记录状态</text>
+    <text class="small" x="46" y="260">累计 12 天 · 免单状态：未申请</text>
+    <rect class="card" x="28" y="312" width="190" height="142" rx="18" />
+    <text class="small-dark" x="46" y="344">记录历史  ›</text>
+    <text class="small-dark" x="46" y="374">身体反馈画像  ›</text>
+    <text class="small-dark" x="46" y="404">订单与物流  ›</text>
+    <text class="small-dark" x="46" y="434">人工协助  ›</text>
+  </g>
+
+  <!-- Screen 12 -->
+  <g transform="translate(1032 1462)">
+    <text class="screen-title" x="0" y="-18">12. 支线页</text>
+    <rect class="phone" x="0" y="0" width="246" height="512" rx="34" />
+    <rect class="paper" x="14" y="16" width="218" height="480" rx="26" />
+    <rect class="card" x="28" y="42" width="190" height="96" rx="18" />
+    <text class="label" x="46" y="72">订单记录</text>
+    <text class="h1" x="46" y="106">我的订单</text>
+    <rect class="soft" x="28" y="160" width="190" height="102" rx="18" />
+    <text class="h2" x="46" y="194">订单与物流</text>
+    <text class="small-dark" x="46" y="220">配送状态 / 运单号 / 最新节点</text>
+    <rect class="card" x="28" y="286" width="190" height="74" rx="18" />
+    <text class="h2" x="46" y="320">身体反馈画像</text>
+    <text class="small" x="46" y="346">参与原因 / 肠道状态 / 改善方式</text>
+    <rect class="button" x="28" y="394" width="190" height="46" rx="18" />
+    <text class="button-text" x="86" y="423">联系客服</text>
+  </g>
+
+  <rect class="card" x="72" y="2052" width="1296" height="118" rx="24" />
+  <text class="h2" x="104" y="2092">设计约束摘要</text>
+  <text class="small-dark" x="104" y="2122">1. 每页只保留一个主任务。 2. 试饮态与日常态文案分开。 3. 订单状态、物流状态、打卡资格分开表达。</text>
+  <text class="small-dark" x="104" y="2150">4. 不做医疗功效承诺，不暴露手机号、地址、订单 raw payload。 5. 分享图是个人记录素材，不是广告海报。</text>
+</svg>

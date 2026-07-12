@@ -49,7 +49,7 @@ test("release smoke: shipped order waits for delivery before Day1", () => {
   assert.equal(started.session.startDate, "2026-04-27");
 });
 
-test("release smoke: Day4, Day8, refund, coupon, and daily mode stay connected", () => {
+test("release smoke: Day4, Day8, refund, coupon, and completed state stay connected", () => {
   const store = domain.createStore();
   const token = register(store, "13800000001");
 
@@ -99,23 +99,120 @@ test("release smoke: Day4, Day8, refund, coupon, and daily mode stay connected",
 
   domain.markCouponUsed(store, claimed.couponId);
   domain.approveRefund(store, refund.refund_work_item_id);
-  const dailyState = domain.getUserState(store, token).data.user;
+  const completedState = domain.getUserState(store, token).data.user;
 
-  assert.equal(dailyState.state, domain.STATES.DAILY_USER);
+  assert.equal(completedState.state, domain.STATES.CHECKIN_COMPLETED);
   assert.equal(couponTask.status, "DONE");
 });
 
 test("release smoke: canonical mini-program routes point to subpackages", () => {
   const appJsonPath = path.join(__dirname, "..", "..", "miniprogram", "app.json");
   const appJson = JSON.parse(fs.readFileSync(appJsonPath, "utf8"));
+  const miniprogramRoot = path.join(__dirname, "..", "..", "miniprogram");
+  const ordersPage = fs.readFileSync(path.join(miniprogramRoot, "subpkg/profile/pages/orders/index.wxml"), "utf8");
+  const ordersScript = fs.readFileSync(path.join(miniprogramRoot, "subpkg/profile/pages/orders/index.js"), "utf8");
+  const supportPage = fs.readFileSync(path.join(miniprogramRoot, "subpkg/profile/pages/support/index.wxml"), "utf8");
+  const supportScript = fs.readFileSync(path.join(miniprogramRoot, "subpkg/profile/pages/support/index.js"), "utf8");
   const checkinPackage = appJson.subPackages.find((item) => item.root === "subpkg/checkin");
   const refundPackage = appJson.subPackages.find((item) => item.root === "subpkg/refund");
+  const profilePackage = appJson.subPackages.find((item) => item.root === "subpkg/profile");
+  const taskPackage = appJson.subPackages.find((item) => item.root === "subpkg/task");
 
   assert.ok(checkinPackage);
   assert.ok(refundPackage);
+  assert.ok(profilePackage);
+  assert.ok(taskPackage);
+  assert.deepEqual(
+    appJson.tabBar.list.map((item) => item.pagePath),
+    ["pages/home/index", "pages/products/index", "pages/tasks/index", "pages/rewards/index"]
+  );
   assert.deepEqual(
     checkinPackage.pages.sort(),
     ["pages/history/index", "pages/questionnaire/index", "pages/result/index", "pages/share-poster/index", "pages/today/index"].sort()
   );
   assert.deepEqual(refundPackage.pages.sort(), ["pages/apply/index", "pages/status/index"].sort());
+  assert.deepEqual(
+    profilePackage.pages.sort(),
+    ["pages/about/index", "pages/orders/index", "pages/review/index", "pages/support/index", "pages/tags/index"].sort()
+  );
+  assert.deepEqual(taskPackage.pages.sort(), ["pages/checkin/index", "pages/progress/index", "pages/questionnaire/index"].sort());
+  assert.match(ordersPage, /同步说明/);
+  assert.match(ordersPage, /查看商品/);
+  assert.match(ordersScript, /\/api\/v1\/user\/orders/);
+  assert.match(ordersScript, /\/subpkg\/profile\/pages\/support\/index/);
+  assert.match(supportPage, /跟进状态/);
+  assert.match(supportScript, /\/api\/v1\/user\/consultations/);
+});
+
+test("release smoke: no-order settlement creates reward and review records", async () => {
+  const store = domain.createStore();
+  const login = await domain.loginWithWechat(store, {
+    openid: "release_settlement_openid",
+    appCode: "MYROOT",
+  }, { ROOT_ALLOW_OPENID_LOGIN: "true" });
+
+  domain.joinCampaign(store, login.data.token, { sourceChannel: "ROADSHOW_QR" });
+  for (let day = 0; day < 7; day += 1) {
+    const taskDate = addDays("2026-06-19", day);
+    domain.recordUserTaskEvent(store, login.data.token, {
+      taskType: "CHECKIN",
+      taskDate,
+      payload: { taskDate },
+      idempotencyKey: `release-settlement-checkin-${day + 1}`,
+    });
+  }
+  domain.recordUserTaskEvent(store, login.data.token, {
+    taskType: "QUESTIONNAIRE",
+    taskDate: "2026-06-26",
+    payload: { questionnaireType: "DAY8_SUMMARY" },
+    idempotencyKey: "release-settlement-day8",
+  });
+
+  const settled = domain.evaluateUserSettlement(store, login.data.token, { sourceChannel: "MINIPROGRAM_REWARD" }).data;
+  const pendingStatus = domain.getSettlementStatus(store, login.data.token).data;
+  const reviewId = pendingStatus.manualReviews[0].reviewItemId;
+  domain.resolveAdminManualReview(store, reviewId, {
+    decision: "APPROVED",
+    publicNote: "运营已确认复核通过。",
+    operatorId: "release-ops",
+  });
+  const resolvedStatus = domain.getSettlementStatus(store, login.data.token).data;
+
+  assert.equal(settled.settlementRecord.status, "QUALIFIED");
+  assert.equal(store.rewardGrants.length, 2);
+  assert.equal(store.rewardDeliveryJobs.length, 1);
+  assert.equal(store.manualReviewItems.length, 1);
+  assert.equal(pendingStatus.manualReviews[0].slaHours, 24);
+  assert.match(pendingStatus.manualReviews[0].expectedResolutionAt, /\+08:00$/);
+  assert.equal(pendingStatus.manualReviews[0].explanationTitle, "免单机会复核");
+  assert.equal(pendingStatus.manualReviews[0].evidenceRequired.includes("7 天打卡与 Day8 问卷记录"), true);
+  assert.equal(pendingStatus.manualReviews[0].operatorGuidance, "");
+  assert.equal(resolvedStatus.manualReviews[0].publicNote, "运营已确认复核通过。");
+  assert.equal(resolvedStatus.manualReviews[0].statusCopy, "运营已确认复核通过。");
+});
+
+test("release smoke: support consultation records optional task progress", async () => {
+  const store = domain.createStore();
+  const login = await domain.loginWithWechat(store, {
+    openid: "release_support_consultation_openid",
+    appCode: "MYROOT",
+  }, { ROOT_ALLOW_OPENID_LOGIN: "true" });
+
+  const recorded = domain.recordUserTaskEvent(store, login.data.token, {
+    taskType: "CONSULTATION",
+    taskDate: "2026-06-19",
+    sourceChannel: "MINIPROGRAM_SUPPORT",
+    payload: { taskDate: "2026-06-19", consultationType: "REWARD", scene: "SUPPORT_PAGE" },
+    idempotencyKey: "release-support-consultation-reward",
+  }).data;
+  const consultation = recorded.progress.tasks.find((task) => task.taskType === "CONSULTATION");
+  const status = domain.getUserConsultations(store, login.data.token).data;
+
+  assert.equal(recorded.created, true);
+  assert.equal(recorded.followUp.created, true);
+  assert.equal(consultation.status, "DONE");
+  assert.equal(status.summary.pendingCount, 1);
+  assert.equal(status.consultations[0].status, "PENDING");
+  assert.equal(store.operationTasks[0].task_type, "CONSULTATION_FOLLOW");
+  assert.equal(store.taskEvents[0].source_channel, "MINIPROGRAM_SUPPORT");
 });

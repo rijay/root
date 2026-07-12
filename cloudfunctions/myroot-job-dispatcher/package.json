@@ -1,0 +1,9 @@
+{
+  "name": "myroot-job-dispatcher",
+  "version": "0.5.6",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  }
+}

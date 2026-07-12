@@ -1,6 +1,7 @@
 const { clearToken, request } = require("../../utils/request");
 const router = require("../../utils/router");
 const { uploadCloudAvatar } = require("../../utils/avatar-upload");
+const { appVersion } = require("../../config/version");
 
 function emptySession() {
   return {
@@ -18,6 +19,7 @@ function isDefaultNickname(value) {
 
 Page({
   data: {
+    appVersion,
     user: {
       nickname: "ROOT体验官",
       phone: "",
@@ -179,7 +181,7 @@ Page({
 
   goLink(event) {
     const url = event.currentTarget.dataset.url;
-    if (url) wx.navigateTo({ url });
+    if (url) router.go(url);
   },
 
   logout() {

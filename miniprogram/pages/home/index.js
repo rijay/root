@@ -1,10 +1,11 @@
 const options = require("../../utils/options");
-const env = require("../../config/env");
 const { formatDateCn } = require("../../utils/date-display");
 const { getHomeStageCopy } = require("../../utils/checkin-presenter");
+const { ensureHealthConsent } = require("../../utils/health-consent");
 const { gutHealthLabel, stoolLabel } = require("../../utils/option-labels");
 const { openLegalPage } = require("../../utils/legal");
 const { clearToken, getToken, request, setToken, stringifyError } = require("../../utils/request");
+const { enrichProgress, todayChina } = require("../../utils/task-presenter");
 
 const questions = [
   { key: "joinReasons", type: "multi", title: "参与本次试饮的原因", options: options.joinReasonOptions },
@@ -14,7 +15,7 @@ const questions = [
 ];
 
 function isShopAvailable() {
-  return Boolean(env.youzanAppId && env.youzanProductPath && env.youzanAppId !== "wx1234567890abcdef");
+  return true;
 }
 
 function buildProgress(session) {
@@ -25,6 +26,11 @@ function buildProgress(session) {
     status: record.checkedIn ? "done" : record.dayIndex === session.currentDayIndex ? "today" : "pending",
     statusText: record.checkedIn ? "已完成" : record.dayIndex === session.currentDayIndex ? "今日" : "未到",
   }));
+}
+
+function questionnaireTypeOf(task) {
+  const config = task && task.config ? task.config : {};
+  return config.questionnaireType || config.questionnaire_type || "DAY4_MIDPOINT";
 }
 
 Page({
@@ -64,6 +70,18 @@ Page({
     refundStatus: "",
     flowView: "",
     homeView: null,
+    activityHome: {
+      campaignTitle: "ROOT 身体记录计划",
+      campaignCopy: "先加入活动，再按自己的节奏完成打卡、问卷、分享或咨询。",
+      progressPercent: 0,
+      requiredText: "0/0",
+      completedText: "0",
+      participantText: "未加入",
+      primaryTask: null,
+      tasks: [],
+      products: [],
+      syncedAt: "",
+    },
     dailyStats: {
       totalDays: 0,
       currentStreak: 0,
@@ -109,6 +127,16 @@ Page({
       const state = stateData.user.state;
       const flowView = stateData.flowView || "";
       const viewType = this.mapStateToView(state, flowView);
+      if (viewType === "register" && !(await ensureHealthConsent())) {
+        this.setData({
+          state,
+          flowView,
+          homeView: stateData.homeView || null,
+          viewType: "loading",
+          user: stateData.user,
+        });
+        return;
+      }
       this.setData({
         state,
         flowView,
@@ -119,7 +147,7 @@ Page({
         isFailed: state === "CHECKIN_FAILED",
       });
 
-      if (viewType === "activity") await this.loadProfile();
+      if (viewType === "activity") await this.loadActivityHome();
       if (viewType === "checkin" && state !== "GUEST") await this.loadCheckinState();
       if (viewType === "daily") await this.loadDailyState();
     } catch (error) {
@@ -142,18 +170,13 @@ Page({
     openLegalPage("privacy");
   },
 
-  loginWithPhone(event) {
-    this.submitLogin((event && event.detail) || {});
+  loginWithWechat() {
+    this.submitLogin({});
   },
 
   submitLogin(detail) {
     if (!this.data.agreed) {
       wx.showToast({ title: "请先阅读并同意协议", icon: "none" });
-      return;
-    }
-    const phoneAuthFailed = detail.errMsg && detail.errMsg.includes("fail");
-    if (phoneAuthFailed) {
-      wx.showToast({ title: "需要手机号才能继续", icon: "none" });
       return;
     }
     this.setData({ loading: true });
@@ -165,6 +188,7 @@ Page({
             method: "POST",
             timeout: 45000,
             data: {
+              appCode: "MYROOT",
               wxCode: loginResult.code || "",
               phoneCode: detail.code || "",
             },
@@ -250,6 +274,7 @@ Page({
       this.setRegisterStep(this.data.registerStep + 1);
       return;
     }
+    if (!(await ensureHealthConsent())) return;
     this.setData({ loading: true });
     try {
       await request({ url: "/api/v1/user/profile", method: "POST", data: this.data.registerAnswers });
@@ -265,6 +290,46 @@ Page({
     const data = await request({ url: "/api/v1/user/profile" });
     const profile = data.profile;
     this.setData({ profile, profileSummary: this.buildProfileSummary(profile) });
+  },
+
+  async loadActivityHome() {
+    const [profileResult, campaignResult, progressResult, productResult] = await Promise.allSettled([
+      request({ url: "/api/v1/user/profile" }),
+      request({ url: "/api/v1/campaigns/active" }),
+      request({ url: "/api/v1/tasks/progress" }),
+      request({ url: "/api/v1/products" }),
+    ]);
+    const profile = profileResult.status === "fulfilled" ? profileResult.value.profile : null;
+    const campaign = progressResult.status === "fulfilled"
+      ? progressResult.value.campaign
+      : campaignResult.status === "fulfilled" ? campaignResult.value.campaign : null;
+    const progress = progressResult.status === "fulfilled" ? enrichProgress(progressResult.value.progress || {}) : enrichProgress({});
+    const tasks = progress.tasks || [];
+    const products = productResult.status === "fulfilled" ? (productResult.value.products || []).slice(0, 2) : [];
+    this.setData({
+      profile,
+      profileSummary: this.buildProfileSummary(profile),
+      activityHome: this.buildActivityHome(campaign, progress, tasks, products, productResult.status === "fulfilled" ? productResult.value.syncedAt : ""),
+    });
+  },
+
+  buildActivityHome(campaign, progress, tasks, products, syncedAt) {
+    const summary = progress.summary || {};
+    const primaryTask = tasks.find((task) => task.required && task.status !== "DONE") || tasks.find((task) => task.status !== "DONE") || null;
+    const participant = campaign && campaign.participant;
+    return {
+      campaignTitle: campaign && campaign.title ? campaign.title : "ROOT 身体记录计划",
+      campaignCopy: campaign && campaign.description ? campaign.description : "打卡、问卷、分享和咨询会进入同一套活动进度，购买不是参与前置条件。",
+      campaignId: campaign && campaign.campaignId ? campaign.campaignId : "ROOT_7D_RESET",
+      progressPercent: summary.progressPercent || 0,
+      requiredText: `${summary.requiredCompletedTasks || 0}/${summary.requiredTasks || 0}`,
+      completedText: String(summary.completedTasks || 0),
+      participantText: participant ? "已加入" : "可加入",
+      primaryTask,
+      tasks: tasks.slice(0, 4),
+      products,
+      syncedAt: syncedAt || "",
+    };
   },
 
   buildProfileSummary(profile) {
@@ -293,6 +358,116 @@ Page({
 
   goSupport() {
     wx.navigateTo({ url: "/subpkg/profile/pages/support/index" });
+  },
+
+  goTasks() {
+    wx.switchTab({ url: "/pages/tasks/index" });
+  },
+
+  goProducts() {
+    wx.switchTab({ url: "/pages/products/index" });
+  },
+
+  goRewards() {
+    wx.switchTab({ url: "/pages/rewards/index" });
+  },
+
+  async ensureActivityJoined() {
+    const home = this.data.activityHome || {};
+    if (home.participantText === "已加入") return true;
+    this.setData({ loading: true });
+    try {
+      const data = await request({
+        url: "/api/v1/campaigns/join",
+        method: "POST",
+        data: { campaignId: home.campaignId || "" },
+      });
+      const nextHome = {
+        ...home,
+        campaignId: data.campaign ? data.campaign.campaignId : home.campaignId,
+        participantText: "已加入",
+      };
+      this.setData({ activityHome: nextHome });
+      return true;
+    } catch (error) {
+      wx.showToast({ title: error.message || "加入失败", icon: "none" });
+      return false;
+    } finally {
+      this.setData({ loading: false });
+    }
+  },
+
+  async openHomePrimaryTask() {
+    const task = this.data.activityHome && this.data.activityHome.primaryTask;
+    if (!task) {
+      this.goTasks();
+      return;
+    }
+    await this.navigateActivityTask(task);
+  },
+
+  async openHomeTask(event) {
+    const taskId = event.currentTarget.dataset.taskId;
+    const tasks = (this.data.activityHome && this.data.activityHome.tasks) || [];
+    const task = tasks.find((item) => item.taskDefinitionId === taskId);
+    if (task) await this.navigateActivityTask(task);
+  },
+
+  async navigateActivityTask(task) {
+    const home = this.data.activityHome || {};
+    if (task.status === "DONE") {
+      wx.showToast({ title: "任务已完成", icon: "none" });
+      return;
+    }
+    if (task.taskType !== "PURCHASE" && !(await this.ensureActivityJoined())) return;
+    if (["CHECKIN", "QUESTIONNAIRE"].includes(task.taskType) && !(await ensureHealthConsent())) return;
+    if (task.taskType === "CHECKIN") {
+      wx.navigateTo({ url: `/subpkg/task/pages/checkin/index?campaignId=${home.campaignId || ""}` });
+      return;
+    }
+    if (task.taskType === "QUESTIONNAIRE") {
+      wx.navigateTo({ url: `/subpkg/task/pages/questionnaire/index?campaignId=${home.campaignId || ""}&questionnaireType=${questionnaireTypeOf(task)}` });
+      return;
+    }
+    if (task.taskType === "PURCHASE") {
+      this.goProducts();
+      return;
+    }
+    if (task.taskType === "CONSULTATION") {
+      await this.recordActivitySimpleTask(task, "CONSULTATION");
+      this.goSupport();
+      return;
+    }
+    if (task.taskType === "SHARE") {
+      await this.recordActivitySimpleTask(task, "SHARE");
+      wx.showShareMenu({ withShareTicket: true });
+      wx.showToast({ title: "已记录分享任务", icon: "success" });
+    }
+  },
+
+  async recordActivitySimpleTask(task, taskType) {
+    const taskDate = todayChina();
+    try {
+      await request({
+        url: "/api/v1/tasks/events",
+        method: "POST",
+        data: {
+          taskType,
+          taskDate,
+          payload: { taskDate, taskDefinitionId: task.taskDefinitionId },
+          idempotencyKey: `home:${taskType}:${task.taskDefinitionId}:${taskDate}`,
+        },
+      });
+      await this.loadActivityHome();
+    } catch (error) {
+      wx.showToast({ title: error.message || "任务记录失败", icon: "none" });
+    }
+  },
+
+  openHomeProduct(event) {
+    const productId = event.currentTarget.dataset.productId;
+    if (!productId) return;
+    wx.navigateTo({ url: `/pages/product-detail/index?productId=${productId}` });
   },
 
   confirmStart() {
@@ -368,18 +543,6 @@ Page({
     wx.navigateTo({ url: `/subpkg/checkin/pages/questionnaire/index?type=${type}` });
   },
 
-  async continueDaily() {
-    this.setData({ loading: true });
-    try {
-      await request({ url: "/api/v1/user/continue-daily", method: "POST", data: {} });
-      await this.refresh();
-    } catch (error) {
-      wx.showToast({ title: error.message || "暂无法继续", icon: "none" });
-    } finally {
-      this.setData({ loading: false });
-    }
-  },
-
   async loadDailyState() {
     const [stats, trend] = await Promise.all([
       request({ url: "/api/v1/daily/stats" }),
@@ -393,11 +556,7 @@ Page({
   },
 
   handleDailyCta() {
-    if (this.data.dailyStats && this.data.dailyStats.todayChecked) {
-      this.goHistory();
-      return;
-    }
-    this.goToday();
+    this.goHistory();
   },
 
   switchDailyRange(event) {
@@ -430,16 +589,7 @@ Page({
         },
       });
     }
-    wx.navigateToMiniProgram({
-      appId: env.youzanAppId,
-      path: env.youzanProductPath,
-      extraData: {
-        from: "daily_user",
-        userId: this.data.user ? this.data.user.userId : "",
-      },
-      envVersion: "release",
-      fail: () => wx.showToast({ title: "跳转失败，请重试", icon: "none" }),
-    });
+    wx.switchTab({ url: "/pages/products/index" });
   },
 
   async claimCoupon() {

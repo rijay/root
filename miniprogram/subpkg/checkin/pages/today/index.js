@@ -1,5 +1,11 @@
 const { stoolOptions } = require("../../../../utils/options");
 const { getTodayPageCopy } = require("../../../../utils/checkin-presenter");
+const { deleteCloudMedia, uploadCloudMedia } = require("../../../../utils/cloud-media-upload");
+const { ensureHealthConsent } = require("../../../../utils/health-consent");
+const {
+  TRANSIENT_HEALTH_KEYS,
+  setTransientHealthData,
+} = require("../../../../utils/transient-health-state");
 const { request } = require("../../../../utils/request");
 const router = require("../../../../utils/router");
 
@@ -22,16 +28,18 @@ Page({
     canSubmit: false,
     missingHint: "请选择今日是否服用",
     loading: false,
+    userId: "",
   },
 
   async onShow() {
     const allowed = await router.routeGuard("/subpkg/checkin/pages/today/index");
-    if (allowed) this.load();
+    if (allowed && await ensureHealthConsent()) this.load();
   },
 
   async load() {
     try {
       const state = await request({ url: "/api/v1/user/state" });
+      this.setData({ userId: state.user.userId || "" });
       if (state.user.state === "DAILY_USER") {
         const stats = await request({ url: "/api/v1/daily/stats" });
         const session = { currentDayIndex: stats.totalDays + 1 };
@@ -82,27 +90,32 @@ Page({
       count: 3,
       mediaType: ["image"],
       success: (res) => {
-        const imageUrls = res.tempFiles.map((file) => file.tempFilePath).slice(0, 3);
+        const accepted = res.tempFiles.filter((file) => !file.size || file.size <= 5 * 1024 * 1024).slice(0, 3);
+        const imageUrls = accepted.map((file) => file.tempFilePath);
         this.setData({ imageUrls });
+        if (accepted.length < res.tempFiles.length) wx.showToast({ title: "单张图片不能超过 5MB", icon: "none" });
       },
     });
   },
 
   async submit() {
+    if (!(await ensureHealthConsent())) return;
     if (!this.data.canSubmit) {
       wx.showToast({ title: this.data.missingHint || "请补全记录", icon: "none" });
       return;
     }
     this.setData({ loading: true });
+    const uploaded = [];
+    let recordCommitted = false;
     try {
-      const uploaded = [];
       for (let index = 0; index < this.data.imageUrls.length; index += 1) {
-        const item = await request({
-          url: "/api/v1/upload/image",
-          method: "POST",
-          data: { url: this.data.imageUrls[index] },
+        const fileId = await uploadCloudMedia(this.data.imageUrls[index], {
+          folder: "checkins",
+          ownerId: this.data.userId,
+          index,
         });
-        uploaded.push(item.url);
+        if (!fileId) throw new Error("图片上传失败，请重试");
+        uploaded.push(fileId);
       }
       const payload = {
         dayIndex: this.data.session.currentDayIndex,
@@ -126,6 +139,7 @@ Page({
         });
         return;
       }
+      recordCommitted = true;
       if (data.nextAction === "DAY4_QUESTIONNAIRE") {
         wx.redirectTo({ url: "/subpkg/checkin/pages/questionnaire/index?type=DAY4_MIDPOINT" });
         return;
@@ -137,7 +151,7 @@ Page({
       if (data.coupon && data.coupon.visible) {
         wx.showToast({ title: data.coupon.claimable ? "复购礼已解锁" : "复购礼已更新", icon: "none" });
       }
-      wx.setStorageSync("ROOT_LAST_RESULT", {
+      setTransientHealthData(TRANSIENT_HEALTH_KEYS.LAST_RESULT, {
         mode: this.data.mode,
         record: data.record || payload,
         stats: data.stats || null,
@@ -150,6 +164,7 @@ Page({
     } catch (error) {
       wx.showToast({ title: error.message || "提交失败", icon: "none" });
     } finally {
+      if (!recordCommitted && uploaded.length) await deleteCloudMedia(uploaded);
       this.setData({ loading: false });
     }
   },

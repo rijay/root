@@ -5,9 +5,9 @@ function isDailyNarrative(state) {
 function getTodayPageCopy(mode, session) {
   if (mode === "daily") {
     return {
-      eyebrow: "今日记录",
-      title: "今天，和身体对一次话",
-      description: "继续记录身体反馈，让变化慢慢被看见。",
+      eyebrow: "记录已完成",
+      title: "当前任务已完成",
+      description: "本版本不再开放继续打卡，可回到历史记录查看已提交内容。",
     };
   }
   return {
@@ -20,18 +20,18 @@ function getTodayPageCopy(mode, session) {
 function getHomeStageCopy(state, flowView, session, dailyStats) {
   if (state === "DAILY_USER") {
     return {
-      eyebrow: "今日身体记录",
-      title: "今天，也记录身体反馈",
-      description: "继续记录服用、排便与真实感受。身体的变化，值得被慢慢看见。",
-      primaryText: dailyStats && dailyStats.todayChecked ? "查看今日记录" : "记录今天",
+      eyebrow: "记录已完成",
+      title: "当前任务已完成",
+      description: "本版本不再开放继续打卡，可查看历史记录。",
+      primaryText: "查看记录",
     };
   }
   if (state === "CHECKIN_COMPLETED" && flowView !== "DAY8_PENDING") {
     return {
       eyebrow: "试饮记录已完成",
       title: "完成试饮记录",
-      description: "收尾反馈和免单状态会继续保留，你也可以进入日常记录。",
-      primaryText: "继续日常记录",
+      description: "收尾反馈和免单状态会继续保留，当前任务完成后无需继续打卡。",
+      primaryText: "查看记录",
     };
   }
   return {

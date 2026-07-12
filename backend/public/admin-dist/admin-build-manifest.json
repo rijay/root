@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "0.5.6",
+  "modules": [
+    {
+      "key": "config",
+      "label": "运营配置",
+      "file": "modules/config/ConfigWorkbench.vue"
+    },
+    {
+      "key": "users",
+      "label": "用户生命周期",
+      "file": "modules/users/UserLifecycle.vue"
+    },
+    {
+      "key": "audit",
+      "label": "审计记录",
+      "file": "modules/audit/AuditLogPage.vue"
+    },
+    {
+      "key": "adapters",
+      "label": "Adapter 运行",
+      "file": "modules/adapters/AdapterRunPage.vue"
+    },
+    {
+      "key": "analytics",
+      "label": "运营数据",
+      "file": "modules/analytics/OperationalAnalytics.vue"
+    },
+    {
+      "key": "release",
+      "label": "开发发布",
+      "file": "modules/release/ReleaseWorkbench.vue"
+    }
+  ]
+}

@@ -1,57 +1,62 @@
-.register-page {
-  padding-top: 44rpx;
-}
-
-.progress-meta {
-  margin-bottom: var(--spacing-sm);
-  color: var(--color-root-muted);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-}
-
-.stool-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-md);
-}
-
-.stool-card {
-  min-height: 250rpx;
-  padding: var(--spacing-sm);
-  background: var(--color-surface);
-  border: 2rpx solid var(--color-border);
-  border-radius: var(--radius-control);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
-  line-height: 1.35;
-  box-shadow: var(--shadow-sm);
+.register-auth-page {
+  padding: 44rpx 32rpx 72rpx;
+  min-height: 100vh;
   box-sizing: border-box;
 }
 
-.stool-card.active {
-  border-color: var(--color-primary);
-  background: var(--color-primary-tint);
+.auth-hero {
+  padding: 44rpx 36rpx;
+  border-radius: 36rpx;
 }
 
-.stool-card-image {
-  width: 100%;
-  height: 154rpx;
+.auth-title {
+  margin-top: 18rpx;
+  color: #fff;
+  font-size: 46rpx;
+  line-height: 1.18;
+  font-weight: 800;
 }
 
-.footer-actions .btn {
-  flex: 1;
+.auth-copy {
+  margin-top: 24rpx;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 26rpx;
+  line-height: 1.7;
 }
 
-.footer-actions .root-button {
-  flex: 1;
+.auth-card {
+  margin-top: 24rpx;
+  padding: 32rpx;
 }
 
-.footer-actions {
+.auth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72rpx;
+  color: var(--color-text-secondary);
+  font-size: 26rpx;
+  border-bottom: 1rpx solid var(--color-root-line);
+}
+
+.auth-row:last-child {
+  border-bottom: 0;
+}
+
+.auth-row-value {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.auth-actions {
   position: sticky;
-  bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
-  padding: var(--spacing-md);
+  bottom: calc(32rpx + env(safe-area-inset-bottom));
+  display: grid;
+  gap: 20rpx;
+  margin-top: 32rpx;
+  padding: 24rpx;
   background: var(--color-glass);
   border: 1rpx solid var(--color-root-line);
-  border-radius: var(--radius-card);
+  border-radius: 32rpx;
   box-shadow: var(--shadow-sm);
 }

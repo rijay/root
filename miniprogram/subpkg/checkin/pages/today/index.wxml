@@ -57,3 +57,4 @@
   <view wx:if="{{!canSubmit}}" class="missing-hint">{{missingHint}}</view>
   <view class="root-helper-text submit-help">如出现明显不适，提交后可联系人工协助。</view>
 </view>
+<privacy-consent />

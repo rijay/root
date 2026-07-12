@@ -1,11 +1,19 @@
 const { createFulfillmentImplementation } = require("./fulfillmentHttpAdapter");
 const { createWeworkContactImplementation } = require("./weworkContactAdapter");
+const { createYouzanCustomerImplementation } = require("./youzanCustomerAdapter");
 const { createYouzanOrderImplementation } = require("./youzanOpenAdapter");
 
 function createDefaultAdapterImplementations(env = process.env, options = {}) {
   const implementations = { ...(options.adapterImplementations || {}) };
   if (!implementations.YOUZAN_OPEN && env.YOUZAN_ORDER_LIST_URL && env.YOUZAN_ACCESS_TOKEN) {
     implementations.YOUZAN_OPEN = createYouzanOrderImplementation({ fetchImpl: options.fetchImpl });
+  }
+  if (
+    !implementations.YOUZAN_CUSTOMER
+    && env.YOUZAN_CUSTOMER_LIST_URL
+    && (env.YOUZAN_CUSTOMER_ACCESS_TOKEN || env.YOUZAN_ACCESS_TOKEN)
+  ) {
+    implementations.YOUZAN_CUSTOMER = createYouzanCustomerImplementation({ fetchImpl: options.fetchImpl });
   }
   if (!implementations.FULFILLMENT_PUSH && env.ROOT_FULFILLMENT_LIST_URL && env.ROOT_FULFILLMENT_SECRET) {
     implementations.FULFILLMENT_PUSH = createFulfillmentImplementation({ fetchImpl: options.fetchImpl });

@@ -1,5 +1,10 @@
 const env = require("./config/env");
 const router = require("./utils/router");
+const { initializePrivacyAuthorization } = require("./utils/privacy-authorization");
+const {
+  clearLegacyTransientHealthStorage,
+  clearTransientHealthData,
+} = require("./utils/transient-health-state");
 
 App({
   globalData: {
@@ -7,11 +12,13 @@ App({
   },
 
   onLaunch() {
-    if (env.requestAdapter === "cloudContainer" && wx.cloud && env.cloudEnvId) {
-      wx.cloud.init({
-        env: env.cloudEnvId,
-        traceUser: true,
-      });
+    clearTransientHealthData();
+    clearLegacyTransientHealthStorage();
+    initializePrivacyAuthorization();
+    if (env.requestAdapter === "cloudContainer" && wx.cloud) {
+      const cloudOptions = { traceUser: true };
+      if (env.cloudEnvId) cloudOptions.env = env.cloudEnvId;
+      wx.cloud.init(cloudOptions);
     }
     this.globalData.bootstrapped = true;
   },

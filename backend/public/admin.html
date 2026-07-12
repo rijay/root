@@ -26,6 +26,7 @@
       <nav class="tab-nav" aria-label="后台工作区">
         <button class="tab-button active" data-tab="today">今日运营</button>
         <button class="tab-button" data-tab="users">用户管理</button>
+        <button class="tab-button" data-tab="config">运营配置</button>
         <button class="tab-button" data-tab="orders">订单匹配</button>
         <button class="tab-button" data-tab="feedback">打卡与反馈</button>
         <button class="tab-button" data-tab="refund">免单与售后</button>
@@ -114,6 +115,131 @@
             <div id="user-detail" class="detail-body">
               <div class="row"><div class="meta">暂未选择用户。</div></div>
             </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-panel="config" hidden>
+        <section class="ops-metrics" id="config-metrics"></section>
+        <section class="config-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>活动配置</h2>
+                <span class="hint">创建或更新活动，不影响历史参与记录</span>
+              </div>
+            </div>
+            <div class="config-form">
+              <input id="config-campaign-id" type="text" placeholder="campaignId，例如 ROOT_14D_ROADSHOW" aria-label="活动ID" />
+              <input id="config-campaign-title" type="text" placeholder="活动名称" aria-label="活动名称" />
+              <select id="config-campaign-status" aria-label="活动状态">
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="DRAFT">DRAFT</option>
+                <option value="PAUSED">PAUSED</option>
+                <option value="ENDED">ENDED</option>
+              </select>
+              <input id="config-campaign-duration" type="number" min="1" placeholder="周期天数" aria-label="周期天数" />
+              <button id="save-campaign-config" type="button">保存活动</button>
+            </div>
+            <div id="config-campaigns" class="config-list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>任务配置</h2>
+                <span class="hint">任务事实和页面共享同一套配置</span>
+              </div>
+            </div>
+            <div class="config-form">
+              <input id="config-task-campaign-id" type="text" placeholder="campaignId" aria-label="任务活动ID" />
+              <select id="config-task-type" aria-label="任务类型">
+                <option value="CHECKIN">CHECKIN</option>
+                <option value="QUESTIONNAIRE">QUESTIONNAIRE</option>
+                <option value="SHARE">SHARE</option>
+                <option value="CONSULTATION">CONSULTATION</option>
+                <option value="PURCHASE">PURCHASE</option>
+              </select>
+              <input id="config-task-title" type="text" placeholder="任务标题" aria-label="任务标题" />
+              <input id="config-task-target" type="number" min="1" placeholder="目标次数" aria-label="目标次数" />
+              <label class="check-row config-check">
+                <input id="config-task-required" type="checkbox" checked />
+                <span>必做任务</span>
+              </label>
+              <button id="save-task-config" type="button">保存任务</button>
+            </div>
+            <div id="config-tasks" class="config-list"></div>
+          </div>
+        </section>
+
+        <section class="config-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>商品镜像</h2>
+                <span class="hint">myRoot 展示商品，购买跳 Root 会员中心</span>
+              </div>
+            </div>
+            <div class="config-form">
+              <input id="config-product-id" type="text" placeholder="youzanProductId" aria-label="商品ID" />
+              <input id="config-product-title" type="text" placeholder="商品标题" aria-label="商品标题" />
+              <input id="config-product-price" type="text" placeholder="价格文案" aria-label="价格文案" />
+              <input id="config-product-campaign-id" type="text" placeholder="展示活动ID" aria-label="商品活动ID" />
+              <input id="config-product-appid" type="text" placeholder="Root 会员中心 appId" aria-label="有赞小程序AppID" />
+              <input id="config-product-path" type="text" placeholder="跳转路径" aria-label="有赞小程序路径" />
+              <button id="save-product-config" type="button">保存商品</button>
+            </div>
+            <div id="config-products" class="config-list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>结算规则版本</h2>
+                <span class="hint">发布后保留版本历史，高风险操作写审计</span>
+              </div>
+            </div>
+            <div class="rule-editor">
+              <div class="rule-toolbar">
+                <input id="config-rule-campaign-id" type="text" placeholder="campaignId" aria-label="规则活动ID" />
+                <input id="config-rule-version" type="number" min="1" placeholder="版本号" aria-label="规则版本号" />
+                <button class="ghost" id="insert-rule-template" type="button">填入模板</button>
+                <button id="publish-rule-config" type="button">发布规则</button>
+              </div>
+              <textarea id="config-rule-json" spellcheck="false" aria-label="规则JSON"></textarea>
+              <div id="config-rule-result" class="inline-result"></div>
+            </div>
+            <div id="config-rules" class="config-list"></div>
+          </div>
+        </section>
+
+        <section class="config-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>结算预览</h2>
+                <span class="hint">用用户 rootUserId 预览条件缺口</span>
+              </div>
+            </div>
+            <div class="config-form settlement-preview-form">
+              <input id="settlement-preview-user-id" type="text" placeholder="rootUserId / userId" aria-label="预览用户ID" />
+              <input id="settlement-preview-campaign-id" type="text" placeholder="campaignId" aria-label="预览活动ID" />
+              <button id="preview-settlement-config" type="button">预览结算</button>
+            </div>
+            <div id="settlement-preview-result" class="config-list"></div>
+            <div id="config-settlements" class="config-list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>奖励与复核</h2>
+                <span class="hint">查看发放队列，处理免单机会复核</span>
+              </div>
+            </div>
+            <div id="config-manual-reviews" class="config-list"></div>
+            <div id="config-rewards" class="config-list"></div>
+            <div id="config-delivery-jobs" class="config-list"></div>
           </div>
         </section>
       </section>

@@ -22,9 +22,8 @@
     <button
       class="root-button login-btn"
       loading="{{loading}}"
-      open-type="getPhoneNumber"
-      bindgetphonenumber="loginWithPhone"
-    >手机号快捷登录</button>
-    <view class="login-note">手机号仅用于身份识别与打卡服务，可随时停止记录。</view>
+      bindtap="loginWithWechat"
+    >微信身份进入</button>
+    <view class="login-note">手机号后续可选补充，用于咨询协助和活动联系。</view>
   </view>
 </view>

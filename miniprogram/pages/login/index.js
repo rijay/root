@@ -20,8 +20,8 @@ Page({
     openLegalPage("privacy");
   },
 
-  loginWithPhone(event) {
-    this.submitLogin((event && event.detail) || {});
+  loginWithWechat() {
+    this.submitLogin({});
   },
 
   submitLogin(detail) {
@@ -29,12 +29,6 @@ Page({
       wx.showToast({ title: "请先阅读并同意协议", icon: "none" });
       return;
     }
-    const phoneAuthFailed = detail.errMsg && detail.errMsg.includes("fail");
-    if (phoneAuthFailed) {
-      wx.showToast({ title: "需要手机号才能继续", icon: "none" });
-      return;
-    }
-
     this.setData({ loading: true });
     wx.login({
       success: async (loginResult) => {
@@ -44,6 +38,7 @@ Page({
             method: "POST",
             timeout: 45000,
             data: {
+              appCode: "MYROOT",
               wxCode: loginResult.code || "",
               phoneCode: detail.code || "",
             },

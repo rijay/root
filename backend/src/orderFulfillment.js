@@ -1,6 +1,7 @@
 const { nowISO, todayISO } = require("./dates");
 const { createId } = require("./seed");
 const { createOperationTaskOnce } = require("./operationTask");
+const youzanCustomerMirror = require("./youzanCustomerMirror");
 
 function ensureList(data, key) {
   if (!Array.isArray(data[key])) data[key] = [];
@@ -60,10 +61,16 @@ function toOrderPayload(data, order) {
   return {
     orderId: order.order_id,
     youzanOrderNo: order.youzan_order_no,
+    youzanYzUid: order.youzan_yz_uid || "",
     productName: order.product_name || order.product_id,
     orderStatus: order.order_status || "PAID",
     deliveryStatus,
     deliveryStatusLabel: DELIVERY_LABELS[deliveryStatus] || deliveryStatus,
+    afterSalesStatus: order.after_sales_status || "NONE",
+    afterSalesNo: order.after_sales_no || "",
+    refundStatus: order.refund_status || "NONE",
+    refundAmount: Number(order.refund_amount || 0),
+    afterSalesUpdatedAt: order.after_sales_updated_at || "",
     receiverPhone: maskPhone(order.receiver_phone || order.phone),
     receiverName: order.receiver_name || "",
     amount: order.amount,
@@ -147,6 +154,49 @@ function bindOrderToUser(data, order, user, source, dateText) {
   return { status: "MATCHED", order, user, task };
 }
 
+function bindOrdersByYouzanIdentity(data, body = {}, options = {}) {
+  const youzanYzUid = youzanCustomerMirror.customerYzUid(body);
+  const rootUserId = String(body.rootUserId || body.root_user_id || "").trim();
+  if (!youzanYzUid || !rootUserId) return { status: "SKIPPED", linkedCount: 0, alreadyBoundCount: 0, conflictCount: 0 };
+  const user = ensureList(data, "users").find((item) => (item.root_user_id || item.user_id) === rootUserId);
+  if (!user) return { status: "ROOT_USER_NOT_FOUND", linkedCount: 0, alreadyBoundCount: 0, conflictCount: 0 };
+
+  let linkedCount = 0;
+  let alreadyBoundCount = 0;
+  let conflictCount = 0;
+  const dateText = options.dateText || todayISO();
+  ensureList(data, "youzanOrders")
+    .filter((order) => order.youzan_yz_uid === youzanYzUid)
+    .forEach((order) => {
+      if (!order.user_id) {
+        bindOrderToUser(data, order, user, "AUTO_YOUZAN_UNIONID", dateText);
+        linkedCount += 1;
+        return;
+      }
+      if (order.user_id === user.user_id) {
+        alreadyBoundCount += 1;
+        return;
+      }
+      conflictCount += 1;
+      createOperationTaskOnce(data, {
+        task_type: "ORDER_IDENTITY_MATCH_CONFLICT",
+        user_id: user.user_id,
+        order_id: order.order_id,
+        task_date: dateText,
+        dedupe_key: `${order.youzan_order_no || order.order_id}:${rootUserId}`,
+        reason: "UnionID 映射到的有赞身份与订单现有归属冲突，未自动改绑",
+        suggested_action: "核对订单归属、有赞 yz_open_id 与微信开放平台身份后人工处理",
+        metadata: { expectedRootUserId: rootUserId, existingUserId: order.user_id },
+      });
+    });
+  return {
+    status: conflictCount ? "COMPLETED_WITH_CONFLICTS" : "COMPLETED",
+    linkedCount,
+    alreadyBoundCount,
+    conflictCount,
+  };
+}
+
 function autoMatchOrderByReceiverPhone(data, order, options = {}) {
   const dateText = options.dateText || todayISO();
   const source = options.source || "AUTO_WECHAT_PHONE";
@@ -205,6 +255,7 @@ function autoMatchOrdersForUser(data, user, options = {}) {
 function syncManualOrder(data, body = {}) {
   const receiverPhone = normalizePhone(body.receiverPhone || body.receiver_phone || body.phone);
   const orderNo = body.youzanOrderNo || body.youzan_order_no;
+  const youzanYzUid = youzanCustomerMirror.customerYzUid(body);
   if (!orderNo) {
     const error = new Error("订单号必填");
     error.code = 3003;
@@ -215,6 +266,7 @@ function syncManualOrder(data, body = {}) {
     order = {
       order_id: body.orderId || body.order_id || createId("ord"),
       user_id: body.userId || body.user_id || "",
+      youzan_yz_uid: youzanYzUid,
       youzan_order_no: orderNo,
       phone: receiverPhone,
       receiver_name: body.receiverName || body.receiver_name || "",
@@ -225,6 +277,11 @@ function syncManualOrder(data, body = {}) {
       paid_at: body.paidAt || body.paid_at || "",
       order_status: body.orderStatus || body.order_status || "PAID",
       delivery_status: body.deliveryStatus || body.delivery_status || "NOT_SHIPPED",
+      after_sales_status: body.afterSalesStatus || body.after_sales_status || "NONE",
+      after_sales_no: body.afterSalesNo || body.after_sales_no || "",
+      refund_status: body.refundStatus || body.refund_status || "NONE",
+      refund_amount: Number(body.refundAmount || body.refund_amount || 0),
+      after_sales_updated_at: body.afterSalesUpdatedAt || body.after_sales_updated_at || "",
       raw_address_text: body.rawAddressText || body.raw_address_text || "",
       matched_at: "",
       match_source: "MANUAL",
@@ -232,6 +289,7 @@ function syncManualOrder(data, body = {}) {
     data.youzanOrders.push(order);
   } else {
     order.user_id = body.userId || body.user_id || order.user_id || "";
+    order.youzan_yz_uid = youzanYzUid || order.youzan_yz_uid || "";
     order.phone = receiverPhone || order.phone;
     order.receiver_phone = receiverPhone || order.receiver_phone || order.phone;
     order.receiver_name = body.receiverName || body.receiver_name || order.receiver_name || "";
@@ -239,10 +297,30 @@ function syncManualOrder(data, body = {}) {
     order.amount = body.amount === undefined ? order.amount : Number(body.amount);
     order.order_status = body.orderStatus || body.order_status || order.order_status || "PAID";
     order.delivery_status = body.deliveryStatus || body.delivery_status || order.delivery_status || "NOT_SHIPPED";
+    order.after_sales_status = body.afterSalesStatus || body.after_sales_status || order.after_sales_status || "NONE";
+    order.after_sales_no = body.afterSalesNo || body.after_sales_no || order.after_sales_no || "";
+    order.refund_status = body.refundStatus || body.refund_status || order.refund_status || "NONE";
+    order.refund_amount = body.refundAmount === undefined && body.refund_amount === undefined
+      ? Number(order.refund_amount || 0)
+      : Number(body.refundAmount || body.refund_amount || 0);
+    order.after_sales_updated_at = body.afterSalesUpdatedAt || body.after_sales_updated_at || order.after_sales_updated_at || "";
     order.raw_address_text = body.rawAddressText || body.raw_address_text || order.raw_address_text || "";
   }
   ensureFulfillment(data, order);
-  autoMatchOrderByReceiverPhone(data, order, { source: "AUTO_WECHAT_PHONE", dateText: body.importDate || body.import_date || todayISO() });
+  if (youzanYzUid) {
+    const customerResult = youzanCustomerMirror.upsertYouzanCustomer(data, {
+      ...body,
+      youzanYzUid,
+      phone: receiverPhone,
+    }, { sourceChannel: "YOUZAN_ORDER" });
+    if (!order.user_id && customerResult.rootUserId) {
+      const user = ensureList(data, "users").find((item) => (item.root_user_id || item.user_id) === customerResult.rootUserId);
+      if (user) bindOrderToUser(data, order, user, "AUTO_YOUZAN_CUSTOMER", body.importDate || body.import_date || todayISO());
+    }
+  }
+  if (!order.user_id) {
+    autoMatchOrderByReceiverPhone(data, order, { source: "AUTO_WECHAT_PHONE", dateText: body.importDate || body.import_date || todayISO() });
+  }
   return order;
 }
 
@@ -310,6 +388,7 @@ function getReadyToStartUsers(data, dateText = todayISO()) {
 }
 
 module.exports = {
+  bindOrdersByYouzanIdentity,
   ensureFulfillment,
   getOrderDeliveryStatus,
   getOrderFulfillment,

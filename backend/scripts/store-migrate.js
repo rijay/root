@@ -1,4 +1,4 @@
-const { createMysqlStore, mysqlConfigFromEnv, validateSnapshot } = require("../src/store");
+const { createMysqlStore, mysqlConfigFromEnv, normalizeStoreData, validateSnapshot } = require("../src/store");
 const { loadSnapshot, parseArgs: parseVerifyArgs } = require("./store-verify");
 
 function parseArgs(argv = process.argv.slice(2)) {
@@ -10,7 +10,7 @@ function parseArgs(argv = process.argv.slice(2)) {
 async function main() {
   const args = parseArgs();
   if (args.mode === "mysql") throw new Error("source must be --json or --sqlite when migrating to MySQL");
-  const snapshot = await loadSnapshot(args);
+  const snapshot = normalizeStoreData(await loadSnapshot(args), { seedSampleData: false });
   const sourceReport = validateSnapshot(snapshot);
   if (!sourceReport.valid) {
     console.log(JSON.stringify({ source: args.mode, target: "mysql", dryRun: args.dryRun, ...sourceReport }, null, 2));

@@ -1,5 +1,9 @@
 const { request } = require("../../../../utils/request");
 const router = require("../../../../utils/router");
+const {
+  TRANSIENT_HEALTH_KEYS,
+  consumeTransientHealthData,
+} = require("../../../../utils/transient-health-state");
 
 const canvasId = "rootSharePoster";
 
@@ -49,7 +53,7 @@ Page({
   async onLoad() {
     const allowed = await router.routeGuard("/subpkg/checkin/pages/share-poster/index");
     if (!allowed) return;
-    const payload = wx.getStorageSync("ROOT_SHARE_POSTER_PAYLOAD") || fallbackPayload();
+    const payload = consumeTransientHealthData(TRANSIENT_HEALTH_KEYS.SHARE_POSTER, fallbackPayload());
     this.setData({ payload }, () => this.generatePoster());
   },
 

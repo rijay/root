@@ -3,24 +3,79 @@ const fs = require("node:fs");
 const http = require("node:http");
 const https = require("node:https");
 const { addDays, daysBetween, nowISO, todayISO } = require("./dates");
+const adapterRetryScheduler = require("./adapterRetryScheduler");
 const adapterCalibration = require("./adapterCalibration");
+const actionAdapterCalibration = require("./actionAdapterCalibration");
+const adminAnalyticsPresenter = require("./adminAnalyticsPresenter");
+const adminConfigPresenter = require("./adminConfigPresenter");
+const adminLifecycleFilterPresets = require("./adminLifecycleFilterPresets");
+const adminLifecyclePresenter = require("./adminLifecyclePresenter");
+const adminLifecycleSettlementJobs = require("./adminLifecycleSettlementJobs");
+const adminLifecycleSettlementScheduler = require("./adminLifecycleSettlementScheduler");
+const adminLifecycleSettlementCleanup = require("./adminLifecycleSettlementCleanup");
+const adminLifecycleUserExports = require("./adminLifecycleUserExports");
+const adminManualReview = require("./adminManualReview");
 const adminOrderMatching = require("./adminOrderMatching");
+const adminOrderIncrementSync = require("./adminOrderIncrementSync");
+const adminProductSync = require("./adminProductSync");
+const adminSettlementBatch = require("./adminSettlementBatch");
 const adminOpsPresenter = require("./adminOpsPresenter");
 const adminUserPresenter = require("./adminUserPresenter");
 const auditLog = require("./auditLog");
+const campaign = require("./campaign");
+const checkinReminder = require("./checkinReminder");
+const consultationAdvisorAssignment = require("./consultationAdvisorAssignment");
+const consultationAdvisorWorkbench = require("./consultationAdvisorWorkbench");
+const consultationFollowup = require("./consultationFollowup");
+const consultationSla = require("./consultationSla");
+const consultationSlaEscalation = require("./consultationSlaEscalation");
+const consultationWeworkWriteback = require("./consultationWeworkWriteback");
 const coupon = require("./coupon");
+const cloudbaseIdentityProbe = require("./cloudbaseIdentityProbe");
 const csvImport = require("./csvImport");
 const externalAdapterSamples = require("./externalAdapterSamples");
 const externalPlatformAdapters = require("./externalPlatformAdapters");
 const { getHomeViewModel } = require("./flowView");
-const { identifyUser, normalizePhone } = require("./identity");
+const {
+  findRootUser,
+  identifyUser,
+  normalizeAppCode,
+  normalizePhone,
+  recordLifecycleEvent,
+  resolveByWechatLogin,
+} = require("./identity");
 const launchReadiness = require("./launchReadiness");
+const adminLegacyDeprecationDecision = require("./adminLegacyDeprecationDecision");
+const legacyDataMigrationDecision = require("./legacyDataMigrationDecision");
+const legacyDataMigrationExecution = require("./legacyDataMigrationExecution");
 const manualCorrection = require("./manualCorrection");
 const operationTask = require("./operationTask");
+const orderAfterSales = require("./orderAfterSales");
 const orderFulfillment = require("./orderFulfillment");
+const operationalAlerts = require("./operationalAlerts");
+const productMirror = require("./productMirror");
+const productionCutoverProof = require("./productionCutoverProof");
+const healthDataRetention = require("./healthDataRetention");
+const privacyConsent = require("./privacyConsent");
 const questionnaire = require("./questionnaire");
+const releaseEvidenceArchive = require("./releaseEvidenceArchive");
+const releaseEvidencePack = require("./releaseEvidencePack");
 const releaseRecord = require("./releaseRecord");
+const releaseSignoff = require("./releaseSignoff");
+const rootMemberCenterJumpProof = require("./rootMemberCenterJumpProof");
 const refundWorkItem = require("./refundWorkItem");
+const rewardDelivery = require("./rewardDelivery");
+const rewardRecovery = require("./rewardRecovery");
+const settlement = require("./settlement");
+const taskProgress = require("./taskProgress");
+const weworkTouch = require("./weworkTouch");
+const youzanCustomerMirror = require("./youzanCustomerMirror");
+const youzanIdentityReconciliation = require("./youzanIdentityReconciliation");
+const { buildProductionEnvMatrix } = require("./productionEnvMatrix");
+const {
+  buildCloudbaseJobManifest,
+  validateCloudbaseJobManifest,
+} = require("../scripts/cloudbase-job-manifest");
 const { createId, createSeedData } = require("./seed");
 
 const STATES = {
@@ -38,7 +93,7 @@ const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 const ROUTES_BY_STATE = {
   GUEST: "/pages/home/index",
-  UNREGISTERED: "/pages/home/index",
+  UNREGISTERED: "/pages/register/index",
   REGISTERED_IDLE: "/pages/home/index",
   CHECKIN_ACTIVE: "/pages/home/index",
   CHECKIN_COMPLETED: "/pages/home/index",
@@ -46,13 +101,26 @@ const ROUTES_BY_STATE = {
   DAILY_USER: "/pages/home/index",
 };
 
+const LEGACY_ROUTES_BY_STATE = {
+  ...ROUTES_BY_STATE,
+  UNREGISTERED: "/pages/home/index",
+};
+
 const ROUTE_PERMISSIONS = {
   "/pages/login/index": [STATES.GUEST],
   "/pages/register/index": [STATES.UNREGISTERED],
+  "/pages/health-consent/index": [STATES.UNREGISTERED, STATES.REGISTERED_IDLE, STATES.CHECKIN_ACTIVE, STATES.CHECKIN_COMPLETED, STATES.CHECKIN_FAILED, STATES.DAILY_USER],
   "/pages/activity/index": [STATES.REGISTERED_IDLE],
   "/pages/order/match": [STATES.REGISTERED_IDLE],
+  "/pages/products/index": [STATES.UNREGISTERED, STATES.REGISTERED_IDLE, STATES.CHECKIN_ACTIVE, STATES.CHECKIN_COMPLETED, STATES.CHECKIN_FAILED, STATES.DAILY_USER],
+  "/pages/product-detail/index": [STATES.UNREGISTERED, STATES.REGISTERED_IDLE, STATES.CHECKIN_ACTIVE, STATES.CHECKIN_COMPLETED, STATES.CHECKIN_FAILED, STATES.DAILY_USER],
+  "/pages/tasks/index": [STATES.UNREGISTERED, STATES.REGISTERED_IDLE, STATES.CHECKIN_ACTIVE, STATES.CHECKIN_COMPLETED, STATES.CHECKIN_FAILED, STATES.DAILY_USER],
+  "/pages/rewards/index": [STATES.UNREGISTERED, STATES.REGISTERED_IDLE, STATES.CHECKIN_ACTIVE, STATES.CHECKIN_COMPLETED, STATES.CHECKIN_FAILED, STATES.DAILY_USER],
   "/pages/home/index": [STATES.GUEST, STATES.UNREGISTERED, STATES.REGISTERED_IDLE, STATES.CHECKIN_ACTIVE, STATES.CHECKIN_COMPLETED, STATES.CHECKIN_FAILED, STATES.DAILY_USER],
-  "/subpkg/checkin/pages/today/index": [STATES.CHECKIN_ACTIVE, STATES.DAILY_USER],
+  "/subpkg/task/pages/checkin/index": [STATES.UNREGISTERED, STATES.REGISTERED_IDLE, STATES.CHECKIN_ACTIVE],
+  "/subpkg/task/pages/questionnaire/index": [STATES.UNREGISTERED, STATES.REGISTERED_IDLE, STATES.CHECKIN_ACTIVE, STATES.CHECKIN_COMPLETED, STATES.CHECKIN_FAILED, STATES.DAILY_USER],
+  "/subpkg/task/pages/progress/index": [STATES.UNREGISTERED, STATES.REGISTERED_IDLE, STATES.CHECKIN_ACTIVE, STATES.CHECKIN_COMPLETED, STATES.CHECKIN_FAILED, STATES.DAILY_USER],
+  "/subpkg/checkin/pages/today/index": [STATES.CHECKIN_ACTIVE],
   "/subpkg/checkin/pages/history/index": [STATES.CHECKIN_ACTIVE, STATES.CHECKIN_COMPLETED, STATES.CHECKIN_FAILED, STATES.DAILY_USER],
   "/subpkg/checkin/pages/result/index": [STATES.CHECKIN_ACTIVE, STATES.CHECKIN_COMPLETED, STATES.CHECKIN_FAILED, STATES.DAILY_USER],
   "/subpkg/checkin/pages/share-poster/index": [STATES.CHECKIN_ACTIVE, STATES.CHECKIN_COMPLETED, STATES.DAILY_USER],
@@ -123,8 +191,8 @@ function createStore() {
 
 function getWechatConfig(env = process.env) {
   return {
-    appid: env.WECHAT_APPID || env.WX_APPID || "",
-    secret: env.WECHAT_APPSECRET || env.WECHAT_SECRET || env.WX_SECRET || "",
+    appid: env.ROOT_WECHAT_APPID || env.WECHAT_APPID || env.WX_APPID || "",
+    secret: env.ROOT_WECHAT_APPSECRET || env.WECHAT_APPSECRET || env.WECHAT_SECRET || env.WX_SECRET || "",
   };
 }
 
@@ -142,8 +210,12 @@ function publicUser(user) {
   if (!user) return { state: STATES.GUEST };
   return {
     userId: user.user_id,
+    rootUserId: user.root_user_id || user.user_id,
     phone: maskPhone(user.phone),
     state: user.state,
+    lifecycleStatus: user.lifecycle_status || user.state,
+    unionidStatus: user.unionid_status || (user.unionid ? "LINKED" : "PENDING"),
+    appCode: user.app_code || "MYROOT",
     nickname: user.nickname || "ROOT体验官",
     avatarUrl: user.avatar_url || "",
     totalCheckinDays: user.total_checkin_days || 0,
@@ -151,6 +223,34 @@ function publicUser(user) {
     longestStreak: user.longest_streak || 0,
     lastCheckinDate: user.last_checkin_date || "",
   };
+}
+
+function isOpenidLoginAllowed(env = process.env) {
+  return String(env.ROOT_ALLOW_OPENID_LOGIN || "").toLowerCase() === "true";
+}
+
+function isMyRootRebuildEnabled(env = process.env) {
+  return String(env.MYROOT_REBUILD_ENABLED || "true").toLowerCase() !== "false";
+}
+
+function routesForEnv(env = process.env) {
+  return isMyRootRebuildEnabled(env) ? ROUTES_BY_STATE : LEGACY_ROUTES_BY_STATE;
+}
+
+function routeForUser(user, env = process.env) {
+  const routes = routesForEnv(env);
+  return routes[user && user.state] || routes.GUEST;
+}
+
+function syncRootLifecycle(data, user, eventType, context = {}) {
+  if (!user) return null;
+  const rootUser = findRootUser(data, user.root_user_id || user.user_id);
+  if (rootUser) {
+    rootUser.lifecycle_status = user.state;
+    rootUser.updated_at = nowISO();
+  }
+  user.lifecycle_status = user.state;
+  return recordLifecycleEvent(data, user.root_user_id || user.user_id, eventType, context);
 }
 
 function normalizeNickname(value) {
@@ -231,6 +331,44 @@ function requireUser(data, token) {
 
 function response(data) {
   return { code: 0, message: "ok", data };
+}
+
+function getHealthConsentStatus(data, token, context = {}) {
+  const user = requireUser(data, token);
+  return response(privacyConsent.getHealthConsentStatus(data, user.root_user_id || user.user_id, context));
+}
+
+function getPrivacyNotice(context = {}) {
+  return response({
+    ...privacyConsent.getPublicPrivacyNotice(context),
+    ...(context.runtimeMetadata || {}),
+  });
+}
+
+function recordHealthConsentDecision(data, token, body = {}, context = {}) {
+  const user = requireUser(data, token);
+  const rootUserId = user.root_user_id || user.user_id;
+  const result = privacyConsent.recordHealthConsentDecision(data, rootUserId, body, {
+    ...context,
+    sourceChannel: "MINIPROGRAM_HEALTH_CONSENT",
+  });
+  if (result.recorded && result.record) {
+    recordLifecycleEvent(data, rootUserId, "HEALTH_CONSENT_DECISION_RECORDED", {
+      sourceChannel: result.record.sourceChannel,
+      appCode: user.app_code || "MYROOT",
+      metadata: {
+        consentType: result.record.consentType,
+        policyVersion: result.record.policyVersion,
+        decision: result.record.decision,
+        consentRecordId: result.record.consentRecordId,
+      },
+    });
+  }
+  return response(result);
+}
+
+function clone(value) {
+  return value === null || value === undefined ? value : JSON.parse(JSON.stringify(value));
 }
 
 function businessError(code, message, status = 200) {
@@ -365,6 +503,25 @@ async function getWechatPhoneNumber(data, config, phoneCode) {
   return normalizePhone(phoneInfo.phoneNumber || phoneInfo.purePhoneNumber);
 }
 
+async function sendWechatSubscribeMessage(data, payload, context = {}) {
+  if (typeof context.sendSubscribeMessage === "function") return context.sendSubscribeMessage(payload);
+  const env = context.env || process.env;
+  const config = getWechatConfig(env);
+  if (!config.appid || !config.secret) {
+    const error = new Error("微信订阅消息发送配置缺失");
+    error.code = "WECHAT_SUBSCRIBE_CONFIG_MISSING";
+    throw error;
+  }
+  const accessToken = await getWechatAccessToken(data, config);
+  const url = new URL(env.ROOT_WECHAT_SUBSCRIBE_SEND_URL || "https://api.weixin.qq.com/cgi-bin/message/subscribe/send");
+  url.searchParams.set("access_token", accessToken);
+  return fetchWechatJson(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
 async function getCloudbaseWechatPhoneNumber(phoneCode, env) {
   const payload = await fetchCloudbaseWechatJson("/wxa/business/getuserphonenumber", {
     method: "POST",
@@ -432,31 +589,19 @@ function toSessionPayload(data, session, dateText = todayISO()) {
 function loginByPhone(data, body, phone) {
   if (!phone) throw businessError(1002, "手机号必填");
 
-  let user = data.users.find((item) => item.phone === phone);
-  if (!user) {
-    user = {
-      user_id: createId("usr"),
-      openid: body.openid || "",
-      unionid: body.unionid || "",
-      phone,
-      nickname: normalizeNickname(body.nickname || body.nickName) || "ROOT体验官",
-      avatar_url: normalizeAvatarUrl(body.avatarUrl || body.avatar_url),
-      state: STATES.UNREGISTERED,
-      created_at: nowISO(),
-      registered_at: "",
-      activated_at: "",
-      completed_at: "",
-      total_checkin_days: 0,
-      current_streak: 0,
-      longest_streak: 0,
-      last_checkin_date: "",
-    };
-    data.users.push(user);
-  } else {
-    if (body.openid && !user.openid) user.openid = body.openid;
-    if (body.unionid && !user.unionid) user.unionid = body.unionid;
-    applyUserDisplayProfile(user, body);
-  }
+  const identityResult = resolveByWechatLogin(data, {
+    ...body,
+    appCode: body.appCode || body.app_code,
+    openid: body.openid || "",
+    unionid: body.unionid || "",
+    phone,
+    nickname: normalizeNickname(body.nickname || body.nickName) || "ROOT体验官",
+    avatarUrl: normalizeAvatarUrl(body.avatarUrl || body.avatar_url),
+  }, {
+    sourceChannel: body.sourceChannel || body.source_channel || "LOGIN",
+  });
+  const user = identityResult.user;
+  applyUserDisplayProfile(user, body);
 
   const autoMatch = orderFulfillment.autoMatchOrdersForUser(data, user, { source: "AUTO_WECHAT_PHONE" });
   const session = issueToken(data, user.user_id);
@@ -467,7 +612,15 @@ function loginByPhone(data, body, phone) {
     },
     autoMatch,
     user: publicUser(user),
-    nextRoute: ROUTES_BY_STATE[user.state],
+    nextRoute: routeForUser(user, body.env || process.env),
+    features: {
+      myRootRebuildEnabled: isMyRootRebuildEnabled(body.env || process.env),
+    },
+    identity: {
+      rootUserId: user.root_user_id || user.user_id,
+      unionidStatus: identityResult.unionidStatus,
+      appCode: user.app_code || normalizeAppCode(body.appCode || body.app_code),
+    },
   });
 }
 
@@ -489,18 +642,72 @@ function updateDisplayProfile(data, token, body = {}) {
 async function loginWithWechat(data, body = {}, context = process.env) {
   const runtime = normalizeWechatContext(context);
   const env = runtime.env;
+  const appCode = normalizeAppCode(body.appCode || body.app_code || getHeader(runtime.headers, "x-root-app-code"));
+  const headerOpenid = getHeader(runtime.headers, "x-wx-openid");
+  const headerUnionid = getHeader(runtime.headers, "x-wx-unionid");
   const shouldUseWechatPhone = !body.phone && body.phoneCode;
+
+  function loginByWechatIdentity(input) {
+    const identityResult = resolveByWechatLogin(data, {
+      ...body,
+      ...input,
+      appCode,
+      nickname: normalizeNickname(body.nickname || body.nickName) || "ROOT体验官",
+      avatarUrl: normalizeAvatarUrl(body.avatarUrl || body.avatar_url),
+    }, {
+      sourceChannel: body.sourceChannel || body.source_channel || "WECHAT_LOGIN",
+      appCode,
+    });
+    const user = identityResult.user;
+    applyUserDisplayProfile(user, body);
+    const session = issueToken(data, user.user_id);
+    return response({
+      token: session.token,
+      session: {
+        expiresAt: session.expires_at,
+      },
+      autoMatch: null,
+      user: publicUser(user),
+      nextRoute: routeForUser(user, env),
+      features: {
+        myRootRebuildEnabled: isMyRootRebuildEnabled(env),
+      },
+      identity: {
+        rootUserId: user.root_user_id || user.user_id,
+        unionidStatus: identityResult.unionidStatus,
+        appCode,
+      },
+    });
+  }
+
+  if (!shouldUseWechatPhone && !body.phone) {
+    if (headerOpenid) {
+      return loginByWechatIdentity({ openid: headerOpenid, unionid: headerUnionid });
+    }
+    if (body.openid && isOpenidLoginAllowed(env)) {
+      return loginByWechatIdentity({ openid: body.openid, unionid: body.unionid || "" });
+    }
+    if (body.wxCode) {
+      const config = getWechatConfig(env);
+      if (!config.appid || !config.secret) throw businessError(1006, "服务端未配置微信登录密钥");
+      const session = await getWechatSession(config, body.wxCode);
+      return loginByWechatIdentity({ openid: session.openid, unionid: session.unionid || "" });
+    }
+  }
+
   if (!shouldUseWechatPhone) {
     if (!isDirectPhoneLoginAllowed(env)) throw businessError(1007, "请使用微信手机号授权登录");
-    return login(data, body);
+    return login(data, { ...body, env });
   }
 
   if (shouldUseCloudbaseOpenApi(runtime.headers)) {
     const phone = await getCloudbaseWechatPhoneNumber(body.phoneCode, env);
     return loginByPhone(data, {
       ...body,
-      openid: getHeader(runtime.headers, "x-wx-openid"),
-      unionid: getHeader(runtime.headers, "x-wx-unionid"),
+      env,
+      appCode,
+      openid: headerOpenid,
+      unionid: headerUnionid,
     }, phone);
   }
 
@@ -511,18 +718,27 @@ async function loginWithWechat(data, body = {}, context = process.env) {
     getWechatSession(config, body.wxCode),
     getWechatPhoneNumber(data, config, body.phoneCode),
   ]);
-  return loginByPhone(data, { ...body, openid: session.openid, unionid: session.unionid }, phone);
+  return loginByPhone(data, { ...body, env, appCode, openid: session.openid, unionid: session.unionid }, phone);
 }
 
-function getUserState(data, token) {
+function getUserState(data, token, context = {}) {
   const user = requireUser(data, token);
+  const env = context.env || context || process.env;
   const homeView = getHomeViewModel(data, user.user_id, todayISO());
   return response({
     user: publicUser(user),
+    identity: {
+      rootUserId: user.root_user_id || user.user_id,
+      unionidStatus: user.unionid_status || (user.unionid ? "LINKED" : "PENDING"),
+      appCode: user.app_code || "MYROOT",
+    },
     flowView: homeView.flowView,
     allowedActions: homeView.allowedActions,
     homeView,
-    route: ROUTES_BY_STATE[user.state] || ROUTES_BY_STATE.GUEST,
+    route: routeForUser(user, env),
+    features: {
+      myRootRebuildEnabled: isMyRootRebuildEnabled(env),
+    },
     routePermissions: ROUTE_PERMISSIONS,
   });
 }
@@ -537,6 +753,593 @@ function getUserOrders(data, token) {
   const user = requireUser(data, token);
   const orders = data.youzanOrders.filter((order) => order.user_id === user.user_id).map((order) => orderFulfillment.toOrderPayload(data, order));
   return response({ orders });
+}
+
+function getActiveCampaign(data, token, query = {}, context = {}) {
+  const user = requireUser(data, token);
+  const activeCampaign = campaign.getActiveCampaign(data, { ...context, ...query });
+  const participant = campaign.findParticipant(data, user.root_user_id || user.user_id, activeCampaign.campaign_id);
+  return response({ campaign: campaign.toCampaignPayload(activeCampaign, participant) });
+}
+
+function joinCampaign(data, token, body = {}, context = {}) {
+  const user = requireUser(data, token);
+  const rootUserId = user.root_user_id || user.user_id;
+  const result = campaign.joinCampaign(data, user.root_user_id || user.user_id, body.campaignId || body.campaign_id, {
+    ...context,
+    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_CAMPAIGN",
+    metadata: body.metadata || {},
+  });
+  const reminder = result.created
+    ? checkinReminder.scheduleNextDayCheckinReminder(data, rootUserId, result.campaign, {
+      ...context,
+      sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_CAMPAIGN",
+    })
+    : { scheduled: false, reason: "ALREADY_JOINED" };
+  recordLifecycleEvent(data, rootUserId, "CAMPAIGN_JOINED", {
+    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_CAMPAIGN",
+    appCode: user.app_code || "MYROOT",
+    metadata: {
+      campaignId: result.campaign.campaign_id,
+      created: result.created,
+      reminderScheduled: Boolean(reminder && reminder.scheduled),
+    },
+  });
+  return response({
+    campaign: campaign.toCampaignPayload(result.campaign, result.participant),
+    created: result.created,
+    reminder,
+  });
+}
+
+function getTaskProgress(data, token, query = {}, context = {}) {
+  const user = requireUser(data, token);
+  return response(taskProgress.getProgressView(data, user.root_user_id || user.user_id, query.campaignId || query.campaign_id || "", context));
+}
+
+function recordUserTaskEvent(data, token, body = {}, context = {}) {
+  const user = requireUser(data, token);
+  const rootUserId = user.root_user_id || user.user_id;
+  const taskType = String(body.taskType || body.task_type || "").trim().toUpperCase();
+  if (["CHECKIN", "QUESTIONNAIRE"].includes(taskType)) {
+    privacyConsent.requireHealthConsent(data, rootUserId, context);
+  }
+  const result = taskProgress.recordTaskEvent(data, {
+    ...body,
+    rootUserId,
+  }, {
+    ...context,
+    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_TASK",
+  });
+  const eventCampaign = ensureList(data, "campaignDefinitions").find((item) => item.campaign_id === result.event.campaign_id) || {
+    campaign_id: result.event.campaign_id,
+    title: "ROOT 身体记录",
+  };
+  const reminder = result.created && result.event.task_type === "CHECKIN"
+    ? checkinReminder.scheduleNextDayCheckinReminder(data, rootUserId, eventCampaign, {
+      ...context,
+      sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_TASK",
+    })
+    : { scheduled: false, reason: result.event.task_type === "CHECKIN" ? "DUPLICATE_TASK_EVENT" : "NOT_CHECKIN_TASK" };
+  recordLifecycleEvent(data, rootUserId, "TASK_EVENT_RECORDED", {
+    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_TASK",
+    appCode: user.app_code || "MYROOT",
+    metadata: {
+      campaignId: result.event.campaign_id,
+      taskType: result.event.task_type,
+      taskEventId: result.event.task_event_id,
+      created: result.created,
+      reminderScheduled: Boolean(reminder && reminder.scheduled),
+    },
+  });
+  let followUp = null;
+  if (result.event.task_type === "CONSULTATION") {
+    followUp = consultationFollowup.createFollowTaskForEvent(data, user, result.event);
+    if (followUp && followUp.created) {
+      recordLifecycleEvent(data, rootUserId, "CONSULTATION_FOLLOW_CREATED", {
+        sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_TASK",
+        appCode: user.app_code || "MYROOT",
+        metadata: {
+          campaignId: result.event.campaign_id,
+          taskEventId: result.event.task_event_id,
+          operationTaskId: followUp.task.task_id,
+          consultationType: followUp.item.consultationType,
+        },
+      });
+    }
+  }
+  return response({ ...result, followUp, reminder });
+}
+
+function getCheckinReminderTemplate(data, token, context = {}) {
+  requireUser(data, token);
+  return response(checkinReminder.getCheckinReminderTemplate(data, context));
+}
+
+function recordCheckinReminderSubscription(data, token, body = {}, context = {}) {
+  const user = requireUser(data, token);
+  const subscription = checkinReminder.recordSubscription(data, user.root_user_id || user.user_id, body, {
+    ...context,
+    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_SUBSCRIBE",
+  });
+  recordLifecycleEvent(data, user.root_user_id || user.user_id, "CHECKIN_REMINDER_SUBSCRIPTION_UPDATED", {
+    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_SUBSCRIBE",
+    appCode: user.app_code || "MYROOT",
+    metadata: {
+      templateKey: subscription.template_key,
+      templateVersion: subscription.template_version,
+      status: subscription.status,
+      campaignId: subscription.campaign_id,
+    },
+  });
+  return response({ subscription });
+}
+
+async function runDueCheckinReminders(data, body = {}, context = {}) {
+  const result = await checkinReminder.runDueCheckinReminders(data, body, {
+    ...context,
+    sendSubscribeMessage: (payload) => sendWechatSubscribeMessage(data, payload, context),
+  });
+  return response(result);
+}
+
+function getUserConsultations(data, token) {
+  const user = requireUser(data, token);
+  return response(consultationFollowup.buildUserView(data, user));
+}
+
+function listWeWorkTouchJobs(data, query = {}) {
+  return response({ jobs: weworkTouch.listWeWorkTouchJobs(data, query) });
+}
+
+function listOrderAfterSalesRecords(data, query = {}) {
+  return response({ records: orderAfterSales.listOrderAfterSalesRecords(data, query) });
+}
+
+function upsertOrderAfterSalesRecord(data, body = {}, context = {}) {
+  return response(orderAfterSales.upsertOrderAfterSalesRecord(data, body, context));
+}
+
+function syncOrderAfterSalesBatch(data, body = {}, context = {}) {
+  return response(orderAfterSales.syncOrderAfterSalesBatch(data, body, context));
+}
+
+function planWeWorkTouches(data, body = {}, context = {}) {
+  return response(weworkTouch.planWeWorkTouches(data, body, context));
+}
+
+async function runDueWeWorkTouches(data, body = {}, context = {}) {
+  return response(await weworkTouch.runDueWeWorkTouches(data, body, context));
+}
+
+function upsertCampaign(data, body = {}) {
+  return response({ campaign: campaign.toCampaignPayload(campaign.upsertCampaignDefinition(data, body)) });
+}
+
+function upsertTaskDefinition(data, body = {}) {
+  return response({ taskDefinition: taskProgress.upsertTaskDefinition(data, body) });
+}
+
+function getSettlementStatus(data, token, query = {}, context = {}) {
+  const user = requireUser(data, token);
+  return response(settlement.getSettlementStatus(data, user.root_user_id || user.user_id, query.campaignId || query.campaign_id || "", context));
+}
+
+function listRewardRecoveryRecords(data, query = {}) {
+  return response({
+    records: rewardRecovery.listRewardRecoveryRecords(data, query).map(rewardRecovery.toRewardRecoveryPayload),
+  });
+}
+
+function evaluateUserSettlement(data, token, body = {}, context = {}) {
+  const user = requireUser(data, token);
+  const result = settlement.evaluateSettlement(data, user.root_user_id || user.user_id, body.campaignId || body.campaign_id || "", context);
+  recordLifecycleEvent(data, user.root_user_id || user.user_id, "SETTLEMENT_EVALUATED", {
+    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_REWARD",
+    appCode: user.app_code || "MYROOT",
+    metadata: {
+      campaignId: result.campaign.campaignId,
+      settlementRecordId: result.settlementRecord.settlement_record_id,
+      status: result.settlementRecord.status,
+    },
+  });
+  return response({
+    ...result,
+    settlementRecord: settlement.toSettlementRecordPayload(result.settlementRecord),
+  });
+}
+
+function publishCampaignRuleVersion(data, body = {}) {
+  const before = data.campaignRuleVersions.filter((item) => item.campaign_id === (body.campaignId || body.campaign_id || campaign.DEFAULT_CAMPAIGN_ID)).map((item) => ({
+    campaign_rule_version_id: item.campaign_rule_version_id,
+    version: item.version,
+    status: item.status,
+  }));
+  const result = settlement.publishRuleVersion(data, body);
+  auditLog.appendAuditLog(data, {
+    action: "PUBLISH_CAMPAIGN_RULE_VERSION",
+    targetType: "CAMPAIGN_RULE_VERSION",
+    targetId: result.ruleVersion.campaign_rule_version_id,
+    operatorId: body.operatorId || body.operator_id || "",
+    reason: body.reason || "发布活动结算规则",
+    before,
+    after: settlement.toRuleVersionPayload(result.ruleVersion),
+    metadata: { created: result.created, requestId: body.requestId || body.request_id || "" },
+  });
+  return response({
+    ruleVersion: settlement.toRuleVersionPayload(result.ruleVersion),
+    created: result.created,
+  });
+}
+
+function previewAdminSettlement(data, body = {}, context = {}) {
+  const rootUserId = body.rootUserId || body.root_user_id || body.userId || body.user_id || "";
+  if (!rootUserId) throw businessError(8004, "请选择用户");
+  return response(settlement.previewSettlement(data, rootUserId, body.campaignId || body.campaign_id || "", context));
+}
+
+function previewAdminSettlementBatch(data, body = {}, context = {}) {
+  return response(adminSettlementBatch.previewBatchSettlement(data, body, context));
+}
+
+function executeAdminSettlementBatch(data, body = {}, context = {}) {
+  return response(adminSettlementBatch.executeBatchSettlement(data, body, context));
+}
+
+async function executeAdminRewardDelivery(data, body = {}, context = {}) {
+  return response(await rewardDelivery.executeDeliveryBatch(data, body, { ...context, data }));
+}
+
+async function queryAdminRewardDeliveryStatus(data, body = {}, context = {}) {
+  return response(await rewardDelivery.queryDeliveryStatusBatch(data, body, { ...context, data }));
+}
+
+function getAdminConfigWorkbench(data, context = {}) {
+  return response(adminConfigPresenter.buildConfigWorkbench(data, context));
+}
+
+function getAdminLifecycleWorkbench(data, query = {}) {
+  return response(adminLifecyclePresenter.buildLifecycleWorkbench(data, query));
+}
+
+function exportAdminLifecycleUsersCsv(data, query = {}, context = {}) {
+  return adminLifecyclePresenter.buildLifecycleUsersCsv(data, query, context);
+}
+
+function listAdminLifecycleUserExports(data, query = {}, context = {}) {
+  return response(adminLifecycleUserExports.listLifecycleUserExports(data, query, context));
+}
+
+function getAdminLifecycleExportDeliveryHealth(data, query = {}, context = {}) {
+  return response(adminLifecycleUserExports.getLifecycleExportDeliveryHealth(data, query, context));
+}
+
+function createAdminLifecycleUserExport(data, body = {}, context = {}) {
+  return response(adminLifecycleUserExports.runLifecycleUserExport(data, body, context));
+}
+
+function runAdminLifecycleUserExportJob(data, body = {}, context = {}) {
+  return response(adminLifecycleUserExports.runLifecycleUserExport(data, body, context));
+}
+
+function downloadAdminLifecycleUserExport(data, exportId, context = {}) {
+  return adminLifecycleUserExports.downloadLifecycleUserExport(data, exportId, context);
+}
+
+function downloadSignedAdminLifecycleUserExport(data, exportId, query = {}, context = {}) {
+  return adminLifecycleUserExports.downloadLifecycleUserExportBySignature(data, exportId, query, context);
+}
+
+function reviewAdminLifecycleUserExportApproval(data, body = {}, context = {}) {
+  return response(adminLifecycleUserExports.reviewLifecycleUserExportApproval(data, body, context));
+}
+
+async function deliverAdminLifecycleUserExport(data, body = {}, context = {}) {
+  return response(await adminLifecycleUserExports.deliverLifecycleUserExport(data, body, context));
+}
+
+async function runDueAdminLifecycleExportDeliveries(data, body = {}, context = {}) {
+  return response(await adminLifecycleUserExports.runDueLifecycleExportDeliveries(data, body, context));
+}
+
+async function cleanupAdminLifecycleUserExports(data, body = {}, context = {}) {
+  return response(await adminLifecycleUserExports.cleanupLifecycleUserExports(data, body, context));
+}
+
+async function runHealthDataRetentionCleanup(data, body = {}, context = {}) {
+  return response(await healthDataRetention.cleanupExpiredHealthData(data, body, context));
+}
+
+async function runYouzanIdentityReconciliation(data, body = {}, context = {}) {
+  return response(await youzanIdentityReconciliation.reconcileYouzanIdentities(data, body, context));
+}
+
+function lifecycleBatchQuery(body = {}) {
+  const filters = body.filters && typeof body.filters === "object" && !Array.isArray(body.filters)
+    ? body.filters
+    : body;
+  return {
+    ...filters,
+    selectionLimit: body.selectionLimit || body.selection_limit || body.batchLimit || body.batch_limit ||
+      filters.selectionLimit || filters.selection_limit || filters.batchLimit || filters.batch_limit,
+  };
+}
+
+function lifecycleBatchCampaignId(selection, body = {}, query = {}) {
+  return body.campaignId || body.campaign_id || query.campaignId || query.campaign_id ||
+    selection.users[0]?.campaignId || "";
+}
+
+function previewAdminLifecycleSettlementBatch(data, body = {}, context = {}) {
+  const query = lifecycleBatchQuery(body);
+  const selection = adminLifecyclePresenter.buildLifecycleBatchSelection(data, query);
+  if (!selection.rootUserIds.length) throw businessError(8010, "筛选结果没有可处理用户");
+  const campaignId = lifecycleBatchCampaignId(selection, body, query);
+  const preview = adminSettlementBatch.previewBatchSettlement(data, {
+    rootUserIds: selection.rootUserIds,
+    campaignId,
+  }, context);
+  return response({
+    ...preview,
+    source: "LIFECYCLE_FILTER",
+    selection,
+  });
+}
+
+function executeAdminLifecycleSettlementBatch(data, body = {}, context = {}) {
+  const query = lifecycleBatchQuery(body);
+  const selection = adminLifecyclePresenter.buildLifecycleBatchSelection(data, query);
+  if (!selection.rootUserIds.length) throw businessError(8010, "筛选结果没有可处理用户");
+  const campaignId = lifecycleBatchCampaignId(selection, body, query);
+  const result = adminSettlementBatch.executeBatchSettlement(data, {
+    ...body,
+    rootUserIds: selection.rootUserIds,
+    campaignId,
+    reason: body.reason || "用户生命周期筛选全量批量结算",
+  }, context);
+  return response({
+    ...result,
+    source: "LIFECYCLE_FILTER",
+    selection,
+  });
+}
+
+function listAdminLifecycleSettlementJobs(data, query = {}) {
+  return response({
+    jobs: adminLifecycleSettlementJobs.listLifecycleSettlementJobs(data, query),
+  });
+}
+
+function createAdminLifecycleSettlementJob(data, body = {}, context = {}) {
+  return response(adminLifecycleSettlementJobs.createLifecycleSettlementJob(data, body, context));
+}
+
+function runAdminLifecycleSettlementJob(data, body = {}, context = {}) {
+  return response(adminLifecycleSettlementJobs.runLifecycleSettlementJob(data, body, context));
+}
+
+function cancelAdminLifecycleSettlementJob(data, body = {}, context = {}) {
+  return response(adminLifecycleSettlementJobs.cancelLifecycleSettlementJob(data, body, context));
+}
+
+function retryFailedAdminLifecycleSettlementJob(data, body = {}, context = {}) {
+  return response(adminLifecycleSettlementJobs.retryFailedLifecycleSettlementJob(data, body, context));
+}
+
+function planAdminLifecycleSettlementJobRuns(data, body = {}) {
+  return response(adminLifecycleSettlementScheduler.planLifecycleSettlementJobRuns(data, body));
+}
+
+async function runDueAdminLifecycleSettlementJobs(data, body = {}, context = {}) {
+  return response(await adminLifecycleSettlementScheduler.runDueLifecycleSettlementJobs(data, body, context));
+}
+
+function planAdminLifecycleSettlementJobCleanup(data, body = {}) {
+  return response(adminLifecycleSettlementCleanup.planLifecycleSettlementJobCleanup(data, body));
+}
+
+async function runAdminLifecycleSettlementJobCleanup(data, body = {}) {
+  return response(await adminLifecycleSettlementCleanup.runLifecycleSettlementJobCleanup(data, body));
+}
+
+function listAdminLifecycleFilterPresets(data, query = {}) {
+  return response({
+    presets: adminLifecycleFilterPresets.listPresets(data, query),
+  });
+}
+
+function upsertAdminLifecycleFilterPreset(data, body = {}) {
+  const result = adminLifecycleFilterPresets.upsertPreset(data, body);
+  const audit = auditLog.appendAuditLog(data, {
+    action: "ADMIN_LIFECYCLE_FILTER_PRESET_UPSERT",
+    targetType: "ADMIN_LIFECYCLE_FILTER_PRESET",
+    targetId: result.preset.presetId,
+    operatorId: body.operatorId || body.operator_id || "",
+    reason: body.reason || "保存用户生命周期常用筛选",
+    before: result.before,
+    after: result.preset,
+    metadata: {
+      requestId: body.requestId || body.request_id || "",
+      created: result.created,
+    },
+  });
+  return response({
+    preset: result.preset,
+    presets: adminLifecycleFilterPresets.listPresets(data, body),
+    created: result.created,
+    audit,
+  });
+}
+
+function copyAdminLifecycleFilterPreset(data, body = {}) {
+  const result = adminLifecycleFilterPresets.copyPreset(data, body);
+  const audit = auditLog.appendAuditLog(data, {
+    action: "ADMIN_LIFECYCLE_FILTER_PRESET_COPY",
+    targetType: "ADMIN_LIFECYCLE_FILTER_PRESET",
+    targetId: result.preset.presetId,
+    operatorId: body.operatorId || body.operator_id || "",
+    reason: body.reason || "复制用户生命周期常用筛选",
+    before: result.sourcePreset,
+    after: result.preset,
+    metadata: {
+      requestId: body.requestId || body.request_id || "",
+      sourcePresetId: result.sourcePreset.presetId,
+      scope: result.preset.scope,
+    },
+  });
+  return response({
+    sourcePreset: result.sourcePreset,
+    preset: result.preset,
+    presets: adminLifecycleFilterPresets.listPresets(data, body),
+    created: true,
+    audit,
+  });
+}
+
+function deleteAdminLifecycleFilterPreset(data, body = {}) {
+  const result = adminLifecycleFilterPresets.archivePreset(data, body);
+  const audit = auditLog.appendAuditLog(data, {
+    action: "ADMIN_LIFECYCLE_FILTER_PRESET_DELETE",
+    targetType: "ADMIN_LIFECYCLE_FILTER_PRESET",
+    targetId: result.preset.presetId,
+    operatorId: body.operatorId || body.operator_id || "",
+    reason: body.reason || "删除用户生命周期常用筛选",
+    before: result.before,
+    after: result.preset,
+    metadata: {
+      requestId: body.requestId || body.request_id || "",
+    },
+  });
+  return response({
+    preset: result.preset,
+    presets: adminLifecycleFilterPresets.listPresets(data, body),
+    deleted: true,
+    audit,
+  });
+}
+
+function getAdminOperationalAnalytics(data, query = {}) {
+  return response(adminAnalyticsPresenter.buildOperationalAnalytics(data, query));
+}
+
+function exportAdminOperationalAnalyticsCsv(data, query = {}) {
+  return adminAnalyticsPresenter.buildOperationalAnalyticsCsv(data, query);
+}
+
+function upsertAdminOperationalAlertRule(data, body = {}) {
+  const alertRuleId = body.alertRuleId || body.alert_rule_id || "";
+  const before = alertRuleId
+    ? operationalAlerts.listEffectiveAlertRules(data, { campaignId: body.campaignId || body.campaign_id })
+      .find((rule) => rule.alert_rule_id === alertRuleId) || null
+    : null;
+  const result = operationalAlerts.upsertAlertRule(data, body);
+  const audit = auditLog.appendAuditLog(data, {
+    action: "OPERATIONAL_ALERT_RULE_UPSERT",
+    targetType: "OPERATIONAL_ALERT_RULE",
+    targetId: result.rule.alertRuleId,
+    operatorId: body.operatorId || body.operator_id || "",
+    reason: body.reason || "配置运营预警阈值",
+    before,
+    after: result.rule,
+    metadata: {
+      requestId: body.requestId || body.request_id || "",
+      created: result.created,
+    },
+  });
+  return response({ ...result, audit });
+}
+
+async function runAdminOperationalAlertJob(data, body = {}, context = {}) {
+  const dryRun = body.dryRun === true || body.dry_run === true;
+  const requestId = body.requestId || body.request_id || context.requestId || "";
+  if (!dryRun && !requestId) throw businessError(8020, "运营预警 Job 执行必须提供 request_id");
+  const analytics = adminAnalyticsPresenter.buildOperationalAnalytics(data, body);
+  const result = await operationalAlerts.runOperationalAlertJob(data, analytics, {
+    ...body,
+    requestId,
+  }, context);
+  const audit = auditLog.appendAuditLog(data, {
+    action: dryRun ? "OPERATIONAL_ALERT_JOB_PREVIEW" : "OPERATIONAL_ALERT_JOB_EXECUTE",
+    targetType: "OPERATIONAL_ALERT_JOB",
+    targetId: result.run.operational_alert_run_id,
+    operatorId: body.operatorId || body.operator_id || "",
+    reason: body.reason || (dryRun ? "预览运营预警" : "执行运营预警"),
+    before: null,
+    after: {
+      requestId,
+      summary: result.summary,
+      alerts: result.alerts.map((alert) => ({ key: alert.key, severity: alert.severity, message: alert.message })),
+    },
+    metadata: {
+      requestId,
+      dryRun,
+      campaignId: result.run.campaign_id,
+    },
+  });
+  return response({ ...result, audit });
+}
+
+function resolveAdminManualReview(data, reviewItemId, body = {}) {
+  return response(adminManualReview.resolveReviewItem(data, reviewItemId, body));
+}
+
+function resolveAdminManualReviewBatch(data, body = {}) {
+  return response(adminManualReview.resolveReviewBatch(data, body));
+}
+
+function listProducts(data, token, query = {}, context = {}) {
+  requireUser(data, token);
+  const campaignId = query.campaignId || query.campaign_id || productMirror.DEFAULT_CAMPAIGN_ID;
+  return response(productMirror.listDisplayProducts(data, campaignId, context));
+}
+
+function getProduct(data, token, productId, context = {}) {
+  requireUser(data, token);
+  return response({ product: productMirror.getDisplayProduct(data, productId, context) });
+}
+
+function recordProductJump(data, token, body = {}, context = {}) {
+  const user = requireUser(data, token);
+  const productId = body.productId || body.product_id || body.youzanProductId || body.youzan_product_id;
+  const result = productMirror.recordProductJump(data, user.root_user_id || user.user_id, productId, {
+    ...context,
+    campaignId: body.campaignId || body.campaign_id || productMirror.DEFAULT_CAMPAIGN_ID,
+    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_PRODUCT",
+    metadata: body.metadata || {},
+  });
+  recordLifecycleEvent(data, user.root_user_id || user.user_id, "PRODUCT_JUMP", {
+    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_PRODUCT",
+    appCode: user.app_code || "MYROOT",
+    metadata: {
+      productId: result.product.productId,
+      jumpLogId: result.jumpLogId,
+    },
+  });
+  return response(result);
+}
+
+function upsertProduct(data, body = {}, context = {}) {
+  return response(productMirror.upsertDisplayProduct(data, body, context));
+}
+
+async function previewAdminProductSync(data, body = {}, context = {}) {
+  return response(await adminProductSync.previewProductSync(data, body, context));
+}
+
+async function executeAdminProductSync(data, body = {}, context = {}) {
+  return response(await adminProductSync.executeProductSync(data, body, context));
+}
+
+async function previewAdminOrderIncrementSync(data, body = {}, context = {}) {
+  return response(await adminOrderIncrementSync.previewOrderIncrement(data, body, context));
+}
+
+async function executeAdminOrderIncrementSync(data, body = {}, context = {}) {
+  return response(await adminOrderIncrementSync.executeOrderIncrement(data, body, context));
+}
+
+function listAdminYouzanCustomers(data, query = {}) {
+  return response(youzanCustomerMirror.listCustomers(data, query));
 }
 
 function ensureList(data, key) {
@@ -608,8 +1411,9 @@ function validateProfile(body) {
   }
 }
 
-function submitProfile(data, token, body) {
+function submitProfile(data, token, body, context = {}) {
   const user = requireUser(data, token);
+  privacyConsent.requireHealthConsent(data, user.root_user_id || user.user_id, context);
   validateProfile(body);
   const existing = data.profiles.find((item) => item.user_id === user.user_id);
   const profile = {
@@ -626,7 +1430,9 @@ function submitProfile(data, token, body) {
 
   if (user.state === STATES.UNREGISTERED) {
     user.state = STATES.REGISTERED_IDLE;
+    user.lifecycle_status = user.state;
     user.registered_at = profile.submitted_at;
+    syncRootLifecycle(data, user, "PROFILE_SUBMITTED", { sourceChannel: "MINIPROGRAM_PROFILE" });
   }
   return response({ success: true, user: publicUser(user), profile });
 }
@@ -734,8 +1540,9 @@ function getSession(data, token, dateText = todayISO()) {
   return response({ session: toSessionPayload(data, session, dateText), user: publicUser(user) });
 }
 
-function submitCheckin(data, token, body, dateText = todayISO()) {
+function submitCheckin(data, token, body, dateText = todayISO(), context = {}) {
   const user = requireUser(data, token);
+  privacyConsent.requireHealthConsent(data, user.root_user_id || user.user_id, context);
   const session = currentActiveSession(data, user.user_id);
   if (!session) throw businessError(4001, "无打卡中的周期");
 
@@ -767,11 +1574,28 @@ function submitCheckin(data, token, body, dateText = todayISO()) {
     had_stool: Boolean(body.hadStool),
     stool_type: body.hadStool ? body.stoolType || "" : "",
     feedback: body.feedback || "",
-    image_urls: Array.isArray(body.imageUrls) ? body.imageUrls.slice(0, 3) : [],
+    image_urls: normalizeMediaRefs(body.imageUrls),
     checked_in_at: nowISO(),
     is_makeup: dayIndex < currentDayIndex,
   };
   data.checkinRecords.push(record);
+  taskProgress.recordTaskEvent(data, {
+    rootUserId: user.root_user_id || user.user_id,
+    taskType: "CHECKIN",
+    taskDate: dateText,
+    payload: {
+      source: "LEGACY_CHECKIN",
+      sessionId: session.session_id,
+      dayIndex,
+      tookProduct: record.took_product,
+      hadStool: record.had_stool,
+      stoolType: record.stool_type,
+      taskDate: dateText,
+    },
+    idempotencyKey: `legacy-checkin:${session.session_id}:${dayIndex}`,
+  }, {
+    sourceChannel: "LEGACY_CHECKIN",
+  });
   let nextAction = "";
   let couponStatus = null;
 
@@ -817,30 +1641,9 @@ function submitCheckin(data, token, body, dateText = todayISO()) {
   return response({ success: true, record, nextAction, coupon: couponStatus, session: toSessionPayload(data, session, dateText), user: publicUser(user) });
 }
 
-function transitionToDailyUser(data, user, reason = "continue") {
-  if (!user) throw businessError(404, "用户不存在", 404);
-  if (![STATES.CHECKIN_COMPLETED, STATES.DAILY_USER].includes(user.state)) {
-    throw businessError(403, "当前状态不可转入日常打卡", 403);
-  }
-  user.state = STATES.DAILY_USER;
-  user.daily_started_at = user.daily_started_at || nowISO();
-  user.total_checkin_days = Math.max(user.total_checkin_days || 0, 7);
-  user.current_streak = Math.max(user.current_streak || 0, 7);
-  user.longest_streak = Math.max(user.longest_streak || 0, user.current_streak || 7);
-  data.eventsTrack.push({
-    event_id: createId("trk"),
-    user_id: user.user_id,
-    event_name: "daily_user_started",
-    payload: { reason },
-    created_at: nowISO(),
-  });
-  return user;
-}
-
 function continueAsDailyUser(data, token) {
-  const user = requireUser(data, token);
-  transitionToDailyUser(data, user, "user_click");
-  return response({ success: true, user: publicUser(user) });
+  requireUser(data, token);
+  throw businessError(403, "每日任务已完成，当前版本不支持继续打卡", 403);
 }
 
 function getDailyRecord(data, userId, dateText) {
@@ -859,35 +1662,10 @@ function dailyStats(data, token, dateText = todayISO()) {
   });
 }
 
-function updateDailyStreak(user, dateText) {
-  const yesterday = addDays(dateText, -1);
-  const previousStreak = user.last_checkin_date === yesterday ? user.current_streak || 0 : 0;
-  user.current_streak = previousStreak + 1;
-  user.longest_streak = Math.max(user.longest_streak || 0, user.current_streak);
-  user.total_checkin_days = (user.total_checkin_days || 0) + 1;
-  user.last_checkin_date = dateText;
-}
-
 function submitDailyCheckin(data, token, body, dateText = todayISO()) {
   const user = requireUser(data, token);
   if (user.state !== STATES.DAILY_USER) throw businessError(403, "当前不是日常打卡用户", 403);
-  if (getDailyRecord(data, user.user_id, dateText)) throw businessError(4002, "今日已打卡");
-
-  updateDailyStreak(user, dateText);
-  const record = {
-    record_id: createId("daily"),
-    user_id: user.user_id,
-    checkin_date: dateText,
-    took_product: Boolean(body.tookProduct),
-    had_stool: Boolean(body.hadStool),
-    stool_type: body.hadStool ? body.stoolType || "" : "",
-    feedback: body.feedback || "",
-    checked_in_at: nowISO(),
-    streak_count: user.current_streak,
-    created_at: nowISO(),
-  };
-  data.dailyCheckinRecords.push(record);
-  return response({ success: true, record, stats: dailyStats(data, token, dateText).data, user: publicUser(user) });
+  throw businessError(403, "每日任务已完成，当前版本不支持继续打卡", 403);
 }
 
 function dailyHistory(data, token, query = {}) {
@@ -927,6 +1705,20 @@ function trackEvent(data, token, body = {}) {
     created_at: nowISO(),
   };
   data.eventsTrack.push(event);
+  if (["SHARE", "CONSULTATION", "PURCHASE"].includes(String(body.taskType || body.task_type || "").toUpperCase())) {
+    taskProgress.recordTaskEvent(data, {
+      rootUserId: user.root_user_id || user.user_id,
+      taskType: body.taskType || body.task_type,
+      taskDate: body.taskDate || body.task_date || todayISO(),
+      payload: {
+        eventName: event.event_name,
+        ...(body.payload || {}),
+      },
+      idempotencyKey: body.idempotencyKey || body.idempotency_key || `track:${event.event_id}`,
+    }, {
+      sourceChannel: body.sourceChannel || body.source_channel || "EVENT_TRACK",
+    });
+  }
   return response({ success: true, eventId: event.event_id });
 }
 
@@ -957,10 +1749,25 @@ function getQuestionnaireStatus(data, token) {
   return response(questionnaire.getQuestionnaireStatus(data, user.user_id, session.session_id));
 }
 
-function submitQuestionnaire(data, token, body, dateText = todayISO()) {
+function submitQuestionnaire(data, token, body, dateText = todayISO(), context = {}) {
   const user = requireUser(data, token);
+  privacyConsent.requireHealthConsent(data, user.root_user_id || user.user_id, context);
   const session = currentSessionForUser(data, user.user_id);
   const result = questionnaire.submitQuestionnaire(data, user, session, body);
+  taskProgress.recordTaskEvent(data, {
+    rootUserId: user.root_user_id || user.user_id,
+    taskType: "QUESTIONNAIRE",
+    taskDate: dateText,
+    payload: {
+      source: "LEGACY_QUESTIONNAIRE",
+      questionnaireType: result.response.questionnaire_type,
+      responseId: result.response.response_id,
+      sessionId: session.session_id,
+    },
+    idempotencyKey: `legacy-questionnaire:${result.response.response_id}`,
+  }, {
+    sourceChannel: "LEGACY_QUESTIONNAIRE",
+  });
   if (result.response.needs_follow) {
     operationTask.createOperationTaskOnce(data, {
       task_type: "QUESTIONNAIRE_FOLLOW",
@@ -997,6 +1804,99 @@ function submitQuestionnaire(data, token, body, dateText = todayISO()) {
     }
   }
   return response({ success: true, response: result.response, created: result.created, refundWorkItem: refund });
+}
+
+function questionnaireAnswerPayload(answer) {
+  return {
+    questionnaireAnswerId: answer.questionnaire_answer_id,
+    rootUserId: answer.root_user_id,
+    campaignId: answer.campaign_id,
+    questionnaireId: answer.questionnaire_id,
+    questionnaireType: answer.questionnaire_type || answer.questionnaire_id,
+    version: answer.version,
+    answers: answer.answers_json || {},
+    submittedAt: answer.submitted_at,
+    needsFollow: Boolean(answer.needs_follow),
+  };
+}
+
+function getQuestionnaireAnswerStatus(data, token, query = {}) {
+  const user = requireUser(data, token);
+  const status = questionnaire.getQuestionnaireAnswerStatus(
+    data,
+    user.root_user_id || user.user_id,
+    query.campaignId || query.campaign_id || ""
+  );
+  return response({
+    ...status,
+    answers: status.answers.map(questionnaireAnswerPayload),
+  });
+}
+
+function submitQuestionnaireAnswer(data, token, body = {}, dateText = todayISO(), context = {}) {
+  const user = requireUser(data, token);
+  privacyConsent.requireHealthConsent(data, user.root_user_id || user.user_id, context);
+  const result = questionnaire.submitQuestionnaireAnswer(data, {
+    ...body,
+    rootUserId: user.root_user_id || user.user_id,
+  }, {
+    ...context,
+    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_QUESTIONNAIRE",
+  });
+  const answer = result.answer;
+  const taskDate = body.taskDate || body.task_date || dateText;
+  const eventResult = taskProgress.recordTaskEvent(data, {
+    campaignId: answer.campaign_id,
+    rootUserId: user.root_user_id || user.user_id,
+    taskType: "QUESTIONNAIRE",
+    taskDate,
+    payload: {
+      source: "QUESTIONNAIRE_ANSWER",
+      questionnaireType: answer.questionnaire_type || answer.questionnaire_id,
+      questionnaireId: answer.questionnaire_id,
+      version: answer.version,
+      answerId: answer.questionnaire_answer_id,
+    },
+    idempotencyKey: `questionnaire-answer:${answer.questionnaire_answer_id}`,
+  }, {
+    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_QUESTIONNAIRE",
+  });
+  recordLifecycleEvent(data, user.root_user_id || user.user_id, "QUESTIONNAIRE_ANSWER_SUBMITTED", {
+    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_QUESTIONNAIRE",
+    appCode: user.app_code || "MYROOT",
+    metadata: {
+      campaignId: answer.campaign_id,
+      questionnaireId: answer.questionnaire_id,
+      questionnaireAnswerId: answer.questionnaire_answer_id,
+      taskEventId: eventResult.event.task_event_id,
+      created: result.created,
+    },
+  });
+  let followUp = null;
+  if (answer.needs_follow) {
+    followUp = operationTask.createOperationTaskOnce(data, {
+      task_type: "QUESTIONNAIRE_FOLLOW",
+      user_id: user.user_id,
+      task_date: taskDate,
+      dedupe_key: `questionnaire-answer:${answer.questionnaire_answer_id}`,
+      reason: `${answer.questionnaire_id} 反馈需要跟进`,
+      suggested_action: "通过企业微信联系用户确认反馈",
+      metadata: {
+        campaignId: answer.campaign_id,
+        questionnaireId: answer.questionnaire_id,
+        questionnaireAnswerId: answer.questionnaire_answer_id,
+      },
+    });
+  }
+  return response({
+    success: true,
+    answer: questionnaireAnswerPayload(answer),
+    created: result.created,
+    taskEvent: eventResult.event,
+    progress: eventResult.progress,
+    followUp: followUp ? { task: followUp.task, created: followUp.created } : null,
+    user: publicUser(user),
+  });
 }
 
 function applyRefund(data, token) {
@@ -1054,16 +1954,32 @@ function recordCouponRepurchaseClick(data, token, body = {}, dateText = todayISO
   return response({ success: true, coupon: coupon.toCouponPayload(clicked), task: toOperationTaskPayload(data, task) });
 }
 
-function uploadImage(data, token, body) {
+function uploadImage(data, token, body, context = {}) {
   const user = requireUser(data, token);
+  privacyConsent.requireHealthConsent(data, user.root_user_id || user.user_id, context);
+  const [url] = normalizeMediaRefs([body.url]);
+  if (!url) throw businessError(400, "请选择需要上传的图片", 400);
   const item = {
     upload_id: createId("upl"),
     user_id: user.user_id,
-    url: body.url || `/uploads/${createId("img")}.png`,
+    url,
     created_at: nowISO(),
   };
   data.uploads.push(item);
   return response({ url: item.url });
+}
+
+function normalizeMediaRefs(values) {
+  if (values === undefined || values === null) return [];
+  if (!Array.isArray(values)) throw businessError(400, "图片引用格式错误", 400);
+  if (values.length > 3) throw businessError(400, "最多提交 3 张图片", 400);
+  return values.map((value) => {
+    const url = String(value || "").trim();
+    if (!url || url.length > 2048 || !/^(cloud:\/\/|https:\/\/)/i.test(url)) {
+      throw businessError(400, "图片必须先上传到受信任的云存储", 400);
+    }
+    return url;
+  });
 }
 
 function ensureDailySummaries(data) {
@@ -1328,6 +2244,15 @@ function getExternalSampleTemplate(sourceType) {
   return response({ templates: externalAdapterSamples.listSampleTemplates() });
 }
 
+function listExternalSampleReviews(data, query = {}) {
+  const reviews = externalAdapterSamples.listExternalSampleReviews(data, query);
+  const reviewId = query.reviewId || query.review_id || "";
+  return response({
+    reviews,
+    review: reviewId ? externalAdapterSamples.getExternalSampleReview(data, reviewId) : null,
+  });
+}
+
 function getExternalAdapters(data, context = {}) {
   return response({
     catalog: externalPlatformAdapters.buildAdapterCatalog(context.env || process.env, {
@@ -1337,6 +2262,8 @@ function getExternalAdapters(data, context = {}) {
     runs: externalPlatformAdapters.listAdapterRuns(data),
     cursors: externalPlatformAdapters.listAdapterCursors(data),
     readiness: externalAdapterSamples.buildAdapterReadiness(data),
+    reviews: externalAdapterSamples.listExternalSampleReviews(data, { limit: 20 }),
+    retryScheduler: adapterRetryScheduler.planDueAdapterRetries(data, { now: context.now || nowISO() }),
   });
 }
 
@@ -1345,6 +2272,13 @@ function getAdapterCalibration(data, context = {}) {
     env: context.env || process.env,
     adapterImplementations: context.adapterImplementations || {},
     fetchImpl: context.fetchImpl,
+  }));
+}
+
+function getActionAdapterCalibration(data, context = {}) {
+  return response(actionAdapterCalibration.buildActionAdapterCalibration(data, {
+    env: context.env || process.env,
+    target: context.target || "production",
   }));
 }
 
@@ -1358,6 +2292,138 @@ function getReleaseRecord(data, context = {}) {
   }));
 }
 
+function getReleaseEvidencePack(data, context = {}) {
+  const env = context.env || process.env;
+  const target = context.target || "production";
+  const baseUrl = context.baseUrl || env.ROOT_RELEASE_EVIDENCE_BASE_URL || env.ROOT_PUBLIC_BASE_URL || env.ROOT_JOB_BASE_URL || "";
+  const release = releaseRecord.buildReleaseRecord(data, {
+    ...context,
+    env,
+    adapterImplementations: context.adapterImplementations || {},
+    fetchImpl: context.fetchImpl,
+    target,
+  });
+  const calibration = adapterCalibration.buildAdapterCalibration(data, {
+    env,
+    adapterImplementations: context.adapterImplementations || {},
+    fetchImpl: context.fetchImpl,
+  });
+  const actionCalibration = actionAdapterCalibration.buildActionAdapterCalibration(data, {
+    env,
+    target,
+  });
+  const productionEnvMatrix = buildProductionEnvMatrix(env, { target });
+  const cloudbaseJobManifest = buildCloudbaseJobManifest({ baseUrl, env });
+  const cloudbaseJobValidation = validateCloudbaseJobManifest(cloudbaseJobManifest, { strict: Boolean(context.strict) });
+  const pack = releaseEvidencePack.buildReleaseEvidencePack({
+    target,
+    baseUrl,
+    releaseRecord: release,
+    adapterCalibration: calibration,
+    actionAdapterCalibration: actionCalibration,
+    productionEnvMatrix,
+    cloudbaseJobManifest,
+    cloudbaseJobValidation,
+  });
+  return response({
+    pack,
+    validation: releaseEvidencePack.validateReleaseEvidencePack(pack),
+    archives: releaseEvidenceArchive.listReleaseEvidenceArchives(data, { target }),
+  });
+}
+
+function archiveReleaseEvidencePack(data, input = {}, context = {}) {
+  const bundle = getReleaseEvidencePack(data, context).data;
+  const result = releaseEvidenceArchive.saveReleaseEvidenceArchive(data, {
+    pack: bundle.pack,
+    validation: bundle.validation,
+    requestId: input.requestId || input.request_id,
+    operatorId: input.operatorId || input.operator_id,
+    note: input.note,
+  });
+  return response(result);
+}
+
+function getReleaseEvidenceArchive(data, archiveId) {
+  const archive = releaseEvidenceArchive.getReleaseEvidenceArchive(data, archiveId);
+  if (!archive) {
+    const error = new Error("发布证据包留档不存在");
+    error.code = 404;
+    error.status = 404;
+    throw error;
+  }
+  return response({
+    archive: releaseEvidenceArchive.archiveSummary(archive),
+    pack: archive.pack,
+    validation: archive.validation || {},
+  });
+}
+
+function signReleaseRecord(data, input = {}) {
+  return response(releaseSignoff.createReleaseSignoff(data, input));
+}
+
+function listAdminLegacyDeprecationDecisions(data, query = {}) {
+  return response({
+    decisions: adminLegacyDeprecationDecision.listAdminLegacyDeprecationDecisions(data, query),
+    latest: adminLegacyDeprecationDecision.latestAdminLegacyDeprecationDecisions(data, query),
+  });
+}
+
+function recordAdminLegacyDeprecationDecision(data, input = {}) {
+  return response(adminLegacyDeprecationDecision.createAdminLegacyDeprecationDecision(data, input));
+}
+
+function listProductionCutoverProofs(data, query = {}) {
+  return response({
+    proofs: productionCutoverProof.listProductionCutoverProofs(data, query),
+    latest: productionCutoverProof.latestProductionCutoverProofs(data, query),
+  });
+}
+
+function recordProductionCutoverProof(data, input = {}) {
+  return response(productionCutoverProof.createProductionCutoverProof(data, input));
+}
+
+function listRootMemberCenterJumpProofs(data, query = {}) {
+  return response({
+    proofs: rootMemberCenterJumpProof.listRootMemberCenterJumpProofs(data, query),
+    latest: rootMemberCenterJumpProof.latestRootMemberCenterJumpProofs(data, query),
+  });
+}
+
+function recordRootMemberCenterJumpProof(data, input = {}) {
+  return response(rootMemberCenterJumpProof.createRootMemberCenterJumpProof(data, input));
+}
+
+function listLegacyDataMigrationDecisions(data, query = {}) {
+  return response({
+    policies: legacyDataMigrationDecision.POLICIES,
+    decisions: legacyDataMigrationDecision.listLegacyDataMigrationDecisions(data, query),
+    latest: legacyDataMigrationDecision.latestLegacyDataMigrationDecisions(data, query),
+  });
+}
+
+function recordLegacyDataMigrationDecision(data, input = {}) {
+  return response(legacyDataMigrationDecision.createLegacyDataMigrationDecision(data, input));
+}
+
+function listLegacyDataMigrationExecutions(data, query = {}) {
+  return response({
+    actions: legacyDataMigrationExecution.ACTIONS,
+    executions: legacyDataMigrationExecution.listLegacyDataMigrationExecutions(data, query),
+    latest: legacyDataMigrationExecution.latestLegacyDataMigrationExecutions(data, query),
+  });
+}
+
+function recordLegacyDataMigrationExecution(data, input = {}) {
+  return response(legacyDataMigrationExecution.createLegacyDataMigrationExecution(data, input));
+}
+
+function getCloudbaseIdentityProbe(context = {}) {
+  return response(cloudbaseIdentityProbe.buildCloudbaseIdentityProbe(context));
+}
+
 async function runExternalAdapter(data, body = {}, context = {}, dateText = todayISO()) {
   const result = await externalPlatformAdapters.runAdapter(data, body, {
     env: context.env || process.env,
@@ -1366,6 +2432,37 @@ async function runExternalAdapter(data, body = {}, context = {}, dateText = toda
     fetchImpl: context.fetchImpl,
   });
   return response({ success: true, ...result });
+}
+
+async function runDueExternalAdapterRetries(data, body = {}, context = {}) {
+  const result = await adapterRetryScheduler.runDueAdapterRetries(data, body, {
+    env: context.env || process.env,
+    dateText: context.dateText || todayISO(),
+    adapterImplementations: context.adapterImplementations || {},
+    fetchImpl: context.fetchImpl,
+  });
+  return response({ success: true, ...result });
+}
+
+function rollbackExternalAdapterRun(data, body = {}) {
+  const before = clone(externalPlatformAdapters.listAdapterRuns(data, 100)
+    .find((run) => run.run_id === (body.runId || body.run_id || "")) || null);
+  const result = externalPlatformAdapters.rollbackAdapterRun(data, body);
+  const audit = auditLog.appendAuditLog(data, {
+    action: "EXTERNAL_ADAPTER_RUN_ROLLBACK",
+    targetType: "EXTERNAL_ADAPTER_RUN",
+    targetId: result.run.run_id,
+    operatorId: body.operatorId || body.operator_id || "",
+    reason: body.reason || "",
+    before,
+    after: clone(result.run),
+    metadata: {
+      requestId: body.requestId || body.request_id || "",
+      summary: result.summary,
+      cursor: result.cursor,
+    },
+  });
+  return response({ success: true, ...result, audit });
 }
 
 function getReadyToStartUsers(data, dateText = todayISO()) {
@@ -1381,6 +2478,61 @@ function listOperationTasks(data, query = {}) {
 function completeOperationTask(data, taskId, body = {}) {
   const task = operationTask.completeOperationTask(data, taskId, body);
   return response({ success: true, task: toOperationTaskPayload(data, task) });
+}
+
+function listConsultationWeworkWritebacks(data, query = {}) {
+  return response({ writebacks: consultationWeworkWriteback.listConsultationWeworkWritebacks(data, query) });
+}
+
+function listConsultationAdvisorAssignments(data, query = {}) {
+  return response({ assignments: consultationAdvisorAssignment.listConsultationAdvisorAssignments(data, query) });
+}
+
+function getConsultationSla(data, query = {}, context = {}) {
+  return response(consultationSla.listConsultationSlaItems(data, query, {
+    env: context.env || process.env,
+    now: query.now || context.now || "",
+  }));
+}
+
+function getConsultationAdvisorWorkbench(data, query = {}, context = {}) {
+  return response(consultationAdvisorWorkbench.advisorWorkbench(data, query, {
+    env: context.env || process.env,
+    now: query.now || context.now || "",
+  }));
+}
+
+function getConsultationSlaEscalations(data, query = {}, context = {}) {
+  return response(consultationSlaEscalation.listConsultationSlaEscalations(data, query, {
+    env: context.env || process.env,
+    now: query.now || context.now || "",
+  }));
+}
+
+function recordConsultationAdvisorAssignment(data, body = {}, context = {}) {
+  const result = consultationAdvisorAssignment.recordConsultationAdvisorAssignment(data, body, {
+    env: context.env || process.env,
+    operatorId: body.operatorId || body.operator_id || context.operatorId || "",
+    requestId: body.requestId || body.request_id || context.requestId || "",
+  });
+  return response({
+    ...result,
+    task: result.task ? toOperationTaskPayload(data, result.task) : null,
+  });
+}
+
+async function recordConsultationWeworkWriteback(data, body = {}, context = {}) {
+  const result = await consultationWeworkWriteback.recordConsultationWeworkWriteback(data, body, {
+    env: context.env || process.env,
+    fetchImpl: context.fetchImpl,
+    operatorId: body.operatorId || body.operator_id || context.operatorId || "",
+    requestId: body.requestId || body.request_id || context.requestId || "",
+    consultationWritebackAdapters: context.consultationWritebackAdapters || {},
+  });
+  return response({
+    ...result,
+    task: result.task ? toOperationTaskPayload(data, result.task) : null,
+  });
 }
 
 function previewCorrection(data, body = {}) {
@@ -1600,7 +2752,8 @@ function buildDailyOpsSummary(data, dateText) {
     return String(order.matched_at || "").startsWith(dateText) && String(order.match_source || "").startsWith("AUTO");
   }).length;
   const manualHandledToday = data.auditLogs.filter((log) => String(log.created_at || "").startsWith(dateText)).length;
-  const openConflicts = operationTask.listOpenOperationTasks(data, { taskType: "ORDER_PHONE_MATCH_CONFLICT" }).length;
+  const openConflicts = ["ORDER_PHONE_MATCH_CONFLICT", "ORDER_IDENTITY_MATCH_CONFLICT", "YOUZAN_IDENTITY_REVIEW_REQUIRED"]
+    .reduce((count, taskType) => count + operationTask.listOpenOperationTasks(data, { taskType }).length, 0);
   const readyToStart = orderFulfillment.getReadyToStartUsers(data, dateText).length;
 
   return {
@@ -1634,6 +2787,7 @@ function adminDashboard(data, context = {}) {
     summary,
     dailyOpsSummary: buildDailyOpsSummary(data, summary.date),
     opsDashboard: adminOpsPresenter.buildOpsDashboard(data, summary),
+    configWorkbench: adminConfigPresenter.buildConfigWorkbench(data),
     users: data.users.map(publicUser),
     opsUsers: adminUserPresenter.buildAdminUserRows(data),
     orders: data.youzanOrders.map((order) => orderFulfillment.toOrderPayload(data, order)),
@@ -1655,10 +2809,15 @@ function adminDashboard(data, context = {}) {
     }),
     externalAdapterRuns: externalPlatformAdapters.listAdapterRuns(data),
     externalAdapterCursors: externalPlatformAdapters.listAdapterCursors(data),
+    orderAfterSalesRecords: orderAfterSales.listOrderAfterSalesRecords(data),
     adapterCalibration: adapterCalibration.buildAdapterCalibration(data, {
       env: context.env || process.env,
       adapterImplementations: context.adapterImplementations || {},
       fetchImpl: context.fetchImpl,
+    }),
+    actionAdapterCalibration: actionAdapterCalibration.buildActionAdapterCalibration(data, {
+      env: context.env || process.env,
+      target: context.target || "production",
     }),
     launchReadiness: launchReadiness.buildLaunchReadiness(data, { ...context, target: context.target || "production" }),
     releaseRecord: releaseRecord.buildReleaseRecord(data, { ...context, target: context.target || "production" }),
@@ -1670,8 +2829,18 @@ function approveRefund(data, refundId) {
   if (workItem) {
     const paid = refundWorkItem.markRefundPaid(data, refundId);
     const user = data.users.find((item) => item.user_id === paid.user_id);
-    if (user) transitionToDailyUser(data, user, "refund_paid");
-    return response({ success: true, refund: paid, refundWorkItem: paid });
+    const recovery = rewardRecovery.recoverRewardsForAfterSales(data, {
+      userId: paid.user_id,
+      orderId: paid.order_id,
+      sourceType: "REFUND_WORK_ITEM",
+      sourceId: paid.refund_work_item_id,
+      reason: "退款已通过，追回关联奖励并回补库存",
+      metadata: {
+        sessionId: paid.session_id,
+        youzanOrderNo: paid.youzan_order_no,
+      },
+    });
+    return response({ success: true, refund: paid, refundWorkItem: paid, rewardRecovery: recovery });
   }
   const refund = data.refunds.find((item) => item.refund_id === refundId);
   if (!refund) throw businessError(404, "退款单不存在", 404);
@@ -1682,7 +2851,6 @@ function approveRefund(data, refundId) {
     session.status = "REFUNDED";
     session.refund_status = "PAID";
     const user = data.users.find((item) => item.user_id === session.user_id);
-    if (user) transitionToDailyUser(data, user, "refund_paid");
   }
   return response({ success: true, refund });
 }
@@ -1704,28 +2872,81 @@ module.exports = {
   adminDashboard,
   applyCorrection,
   applyRefund,
+  archiveReleaseEvidencePack,
   approveRefund,
   claimCoupon,
   completeOperationTask,
   continueAsDailyUser,
+  cancelAdminLifecycleSettlementJob,
+  copyAdminLifecycleFilterPreset,
+  createAdminLifecycleSettlementJob,
   createFeedbackFollowTask,
   createStore,
   dailyHistory,
   dailyStats,
   dailyTrend,
+  executeAdminOrderIncrementSync,
+  executeAdminLifecycleSettlementBatch,
+  executeAdminRewardDelivery,
+  executeAdminProductSync,
+  executeAdminSettlementBatch,
+  deleteAdminLifecycleFilterPreset,
+  createAdminLifecycleUserExport,
+  cleanupAdminLifecycleUserExports,
+  deliverAdminLifecycleUserExport,
+  downloadAdminLifecycleUserExport,
+  downloadSignedAdminLifecycleUserExport,
+  exportAdminLifecycleUsersCsv,
+  exportAdminOperationalAnalyticsCsv,
+  getAdminLifecycleExportDeliveryHealth,
+  listAdminLifecycleFilterPresets,
+  listAdminLifecycleUserExports,
+  reviewAdminLifecycleUserExportApproval,
+  runDueAdminLifecycleExportDeliveries,
+  upsertAdminOperationalAlertRule,
+  upsertAdminLifecycleFilterPreset,
+  runAdminOperationalAlertJob,
+  runAdminLifecycleUserExportJob,
+  runHealthDataRetentionCleanup,
+  runYouzanIdentityReconciliation,
+  queryAdminRewardDeliveryStatus,
+  getActiveCampaign,
+  getActionAdapterCalibration,
+  getAdminConfigWorkbench,
+  getAdminLifecycleWorkbench,
+  getAdminOperationalAnalytics,
+  getCheckinReminderTemplate,
+  getCloudbaseIdentityProbe,
+  getHealthConsentStatus,
+  getPrivacyNotice,
   getProfile,
   getAdminUserDetail,
   getAdapterCalibration,
   getCouponStatus,
+  getProduct,
+  getReleaseEvidenceArchive,
+  getReleaseEvidencePack,
   getReleaseRecord,
   getQuestionnaire,
+  getQuestionnaireAnswerStatus,
   getQuestionnaireStatus,
   getReadyToStartUsers,
+  getSettlementStatus,
   getExternalSampleTemplate,
   getImportBatch,
   getExternalAdapters,
   generateOperationTasks,
   getUserOrders,
+  getUserConsultations,
+  getConsultationSla,
+  getConsultationSlaEscalations,
+  getConsultationAdvisorWorkbench,
+  listProducts,
+  listAdminLegacyDeprecationDecisions,
+  listProductionCutoverProofs,
+  listRootMemberCenterJumpProofs,
+  listRewardRecoveryRecords,
+  getTaskProgress,
   getRecordDetail,
   getRecordList,
   getRefundStatus,
@@ -1733,7 +2954,17 @@ module.exports = {
   getUserState,
   login,
   loginWithWechat,
+  joinCampaign,
+  listConsultationAdvisorAssignments,
+  listConsultationWeworkWritebacks,
+  listOrderAfterSalesRecords,
+  listWeWorkTouchJobs,
   listOperationTasks,
+  listAdminYouzanCustomers,
+  listAdminLifecycleSettlementJobs,
+  listLegacyDataMigrationDecisions,
+  listLegacyDataMigrationExecutions,
+  listExternalSampleReviews,
   listImportBatches,
   listAuditLogs,
   exportImportFailuresCsv,
@@ -1741,28 +2972,66 @@ module.exports = {
   matchOrder,
   searchAdminOrderMatching,
   publicUser,
+  retryFailedAdminLifecycleSettlementJob,
   previewAdminOrderMatch,
+  previewAdminOrderIncrementSync,
+  previewAdminProductSync,
+  previewAdminLifecycleSettlementBatch,
+  planAdminLifecycleSettlementJobRuns,
+  planWeWorkTouches,
+  previewAdminSettlement,
+  previewAdminSettlementBatch,
   previewCorrection,
   previewImport,
+  publishCampaignRuleVersion,
   confirmAdminOrderMatch,
   confirmImport,
   previewExternalSamples,
   importExternalSamples,
   upsertExternalStatusMapping,
   resolveManualReview,
+  resolveAdminManualReview,
+  resolveAdminManualReviewBatch,
   response,
+  runAdminLifecycleSettlementJob,
+  planAdminLifecycleSettlementJobCleanup,
   runDailyAudit,
   startCheckin,
   syncManualOrder,
   submitCheckin,
   submitDailyCheckin,
   submitProfile,
+  submitQuestionnaireAnswer,
   submitQuestionnaire,
   recordCouponRepurchaseClick,
+  recordCheckinReminderSubscription,
+  recordConsultationAdvisorAssignment,
+  recordConsultationWeworkWriteback,
+  recordAdminLegacyDeprecationDecision,
+  recordLegacyDataMigrationDecision,
+  recordLegacyDataMigrationExecution,
+  recordProductionCutoverProof,
+  recordRootMemberCenterJumpProof,
+  recordProductJump,
+  recordHealthConsentDecision,
+  recordUserTaskEvent,
+  evaluateUserSettlement,
+  rollbackExternalAdapterRun,
+  runDueAdminLifecycleSettlementJobs,
+  runAdminLifecycleSettlementJobCleanup,
+  runDueExternalAdapterRetries,
+  runDueCheckinReminders,
+  runDueWeWorkTouches,
   runExternalAdapter,
+  signReleaseRecord,
+  syncOrderAfterSalesBatch,
   trackEvent,
   toSessionPayload,
   updateDisplayProfile,
   updateOrderFulfillment,
+  upsertOrderAfterSalesRecord,
+  upsertCampaign,
+  upsertProduct,
+  upsertTaskDefinition,
   uploadImage,
 };

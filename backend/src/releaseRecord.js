@@ -1,12 +1,69 @@
 const { nowISO } = require("./dates");
+const actionAdapterCalibration = require("./actionAdapterCalibration");
 const adapterCalibration = require("./adapterCalibration");
+const adminLegacyDeprecationDecision = require("./adminLegacyDeprecationDecision");
+const adminTransitionReadiness = require("./adminTransitionReadiness");
+const adminLifecycleUserExports = require("./adminLifecycleUserExports");
+const cloudbaseStoreReadiness = require("./cloudbaseStoreReadiness");
 const externalPlatformAdapters = require("./externalPlatformAdapters");
 const launchReadiness = require("./launchReadiness");
+const legacyDataMigration = require("./legacyDataMigration");
+const legacyDataMigrationDecision = require("./legacyDataMigrationDecision");
+const legacyDataMigrationExecution = require("./legacyDataMigrationExecution");
 const orderFulfillment = require("./orderFulfillment");
+const operationalAlerts = require("./operationalAlerts");
+const productionCutoverProof = require("./productionCutoverProof");
+const productionCutoverReadiness = require("./productionCutoverReadiness");
+const productionEvidenceIntake = require("./productionEvidenceIntake");
+const { buildProductionEnvMatrix } = require("./productionEnvMatrix");
+const releaseSignoff = require("./releaseSignoff");
+const rootMemberCenterJumpProof = require("./rootMemberCenterJumpProof");
+const rootMemberCenterReadiness = require("./rootMemberCenterReadiness");
 
-function statusFromInputs(readiness, calibration) {
-  if (readiness.status === "BLOCKED" || calibration.status === "BLOCKED") return "BLOCKED";
-  if (readiness.status === "NEEDS_REVIEW" || calibration.status === "NEEDS_REVIEW") return "NEEDS_REVIEW";
+function text(value, fallback = "") {
+  const normalized = String(value || "").trim();
+  return normalized || fallback;
+}
+
+function statusFromInputs(
+  readiness,
+  actionCalibration,
+  calibration,
+  productionEnvMatrix,
+  externalChannelReadiness,
+  signoffGate,
+  adminTransition,
+  productionCutover,
+  legacyMigration,
+  cloudbaseStore,
+  rootMemberCenter,
+) {
+  if (
+    readiness.status === "BLOCKED" ||
+    actionCalibration.status === "BLOCKED" ||
+    calibration.status === "BLOCKED" ||
+    productionEnvMatrix.status === "BLOCKED" ||
+    externalChannelReadiness.status === "BLOCKED" ||
+    signoffGate.status === "BLOCKED" ||
+    adminTransition.status === "BLOCKED" ||
+    productionCutover.status === "BLOCKED" ||
+    legacyMigration.status === "BLOCKED" ||
+    cloudbaseStore.status === "BLOCKED" ||
+    rootMemberCenter.status === "BLOCKED"
+  ) return "BLOCKED";
+  if (
+    readiness.status === "NEEDS_REVIEW" ||
+    actionCalibration.status === "NEEDS_REVIEW" ||
+    calibration.status === "NEEDS_REVIEW" ||
+    productionEnvMatrix.status === "NEEDS_REVIEW" ||
+    externalChannelReadiness.status === "NEEDS_REVIEW" ||
+    signoffGate.status === "NEEDS_REVIEW" ||
+    adminTransition.status === "NEEDS_REVIEW" ||
+    productionCutover.status === "NEEDS_REVIEW" ||
+    legacyMigration.status === "NEEDS_REVIEW" ||
+    cloudbaseStore.status === "NEEDS_REVIEW" ||
+    rootMemberCenter.status === "NEEDS_REVIEW"
+  ) return "NEEDS_REVIEW";
   return "READY";
 }
 
@@ -20,12 +77,183 @@ function envPresence(env, names) {
   return names.map((name) => ({ name, present: Boolean(env && env[name]) }));
 }
 
-function releaseEvidence(data, context, readiness, calibration) {
+function envRow(env, name) {
+  return { name, present: Boolean(env && env[name]) };
+}
+
+function alertRuleRequiresOwner(rule) {
+  return rule.channel === "WEBHOOK" || [
+    "ADAPTER_RETRY_EXHAUSTED",
+    "LIFECYCLE_SETTLEMENT_JOB_FAILED",
+    "LIFECYCLE_SETTLEMENT_JOB_STALLED",
+    "LIFECYCLE_EXPORT_DELIVERY_HEALTH",
+    "CONSULTATION_SLA_OVERDUE",
+    "CONSULTATION_SLA_ESCALATION",
+  ].includes(rule.target_type);
+}
+
+function alertOwnerStatus(rule) {
+  const ownerRole = text(rule.owner_role);
+  const ownerName = text(rule.owner_name);
+  const ownerContact = text(rule.owner_contact);
+  if (!ownerRole) return "BLOCKED";
+  if (!ownerName || !ownerContact) return "NEEDS_REVIEW";
+  return "READY";
+}
+
+function externalChannelReadiness(data, context = {}) {
+  const env = context.env || process.env;
+  const rules = operationalAlerts.listEffectiveAlertRules(data)
+    .filter((rule) => rule.status === "ACTIVE");
+  const ownerRows = rules
+    .filter(alertRuleRequiresOwner)
+    .map((rule) => ({
+      alertRuleId: rule.alert_rule_id,
+      title: rule.title,
+      targetType: rule.target_type,
+      targetKey: rule.target_key,
+      channel: rule.channel,
+      ownerRole: rule.owner_role || "",
+      ownerName: rule.owner_name || "",
+      ownerContact: rule.owner_contact || "",
+      routeKey: rule.route_key || "",
+      status: alertOwnerStatus(rule),
+    }));
+  const webhookRows = rules
+    .filter((rule) => rule.channel === "WEBHOOK")
+    .map((rule) => ({
+      alertRuleId: rule.alert_rule_id,
+      title: rule.title,
+      urlConfigured: Boolean(rule.webhook_url || env.ROOT_OPERATIONAL_ALERT_WEBHOOK_URL),
+      signed: Boolean(env.ROOT_OPERATIONAL_ALERT_WEBHOOK_SECRET),
+      channel: rule.config_json?.webhookChannel || env.ROOT_OPERATIONAL_ALERT_WEBHOOK_CHANNEL || "",
+      template: rule.config_json?.webhookTemplate || env.ROOT_OPERATIONAL_ALERT_WEBHOOK_TEMPLATE || "",
+    }));
+  const deliveryChannel = text(env.ROOT_LIFECYCLE_EXPORT_DELIVERY_CHANNEL).toUpperCase();
+  const lifecycleDeliveryEnabled = text(env.ROOT_LIFECYCLE_EXPORT_DELIVERY_ENABLED).toLowerCase() === "true" ||
+    deliveryChannel === "WEBHOOK" ||
+    Boolean(env.ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_URL);
+  const lifecycleDeliveryWebhook = {
+    enabled: lifecycleDeliveryEnabled,
+    channel: deliveryChannel || (lifecycleDeliveryEnabled ? "WEBHOOK" : "NONE"),
+    env: [
+      envRow(env, "ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_URL"),
+      envRow(env, "ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_CHANNEL"),
+      envRow(env, "ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_TEMPLATE"),
+      envRow(env, "ROOT_LIFECYCLE_EXPORT_DELIVERY_SECRET"),
+      envRow(env, "ROOT_LIFECYCLE_EXPORT_DOWNLOAD_SECRET"),
+      envRow(env, "ROOT_LIFECYCLE_EXPORT_SIGNED_DOWNLOAD_ENABLED"),
+    ],
+  };
+  const deliveryHealth = adminLifecycleUserExports.getLifecycleExportDeliveryHealth(data, { issueLimit: 5 });
+  const blockers = [];
+  const warnings = [];
+  webhookRows
+    .filter((row) => !row.urlConfigured)
+    .forEach((row) => blockers.push(`外部预警 ${row.title} 未配置 webhook_url 或 ROOT_OPERATIONAL_ALERT_WEBHOOK_URL`));
+  if (lifecycleDeliveryWebhook.enabled && !env.ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_URL && lifecycleDeliveryWebhook.channel === "WEBHOOK") {
+    blockers.push("用户生命周期导出 WEBHOOK 交付已开启但未配置 ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_URL");
+  }
+  ownerRows
+    .filter((row) => row.status === "BLOCKED")
+    .forEach((row) => blockers.push(`运营预警 ${row.title} 缺少 ownerRole`));
+  ownerRows
+    .filter((row) => row.status === "NEEDS_REVIEW")
+    .forEach((row) => warnings.push(`运营预警 ${row.title} 需要补齐负责人姓名和联系方式`));
+  if (lifecycleDeliveryWebhook.enabled) {
+    ["ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_CHANNEL", "ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_TEMPLATE", "ROOT_LIFECYCLE_EXPORT_DOWNLOAD_SECRET"].forEach((name) => {
+      if (!env[name]) warnings.push(`用户生命周期导出交付建议配置 ${name}`);
+    });
+  }
+  if (!env.ROOT_OPERATIONAL_ALERT_WEBHOOK_URL) {
+    warnings.push("未配置 ROOT_OPERATIONAL_ALERT_WEBHOOK_URL，运营预警仅保留站内通知");
+  }
+  const status = blockers.length ? "BLOCKED" : warnings.length ? "NEEDS_REVIEW" : "READY";
+  return {
+    status,
+    summary: {
+      alertRulesReviewed: ownerRows.length,
+      webhookRuleCount: webhookRows.length,
+      blockedCount: blockers.length,
+      warningCount: warnings.length,
+      lifecycleDeliveryRequestedCount: deliveryHealth.summary.requestedCount,
+      lifecycleDeliveryDeadLetterCount: deliveryHealth.summary.deadLetterCount,
+      lifecycleDeliveryDueRetryCount: deliveryHealth.summary.dueRetryCount,
+    },
+    operationalAlertWebhook: {
+      status: webhookRows.some((row) => !row.urlConfigured) ? "BLOCKED" : env.ROOT_OPERATIONAL_ALERT_WEBHOOK_URL ? "READY" : "NEEDS_REVIEW",
+      env: [
+        envRow(env, "ROOT_OPERATIONAL_ALERT_WEBHOOK_URL"),
+        envRow(env, "ROOT_OPERATIONAL_ALERT_WEBHOOK_SECRET"),
+        envRow(env, "ROOT_OPERATIONAL_ALERT_WEBHOOK_CHANNEL"),
+        envRow(env, "ROOT_OPERATIONAL_ALERT_WEBHOOK_TEMPLATE"),
+        envRow(env, "ROOT_OPERATIONAL_ALERT_WEBHOOK_TIMEOUT_MS"),
+      ],
+      webhookRules: webhookRows,
+    },
+    lifecycleExportDelivery: {
+      status: lifecycleDeliveryWebhook.enabled && lifecycleDeliveryWebhook.channel === "WEBHOOK" && !env.ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_URL
+        ? "BLOCKED"
+        : lifecycleDeliveryWebhook.enabled ? "NEEDS_REVIEW" : "READY",
+      webhook: lifecycleDeliveryWebhook,
+      health: {
+        status: deliveryHealth.status,
+        message: deliveryHealth.message,
+        summary: deliveryHealth.summary,
+        nextRetryAt: deliveryHealth.nextRetryAt,
+      },
+    },
+    alertOwnerRoutes: ownerRows,
+    blockers,
+    warnings,
+  };
+}
+
+function releaseEvidence(
+  data,
+  context,
+  readiness,
+  actionCalibration,
+  calibration,
+  productionEnvMatrix,
+  signoffGate,
+  adminTransition,
+  productionCutover,
+  legacyMigration,
+  cloudbaseStore,
+  rootMemberCenter,
+) {
   const recentRuns = externalPlatformAdapters.listAdapterRuns(data, 8);
   const cursors = externalPlatformAdapters.listAdapterCursors(data);
+  const channelReadiness = externalChannelReadiness(data, context);
+  const evidenceIntake = productionEvidenceIntake.buildProductionEvidenceIntake({
+    target: readiness.target,
+    adapterCalibration: calibration,
+    actionAdapterCalibration: actionCalibration,
+    adminTransition,
+    productionCutover,
+    cloudbaseStore,
+    rootMemberCenter,
+    legacyMigration,
+  });
   return {
     storeAdapter: {
       kind: context.storeAdapter && context.storeAdapter.kind ? context.storeAdapter.kind : "memory",
+      health: context.storeAdapter && typeof context.storeAdapter.getStoreHealth === "function"
+        ? (() => {
+          const health = context.storeAdapter.getStoreHealth();
+          return {
+            connected: health.connected !== false,
+            transactional: health.transactional === true,
+            multiInstanceSafe: health.multiInstanceSafe === true,
+            migrationVersion: health.migrationVersion || "",
+            revision: health.revision ?? null,
+            projectionMode: health.projectionMode || "",
+            leastPrivilegeReady: health.leastPrivilegeReady === true,
+            privilegeScope: health.privilegeScope || "UNKNOWN",
+          };
+        })()
+        : null,
     },
     env: envPresence(context.env, [
       "WECHAT_APPID",
@@ -37,12 +265,58 @@ function releaseEvidence(data, context, readiness, calibration) {
       "MYSQL_USERNAME",
       "MYSQL_PASSWORD",
       "MYSQL_DATABASE",
+      "ROOT_CLOUDBASE_STORE_DECISION",
+      "ROOT_CLOUDBASE_ENV_ID",
+      "CLOUDBASE_ENV_ID",
+      "TCB_ENV_ID",
+      "ROOT_CLOUDBASE_REGION",
+      "TENCENTCLOUD_REGION",
+      "ROOT_CLOUDBASE_STORE_BACKUP_PLAN",
+      "ROOT_CLOUDBASE_STORE_ROLLBACK_PLAN",
+      "ROOT_CLOUDBASE_STORE_PROOF",
       "ROOT_SQLITE_FILE",
       "ROOT_STORE_FILE",
+      "ROOT_MEMBER_CENTER_APPID",
+      "ROOT_MEMBER_CENTER_PRODUCT_PATH",
+      "ROOT_MEMBER_CENTER_ENV_VERSION",
+      "ROOT_YOUZAN_APP_ID",
+      "ROOT_YOUZAN_PRODUCT_PATH",
+      "ROOT_YOUZAN_ENV_VERSION",
       "YOUZAN_ORDER_LIST_URL",
+      "YOUZAN_CUSTOMER_LIST_URL",
+      "YOUZAN_COUPON_SEND_URL",
+      "YOUZAN_COUPON_STATUS_URL",
       "ROOT_FULFILLMENT_LIST_URL",
       "WEWORK_CONTACT_LIST_URL",
+      "WEWORK_TAG_APPLY_URL",
+      "ROOT_CONSULTATION_ADVISORS",
+      "ROOT_CONSULTATION_SLA_MINUTES",
+      "ROOT_CONSULTATION_SLA_DUE_SOON_MINUTES",
+      "ROOT_CONSULTATION_SLA_ESCALATION_RULES",
+      "ROOT_MANUAL_REVIEW_EXPLANATION_TEMPLATES",
+      "WEWORK_CONTACT_WRITEBACK_URL",
+      "ROOT_OPERATIONAL_ALERT_WEBHOOK_URL",
+      "ROOT_OPERATIONAL_ALERT_WEBHOOK_SECRET",
+      "ROOT_OPERATIONAL_ALERT_WEBHOOK_CHANNEL",
+      "ROOT_OPERATIONAL_ALERT_WEBHOOK_TEMPLATE",
+      "ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_URL",
+      "ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_CHANNEL",
+      "ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_TEMPLATE",
+      "ROOT_LIFECYCLE_EXPORT_DOWNLOAD_SECRET",
     ]),
+    productionEnvMatrix: {
+      status: productionEnvMatrix.status,
+      summary: productionEnvMatrix.summary,
+      missingEnv: productionEnvMatrix.missingEnv,
+      groups: productionEnvMatrix.groups.map((group) => ({
+        id: group.id,
+        label: group.label,
+        status: group.status,
+        ownerRole: group.ownerRole,
+        missingRequired: group.missingRequired,
+        missingAnyOf: group.missingAnyOf,
+      })),
+    },
     launchReadiness: {
       status: readiness.status,
       summary: readiness.summary,
@@ -69,6 +343,25 @@ function releaseEvidence(data, context, readiness, calibration) {
         warnings: source.summary.warnings,
       })),
     },
+    actionAdapterCalibration: {
+      status: actionCalibration.status,
+      summary: actionCalibration.summary,
+      actions: actionCalibration.actions.map((action) => ({
+        id: action.id,
+        group: action.group,
+        adapterType: action.adapterType,
+        label: action.label,
+        status: action.status,
+        blockers: action.summary.blockers,
+        warnings: action.summary.warnings,
+        checks: action.checks.map((check) => ({
+          id: check.id,
+          label: check.label,
+          status: check.status,
+          message: check.message,
+        })),
+      })),
+    },
     recentAdapterRuns: recentRuns.map((run) => ({
       runId: run.run_id,
       sourceType: run.source_type,
@@ -88,6 +381,82 @@ function releaseEvidence(data, context, readiness, calibration) {
       cursorValue: cursor.cursor_value,
       updatedAt: cursor.updated_at,
     })),
+    externalChannelReadiness: channelReadiness,
+    productionEvidenceIntake: evidenceIntake,
+    signoffGate: {
+      status: signoffGate.status,
+      summary: signoffGate.summary,
+      requiredRoles: signoffGate.requiredRoles,
+      approvedRoles: signoffGate.approvedRoles,
+      pendingRoles: signoffGate.pendingRoles,
+      rejectedRoles: signoffGate.rejectedRoles,
+      blockers: signoffGate.blockers,
+      warnings: signoffGate.warnings,
+      message: signoffGate.message,
+    },
+    adminTransitionReadiness: {
+      status: adminTransition.status,
+      summary: adminTransition.summary,
+      legacyDeprecationDecision: adminTransition.legacyDeprecationDecision || {},
+      dist: adminTransition.dist,
+      moduleCoverage: adminTransition.moduleCoverage,
+      blockers: adminTransition.blockers,
+      warnings: adminTransition.warnings,
+    },
+    productionCutoverReadiness: {
+      status: productionCutover.status,
+      target: productionCutover.target,
+      summary: productionCutover.summary,
+      groups: productionCutover.groups,
+      items: productionCutover.items,
+      blockers: productionCutover.blockers,
+      warnings: productionCutover.warnings,
+    },
+    legacyDataMigration: {
+      status: legacyMigration.status,
+      recommendedPolicy: legacyMigration.recommendedPolicy,
+      writeMode: legacyMigration.writeMode,
+      decision: legacyMigration.decision,
+      decisions: legacyMigration.decisions,
+      execution: legacyMigration.execution,
+      executions: legacyMigration.executions,
+      summary: legacyMigration.summary,
+      collections: legacyMigration.collections,
+      sessions: legacyMigration.sessions.slice(0, 50),
+      blockers: legacyMigration.blockers,
+      warnings: legacyMigration.warnings,
+      nextActions: legacyMigration.nextActions,
+    },
+    cloudbaseStoreReadiness: {
+      status: cloudbaseStore.status,
+      target: cloudbaseStore.target,
+      selectedDecision: cloudbaseStore.selectedDecision,
+      selectedDecisionLabel: cloudbaseStore.selectedDecisionLabel,
+      currentStoreAdapterKind: cloudbaseStore.currentStoreAdapterKind,
+      summary: cloudbaseStore.summary,
+      env: cloudbaseStore.env,
+      checks: cloudbaseStore.checks,
+      blockers: cloudbaseStore.blockers,
+      warnings: cloudbaseStore.warnings,
+      nextActions: cloudbaseStore.nextActions,
+    },
+    rootMemberCenterReadiness: {
+      status: rootMemberCenter.status,
+      target: rootMemberCenter.target,
+      appId: rootMemberCenter.appId,
+      appIdSource: rootMemberCenter.appIdSource,
+      defaultPath: rootMemberCenter.defaultPath,
+      defaultPathSource: rootMemberCenter.defaultPathSource,
+      envVersion: rootMemberCenter.envVersion,
+      summary: rootMemberCenter.summary,
+      env: rootMemberCenter.env,
+      proofs: rootMemberCenter.proofs,
+      products: rootMemberCenter.products,
+      checks: rootMemberCenter.checks,
+      blockers: rootMemberCenter.blockers,
+      warnings: rootMemberCenter.warnings,
+      nextActions: rootMemberCenter.nextActions,
+    },
     operations: {
       openTasks: (data.operationTasks || []).filter((task) => task.status === "OPEN").length,
       pendingRefunds: (data.refundWorkItems || []).filter((item) => item.status === "PENDING").length,
@@ -97,7 +466,20 @@ function releaseEvidence(data, context, readiness, calibration) {
   };
 }
 
-function buildReleaseChecklist(status, readiness, calibration) {
+function buildReleaseChecklist(
+  status,
+  readiness,
+  actionCalibration,
+  calibration,
+  productionEnvMatrix,
+  externalChannelReadiness,
+  signoffGate,
+  adminTransition,
+  productionCutover,
+  legacyMigration,
+  cloudbaseStore,
+  rootMemberCenter,
+) {
   const blockers = readiness.checks
     .filter((check) => check.status === "BLOCKER")
     .map((check) => `${check.label}: ${check.message}`)
@@ -106,6 +488,20 @@ function buildReleaseChecklist(status, readiness, calibration) {
         .filter((check) => check.status === "BLOCKER")
         .map((check) => `${source.label}/${check.label}: ${check.message}`);
     }));
+  blockers.push(...productionEnvMatrix.groups
+    .filter((group) => group.status === "BLOCKER")
+    .map((group) => `${group.label}: ${group.message}`));
+  blockers.push(...actionCalibration.actions.flatMap((action) => action.checks
+    .filter((check) => check.status === "BLOCKER")
+    .map((check) => `${action.label}/${check.label}: ${check.message}`)));
+  blockers.push(...externalChannelReadiness.blockers);
+  blockers.push(...signoffGate.blockers);
+  blockers.push(...adminTransition.blockers);
+  blockers.push(...productionCutover.blockers);
+  blockers.push(...legacyMigration.blockers);
+  blockers.push(...cloudbaseStore.blockers);
+  blockers.push(...rootMemberCenter.blockers);
+  if (readiness.target === "production") blockers.push(...signoffGate.warnings);
   const warnings = readiness.checks
     .filter((check) => check.status === "WARNING")
     .map((check) => `${check.label}: ${check.message}`)
@@ -114,6 +510,19 @@ function buildReleaseChecklist(status, readiness, calibration) {
         .filter((check) => check.status === "WARNING")
         .map((check) => `${source.label}/${check.label}: ${check.message}`);
     }));
+  warnings.push(...productionEnvMatrix.groups
+    .filter((group) => group.status === "WARNING")
+    .map((group) => `${group.label}: ${group.message}`));
+  warnings.push(...actionCalibration.actions.flatMap((action) => action.checks
+    .filter((check) => check.status === "WARNING")
+    .map((check) => `${action.label}/${check.label}: ${check.message}`)));
+  warnings.push(...externalChannelReadiness.warnings);
+  warnings.push(...adminTransition.warnings);
+  warnings.push(...productionCutover.warnings);
+  warnings.push(...legacyMigration.warnings);
+  warnings.push(...cloudbaseStore.warnings);
+  warnings.push(...rootMemberCenter.warnings);
+  if (readiness.target !== "production") warnings.push(...signoffGate.warnings);
   return {
     mustFixBeforeRelease: blockers,
     mustConfirmForGray: warnings,
@@ -121,7 +530,17 @@ function buildReleaseChecklist(status, readiness, calibration) {
       "确认小程序体验版连接的是 ROOT_PUBLIC_BASE_URL。",
       "确认数据仓库 Adapter 的备份或快照已完成。",
       "确认 MANUAL_SAMPLE 入口仍可作为真实 Adapter 回滚入口。",
+      "确认 production-env 矩阵、CloudBase Job Manifest 和发布校准报告使用同一组生产环境变量。",
+      "确认有赞发券、券状态查询、企业微信打标签和联系回写的真实动作 Adapter 已完成小批量校准。",
+      "确认 CloudBase Store 决策、环境 ID、地域、备份计划和回滚计划已写入发布记录。",
+      "确认 myRoot 商品页的 Root 会员中心 appId、购买路径和体验版跳转结果已写入发布记录。",
       "确认免单退款和 Day8 问卷人工处理负责人在线。",
+      "确认外部预警、导出交付和运营负责人路由已写入发布记录。",
+      "确认产品、运营、研发签字均绑定到同一轮发布证据包留档。",
+      "确认 Element Plus Admin 主入口、backend-only 部署包、/admin-legacy 回退状态和旧后台下线决策已写入发布记录。",
+      "确认生产证据收口项中每一条外部证据都有负责人、下一步动作和留档路径。",
+      "确认微信开放平台、Root 会员中心 appId、CloudBase unionid、有赞、企微、CloudBase Job、外部通道、导出存储和回滚演练的生产切换证明已写入发布记录。",
+      "确认旧 7 日试饮历史数据已选择只读归档、选择性补迁或人工处理，并在发布记录中留存评估结果。",
     ],
     statusHint: decisionText(status),
   };
@@ -136,7 +555,66 @@ function buildReleaseRecord(data, options = {}) {
   };
   const readiness = launchReadiness.buildLaunchReadiness(data, { ...context, target: options.target || "production" });
   const calibration = adapterCalibration.buildAdapterCalibration(data, context);
-  const status = statusFromInputs(readiness, calibration);
+  const actionCalibration = actionAdapterCalibration.buildActionAdapterCalibration(data, {
+    ...context,
+    target: readiness.target,
+  });
+  const productionEnvMatrix = buildProductionEnvMatrix(context.env, { target: readiness.target });
+  const cloudbaseStore = cloudbaseStoreReadiness.buildCloudbaseStoreReadiness({
+    env: context.env,
+    target: readiness.target,
+    storeAdapter: context.storeAdapter,
+  });
+  const rootMemberCenter = rootMemberCenterReadiness.buildRootMemberCenterReadiness({
+    data,
+    env: context.env,
+    target: readiness.target,
+    proofs: rootMemberCenterJumpProof.latestRootMemberCenterJumpProofs(data, { target: readiness.target }),
+  });
+  const channelReadiness = externalChannelReadiness(data, context);
+  const signoffGate = releaseSignoff.buildReleaseSignoffGate(data, { target: readiness.target });
+  const adminTransition = adminTransitionReadiness.buildAdminTransitionReadiness({
+    env: context.env,
+    deprecationDecisions: adminLegacyDeprecationDecision.latestAdminLegacyDeprecationDecisions(data, { target: readiness.target }),
+    ...(context.adminTransitionOptions || {}),
+  });
+  const productionCutover = productionCutoverReadiness.buildProductionCutoverReadiness({
+    env: context.env,
+    target: readiness.target,
+    proofs: productionCutoverProof.latestProductionCutoverProofs(data, { target: readiness.target }),
+  });
+  const legacyMigration = legacyDataMigration.buildLegacyDataMigrationPlan(data, {
+    target: readiness.target,
+    decisions: legacyDataMigrationDecision.latestLegacyDataMigrationDecisions(data, { target: readiness.target }),
+    executions: legacyDataMigrationExecution.latestLegacyDataMigrationExecutions(data, { target: readiness.target }),
+  });
+  const status = statusFromInputs(
+    readiness,
+    actionCalibration,
+    calibration,
+    productionEnvMatrix,
+    channelReadiness,
+    signoffGate,
+    adminTransition,
+    productionCutover,
+    legacyMigration,
+    cloudbaseStore,
+    rootMemberCenter,
+  );
+  const checklist = buildReleaseChecklist(
+    status,
+    readiness,
+    actionCalibration,
+    calibration,
+    productionEnvMatrix,
+    channelReadiness,
+    signoffGate,
+    adminTransition,
+    productionCutover,
+    legacyMigration,
+    cloudbaseStore,
+    rootMemberCenter,
+  );
   return {
     title: "ROOT 7日打卡发布记录",
     status,
@@ -150,16 +628,29 @@ function buildReleaseRecord(data, options = {}) {
       approvedAt: "",
       note: "",
     },
-    signoffs: [
-      { role: "产品", owner: "", status: "PENDING", note: "确认流程和风险提示" },
-      { role: "运营", owner: "", status: "PENDING", note: "确认企业微信触达、免单和样本导入" },
-      { role: "研发", owner: "", status: "PENDING", note: "确认环境变量、数据仓库 Adapter 和回滚路径" },
-    ],
-    checklist: buildReleaseChecklist(status, readiness, calibration),
-    evidence: releaseEvidence(data, context, readiness, calibration),
+    signoffs: signoffGate.signoffs,
+    signoffGate,
+    checklist,
+    mustFixBeforeRelease: checklist.mustFixBeforeRelease,
+    mustConfirmForGray: checklist.mustConfirmForGray,
+    finalChecks: checklist.finalChecks,
+    evidence: releaseEvidence(
+      data,
+      context,
+      readiness,
+      actionCalibration,
+      calibration,
+      productionEnvMatrix,
+      signoffGate,
+      adminTransition,
+      productionCutover,
+      legacyMigration,
+      cloudbaseStore,
+      rootMemberCenter,
+    ),
     rollback: [
-      "暂停 YOUZAN_OPEN、FULFILLMENT_PUSH、WEWORK_CONTACT 真实 Adapter。",
-      "继续使用 MANUAL_SAMPLE 和后台手工同步订单/物流/线索。",
+      "暂停 YOUZAN_OPEN、YOUZAN_CUSTOMER、YOUZAN_COUPON、FULFILLMENT_PUSH、WEWORK_CONTACT、WEWORK_TAG 真实 Adapter。",
+      "继续使用 MANUAL_SAMPLE 和后台手工同步订单/客户/券状态/物流/线索/标签。",
       "保留当前数据仓库快照，必要时回退到发布前快照。",
       "在企业微信通知运营改用人工提醒和人工退款审核。",
     ],
@@ -168,4 +659,5 @@ function buildReleaseRecord(data, options = {}) {
 
 module.exports = {
   buildReleaseRecord,
+  externalChannelReadiness,
 };

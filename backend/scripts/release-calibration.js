@@ -32,13 +32,14 @@ async function fetchJson(baseUrl, path) {
 
 async function collectCalibration(args) {
   const target = encodeURIComponent(args.target);
-  const [releaseRecord, adapterCalibration, launchReadiness, externalAdapters] = await Promise.all([
+  const [releaseRecord, adapterCalibration, actionAdapterCalibration, launchReadiness, externalAdapters] = await Promise.all([
     fetchJson(args.baseUrl, `/api/v1/admin/release-record?target=${target}`),
     fetchJson(args.baseUrl, "/api/v1/admin/adapter-calibration"),
+    fetchJson(args.baseUrl, `/api/v1/admin/action-adapter-calibration?target=${target}`),
     fetchJson(args.baseUrl, `/api/v1/admin/launch-readiness?target=${target}`),
     fetchJson(args.baseUrl, "/api/v1/admin/external-adapters"),
   ]);
-  return { releaseRecord, adapterCalibration, launchReadiness, externalAdapters };
+  return { releaseRecord, adapterCalibration, actionAdapterCalibration, launchReadiness, externalAdapters };
 }
 
 function formatList(items, fallback) {
@@ -58,6 +59,56 @@ function adapterLines(adapterCalibration) {
   });
 }
 
+function actionAdapterLines(actionAdapterCalibration) {
+  const actions = actionAdapterCalibration && actionAdapterCalibration.actions ? actionAdapterCalibration.actions : [];
+  if (!actions.length) return ["- 暂无动作 Adapter 校准记录"];
+  return actions.map((action) => {
+    const blockers = action.summary ? action.summary.blockers : action.blockers || 0;
+    const warnings = action.summary ? action.summary.warnings : action.warnings || 0;
+    return `- ${action.label} / ${action.adapterType}: ${action.status}，阻塞 ${blockers}，提醒 ${warnings}`;
+  });
+}
+
+function productionEnvLines(releaseRecord) {
+  const matrix = releaseRecord.evidence && releaseRecord.evidence.productionEnvMatrix;
+  if (!matrix || !Array.isArray(matrix.groups)) return ["- 暂无生产环境矩阵"];
+  return matrix.groups.map((group) => {
+    const missing = []
+      .concat(group.missingRequired || [])
+      .concat((group.missingAnyOf || []).map((set) => set.join(" / ")));
+    const suffix = missing.length ? `，缺失：${missing.join("；")}` : "";
+    return `- ${group.label}: ${group.status}${suffix}`;
+  });
+}
+
+function externalChannelLines(releaseRecord) {
+  const channel = releaseRecord.evidence && releaseRecord.evidence.externalChannelReadiness;
+  if (!channel) return ["- 暂无外部通道证据"];
+  return [
+    `- 状态：${channel.status}`,
+    `- 预警规则：${channel.summary.alertRulesReviewed}`,
+    `- Webhook 规则：${channel.summary.webhookRuleCount}`,
+    `- 阻塞：${channel.summary.blockedCount}`,
+    `- 提醒：${channel.summary.warningCount}`,
+    `- 导出到期重试：${channel.summary.lifecycleDeliveryDueRetryCount}`,
+    `- 导出死信：${channel.summary.lifecycleDeliveryDeadLetterCount}`,
+  ];
+}
+
+function productionCutoverLines(releaseRecord) {
+  const cutover = releaseRecord.evidence && releaseRecord.evidence.productionCutoverReadiness;
+  if (!cutover) return ["- 暂无生产切换证据"];
+  const items = cutover.items || [];
+  return [
+    `- 状态：${cutover.status}`,
+    `- 已证明：${cutover.summary ? cutover.summary.readyProofCount : 0}/${cutover.summary ? cutover.summary.requiredProofCount : items.length}`,
+    `- 阻塞：${cutover.summary ? cutover.summary.blockerCount : 0}`,
+    `- 提醒：${cutover.summary ? cutover.summary.warningCount : 0}`,
+  ].concat(items.map((item) => {
+    return `- ${item.groupLabel || item.group}/${item.label}: ${item.status}，证明变量：${item.proofEnv}`;
+  }));
+}
+
 function runLines(externalAdapters) {
   const runs = externalAdapters.runs || [];
   if (!runs.length) return ["- 暂无 Adapter 运行记录"];
@@ -71,6 +122,9 @@ function runLines(externalAdapters) {
 
 function buildCalibrationReport(bundle) {
   const { releaseRecord, adapterCalibration, launchReadiness, externalAdapters } = bundle;
+  const actionAdapterCalibration = bundle.actionAdapterCalibration ||
+    (releaseRecord.evidence && releaseRecord.evidence.actionAdapterCalibration) ||
+    { status: "NEEDS_REVIEW", summary: {}, actions: [] };
   const blockers = releaseRecord.checklist.mustFixBeforeRelease || [];
   const warnings = releaseRecord.checklist.mustConfirmForGray || [];
   const lines = [
@@ -87,11 +141,29 @@ function buildCalibrationReport(bundle) {
     `- 提醒：${launchReadiness.summary.warnings}`,
     `- 通过：${launchReadiness.summary.passed}/${launchReadiness.summary.total}`,
     "",
+    "## 生产环境矩阵",
+    `- 状态：${releaseRecord.evidence.productionEnvMatrix ? releaseRecord.evidence.productionEnvMatrix.status : "UNKNOWN"}`,
+    `- 阻塞：${releaseRecord.evidence.productionEnvMatrix ? releaseRecord.evidence.productionEnvMatrix.summary.blockers : 0}`,
+    `- 提醒：${releaseRecord.evidence.productionEnvMatrix ? releaseRecord.evidence.productionEnvMatrix.summary.warnings : 0}`,
+    ...productionEnvLines(releaseRecord),
+    "",
+    "## 外部通道与负责人",
+    ...externalChannelLines(releaseRecord),
+    "",
+    "## 生产切换 Gate",
+    ...productionCutoverLines(releaseRecord),
+    "",
     "## Adapter 校准",
     `- 状态：${adapterCalibration.status}`,
     `- 阻塞：${adapterCalibration.summary.blockers}`,
     `- 提醒：${adapterCalibration.summary.warnings}`,
     ...adapterLines(adapterCalibration),
+    "",
+    "## 动作 Adapter 校准",
+    `- 状态：${actionAdapterCalibration.status}`,
+    `- 阻塞：${actionAdapterCalibration.summary.blockers || 0}`,
+    `- 提醒：${actionAdapterCalibration.summary.warnings || 0}`,
+    ...actionAdapterLines(actionAdapterCalibration),
     "",
     "## 必须修复",
     ...formatList(blockers, "暂无阻塞项"),

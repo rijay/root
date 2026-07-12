@@ -8,7 +8,7 @@ RUN apk add --no-cache tzdata ca-certificates \
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --omit=dev --ignore-scripts
+RUN npm ci --omit=dev --ignore-scripts
 
 COPY . .
 

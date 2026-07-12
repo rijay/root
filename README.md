@@ -8,6 +8,7 @@
 - `backend/`：Node.js HTTP Interface 与本地运营后台，路径统一走 `/api/v1/`，内置内存 Adapter、JSON 文件 Adapter、SQLite Adapter、MySQL Adapter 和测试。
 - `backend/db/schema.sql`：按当前流程整理的核心建表脚本。
 - `docs/release_readiness.md`：上线前验收、真实 Adapter 对接和发布阻塞项。
+- `docs/internal_test_release_gate_tracker_2026-06-29.md`：内测期间正式发布 Gate、反馈分流和新需求台账。
 - `docs/external_adapter_samples.md`：有赞订单、物流状态、企业微信线索的真实样本字段规格。
 - `docs/adapter_calibration_playbook.md`：真实账号接入前的校准顺序、配置表和回滚判断。
 - `docs/release_record_template.md`：发布记录、签字位、证据检查和回滚动作模板。
@@ -19,7 +20,15 @@ cd /Users/rijay/Documents/Root/root_seven_day_checkin/backend
 npm run dev
 ```
 
-后台 API 默认运行在 `http://127.0.0.1:8787`，管理台在 `http://127.0.0.1:8787/admin`。
+后台 API 默认运行在 `http://127.0.0.1:8787`。`http://127.0.0.1:8787/admin` 会在 `admin/dist` 存在时加载 Element Plus Admin；`http://127.0.0.1:8787/admin-legacy` 保留旧静态后台回退。
+
+需要生成 Element Plus Admin 产物时：
+
+```bash
+cd /Users/rijay/Documents/Root/root_seven_day_checkin
+npm run admin:build
+npm run deploy:prepare-admin
+```
 
 需要重启后保留本地灰度数据时：
 
@@ -38,12 +47,16 @@ ROOT_SQLITE_FILE=/Users/rijay/Documents/Root/root_seven_day_checkin/backend/data
 ```bash
 ROOT_STORE_ADAPTER=mysql \
 MYSQL_ADDRESS=10.11.103.164:3306 \
-MYSQL_USERNAME=root \
+MYSQL_USERNAME=myroot_app \
 MYSQL_PASSWORD=****** \
-MYSQL_DATABASE=root_checkin \
+MYSQL_DATABASE=myroot-prod-d5gl3gzg7115f149a \
+MYSQL_CONNECTION_LIMIT=8 \
+MYSQL_CONNECT_TIMEOUT_MS=10000 \
 ROOT_ADMIN_TOKEN=****** \
 npm run dev
 ```
+
+MySQL Adapter 启动时会先取得数据库级迁移锁，再执行 `backend/db/migrations`；每个业务请求用 `root_store_snapshot.revision` 行锁保护跨实例写入，并在同一事务内同步核心关系表。应用账号不需要创建数据库，但必须拥有目标库的建表、索引、变更表结构和数据读写权限。`GET /ready` 用于验证连接、迁移版本和当前修订号。
 
 如需区分多名后台操作人，可用 `ROOT_ADMIN_TOKENS` 替代单口令，操作记录会写入对应 `operatorId`：
 
@@ -55,10 +68,32 @@ npm run dev
 }
 ```
 
+Element Plus Admin 会通过 `GET /api/v1/admin/me` 读取当前 operator、role 和 capabilities，并按能力隐藏左侧菜单；正式环境建议至少核对 viewer、finance、operator、admin 四类 token，并确认 `/admin/assets/*.js` 返回 200。backend-only 云托管部署会读取 `backend/public/admin-dist`，如需自定义路径可设置 `ROOT_ADMIN_DIST_DIR`。
+
 后台启动后可生成发布校准报告：
 
 ```bash
 npm run calibrate -- --base-url http://127.0.0.1:8787 --target production --strict
+```
+
+需要核对生产环境变量矩阵时：
+
+```bash
+npm run production-env -- --target production
+```
+
+需要核对 CloudBase 定时 Job 发布配置时：
+
+```bash
+npm run jobs:manifest -- --base-url https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com --campaign ROOT_7D_RESET --strict
+```
+
+需要检查 CloudBase 身份 header 透传时，本地可先验证后台探针路由形状；真实 openid/unionid 必须在 CloudBase 请求中确认：
+
+```bash
+curl -s "http://127.0.0.1:8787/api/v1/admin/cloudbase-identity-probe" \
+  -H "X-WX-OPENID: local-openid-for-route-shape" \
+  -H "X-WX-UNIONID: local-unionid-for-route-shape"
 ```
 
 拿到真实导出文件后可先跑样本准入：
@@ -99,7 +134,7 @@ npm run store:migrate:mysql -- --json ./data/dev-store.json
 - 自动匹配：用户微信授权手机号与有赞收货手机号唯一命中时自动绑定；多订单或多用户命中进入后台人工冲突待办。
 - 每日导入：后台订单页支持有赞订单 CSV 与物流状态 CSV 预览、批次锁定、确认写入和冲突处理。
 - 数据稳定：MySQL Store Adapter 支持快照导入、导出和校验，后台访问可通过 `ROOT_ADMIN_TOKEN` 或 `ROOT_ADMIN_TOKENS` 做最低保护。
-- 上线校准：上线闸口、Adapter 校准、发布记录和命令行校准报告会把真实发布阻塞项集中展示。
+- 上线校准：上线闸口、Adapter 校准、发布记录、Element Plus 开发发布页、菜单级权限、Element Plus Admin 主入口、backend-only Admin build 部署包、CloudBase 身份透传探针和命令行校准报告会把真实发布阻塞项集中展示。
 
 ## 验证
 
@@ -111,4 +146,4 @@ npm run check --prefix /Users/rijay/Documents/Root/root_seven_day_checkin/minipr
 
 `npm run verify` 会执行 JavaScript 语法检查、后端测试、小程序校验，并启动临时 SQLite 后台做 HTTP Interface 冒烟。
 
-当前版本默认使用内存 Adapter，适合演示。内部灰度可以设置 `ROOT_STORE_FILE` 使用 JSON 文件 Adapter；本地验证可以设置 `ROOT_SQLITE_FILE` 使用 SQLite Adapter。云托管正式环境必须设置 `ROOT_STORE_ADAPTER=mysql` 和 MySQL 连接信息，并配置 `ROOT_ADMIN_TOKEN` 或 `ROOT_ADMIN_TOKENS` 保护后台运营数据。正式上线前先阅读 `docs/release_readiness.md`，再执行 `npm run calibrate`，确认数据仓库、真实有赞/物流/企业微信 Adapter、正式微信登录密钥、后台访问口令和 HTTPS 域名。
+当前版本默认使用内存 Adapter，适合本地演示；JSON 文件和 SQLite 只保留为本地排查 Adapter。本轮团队内测的开发版、体验版和正式版统一指向腾讯云 CloudBase `myroot-prod-d5gl3gzg7115f149a / myroot-api`，数据必须写入 CloudBase MySQL。云托管需设置 `ROOT_STORE_ADAPTER=mysql`、连接池变量和后台口令；定时 Job 还需要 `ROOT_JOB_BASE_URL` 与 `ROOT_ADMIN_JOB_TOKEN`。正式上线前先阅读 `docs/release_readiness.md`，再执行生产环境矩阵、校准、Job Manifest、20 并发与重启复测。

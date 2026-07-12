@@ -27,6 +27,25 @@ function stringifyError(value) {
   }
 }
 
+function sanitizeDiagnosticText(value) {
+  return String(value || "")
+    .replace(/Bearer\s+[^\s]+/gi, "Bearer <redacted>")
+    .replace(/([?&](?:token|secret|password|openid|unionid|code)=)[^&\s]+/gi, "$1<redacted>")
+    .replace(/((?:["']?)(?:token|secret|password|openid|unionid|code)(?:["']?)\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^,\s}&]+)/gi, "$1<redacted>")
+    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "<redacted>")
+    .replace(/\b1[3-9]\d{9}\b/g, "<redacted-phone>")
+    .replace(/\b[A-Za-z0-9_-]{24,}\b/g, "<redacted>")
+    .slice(0, 200);
+}
+
+function safeErrorSummary(value) {
+  const code = value && (value.errCode || value.errno || value.code);
+  return {
+    code: code === undefined || code === null ? "" : sanitizeDiagnosticText(code),
+    message: sanitizeDiagnosticText(stringifyError(value)),
+  };
+}
+
 function toError(value, fallback) {
   const message = stringifyError(value) || fallback;
   return new Error(message);
@@ -35,7 +54,12 @@ function toError(value, fallback) {
 function requestFailMessage(error, adapter) {
   const message = stringifyError(error);
   if (message.includes("timeout") || message.includes("timed out")) return "服务响应较慢，请稍后重试";
-  if (adapter === "cloudContainer") return "服务暂时不可用，请稍后重试";
+  if (adapter === "cloudContainer") {
+    const code = error && (error.errCode || error.errno || error.code);
+    const codeMatch = message.match(/\b(?:errCode[:：]?\s*)?(-?\d{2,})\b/);
+    const cloudCode = code || (codeMatch && codeMatch[1]);
+    return cloudCode ? `服务暂时不可用（云托管${cloudCode}）` : "服务暂时不可用，请稍后重试";
+  }
   if (message.includes("ERR_CONNECTION_REFUSED")) return "后台服务未连接，请先启动本地后端";
   return "网络连接失败，请确认后台服务已启动";
 }
@@ -76,7 +100,7 @@ function requestByWxRequest(options, token, requestId) {
         }
       },
       fail(error) {
-        reject(toError(error, requestFailMessage(error, "wxRequest")));
+        reject(new Error(requestFailMessage(error, "wxRequest")));
       },
     });
   });
@@ -89,9 +113,10 @@ function requestByCloudContainer(options, token, requestId) {
       return;
     }
     if (!env.cloudEnvId || !env.cloudServiceName) {
-      reject(new Error("请先在 config/env.js 配置云托管环境和服务名"));
+      reject(new Error("请先在 config/env.js 配置云开发环境和云托管服务名"));
       return;
     }
+
     wx.cloud.callContainer({
       config: {
         env: env.cloudEnvId,
@@ -112,7 +137,13 @@ function requestByCloudContainer(options, token, requestId) {
         }
       },
       fail(error) {
-        reject(toError(error, requestFailMessage(error, "cloudContainer")));
+        console.warn("MYROOT_CLOUD_CONTAINER_FAIL", {
+          envVersion: env.envVersion,
+          cloudServiceName: env.cloudServiceName,
+          path: String(options.url || "").split("?")[0],
+          error: safeErrorSummary(error),
+        });
+        reject(new Error(requestFailMessage(error, "cloudContainer")));
       },
     });
   });
@@ -129,6 +160,7 @@ module.exports = {
   clearToken,
   getToken,
   request,
+  safeErrorSummary,
   setToken,
   stringifyError,
 };

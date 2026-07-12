@@ -1,3 +1,6 @@
+const { assertYouzanBusinessSuccess, derivePageCursor } = require("./youzanResponse");
+const { assertYouzanTokenReady } = require("./youzanTokenPolicy");
+
 function adapterError(code, message, detail) {
   const error = new Error(message);
   error.code = code;
@@ -56,7 +59,9 @@ function valueFor(record, fieldMap, field, fallbackPaths) {
 
 function mapYouzanOrder(record, fieldMap) {
   return {
-    youzanOrderNo: valueFor(record, fieldMap, "youzanOrderNo", ["youzanOrderNo", "youzan_order_no", "orderNo", "order_no", "tid", "id"]),
+    youzanOrderNo: valueFor(record, fieldMap, "youzanOrderNo", ["youzanOrderNo", "youzan_order_no", "orderNo", "order_no", "tid", "id", "full_order_info.order_info.tid"]),
+    youzanYzUid: valueFor(record, fieldMap, "youzanYzUid", ["youzanYzUid", "youzan_yz_uid", "yzUid", "yz_uid", "buyer_id", "buyerId", "fans_id", "fansId", "buyer.yz_uid", "buyer.id", "full_order_info.buyer_info.buyer_id"]),
+    buyerUnionId: valueFor(record, fieldMap, "buyerUnionId", ["buyerUnionId", "buyer_unionid", "unionid", "union_id", "buyer.unionid", "buyer.union_id", "full_order_info.buyer_info.unionid"]),
     receiverName: valueFor(record, fieldMap, "receiverName", ["receiverName", "receiver_name", "receiver.name", "receiver_name", "receiverInfo.name", "receiver_info.name"]),
     receiverPhone: valueFor(record, fieldMap, "receiverPhone", ["receiverPhone", "receiver_phone", "receiver.mobile", "receiver.phone", "receiverInfo.mobile", "receiver_info.mobile", "receiver_tel", "receiver_mobile", "phone"]),
     productName: valueFor(record, fieldMap, "productName", ["productName", "product_name", "items.0.title", "orders.0.title", "full_order_info.orders.0.title"]),
@@ -73,7 +78,7 @@ function buildRequest(env, cursor, limit) {
   const url = new URL(env.YOUZAN_ORDER_LIST_URL);
   const method = normalizeMethod(env.YOUZAN_ORDER_LIST_METHOD);
   const limitParam = env.YOUZAN_ORDER_LIST_LIMIT_PARAM || "page_size";
-  const cursorParam = env.YOUZAN_ORDER_LIST_CURSOR_PARAM || "cursor";
+  const cursorParam = env.YOUZAN_ORDER_LIST_CURSOR_PARAM || "page_no";
   const tokenParam = env.YOUZAN_ACCESS_TOKEN_PARAM || "access_token";
   const tokenLocation = String(env.YOUZAN_ACCESS_TOKEN_LOCATION || "query").toLowerCase();
   const params = {
@@ -107,12 +112,13 @@ async function readResponseJson(response) {
   if (!response.ok) {
     throw adapterError(response.status || 502, `有赞订单拉取失败：HTTP ${response.status}`, payload);
   }
-  return payload;
+  return assertYouzanBusinessSuccess(payload, "有赞订单拉取", adapterError);
 }
 
-function normalizeYouzanPayload(payload, env, fieldMap) {
+function normalizeYouzanPayload(payload, env, fieldMap, currentCursor, limit) {
   const records = firstArray(payload, [
     env.YOUZAN_ORDER_LIST_DATA_PATH,
+    "data.full_order_info_list",
     "data.items",
     "data.list",
     "data.trades",
@@ -124,7 +130,7 @@ function normalizeYouzanPayload(payload, env, fieldMap) {
     "records",
     "data",
   ].filter(Boolean));
-  const cursorAfter = firstDefined(payload, [
+  const cursorPaths = [
     env.YOUZAN_ORDER_LIST_CURSOR_PATH,
     "data.next_cursor",
     "data.nextCursor",
@@ -133,7 +139,38 @@ function normalizeYouzanPayload(payload, env, fieldMap) {
     "next_cursor",
     "nextCursor",
     "cursor",
-  ].filter(Boolean)) || "";
+  ].filter(Boolean);
+  const cursorAfter = derivePageCursor(payload, currentCursor, limit, {
+    cursor: cursorPaths,
+    total: [
+      "data.paginator.total_count",
+      "response.paginator.total_count",
+      "paginator.total_count",
+      "data.total_results",
+      "data.total",
+      "response.total_results",
+      "total_results",
+      "total",
+    ],
+    page: [
+      "data.paginator.page",
+      "response.paginator.page",
+      "paginator.page",
+      "data.page_no",
+      "data.page",
+      "response.page_no",
+      "page_no",
+      "page",
+    ],
+    pageSize: [
+      "data.paginator.page_size",
+      "response.paginator.page_size",
+      "paginator.page_size",
+      "data.page_size",
+      "response.page_size",
+      "page_size",
+    ],
+  });
   const hasMoreValue = firstDefined(payload, [
     env.YOUZAN_ORDER_LIST_HAS_MORE_PATH,
     "data.has_more",
@@ -156,13 +193,14 @@ function createYouzanOrderImplementation(options = {}) {
     const fetchImpl = options.fetchImpl || context.fetchImpl || globalThis.fetch;
     if (!env.YOUZAN_ORDER_LIST_URL) throw adapterError(400, "有赞订单 Adapter 缺少 YOUZAN_ORDER_LIST_URL");
     if (!env.YOUZAN_ACCESS_TOKEN) throw adapterError(400, "有赞订单 Adapter 缺少 YOUZAN_ACCESS_TOKEN");
+    assertYouzanTokenReady(env);
     if (typeof fetchImpl !== "function") throw adapterError(500, "当前 Node 环境没有可用 fetch Implementation");
 
     const fieldMap = normalizeFieldMap(env);
     const request = buildRequest(env, context.cursor, context.limit);
     const response = await fetchImpl(request.url, request.init);
     const payload = await readResponseJson(response);
-    return normalizeYouzanPayload(payload, env, fieldMap);
+    return normalizeYouzanPayload(payload, env, fieldMap, context.cursor, context.limit);
   };
 }
 

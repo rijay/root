@@ -72,8 +72,14 @@
     <view class="menu-row" data-url="/subpkg/profile/pages/tags/index" bindtap="goLink">
       <text class="menu-label">身体反馈画像</text><text class="menu-arrow">›</text>
     </view>
+    <view class="menu-row" data-url="/pages/products/index" bindtap="goLink">
+      <text class="menu-label">Root 会员中心商品</text><text class="menu-arrow">›</text>
+    </view>
     <view wx:if="{{showOrders}}" class="menu-row" data-url="/subpkg/profile/pages/orders/index" bindtap="goLink">
       <text class="menu-label">订单与物流</text><text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-row" data-url="/subpkg/profile/pages/review/index" bindtap="goLink">
+      <text class="menu-label">状态复核</text><text class="menu-arrow">›</text>
     </view>
     <view class="menu-row contact-menu-row">
       <text class="menu-label">人工协助</text><text class="menu-arrow">›</text>
@@ -82,8 +88,12 @@
     <view class="menu-row" data-url="/subpkg/profile/pages/about/index" bindtap="goLink">
       <text class="menu-label">关于 ROOT</text><text class="menu-arrow">›</text>
     </view>
+    <view class="menu-row" data-url="/pages/health-consent/index?mode=manage" bindtap="goLink">
+      <text class="menu-label">隐私与身体记录授权</text><text class="menu-arrow">›</text>
+    </view>
   </view>
 
   <button class="root-button root-button--secondary logout-btn" bindtap="logout">退出登录</button>
-  <view class="version">v0.4.1</view>
+  <view class="version">v{{appVersion}}</view>
 </view>
+<privacy-consent />

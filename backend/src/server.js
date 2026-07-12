@@ -10,7 +10,7 @@ function shouldUseMysql(env = process.env) {
 }
 
 async function createConfiguredStore(env = process.env) {
-  if (shouldUseMysql(env)) return createMysqlStore(mysqlConfigFromEnv(env));
+  if (shouldUseMysql(env)) return createMysqlStore(mysqlConfigFromEnv(env), { env });
   if (env.ROOT_STORE_ADAPTER === "sqlite" || env.ROOT_SQLITE_FILE) {
     return createSqliteStore(env.ROOT_SQLITE_FILE || "./data/root-checkin.sqlite");
   }
@@ -23,6 +23,7 @@ async function createConfiguredStore(env = process.env) {
 async function main() {
   const storeAdapter = await createConfiguredStore(process.env);
   const server = createApp({ storeAdapter });
+  await server.readyPromise;
   server.listen(port, "0.0.0.0", () => {
     const storeHealth = server.storeAdapter.getStoreHealth ? server.storeAdapter.getStoreHealth() : { kind: server.storeAdapter.kind };
     const storeTarget = server.storeAdapter.filePath
@@ -34,6 +35,25 @@ async function main() {
     console.log(`Admin console: http://127.0.0.1:${port}`);
     console.log(`Store adapter: ${server.storeAdapter.kind}${storeTarget}`);
   });
+
+  let shuttingDown = false;
+  async function shutdown(signal) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`Received ${signal}; draining ROOT check-in backend`);
+    await new Promise((resolve) => server.close(resolve));
+    if (server.storeAdapter && typeof server.storeAdapter.close === "function") {
+      await server.storeAdapter.close();
+    }
+  }
+  process.once("SIGTERM", () => shutdown("SIGTERM").catch((error) => {
+    console.error("Graceful shutdown failed:", error);
+    process.exitCode = 1;
+  }));
+  process.once("SIGINT", () => shutdown("SIGINT").catch((error) => {
+    console.error("Graceful shutdown failed:", error);
+    process.exitCode = 1;
+  }));
 }
 
 if (require.main === module) {

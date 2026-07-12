@@ -7,7 +7,7 @@ const CALIBRATION_SOURCES = [
     sourceType: "YOUZAN_ORDER",
     adapterKind: "YOUZAN_OPEN",
     label: "有赞订单",
-    requiredEnv: ["YOUZAN_CLIENT_ID", "YOUZAN_CLIENT_SECRET", "YOUZAN_ACCESS_TOKEN", "YOUZAN_ORDER_LIST_URL"],
+    requiredEnv: ["YOUZAN_ACCESS_TOKEN", "YOUZAN_ORDER_LIST_URL"],
     optionalEnv: ["YOUZAN_ORDER_LIST_DATA_PATH", "YOUZAN_ORDER_LIST_CURSOR_PATH", "YOUZAN_ORDER_LIST_HAS_MORE_PATH", "YOUZAN_ORDER_FIELD_MAP"],
     fieldMapEnv: "YOUZAN_ORDER_FIELD_MAP",
     playbook: [
@@ -16,6 +16,21 @@ const CALIBRATION_SOURCES = [
       "用 IMPORT 小批量导入 1 页，确认订单可被用户手机号匹配，且游标推进。",
     ],
     rollback: "暂停 YOUZAN_OPEN，继续使用 MANUAL_SAMPLE 或后台手工同步订单。",
+  },
+  {
+    sourceType: "YOUZAN_CUSTOMER",
+    adapterKind: "YOUZAN_CUSTOMER",
+    label: "有赞客户",
+    requiredEnv: ["YOUZAN_CUSTOMER_LIST_URL"],
+    anyOfEnv: [["YOUZAN_CUSTOMER_ACCESS_TOKEN", "YOUZAN_ACCESS_TOKEN"]],
+    optionalEnv: ["YOUZAN_CUSTOMER_LIST_DATA_PATH", "YOUZAN_CUSTOMER_LIST_CURSOR_PATH", "YOUZAN_CUSTOMER_LIST_HAS_MORE_PATH", "YOUZAN_CUSTOMER_FIELD_MAP"],
+    fieldMapEnv: "YOUZAN_CUSTOMER_FIELD_MAP",
+    playbook: [
+      "先用真实客户导出补齐至少 3 条样本，并覆盖 unionid 已授权、仅手机号、未匹配三种情况。",
+      "用 PREVIEW 运行 YOUZAN_CUSTOMER，确认 yzUid、unionid、手机号和昵称字段映射正确。",
+      "用 IMPORT 小批量导入 1 页，确认 youzan_customer 镜像与 root_user_id 补链符合预期。",
+    ],
+    rollback: "暂停 YOUZAN_CUSTOMER，保留订单手机号匹配和手工客户样本导入。",
   },
   {
     sourceType: "FULFILLMENT",
@@ -37,7 +52,7 @@ const CALIBRATION_SOURCES = [
     label: "企业微信线索",
     requiredEnv: ["WEWORK_CORP_ID", "WEWORK_CONTACT_LIST_URL"],
     anyOfEnv: [["WEWORK_CONTACT_SECRET", "WEWORK_CONTACT_ACCESS_TOKEN", "WEWORK_ACCESS_TOKEN"]],
-    optionalEnv: ["WEWORK_CONTACT_LIST_DATA_PATH", "WEWORK_CONTACT_LIST_CURSOR_PATH", "WEWORK_CONTACT_LIST_HAS_MORE_PATH", "WEWORK_CONTACT_FIELD_MAP"],
+    optionalEnv: ["WEWORK_CONTACT_LIST_DATA_PATH", "WEWORK_CONTACT_LIST_CURSOR_PATH", "WEWORK_CONTACT_LIST_HAS_MORE_PATH", "WEWORK_CONTACT_FIELD_MAP", "WEWORK_CONTACT_USERIDS", "WEWORK_TOKEN_URL"],
     fieldMapEnv: "WEWORK_CONTACT_FIELD_MAP",
     playbook: [
       "先用真实企微线索补齐至少 3 条样本，并确认备注名和来源活动的真实格式。",

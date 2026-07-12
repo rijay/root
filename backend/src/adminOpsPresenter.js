@@ -1,7 +1,9 @@
 const orderFulfillment = require("./orderFulfillment");
 
 const TASK_PRIORITY = {
+  YOUZAN_IDENTITY_REVIEW_REQUIRED: { rank: 8, label: "有赞身份待复核", level: "高", tone: "danger" },
   FULFILLMENT_EXCEPTION: { rank: 10, label: "物流异常", level: "高", tone: "danger" },
+  ORDER_IDENTITY_MATCH_CONFLICT: { rank: 12, label: "账号归属冲突", level: "高", tone: "danger" },
   ORDER_PHONE_MATCH_CONFLICT: { rank: 15, label: "手机号匹配冲突", level: "高", tone: "danger" },
   MANUAL_REVIEW_REQUIRED: { rank: 20, label: "需要人工确认", level: "高", tone: "danger" },
   FEEDBACK_FOLLOW: { rank: 30, label: "异常反馈跟进", level: "高", tone: "danger" },

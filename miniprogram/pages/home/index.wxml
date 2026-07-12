@@ -14,7 +14,7 @@
       <view class="root-promise">不追求完美答案，只关注身体反馈</view>
       <view class="root-promise">异常状态可进入人工协助</view>
     </view>
-    <button class="root-button login-button" loading="{{loading}}" open-type="getPhoneNumber" bindgetphonenumber="loginWithPhone">手机号快捷登录</button>
+    <button class="root-button login-button" loading="{{loading}}" bindtap="loginWithWechat">微信身份进入</button>
     <view class="agreement root-agreement">
       <view class="agreement-check" bindtap="toggleAgree">
         <view class="checkbox {{agreed ? 'checked' : ''}}">{{agreed ? '✓' : ''}}</view>
@@ -24,7 +24,7 @@
       <text>和</text>
       <text class="agreement-link" catchtap="openPrivacyPolicy">《隐私政策》</text>
     </view>
-    <view class="root-helper-text login-safe-note">手机号仅用于身份识别与打卡服务，可随时停止记录。</view>
+    <view class="root-helper-text login-safe-note">手机号后续可选补充，用于咨询协助和活动联系。</view>
   </view>
 
   <view wx:elif="{{viewType === 'register'}}" class="root-page register-view">
@@ -61,37 +61,92 @@
   </view>
 
   <view wx:elif="{{viewType === 'activity'}}" class="page activity-view">
-    <view class="root-card section">
-      <view class="eyebrow">以肠为始</view>
-      <view class="home-title">{{homeView.title || 'ROOT 7 日身体重启计划'}}</view>
-      <view class="body">{{homeView.description || '连续7天记录服用、排便与身体反馈。完成有效打卡后，可申请免单奖励。'}}</view>
-    </view>
-    <view class="root-card section">
-      <view class="section-title">{{profileSummary.title}}</view>
-      <view class="profile-summary-list">
-        <view wx:for="{{profileSummary.lines}}" wx:key="*this" class="profile-summary-line">{{item}}</view>
+    <view class="activity-hero">
+      <view class="activity-hero-topline">
+        <view class="eyebrow">myRoot 会员体验</view>
+        <view class="activity-status-pill">{{activityHome.participantText}}</view>
       </view>
-      <view class="body">真正的健康，不是局部修复，而是身体能量重新建立秩序时的安稳与清晰。</view>
-    </view>
-    <view class="activity-visual-card section">
-      <image class="activity-banner" src="/static/banner/activity.png" mode="widthFix" />
-    </view>
-    <view wx:if="{{homeView.orders && homeView.orders.length}}" class="root-card section order-state-card">
-      <view class="section-title">订单与物流</view>
-      <view wx:for="{{homeView.orders}}" wx:key="orderId" class="order-state-row">
-        <view>
-          <view class="row-title">{{item.youzanOrderNo}}</view>
-          <view class="body">{{item.receiverName}} · {{item.deliveryStatusLabel || item.deliveryStatus}}</view>
+      <view class="activity-hero-title">{{activityHome.campaignTitle}}</view>
+      <view class="activity-hero-copy">{{activityHome.campaignCopy}}</view>
+      <view class="activity-progress-shell">
+        <view class="activity-progress-meta">
+          <text>必做任务 {{activityHome.requiredText}}</text>
+          <text>{{activityHome.progressPercent}}%</text>
         </view>
-        <view class="order-state-pill">{{item.deliveryStatus === 'DELIVERED' ? '已送达' : item.deliveryStatus === 'EXCEPTION' ? '异常' : '配送中'}}</view>
+        <view class="root-progress__bar">
+          <view class="root-progress__fill" style="width: {{activityHome.progressPercent}}%;"></view>
+        </view>
       </view>
     </view>
-    <view class="sticky-actions">
-      <button wx:if="{{flowView === 'ORDER_PENDING'}}" class="btn-primary" bindtap="goOrderMatch">确认收货手机号</button>
-      <button wx:elif="{{flowView === 'READY_TO_START'}}" class="btn-primary" bindtap="confirmStart" loading="{{loading}}">开始打卡</button>
-      <button wx:elif="{{flowView === 'WAITING_DELIVERY'}}" class="btn-secondary" bindtap="goOrders">查看订单与物流</button>
-      <button wx:else class="btn-primary" bindtap="confirmStart" loading="{{loading}}">物流送达后开始打卡</button>
-      <button wx:if="{{flowView === 'ORDER_PENDING' || flowView === 'WAITING_DELIVERY'}}" class="btn-outline" bindtap="goSupport">人工协助</button>
+
+    <view class="activity-summary-grid section">
+      <view class="activity-summary-tile">
+        <text>必做</text>
+        <strong>{{activityHome.requiredText}}</strong>
+      </view>
+      <view class="activity-summary-tile">
+        <text>已完成</text>
+        <strong>{{activityHome.completedText}}</strong>
+      </view>
+      <view class="activity-summary-tile">
+        <text>商品</text>
+        <strong>{{activityHome.products.length}}</strong>
+      </view>
+    </view>
+
+    <view wx:if="{{activityHome.primaryTask}}" class="root-card section primary-task-card">
+      <view class="section-head">
+        <view>
+          <view class="eyebrow">今日建议</view>
+          <view class="section-title">{{activityHome.primaryTask.title}}</view>
+        </view>
+        <view class="task-state {{activityHome.primaryTask.statusClass}}">{{activityHome.primaryTask.statusLabel}}</view>
+      </view>
+      <view class="body">{{activityHome.primaryTask.description}}</view>
+      <button class="root-button primary-task-button" loading="{{loading}}" bindtap="openHomePrimaryTask">{{activityHome.primaryTask.actionLabel}}</button>
+    </view>
+
+    <view class="root-card section">
+      <view class="section-head">
+        <view class="section-title">任务进度</view>
+        <view class="section-link" bindtap="goTasks">全部任务</view>
+      </view>
+      <view class="home-task-list">
+        <view wx:for="{{activityHome.tasks}}" wx:key="taskDefinitionId" class="home-task-row" data-task-id="{{item.taskDefinitionId}}" bindtap="openHomeTask">
+          <view class="task-dot {{item.statusClass}}"></view>
+          <view class="home-task-main">
+            <view class="row-title">{{item.title}}</view>
+            <view class="body">{{item.typeLabel}} · {{item.progressText}}</view>
+          </view>
+          <view class="task-state {{item.statusClass}}">{{item.statusLabel}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="root-card section">
+      <view class="section-head">
+        <view>
+          <view class="section-title">Root 会员中心商品</view>
+          <view class="body">myRoot 展示商品，购买在 Root 会员中心完成。</view>
+        </view>
+        <view class="section-link" bindtap="goProducts">商品页</view>
+      </view>
+      <view wx:if="{{activityHome.products.length}}" class="home-product-list">
+        <view wx:for="{{activityHome.products}}" wx:key="productId" class="home-product-row" data-product-id="{{item.productId}}" bindtap="openHomeProduct">
+          <image class="home-product-image" src="{{item.imageUrl || '/static/banner/activity.png'}}" mode="aspectFill" />
+          <view class="home-product-main">
+            <view class="row-title">{{item.title}}</view>
+            <view class="body">{{item.priceText || '价格以 Root 会员中心为准'}}</view>
+          </view>
+        </view>
+      </view>
+      <view wx:else class="root-helper-text empty-home-line">暂无商品快照，可稍后刷新商品页。</view>
+    </view>
+
+    <view class="quick-action-grid section">
+      <view class="quick-action" bindtap="goOrders">订单</view>
+      <view class="quick-action" bindtap="goSupport">咨询</view>
+      <view class="quick-action" bindtap="goRewards">奖励</view>
     </view>
   </view>
 
@@ -169,7 +224,7 @@
       <view class="root-card section">
         <view class="eyebrow">{{isFailed ? '人工协助' : '完成记录'}}</view>
         <view class="home-title">{{isFailed ? '需要人工协助' : '试饮记录已完成'}}</view>
-        <view class="body">{{isFailed ? '当前周期断卡达到3次，请联系 ROOT 顾问确认后续安排。' : '收尾反馈和免单状态会继续保留，你也可以进入日常记录。'}}</view>
+        <view class="body">{{isFailed ? '当前周期断卡达到3次，请联系 ROOT 顾问确认后续安排。' : '收尾反馈和免单状态会继续保留，当前任务完成后无需继续打卡。'}}</view>
       </view>
       <view class="chart-card section">
         <view class="section-title">试饮记录概览</view>
@@ -189,7 +244,7 @@
       </view>
       <view class="button-row section" wx:if="{{!isFailed}}">
         <button class="btn-accent flex-btn" bindtap="goRefund">申请免单</button>
-        <button class="btn-secondary flex-btn" bindtap="continueDaily" loading="{{loading}}">继续打卡</button>
+        <button class="btn-secondary flex-btn" bindtap="goHistory">查看记录</button>
       </view>
     </view>
   </view>
@@ -218,7 +273,7 @@
     <view class="root-card daily-history-entry section" bindtap="goHistory">
       <view>
         <view class="section-title">记录历史</view>
-        <view class="body">查看试饮与日常记录</view>
+      <view class="body">查看已完成的打卡记录</view>
       </view>
       <view class="daily-entry-arrow">›</view>
     </view>

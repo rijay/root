@@ -4,6 +4,11 @@ const { request } = require("../../../../utils/request");
 const { buildSharePosterPayload } = require("../../utils/share-poster");
 const { stoolLabel } = require("../../../../utils/option-labels");
 const router = require("../../../../utils/router");
+const {
+  TRANSIENT_HEALTH_KEYS,
+  consumeTransientHealthData,
+  setTransientHealthData,
+} = require("../../../../utils/transient-health-state");
 
 function yesNo(value) {
   return value ? "有" : "没有";
@@ -84,7 +89,7 @@ Page({
   },
 
   async loadDailyResult() {
-    const cached = wx.getStorageSync("ROOT_LAST_RESULT") || {};
+    const cached = consumeTransientHealthData(TRANSIENT_HEALTH_KEYS.LAST_RESULT, {});
     const [stats, history] = await Promise.all([
       request({ url: "/api/v1/daily/stats" }),
       request({ url: "/api/v1/daily/history?limit=1" }),
@@ -105,7 +110,7 @@ Page({
   },
 
   async loadCheckinResult(failed) {
-    const cached = wx.getStorageSync("ROOT_LAST_RESULT") || {};
+    const cached = consumeTransientHealthData(TRANSIENT_HEALTH_KEYS.LAST_RESULT, {});
     const [sessionData, recordsData] = await Promise.all([
       request({ url: "/api/v1/checkin/session" }),
       request({ url: "/api/v1/checkin/records" }).catch(() => ({ records: [] })),
@@ -144,7 +149,7 @@ Page({
       stats: this.data.stats,
       completedDays: this.data.completedDays,
     });
-    wx.setStorageSync("ROOT_SHARE_POSTER_PAYLOAD", payload);
+    setTransientHealthData(TRANSIENT_HEALTH_KEYS.SHARE_POSTER, payload);
     wx.navigateTo({ url: "/subpkg/checkin/pages/share-poster/index" });
   },
 

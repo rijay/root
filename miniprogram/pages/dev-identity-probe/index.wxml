@@ -1,0 +1,27 @@
+<view class="probe-page">
+  <view class="probe-header">
+    <view class="eyebrow">myRoot</view>
+    <view class="probe-title">内测诊断</view>
+    <view class="probe-meta">{{envSummary}}</view>
+  </view>
+
+  <view class="probe-actions">
+    <button class="root-button" loading="{{running}}" bindtap="runProbe">重新检测</button>
+    <button class="root-button root-button--secondary" bindtap="copyResult">复制结果</button>
+  </view>
+
+  <view wx:for="{{checks}}" wx:key="key" class="root-card probe-card">
+    <view class="probe-card-head">
+      <text>{{item.label}}</text>
+      <text class="probe-status {{item.statusClass}}">{{item.statusText}}</text>
+    </view>
+    <view class="probe-detail">{{item.detail}}</view>
+  </view>
+
+  <view class="root-card probe-card">
+    <view class="probe-card-head">
+      <text>原始结果</text>
+    </view>
+    <text selectable="true" class="probe-raw">{{rawText}}</text>
+  </view>
+</view>

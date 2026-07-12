@@ -2,19 +2,28 @@ const { nowISO, todayISO } = require("./dates");
 const { normalizePhone } = require("./identity");
 const operationTask = require("./operationTask");
 const orderFulfillment = require("./orderFulfillment");
+const youzanCustomerMirror = require("./youzanCustomerMirror");
+const { sanitizeExternalReviewRecord } = require("./externalEvidenceSanitizer");
 const { createId } = require("./seed");
 
 const SOURCE_TYPES = {
   YOUZAN_ORDER: "YOUZAN_ORDER",
+  YOUZAN_CUSTOMER: "YOUZAN_CUSTOMER",
   FULFILLMENT: "FULFILLMENT",
   WECHAT_LEAD: "WECHAT_LEAD",
 };
 
 const SOURCE_LABELS = {
   YOUZAN_ORDER: "有赞订单",
+  YOUZAN_CUSTOMER: "有赞客户",
   FULFILLMENT: "物流状态",
   WECHAT_LEAD: "企业微信线索",
 };
+
+function ensureList(data, key) {
+  if (!Array.isArray(data[key])) data[key] = [];
+  return data[key];
+}
 
 const SAMPLE_TEMPLATES = {
   YOUZAN_ORDER: {
@@ -22,12 +31,25 @@ const SAMPLE_TEMPLATES = {
     label: SOURCE_LABELS.YOUZAN_ORDER,
     requiredSamples: 3,
     requiredFields: ["有赞订单号", "收货手机号"],
-    recommendedFields: ["收货人", "商品名称", "商品ID", "实付金额", "订单状态", "物流状态", "支付时间", "收货地址"],
-    csvHeader: "有赞订单号,收货人,收货手机号,商品名称,商品ID,实付金额,订单状态,物流状态,支付时间,收货地址",
+    recommendedFields: ["有赞客户ID", "unionid", "收货人", "商品名称", "商品ID", "实付金额", "订单状态", "物流状态", "支付时间", "收货地址"],
+    csvHeader: "有赞订单号,有赞客户ID,unionid,收货人,收货手机号,商品名称,商品ID,实付金额,订单状态,物流状态,支付时间,收货地址",
     notes: [
       "至少复制 3 条真实订单，覆盖已发货、已签收或异常等实际状态。",
       "收货手机号用于和小程序用户匹配，不要手工脱敏后再导入。",
       "如果导出没有收货地址，可以先预览，但需要在提醒项里确认是否接受。",
+    ],
+  },
+  YOUZAN_CUSTOMER: {
+    sourceType: "YOUZAN_CUSTOMER",
+    label: SOURCE_LABELS.YOUZAN_CUSTOMER,
+    requiredSamples: 3,
+    requiredFields: ["有赞客户ID"],
+    recommendedFields: ["unionid", "手机号", "昵称"],
+    csvHeader: "有赞客户ID,unionid,手机号,昵称",
+    notes: [
+      "至少复制 3 条真实客户，优先覆盖已授权 unionid、仅手机号、未匹配三种情况。",
+      "unionid 通过微信开放平台认证后可作为跨小程序强匹配证据。",
+      "缺少 unionid 和手机号时会只保存客户镜像，不自动绑定 root_user_id。",
     ],
   },
   FULFILLMENT: {
@@ -61,6 +83,8 @@ const SAMPLE_TEMPLATES = {
 const FIELD_ALIASES = {
   YOUZAN_ORDER: {
     youzanOrderNo: ["youzanOrderNo", "youzan_order_no", "orderNo", "order_no", "订单号", "有赞订单号", "订单编号"],
+    youzanYzUid: ["youzanYzUid", "youzan_yz_uid", "yzUid", "yz_uid", "buyerId", "buyer_id", "fansId", "fans_id", "有赞客户ID", "有赞买家ID", "买家ID"],
+    buyerUnionId: ["buyerUnionId", "buyer_unionid", "unionid", "UnionID", "微信unionid", "微信UnionID"],
     receiverPhone: ["receiverPhone", "receiver_phone", "phone", "手机号", "收货手机号", "收件手机号", "收货人手机号/提货人手机号", "买家手机号"],
     receiverName: ["receiverName", "receiver_name", "receiver", "收货人", "收件人", "收货人/提货人", "买家昵称"],
     productName: ["productName", "product_name", "商品名称", "商品名", "全部商品名称"],
@@ -70,6 +94,13 @@ const FIELD_ALIASES = {
     orderStatus: ["orderStatus", "order_status", "订单状态", "支付状态"],
     deliveryStatus: ["deliveryStatus", "delivery_status", "物流状态", "配送状态", "订单状态"],
     rawAddressText: ["rawAddressText", "raw_address_text", "地址", "收货地址", "原始地址文本", "详细收货地址/提货地址"],
+  },
+  YOUZAN_CUSTOMER: {
+    youzanYzUid: ["youzanYzUid", "youzan_yz_uid", "yzUid", "yz_uid", "buyerId", "buyer_id", "fansId", "fans_id", "customerId", "customer_id", "有赞客户ID", "客户ID", "买家ID"],
+    unionid: ["unionid", "UnionID", "unionId", "union_id", "微信unionid", "微信UnionID"],
+    phone: ["phone", "receiverPhone", "receiver_phone", "mobile", "手机号", "买家手机号", "收货手机号"],
+    nickname: ["nickname", "nickName", "nick_name", "buyerName", "buyer_name", "昵称", "买家昵称", "客户昵称"],
+    rootUserId: ["rootUserId", "root_user_id", "userId", "user_id", "小程序用户ID", "root用户ID"],
   },
   FULFILLMENT: {
     orderId: ["orderId", "order_id"],
@@ -97,6 +128,7 @@ const FIELD_ALIASES = {
 
 const REQUIRED_FIELDS = {
   YOUZAN_ORDER: ["youzanOrderNo", "receiverPhone"],
+  YOUZAN_CUSTOMER: ["youzanYzUid"],
   FULFILLMENT: ["deliveryStatus"],
   WECHAT_LEAD: [],
 };
@@ -194,6 +226,7 @@ function statusMapFor(data, sourceType, field) {
 
 function normalizeField(data, sourceType, field, value) {
   if (field === "receiverPhone") return normalizePhone(value);
+  if (field === "phone") return normalizePhone(value);
   if (field === "amount") return normalizeAmount(value);
   if (field === "deliveryStatus") return normalizeMappedStatus(value, statusMapFor(data, sourceType, field), "NOT_SHIPPED");
   if (field === "orderStatus") return normalizeMappedStatus(value, statusMapFor(data, sourceType, field), "PAID");
@@ -311,6 +344,9 @@ function validateMappedRow(sourceType, mapped) {
   if (sourceType === "WECHAT_LEAD" && !mapped.externalContactId && !mapped.remarkName) {
     errors.push("externalContactId 或 remarkName 至少需要一个");
   }
+  if (sourceType === "YOUZAN_CUSTOMER" && !mapped.unionid && !mapped.phone && !mapped.rootUserId) {
+    warnings.push("缺少 unionid/phone/rootUserId，导入后只保存客户镜像，暂不自动补链");
+  }
   if (mapped.deliveryStatus && !VALID_DELIVERY_STATUSES.has(mapped.deliveryStatus)) {
     errors.push(`deliveryStatus 未知：${mapped.deliveryStatus}`);
   }
@@ -407,6 +443,55 @@ function decisionStatus(result, unknownStatusValues) {
   return "READY";
 }
 
+function resultSummaryForRow(row = {}) {
+  const result = row.result || {};
+  if (result.fulfillment) {
+    return {
+      targetType: "FULFILLMENT",
+      targetId: result.fulfillment.fulfillment_id || "",
+      label: result.order ? result.order.youzanOrderNo || result.order.youzan_order_no || "" : "",
+    };
+  }
+  if (result.lead) {
+    return {
+      targetType: "WECHAT_LEAD",
+      targetId: result.lead.lead_id || "",
+      label: result.lead.external_contact_id || result.lead.wechat_remark_name || "",
+    };
+  }
+  if (result.customer) {
+    return {
+      targetType: "YOUZAN_CUSTOMER",
+      targetId: result.customer.youzan_yz_uid || result.customer.youzanYzUid || "",
+      label: result.customer.nickname || result.customer.youzan_yz_uid || "",
+    };
+  }
+  if (result.order) {
+    return {
+      targetType: "YOUZAN_ORDER",
+      targetId: result.order.orderId || "",
+      label: result.order.youzanOrderNo || "",
+    };
+  }
+  return null;
+}
+
+function reviewRowsFromResult(result = {}) {
+  return (result.rows || []).map((row) => ({
+    index: row.index,
+    source_type: row.sourceType || result.sourceType || "",
+    status: row.status || "",
+    importable: Boolean(row.importable),
+    imported: Boolean(row.imported),
+    raw: sanitizeExternalReviewRecord(row.raw || {}),
+    mapped: sanitizeExternalReviewRecord(row.mapped || {}),
+    field_presence: row.fieldPresence || {},
+    errors: row.errors || [],
+    warnings: row.warnings || [],
+    result_summary: resultSummaryForRow(row),
+  }));
+}
+
 function recordExternalSampleReview(data, mode, result) {
   const unknownStatusValues = collectUnknownStatusValues(result.rows || []);
   const review = {
@@ -422,6 +507,7 @@ function recordExternalSampleReview(data, mode, result) {
     field_coverage: buildFieldCoverage(result.sourceType, result.rows || []),
     missing_required_fields: aggregateErrorsByMessage(result.rows || [], (message) => message.includes("缺失") || message.includes("至少需要一个")),
     unknown_status_values: unknownStatusValues,
+    rows: reviewRowsFromResult(result),
     decision_status: decisionStatus(result, unknownStatusValues),
     created_at: nowISO(),
   };
@@ -430,8 +516,25 @@ function recordExternalSampleReview(data, mode, result) {
   return review;
 }
 
-function listExternalSampleReviews(data, limit = 10) {
-  return ensureSampleReviews(data).slice(0, limit);
+function listExternalSampleReviews(data, options = {}) {
+  const query = typeof options === "number" ? { limit: options } : options;
+  const limit = Number(query.limit || query.pageSize || query.page_size || 10);
+  const reviewId = String(query.reviewId || query.review_id || "").trim();
+  const sourceType = String(query.sourceType || query.source_type || "").trim().toUpperCase();
+  const mode = String(query.mode || "").trim().toUpperCase();
+  const decisionStatus = String(query.decisionStatus || query.decision_status || "").trim().toUpperCase();
+  return ensureSampleReviews(data)
+    .filter((review) => !reviewId || review.review_id === reviewId)
+    .filter((review) => !sourceType || review.source_type === sourceType)
+    .filter((review) => !mode || review.mode === mode)
+    .filter((review) => !decisionStatus || review.decision_status === decisionStatus)
+    .slice(0, limit);
+}
+
+function getExternalSampleReview(data, reviewId) {
+  const normalized = String(reviewId || "").trim();
+  if (!normalized) return null;
+  return ensureSampleReviews(data).find((review) => review.review_id === normalized) || null;
 }
 
 function latestReviewForSource(data, sourceType) {
@@ -644,17 +747,167 @@ function upsertWechatLead(data, mapped, dateText = todayISO()) {
   return { lead, task };
 }
 
+function orderByNo(data, orderNo) {
+  const value = normalizeString(orderNo);
+  if (!value) return null;
+  return data.youzanOrders.find((item) => item.youzan_order_no === value) || null;
+}
+
+function orderByMapped(data, mapped) {
+  const orderId = normalizeString(mapped.orderId || mapped.order_id);
+  if (orderId) return data.youzanOrders.find((item) => item.order_id === orderId) || null;
+  return orderByNo(data, mapped.youzanOrderNo);
+}
+
+function fulfillmentByOrderId(data, orderId) {
+  const value = normalizeString(orderId);
+  if (!value) return null;
+  return data.orderFulfillments.find((item) => item.order_id === value) || null;
+}
+
+function customerByYzUid(data, yzUid) {
+  const value = normalizeString(yzUid);
+  if (!value) return null;
+  return ensureList(data, "youzanCustomers").find((item) => item.youzan_yz_uid === value) || null;
+}
+
+function userIdByLeadMapped(data, mapped) {
+  return mapped.userId || findUserIdByPhone(data, mapped.receiverPhone);
+}
+
+function leadByMapped(data, mapped) {
+  const externalContactId = normalizeString(mapped.externalContactId);
+  if (externalContactId) {
+    const byExternalContactId = ensureLeadProfiles(data).find((item) => item.external_contact_id === externalContactId);
+    if (byExternalContactId) return byExternalContactId;
+  }
+  const userId = userIdByLeadMapped(data, mapped);
+  if (!userId) return null;
+  return ensureLeadProfiles(data).find((item) => item.user_id === userId) || null;
+}
+
+function cloneRecord(record) {
+  return record ? JSON.parse(JSON.stringify(record)) : null;
+}
+
+function rollbackRef(targetType, targetId, label, metadata = {}) {
+  return {
+    targetType,
+    targetId,
+    label: label || targetId,
+    metadata,
+  };
+}
+
+function createRollbackRef(targetType, targetId, label, metadata = {}) {
+  return rollbackRef(targetType, targetId, label, { ...metadata, createdByImport: true });
+}
+
+function restoreRollbackRef(targetType, targetId, label, beforeSnapshot, metadata = {}) {
+  return rollbackRef(targetType, targetId, label, {
+    ...metadata,
+    restoreExisting: true,
+    beforeSnapshot: cloneRecord(beforeSnapshot),
+  });
+}
+
 function importMappedRow(data, sourceType, mapped, dateText) {
   if (sourceType === "YOUZAN_ORDER") {
+    const beforeOrder = orderByNo(data, mapped.youzanOrderNo);
+    const beforeOrderSnapshot = cloneRecord(beforeOrder);
+    const beforeFulfillment = beforeOrder ? fulfillmentByOrderId(data, beforeOrder.order_id) : null;
+    const yzUid = youzanCustomerMirror.customerYzUid(mapped);
+    const beforeCustomer = yzUid ? customerByYzUid(data, yzUid) : null;
+    const beforeCustomerSnapshot = cloneRecord(beforeCustomer);
     const order = orderFulfillment.syncManualOrder(data, mapped);
-    return { order: orderFulfillment.toOrderPayload(data, order) };
+    const afterFulfillment = fulfillmentByOrderId(data, order.order_id);
+    const afterCustomer = yzUid ? customerByYzUid(data, yzUid) : null;
+    const rollbackRefs = [];
+    const rollbackNotes = [];
+    if (!beforeOrder) {
+      rollbackRefs.push(createRollbackRef("YOUZAN_ORDER", order.order_id, order.youzan_order_no, {
+        youzanOrderNo: order.youzan_order_no,
+      }));
+    } else {
+      rollbackRefs.push(restoreRollbackRef("YOUZAN_ORDER", order.order_id, order.youzan_order_no, beforeOrderSnapshot, {
+        youzanOrderNo: order.youzan_order_no,
+      }));
+      rollbackNotes.push("订单已存在，本次导入更新了既有订单；回滚会恢复导入前字段快照，自动匹配产生的运营待办仍需人工核对");
+    }
+    if (!beforeFulfillment && afterFulfillment) {
+      rollbackRefs.push(createRollbackRef("FULFILLMENT", afterFulfillment.fulfillment_id, order.youzan_order_no, {
+        orderId: order.order_id,
+        youzanOrderNo: order.youzan_order_no,
+        rollbackWithOrder: !beforeOrder,
+      }));
+    }
+    if (afterCustomer) {
+      if (beforeCustomer) {
+        rollbackRefs.push(restoreRollbackRef("YOUZAN_CUSTOMER", afterCustomer.youzan_yz_uid, afterCustomer.youzan_yz_uid, beforeCustomerSnapshot));
+        rollbackNotes.push("有赞客户镜像已存在，本次订单导入更新了客户字段；回滚会恢复导入前客户快照");
+      } else {
+        rollbackRefs.push(createRollbackRef("YOUZAN_CUSTOMER", afterCustomer.youzan_yz_uid, afterCustomer.youzan_yz_uid));
+      }
+    }
+    return { result: { order: orderFulfillment.toOrderPayload(data, order) }, rollbackRefs, rollbackNotes };
+  }
+  if (sourceType === "YOUZAN_CUSTOMER") {
+    const yzUid = youzanCustomerMirror.customerYzUid(mapped);
+    const beforeCustomer = customerByYzUid(data, yzUid);
+    const beforeCustomerSnapshot = cloneRecord(beforeCustomer);
+    const result = youzanCustomerMirror.upsertYouzanCustomer(data, mapped, { sourceChannel: "YOUZAN_CUSTOMER_SAMPLE" });
+    const rollbackRefs = beforeCustomer
+      ? [restoreRollbackRef("YOUZAN_CUSTOMER", result.customer.youzan_yz_uid, result.customer.youzan_yz_uid, beforeCustomerSnapshot)]
+      : [createRollbackRef("YOUZAN_CUSTOMER", result.customer.youzan_yz_uid, result.customer.youzan_yz_uid)];
+    const rollbackNotes = beforeCustomer ? ["有赞客户已存在，本次导入更新了既有客户镜像；回滚会恢复导入前字段快照"] : [];
+    return { result, rollbackRefs, rollbackNotes };
   }
   if (sourceType === "FULFILLMENT") {
+    const order = orderByMapped(data, mapped);
+    const beforeOrderSnapshot = cloneRecord(order);
+    const beforeFulfillment = order ? fulfillmentByOrderId(data, order.order_id) : null;
+    const beforeFulfillmentSnapshot = cloneRecord(beforeFulfillment);
     const result = orderFulfillment.updateOrderFulfillment(data, mapped, dateText);
-    return { order: orderFulfillment.toOrderPayload(data, result.order), fulfillment: result.fulfillment, task: result.task };
+    const rollbackRefs = [];
+    if (beforeFulfillment && result.fulfillment) {
+      rollbackRefs.push(restoreRollbackRef("FULFILLMENT", result.fulfillment.fulfillment_id, result.order.youzan_order_no, beforeFulfillmentSnapshot, {
+        orderId: result.order.order_id,
+        youzanOrderNo: result.order.youzan_order_no,
+      }));
+    } else if (result.fulfillment) {
+      rollbackRefs.push(createRollbackRef("FULFILLMENT", result.fulfillment.fulfillment_id, result.order.youzan_order_no, {
+        orderId: result.order.order_id,
+        youzanOrderNo: result.order.youzan_order_no,
+      }));
+    }
+    if (beforeOrderSnapshot && result.order) {
+      rollbackRefs.push(restoreRollbackRef("YOUZAN_ORDER", result.order.order_id, result.order.youzan_order_no, beforeOrderSnapshot, {
+        youzanOrderNo: result.order.youzan_order_no,
+        restoreReason: "FULFILLMENT_ORDER_STATUS",
+      }));
+    }
+    const rollbackNotes = beforeFulfillment ? ["物流记录已存在，本次导入更新了既有物流字段；回滚会恢复物流和订单配送状态快照"] : [];
+    return {
+      result: { order: orderFulfillment.toOrderPayload(data, result.order), fulfillment: result.fulfillment, task: result.task },
+      rollbackRefs,
+      rollbackNotes,
+    };
   }
   if (sourceType === "WECHAT_LEAD") {
-    return upsertWechatLead(data, mapped, dateText);
+    const beforeLead = leadByMapped(data, mapped);
+    const beforeLeadSnapshot = cloneRecord(beforeLead);
+    const result = upsertWechatLead(data, mapped, dateText);
+    const rollbackRefs = beforeLead
+      ? [restoreRollbackRef("WECHAT_LEAD", result.lead.lead_id, result.lead.external_contact_id || result.lead.wechat_remark_name || result.lead.lead_id, beforeLeadSnapshot, {
+        externalContactId: result.lead.external_contact_id || "",
+        remarkName: result.lead.wechat_remark_name || "",
+      })]
+      : [createRollbackRef("WECHAT_LEAD", result.lead.lead_id, result.lead.external_contact_id || result.lead.wechat_remark_name || result.lead.lead_id, {
+        externalContactId: result.lead.external_contact_id || "",
+        remarkName: result.lead.wechat_remark_name || "",
+      })];
+    const rollbackNotes = beforeLead ? ["企微线索已存在，本次导入更新了既有线索；回滚会恢复导入前字段快照"] : [];
+    return { result, rollbackRefs, rollbackNotes };
   }
   throw sampleError(400, "未知样本来源");
 }
@@ -664,11 +917,14 @@ function importExternalSamples(data, sourceType, samples, dateText = todayISO())
   const rows = preview.rows.map((row) => {
     if (!row.importable) return { ...row, imported: false, result: null };
     try {
+      const imported = importMappedRow(data, preview.sourceType, row.mapped, dateText);
       return {
         ...row,
         status: row.warnings.length ? "IMPORTED_WITH_WARNING" : "IMPORTED",
         imported: true,
-        result: importMappedRow(data, preview.sourceType, row.mapped, dateText),
+        result: imported.result,
+        rollbackRefs: imported.rollbackRefs || [],
+        rollbackNotes: imported.rollbackNotes || [],
       };
     } catch (error) {
       return {
@@ -694,6 +950,7 @@ function importExternalSamples(data, sourceType, samples, dateText = todayISO())
 
 module.exports = {
   buildAdapterReadiness,
+  getExternalSampleReview,
   importExternalSamples,
   listExternalSampleReviews,
   listSampleTemplates,

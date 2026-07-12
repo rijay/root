@@ -1,3 +1,6 @@
+const { isOfficialWeworkUrl, resolveWeworkAccessToken } = require("./weworkAccessToken");
+const { assertWeworkBusinessSuccess } = require("./weworkResponse");
+
 function adapterError(code, message, detail) {
   const error = new Error(message);
   error.code = code;
@@ -56,15 +59,25 @@ function valueFor(record, fieldMap, field, fallbackPaths) {
 
 function mapWeworkContact(record, fieldMap) {
   return {
-    userId: valueFor(record, fieldMap, "userId", ["userId", "user_id", "unionid", "openid"]),
-    receiverPhone: valueFor(record, fieldMap, "receiverPhone", ["receiverPhone", "receiver_phone", "phone", "mobile", "remark_mobiles.0", "phones.0", "customer.mobile", "profile.mobile"]),
-    externalContactId: valueFor(record, fieldMap, "externalContactId", ["externalContactId", "external_contact_id", "external_userid", "external_user_id", "userid", "id"]),
-    remarkName: valueFor(record, fieldMap, "remarkName", ["remarkName", "remark_name", "remark", "name", "nickname", "customer.name", "profile.name"]),
-    sourceChannel: valueFor(record, fieldMap, "sourceChannel", ["sourceChannel", "source_channel", "source", "add_way", "channel", "source_from"]),
-    offlineEventName: valueFor(record, fieldMap, "offlineEventName", ["offlineEventName", "offline_event_name", "activity", "activity_name", "event_name", "campaign"]),
+    userId: valueFor(record, fieldMap, "userId", ["userId", "user_id", "unionid", "openid", "external_contact.unionid"]),
+    receiverPhone: valueFor(record, fieldMap, "receiverPhone", ["receiverPhone", "receiver_phone", "phone", "mobile", "remark_mobiles.0", "phones.0", "customer.mobile", "profile.mobile", "follow_info.remark_mobiles.0"]),
+    externalContactId: valueFor(record, fieldMap, "externalContactId", ["externalContactId", "external_contact_id", "external_userid", "external_user_id", "userid", "id", "external_contact.external_userid"]),
+    remarkName: valueFor(record, fieldMap, "remarkName", ["remarkName", "remark_name", "remark", "name", "nickname", "customer.name", "profile.name", "follow_info.remark", "external_contact.name"]),
+    sourceChannel: valueFor(record, fieldMap, "sourceChannel", ["sourceChannel", "source_channel", "source", "add_way", "channel", "source_from", "follow_info.add_way", "follow_info.state"]),
+    offlineEventName: valueFor(record, fieldMap, "offlineEventName", ["offlineEventName", "offline_event_name", "activity", "activity_name", "event_name", "campaign", "follow_info.state"]),
     corpWechatStatus: valueFor(record, fieldMap, "corpWechatStatus", ["corpWechatStatus", "corp_wechat_status", "status", "contact_status", "follow_status", "state", "add_status"]),
-    operatorNote: valueFor(record, fieldMap, "operatorNote", ["operatorNote", "operator_note", "note", "description", "memo", "remark_text"]),
+    operatorNote: valueFor(record, fieldMap, "operatorNote", ["operatorNote", "operator_note", "note", "description", "memo", "remark_text", "follow_info.description"]),
   };
+}
+
+function officialContactUserIds(env) {
+  const extra = parseJsonEnv(env.WEWORK_CONTACT_LIST_EXTRA_PARAMS, {});
+  const configured = extra.userid_list || extra.useridList;
+  if (Array.isArray(configured)) return configured.map(String).map((item) => item.trim()).filter(Boolean);
+  return String(env.WEWORK_CONTACT_USERIDS || env.WEWORK_CONTACT_USERID || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function applyToken(env, url, headers) {
@@ -100,12 +113,14 @@ function applySecret(env, url, headers, params, hasToken) {
 function buildRequest(env, cursor, limit) {
   const url = new URL(env.WEWORK_CONTACT_LIST_URL);
   const method = normalizeMethod(env.WEWORK_CONTACT_LIST_METHOD);
-  const limitParam = env.WEWORK_CONTACT_LIST_LIMIT_PARAM || "page_size";
+  const officialBatch = isOfficialWeworkUrl(url, "/externalcontact/batch/get_by_user");
+  const limitParam = env.WEWORK_CONTACT_LIST_LIMIT_PARAM || (officialBatch ? "limit" : "page_size");
   const cursorParam = env.WEWORK_CONTACT_LIST_CURSOR_PARAM || "cursor";
   const params = {
     ...parseJsonEnv(env.WEWORK_CONTACT_LIST_EXTRA_PARAMS, {}),
     [limitParam]: limit,
   };
+  if (officialBatch && !params.userid_list) params.userid_list = officialContactUserIds(env);
   if (cursor) params[cursorParam] = cursor;
   if (env.WEWORK_CORP_ID_PARAM && env.WEWORK_CORP_ID) params[env.WEWORK_CORP_ID_PARAM] = env.WEWORK_CORP_ID;
 
@@ -130,12 +145,13 @@ async function readResponseJson(response) {
   if (!response.ok) {
     throw adapterError(response.status || 502, `企业微信线索拉取失败：HTTP ${response.status}`, payload);
   }
-  return payload;
+  return assertWeworkBusinessSuccess(payload, "企业微信线索拉取", adapterError);
 }
 
 function normalizeWeworkPayload(payload, env, fieldMap) {
   const records = firstArray(payload, [
     env.WEWORK_CONTACT_LIST_DATA_PATH,
+    "external_contact_list",
     "data.items",
     "data.contacts",
     "data.external_contacts",
@@ -184,11 +200,18 @@ function createWeworkContactImplementation(options = {}) {
     }
     if (typeof fetchImpl !== "function") throw adapterError(500, "当前 Node 环境没有可用 fetch Implementation");
 
-    const fieldMap = normalizeFieldMap(env);
-    const request = buildRequest(env, context.cursor, context.limit);
+    const officialBatch = isOfficialWeworkUrl(env.WEWORK_CONTACT_LIST_URL, "/externalcontact/batch/get_by_user");
+    const runtimeEnv = officialBatch && !env.WEWORK_CONTACT_ACCESS_TOKEN && !env.WEWORK_ACCESS_TOKEN
+      ? { ...env, WEWORK_CONTACT_ACCESS_TOKEN: await resolveWeworkAccessToken(env, { fetchImpl }) }
+      : env;
+    if (officialBatch && !officialContactUserIds(runtimeEnv).length) {
+      throw adapterError(400, "企业微信线索 Adapter 缺少 WEWORK_CONTACT_USERIDS");
+    }
+    const fieldMap = normalizeFieldMap(runtimeEnv);
+    const request = buildRequest(runtimeEnv, context.cursor, context.limit);
     const response = await fetchImpl(request.url, request.init);
     const payload = await readResponseJson(response);
-    return normalizeWeworkPayload(payload, env, fieldMap);
+    return normalizeWeworkPayload(payload, runtimeEnv, fieldMap);
   };
 }
 

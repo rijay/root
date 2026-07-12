@@ -56,9 +56,9 @@ function getAllowedActions(flowView) {
     CHECKIN_ACTIVE: ["OPEN_CHECKIN", "VIEW_HISTORY"],
     DAY4_PENDING: ["OPEN_DAY4_QUESTIONNAIRE", "OPEN_CHECKIN"],
     DAY8_PENDING: ["OPEN_DAY8_QUESTIONNAIRE"],
-    REFUND_PENDING: ["VIEW_REFUND", "CONTINUE_DAILY"],
-    REFUNDED: ["CONTINUE_DAILY"],
-    DAILY: ["OPEN_DAILY_CHECKIN", "VIEW_HISTORY"],
+    REFUND_PENDING: ["VIEW_REFUND"],
+    REFUNDED: ["VIEW_REFUND"],
+    DAILY: ["VIEW_HISTORY"],
   };
   return actions[flowView] || [];
 }
@@ -79,7 +79,7 @@ function getHomeViewModel(data, userId, dateText) {
     DAY4_PENDING: ["中期问卷待完成", "问卷不会阻塞打卡，但能帮助运营及时跟进反馈。"],
     DAY8_PENDING: ["收尾问卷待完成", "完成收尾问卷后才会进入人工退款处理。"],
     REFUND_PENDING: ["等待人工退款", "完成记录后可查看人工退款处理状态。"],
-    DAILY: ["日常记录", "继续记录身体反馈。"],
+    DAILY: ["记录已完成", "当前版本不再开放继续打卡，可查看历史记录。"],
   }[flowView] || ["当前状态", flowView];
 
   return {

@@ -2,7 +2,7 @@ const { request, getToken } = require("./request");
 
 const stateRoutes = {
   GUEST: "/pages/home/index",
-  UNREGISTERED: "/pages/home/index",
+  UNREGISTERED: "/pages/register/index",
   REGISTERED_IDLE: "/pages/home/index",
   CHECKIN_ACTIVE: "/pages/home/index",
   CHECKIN_COMPLETED: "/pages/home/index",
@@ -14,9 +14,17 @@ const routePermissions = {
   "/pages/home/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
   "/pages/login/index": ["GUEST"],
   "/pages/register/index": ["UNREGISTERED"],
+  "/pages/health-consent/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
   "/pages/activity/index": ["REGISTERED_IDLE"],
   "/pages/order/match": ["REGISTERED_IDLE"],
-  "/subpkg/checkin/pages/today/index": ["CHECKIN_ACTIVE", "DAILY_USER"],
+  "/pages/products/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
+  "/pages/product-detail/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
+  "/pages/tasks/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
+  "/pages/rewards/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
+  "/subpkg/task/pages/checkin/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE"],
+  "/subpkg/task/pages/questionnaire/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
+  "/subpkg/task/pages/progress/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
+  "/subpkg/checkin/pages/today/index": ["CHECKIN_ACTIVE"],
   "/subpkg/checkin/pages/history/index": ["CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
   "/subpkg/checkin/pages/result/index": ["CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
   "/subpkg/checkin/pages/share-poster/index": ["CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "DAILY_USER"],
@@ -25,12 +33,13 @@ const routePermissions = {
   "/subpkg/refund/pages/status/index": ["CHECKIN_COMPLETED", "DAILY_USER"],
   "/subpkg/profile/pages/tags/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
   "/subpkg/profile/pages/orders/index": ["REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
+  "/subpkg/profile/pages/review/index": ["REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
   "/subpkg/profile/pages/about/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
   "/subpkg/profile/pages/support/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
   "/pages/profile/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
 };
 
-const tabRoutes = ["/pages/home/index", "/pages/profile/index"];
+const tabRoutes = ["/pages/home/index", "/pages/products/index", "/pages/tasks/index", "/pages/rewards/index"];
 
 function normalize(route) {
   if (!route) return "";

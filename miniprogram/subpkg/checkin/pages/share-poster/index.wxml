@@ -16,3 +16,4 @@
     <view class="share-link" bindtap="goHome">返回首页</view>
   </view>
 </view>
+<privacy-consent />

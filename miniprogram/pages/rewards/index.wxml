@@ -1,0 +1,77 @@
+<view class="root-page rewards-page">
+  <view class="rewards-hero">
+    <image class="rewards-logo" src="/static/brand/root-logo-horizontal.png" mode="aspectFit" />
+    <view class="rewards-title">结算奖励</view>
+    <view class="rewards-copy">奖励由活动规则统一判断，优惠券、免单机会和人工复核都会保留记录。</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="root-card state-card">
+    <view class="root-helper-text">正在加载奖励状态...</view>
+  </view>
+
+  <view wx:elif="{{errorText}}" class="root-card state-card">
+    <view class="root-section-title">奖励状态暂未加载</view>
+    <view class="root-helper-text">{{errorText}}</view>
+    <button class="root-button state-btn" bindtap="load">重新加载</button>
+  </view>
+
+  <view wx:else>
+    <view class="reward-status-card">
+      <view class="reward-percent">{{progress.summary.progressPercent || 0}}%</view>
+      <view class="reward-title">{{statusTitle}}</view>
+      <view class="reward-copy">{{statusCopy}}</view>
+      <view wx:if="{{latestSettlement}}" class="settlement-meta">
+        最近结算：{{latestSettlement.statusLabel}} · {{latestSettlement.evaluatedAt}}
+      </view>
+      <view class="reward-actions">
+        <button class="root-button" loading="{{evaluating}}" bindtap="submitSettlement">{{primaryAction}}</button>
+        <button class="root-button root-button--secondary" bindtap="openProgress">查看条件</button>
+      </view>
+    </view>
+
+    <view class="root-card condition-card">
+      <view class="root-section-title">当前达标条件</view>
+      <view wx:for="{{conditions}}" wx:key="label" class="condition-row {{item.statusClass}}">
+        <view>
+          <view class="condition-title">{{item.title}}</view>
+          <view class="condition-copy">{{item.label}}</view>
+        </view>
+        <view class="condition-status">
+          <view>{{item.statusLabel}}</view>
+          <view class="condition-progress">{{item.progressText}}</view>
+        </view>
+      </view>
+      <view wx:if="{{!conditions.length}}" class="root-helper-text">活动规则待配置。</view>
+    </view>
+
+    <view class="root-card reward-record-card">
+      <view class="root-section-title">奖励记录</view>
+      <view wx:for="{{rewardGrants}}" wx:key="rewardGrantId" class="reward-record-row">
+        <view>
+          <view class="reward-record-title">{{item.title}}</view>
+          <view class="reward-record-copy">{{item.description}}</view>
+        </view>
+        <text>{{item.statusLabel}}</text>
+      </view>
+      <view wx:if="{{!rewardGrants.length}}" class="reward-note">达成条件并提交结算后，这里会显示优惠券、免单机会等记录。</view>
+    </view>
+
+    <view class="root-card review-card">
+      <view class="review-card-head">
+        <view>
+          <view class="root-section-title">人工复核</view>
+          <view class="review-card-copy">免单机会或异常奖励会进入运营复核。</view>
+        </view>
+        <button class="review-link-btn" bindtap="openReviewPage">查看进度</button>
+      </view>
+      <view wx:for="{{manualReviews}}" wx:key="reviewItemId" class="reward-record-row">
+        <view>
+          <view class="reward-record-title">{{item.reviewType}}</view>
+          <view class="reward-record-copy">{{item.reason}}</view>
+        </view>
+        <text>{{item.statusLabel}}</text>
+      </view>
+      <view wx:if="{{!manualReviews.length}}" class="reward-note">需要运营判断的奖励会进入复核队列。</view>
+    </view>
+  </view>
+</view>

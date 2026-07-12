@@ -1,0 +1,104 @@
+<view class="root-page review-page">
+  <view class="review-hero {{heroClass}}">
+    <view class="eyebrow">状态复核</view>
+    <view class="review-title">{{heroTitle}}</view>
+    <view class="review-copy">{{heroCopy}}</view>
+    <view class="review-actions">
+      <button class="root-button" bindtap="handlePrimaryAction">{{primaryAction}}</button>
+      <button class="root-button root-button--secondary" bindtap="handleSecondaryAction">{{secondaryAction}}</button>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="root-card state-card">
+    <view class="root-helper-text">正在加载复核状态...</view>
+  </view>
+
+  <view wx:elif="{{errorText}}" class="root-card state-card">
+    <view class="root-section-title">复核状态暂未加载</view>
+    <view class="root-helper-text">{{errorText}}</view>
+    <button class="root-button state-btn" bindtap="load">重新加载</button>
+  </view>
+
+  <view wx:else>
+    <view wx:if="{{openReviews.length}}" class="root-card review-section">
+      <view class="section-head">
+        <view>
+          <view class="root-section-title">待处理复核</view>
+          <view class="section-copy">{{openReviewSectionCopy}}</view>
+        </view>
+        <view class="count-pill">{{openReviews.length}} 项</view>
+      </view>
+      <view wx:for="{{openReviews}}" wx:key="reviewItemId" class="review-item {{item.statusClass}}">
+        <view class="review-item-top">
+          <view>
+            <view class="review-type">{{item.reviewTypeLabel}}</view>
+            <view class="review-reason">{{item.reason}}</view>
+          </view>
+          <view class="status-pill {{item.statusClass}}">{{item.statusLabel}}</view>
+        </view>
+        <view class="review-meta">
+          <text>{{item.priorityLabel}}</text>
+          <text wx:if="{{item.createdAtText}}">创建 {{item.createdAtText}}</text>
+          <text wx:if="{{item.slaText}}">{{item.slaText}}</text>
+        </view>
+        <view wx:if="{{item.hasExplanation}}" class="review-explanation">
+          <view wx:if="{{item.explanationTitle}}" class="review-explanation-title">{{item.explanationTitle}}</view>
+          <view wx:if="{{item.pendingReason}}" class="review-explanation-copy">{{item.pendingReason}}</view>
+          <view wx:if="{{item.evidenceRequired.length}}" class="review-evidence">
+            <text wx:for="{{item.evidenceRequired}}" wx:for-item="evidence" wx:key="*this">{{evidence}}</text>
+          </view>
+          <view wx:if="{{item.nextAction}}" class="review-explanation-copy">{{item.nextAction}}</view>
+        </view>
+        <view wx:if="{{item.statusCopy}}" class="review-note">{{item.statusCopy}}</view>
+      </view>
+    </view>
+
+    <view class="root-card settlement-card">
+      <view class="root-section-title">最近结算</view>
+      <view wx:if="{{latestSettlement}}" class="settlement-row">
+        <view>
+          <view class="settlement-status">{{latestSettlement.statusLabel}}</view>
+          <view class="settlement-meta">规则版本 v{{latestSettlement.ruleVersion}} · {{latestSettlement.evaluatedAtText}}</view>
+        </view>
+        <view class="settlement-badge">{{latestSettlement.statusLabel}}</view>
+      </view>
+      <view wx:else class="empty-note">还没有结算记录。完成活动条件后，可在奖励页提交结算。</view>
+    </view>
+
+    <view class="root-card reward-card">
+      <view class="root-section-title">关联奖励</view>
+      <view wx:for="{{rewards}}" wx:key="rewardGrantId" class="reward-row">
+        <view>
+          <view class="reward-title">{{item.title}}</view>
+          <view class="reward-copy">{{item.description}}</view>
+        </view>
+        <text>{{item.statusLabel}}</text>
+      </view>
+      <view wx:if="{{!rewards.length}}" class="empty-note">暂无奖励记录。提交结算后，优惠券、免单机会等会在这里同步。</view>
+    </view>
+
+    <view wx:if="{{reviewHistory.length}}" class="root-card review-section">
+      <view class="root-section-title">历史复核</view>
+      <view wx:for="{{reviewHistory}}" wx:key="reviewItemId" class="review-item history {{item.statusClass}}">
+        <view class="review-item-top">
+          <view>
+            <view class="review-type">{{item.reviewTypeLabel}}</view>
+            <view class="review-reason">{{item.reason}}</view>
+          </view>
+          <view class="status-pill {{item.statusClass}}">{{item.statusLabel}}</view>
+        </view>
+        <view class="review-meta">
+          <text wx:if="{{item.createdAtText}}">创建 {{item.createdAtText}}</text>
+          <text wx:if="{{item.resolvedAtText}}">处理 {{item.resolvedAtText}}</text>
+          <text wx:if="{{item.slaText}}">{{item.slaText}}</text>
+        </view>
+        <view wx:if="{{item.publicNote || item.statusCopy}}" class="review-note done">
+          {{item.publicNote || item.statusCopy}}
+        </view>
+        <view wx:if="{{item.hasExplanation && item.nextAction}}" class="review-explanation done">
+          <view class="review-explanation-copy">{{item.nextAction}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

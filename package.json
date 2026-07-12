@@ -1,9 +1,14 @@
 {
   "name": "root-seven-day-checkin",
-  "version": "0.4.1",
+  "version": "0.5.6",
   "private": true,
   "description": "ROOT 7 day check-in mini-program and operations backend",
   "scripts": {
+    "admin:check": "npm run check --prefix admin",
+    "admin:build": "npm run build --prefix admin",
+    "deploy:prepare-admin": "node scripts/prepare-backend-admin-dist.js --clean",
+    "release:manifest:miniprogram": "node scripts/miniprogram-release-manifest.js",
+    "verify:canary": "node scripts/production-canary-verify.js",
     "verify": "node scripts/final-verification.js"
   },
   "engines": {

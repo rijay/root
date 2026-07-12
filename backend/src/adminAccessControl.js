@@ -1,0 +1,79 @@
+const ADMIN_CAPABILITIES = {
+  ADMIN_READ: "ADMIN_READ",
+  AUDIT_READ: "AUDIT_READ",
+  CONFIG_WRITE: "CONFIG_WRITE",
+  REVIEW_RESOLVE: "REVIEW_RESOLVE",
+  REWARD_DELIVERY_WRITE: "REWARD_DELIVERY_WRITE",
+  SETTLEMENT_EXECUTE: "SETTLEMENT_EXECUTE",
+  DATA_EXPORT_APPROVE: "DATA_EXPORT_APPROVE",
+};
+
+const ROLE_CAPABILITIES = {
+  admin: new Set(Object.values(ADMIN_CAPABILITIES)),
+  job: new Set([
+    ADMIN_CAPABILITIES.ADMIN_READ,
+    ADMIN_CAPABILITIES.CONFIG_WRITE,
+    ADMIN_CAPABILITIES.SETTLEMENT_EXECUTE,
+    ADMIN_CAPABILITIES.DATA_EXPORT_APPROVE,
+  ]),
+  operator: new Set([
+    ADMIN_CAPABILITIES.ADMIN_READ,
+    ADMIN_CAPABILITIES.AUDIT_READ,
+    ADMIN_CAPABILITIES.CONFIG_WRITE,
+    ADMIN_CAPABILITIES.REVIEW_RESOLVE,
+    ADMIN_CAPABILITIES.REWARD_DELIVERY_WRITE,
+    ADMIN_CAPABILITIES.SETTLEMENT_EXECUTE,
+  ]),
+  finance: new Set([
+    ADMIN_CAPABILITIES.ADMIN_READ,
+    ADMIN_CAPABILITIES.AUDIT_READ,
+    ADMIN_CAPABILITIES.REVIEW_RESOLVE,
+    ADMIN_CAPABILITIES.REWARD_DELIVERY_WRITE,
+    ADMIN_CAPABILITIES.SETTLEMENT_EXECUTE,
+    ADMIN_CAPABILITIES.DATA_EXPORT_APPROVE,
+  ]),
+  viewer: new Set([
+    ADMIN_CAPABILITIES.ADMIN_READ,
+    ADMIN_CAPABILITIES.AUDIT_READ,
+  ]),
+};
+
+function businessError(code, message, status = 200) {
+  const error = new Error(message);
+  error.code = code;
+  error.status = status;
+  return error;
+}
+
+function normalizeRole(role) {
+  const text = String(role || "viewer").trim().toLowerCase();
+  return ROLE_CAPABILITIES[text] ? text : "viewer";
+}
+
+function capabilitiesForRole(role) {
+  return ROLE_CAPABILITIES[normalizeRole(role)] || ROLE_CAPABILITIES.viewer;
+}
+
+function capabilityListForRole(role) {
+  return Array.from(capabilitiesForRole(role));
+}
+
+function hasAdminCapability(principal, capability) {
+  if (!principal) return false;
+  if (principal.tokenConfigured === false) return true;
+  return capabilitiesForRole(principal.role).has(capability);
+}
+
+function requireAdminCapability(principal, capability) {
+  if (hasAdminCapability(principal, capability)) return true;
+  throw businessError(40301, "当前后台角色无权执行该操作", 403);
+}
+
+module.exports = {
+  ADMIN_CAPABILITIES,
+  capabilityListForRole,
+  capabilitiesForRole,
+  hasAdminCapability,
+  normalizeRole,
+  requireAdminCapability,
+};

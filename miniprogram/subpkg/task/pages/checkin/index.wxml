@@ -1,0 +1,35 @@
+<view class="root-page task-submit-page">
+  <view class="submit-header">
+    <view class="eyebrow">今日任务</view>
+    <view class="submit-title">身体记录</view>
+    <view class="submit-copy">记录今天的服用、排便和主观感受。提交会写入任务事实。</view>
+  </view>
+
+  <view class="root-card submit-card">
+    <view class="root-section-title">今天是否使用 ROOT 产品？</view>
+    <view class="choice-row">
+      <view class="choice {{tookProduct === true ? 'active' : ''}}" data-field="tookProduct" data-value="true" bindtap="selectBoolean">已使用</view>
+      <view class="choice {{tookProduct === false ? 'active' : ''}}" data-field="tookProduct" data-value="false" bindtap="selectBoolean">暂未使用</view>
+    </view>
+  </view>
+
+  <view class="root-card submit-card">
+    <view class="root-section-title">今天是否有排便？</view>
+    <view class="choice-row">
+      <view class="choice {{hadStool === true ? 'active' : ''}}" data-field="hadStool" data-value="true" bindtap="selectBoolean">有</view>
+      <view class="choice {{hadStool === false ? 'active' : ''}}" data-field="hadStool" data-value="false" bindtap="selectBoolean">没有</view>
+    </view>
+    <view wx:if="{{hadStool}}" class="stool-options">
+      <view wx:for="{{stoolOptions}}" wx:key="value" class="stool-option {{stoolType === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="selectStool">{{item.label}}</view>
+    </view>
+  </view>
+
+  <view class="root-card submit-card">
+    <view class="root-section-title">补充反馈</view>
+    <textarea class="feedback-input" maxlength="120" placeholder="可选，记录今天的感受" value="{{feedback}}" bindinput="onFeedbackInput" />
+  </view>
+
+  <view class="sticky-actions">
+    <button class="root-button" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">提交记录</button>
+  </view>
+</view>

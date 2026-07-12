@@ -3,7 +3,12 @@
     "pages/home/index",
     "pages/login/index",
     "pages/legal/index",
+    "pages/health-consent/index",
     "pages/register/index",
+    "pages/products/index",
+    "pages/product-detail/index",
+    "pages/tasks/index",
+    "pages/rewards/index",
     "pages/activity/index",
     "pages/order/match",
     "pages/profile/index"
@@ -31,8 +36,17 @@
       "pages": [
         "pages/tags/index",
         "pages/orders/index",
+        "pages/review/index",
         "pages/about/index",
         "pages/support/index"
+      ]
+    },
+    {
+      "root": "subpkg/task",
+      "pages": [
+        "pages/checkin/index",
+        "pages/questionnaire/index",
+        "pages/progress/index"
       ]
     }
   ],
@@ -41,6 +55,9 @@
     "navigationBarBackgroundColor": "#FDFBF6",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#F7F4EC"
+  },
+  "usingComponents": {
+    "privacy-consent": "/components/privacy-consent/index"
   },
   "tabBar": {
     "color": "#8A8172",
@@ -55,10 +72,22 @@
         "selectedIconPath": "static/tabbar/home_active.png"
       },
       {
-        "pagePath": "pages/profile/index",
-        "text": "我的",
-        "iconPath": "static/tabbar/profile.png",
-        "selectedIconPath": "static/tabbar/profile_active.png"
+        "pagePath": "pages/products/index",
+        "text": "商品",
+        "iconPath": "static/icon/shop.png",
+        "selectedIconPath": "static/icon/shop.png"
+      },
+      {
+        "pagePath": "pages/tasks/index",
+        "text": "任务",
+        "iconPath": "static/icon/checkin.png",
+        "selectedIconPath": "static/icon/checkin.png"
+      },
+      {
+        "pagePath": "pages/rewards/index",
+        "text": "奖励",
+        "iconPath": "static/icon/refund.png",
+        "selectedIconPath": "static/icon/refund.png"
       }
     ]
   },

@@ -18,6 +18,7 @@ function getEnv(env, names) {
 
 function storeCheck(storeAdapter, target) {
   const kind = storeAdapter && storeAdapter.kind ? storeAdapter.kind : "memory";
+  const health = storeAdapter && typeof storeAdapter.getStoreHealth === "function" ? storeAdapter.getStoreHealth() : {};
   if (target === "production") {
     if (kind === "memory") {
       return makeCheck("store_adapter", "数据仓库 Adapter", "BLOCKER", "正式上线不能使用内存 Adapter，重启会丢失用户和订单记录。", { kind });
@@ -29,13 +30,40 @@ function storeCheck(storeAdapter, target) {
       return makeCheck("store_adapter", "数据仓库 Adapter", "BLOCKER", "SQLite Adapter 只适合本地验证或极小范围灰度；云托管正式环境重启、扩容或迁移时可能丢失 /tmp 数据，0.4.0 正式上线必须切换 MySQL Adapter。", { kind });
     }
     if (kind === "mysql") {
-      return makeCheck("store_adapter", "数据仓库 Adapter", "PASS", "已启用 MySQL 持久化 Adapter，可支撑云托管正式环境重启后的用户、订单和运营状态保留。", { kind });
+      const productionReady = health.connected !== false && health.transactional === true && health.multiInstanceSafe === true &&
+        Boolean(health.migrationVersion) && health.projectionMode === "core-relational";
+      if (productionReady) {
+        return makeCheck("store_adapter", "数据仓库 Adapter", "PASS", "MySQL Adapter 已启用事务提交、版本化迁移与核心关系表同步。", {
+          kind,
+          connected: true,
+          migrationVersion: health.migrationVersion,
+          revision: health.revision,
+          projectionMode: health.projectionMode,
+        });
+      }
+      return makeCheck(
+        "store_adapter",
+        "数据仓库 Adapter",
+        "BLOCKER",
+        "MySQL Adapter 尚未证明事务、多实例一致性、迁移版本和核心关系表同步均已就绪。",
+        {
+          kind,
+          connected: health.connected !== false,
+          transactional: health.transactional === true,
+          multiInstanceSafe: health.multiInstanceSafe === true,
+          migrationVersion: health.migrationVersion || "",
+          projectionMode: health.projectionMode || "",
+        }
+      );
     }
     return makeCheck("store_adapter", "数据仓库 Adapter", "BLOCKER", "0.4.0 正式上线要求使用 MySQL Adapter，并完成备份与回滚验证。", { kind });
   }
 
   if (kind === "memory") {
     return makeCheck("store_adapter", "数据仓库 Adapter", "WARNING", "当前为内存 Adapter，只适合演示；运营试跑建议设置 ROOT_STORE_FILE 或 ROOT_STORE_ADAPTER=mysql。", { kind });
+  }
+  if (kind === "mysql" && health.connected === false) {
+    return makeCheck("store_adapter", "数据仓库 Adapter", "WARNING", "MySQL Adapter 当前连接异常，灰度前需要恢复数据库连接。", { kind, connected: false });
   }
   return makeCheck("store_adapter", "数据仓库 Adapter", "PASS", "当前 Adapter 可支撑内部灰度试跑。", { kind });
 }

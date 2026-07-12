@@ -1,10 +1,10 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const { mysqlConfigFromEnv, validateSnapshot } = require("../src/store");
+const { mysqlConfigFromEnv, normalizeStoreData, parseMysqlPayload, validateSnapshot } = require("../src/store");
 
 function parseArgs(argv = process.argv.slice(2)) {
-  const args = { mode: "", filePath: "" };
+  const args = { mode: "", filePath: "", normalize: argv.includes("--normalize") };
   for (let index = 0; index < argv.length; index += 1) {
     const item = argv[index];
     if (item === "--json") {
@@ -40,8 +40,8 @@ function readSqliteSnapshot(filePath) {
   }
 }
 
-async function readMysqlSnapshot(env = process.env) {
-  const mysql = require("mysql2/promise");
+async function readMysqlSnapshot(env = process.env, options = {}) {
+  const mysql = options.mysqlImpl || require("mysql2/promise");
   const config = mysqlConfigFromEnv(env);
   const connection = await mysql.createConnection({
     host: config.host,
@@ -55,7 +55,7 @@ async function readMysqlSnapshot(env = process.env) {
   try {
     const [rows] = await connection.execute("SELECT payload_json FROM root_store_snapshot WHERE store_key = ?", ["root-checkin"]);
     if (!rows[0]) throw new Error("MySQL snapshot row not found");
-    return JSON.parse(rows[0].payload_json);
+    return parseMysqlPayload(rows[0].payload_json);
   } finally {
     await connection.end();
   }
@@ -70,9 +70,11 @@ async function loadSnapshot(args) {
 
 async function main() {
   const args = parseArgs();
-  const snapshot = await loadSnapshot(args);
+  const rawSnapshot = await loadSnapshot(args);
+  const snapshot = args.normalize ? normalizeStoreData(rawSnapshot, { seedSampleData: false }) : rawSnapshot;
   const report = {
     source: args.mode,
+    normalized: args.normalize,
     checkedAt: new Date().toISOString(),
     ...validateSnapshot(snapshot),
   };

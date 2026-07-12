@@ -6,6 +6,7 @@ const { createDefaultAdapterImplementations } = require("./externalAdapterImplem
 const ADAPTER_KINDS = {
   MANUAL_SAMPLE: "MANUAL_SAMPLE",
   YOUZAN_OPEN: "YOUZAN_OPEN",
+  YOUZAN_CUSTOMER: "YOUZAN_CUSTOMER",
   FULFILLMENT_PUSH: "FULFILLMENT_PUSH",
   WEWORK_CONTACT: "WEWORK_CONTACT",
 };
@@ -15,9 +16,17 @@ const REAL_ADAPTER_CONFIGS = [
     sourceType: "YOUZAN_ORDER",
     label: "有赞订单 Adapter",
     adapterKind: ADAPTER_KINDS.YOUZAN_OPEN,
-    requiredEnv: ["YOUZAN_CLIENT_ID", "YOUZAN_CLIENT_SECRET"],
+    requiredEnv: ["YOUZAN_ACCESS_TOKEN", "YOUZAN_ORDER_LIST_URL"],
     cursorLabel: "订单增量游标",
     nextAction: "配置有赞凭证后启用订单拉取 Implementation。",
+  },
+  {
+    sourceType: "YOUZAN_CUSTOMER",
+    label: "有赞客户 Adapter",
+    adapterKind: ADAPTER_KINDS.YOUZAN_CUSTOMER,
+    requiredEnv: ["YOUZAN_CUSTOMER_LIST_URL"],
+    cursorLabel: "客户增量游标",
+    nextAction: "配置有赞客户列表 URL 和 token 后启用客户镜像拉取 Implementation。",
   },
   {
     sourceType: "FULFILLMENT",
@@ -80,6 +89,11 @@ function listAdapterRuns(data, limit = 20) {
 
 function listAdapterCursors(data) {
   return ensureAdapterCursors(data).slice();
+}
+
+function findAdapterRun(data, runId) {
+  if (!runId) return null;
+  return ensureAdapterRuns(data).find((item) => item.run_id === runId) || null;
 }
 
 function cursorFor(data, sourceType, adapterKind) {
@@ -246,7 +260,89 @@ function upsertAdapterCursor(data, run) {
   return cursor;
 }
 
-function buildRunBase(sourceType, adapterKind, mode, startedAt, fetched) {
+function rollbackTargetsFromResult(result = {}) {
+  return (result.rows || [])
+    .filter((row) => row.imported)
+    .flatMap((row) => row.rollbackRefs || [])
+    .filter((target) => target && target.targetType && target.targetId);
+}
+
+function rollbackNotesFromResult(result = {}) {
+  return (result.rows || [])
+    .flatMap((row) => row.rollbackNotes || [])
+    .filter(Boolean);
+}
+
+function retrySourceRunIdFromBody(body = {}) {
+  return body.retrySourceRunId || body.retry_source_run_id || body.sourceRunId || body.source_run_id || "";
+}
+
+function retryAttemptFromBody(data, body = {}) {
+  const explicit = Number(body.retryAttempt || body.retry_attempt);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const sourceRun = findAdapterRun(data, retrySourceRunIdFromBody(body));
+  const previousAttempt = Number(sourceRun && sourceRun.retry_attempt) || 0;
+  return previousAttempt ? previousAttempt + 1 : 1;
+}
+
+function retryDelayMinutes(attempt) {
+  const schedule = [5, 15, 60, 240, 720];
+  const index = Math.min(schedule.length - 1, Math.max(0, Number(attempt || 1) - 1));
+  return schedule[index];
+}
+
+function nextRetryAt(attempt, startedAt) {
+  const base = startedAt ? new Date(String(startedAt).replace("+08:00", "+08:00")) : new Date();
+  const date = Number.isNaN(base.getTime()) ? new Date() : base;
+  return nowISO(new Date(date.getTime() + retryDelayMinutes(attempt) * 60 * 1000));
+}
+
+function numericErrorCode(error) {
+  const value = Number(error && (error.status || error.code));
+  return Number.isFinite(value) ? value : 500;
+}
+
+function isRetryableFailure(error, adapterKind) {
+  if (!isRealAdapter(adapterKind)) return false;
+  const code = numericErrorCode(error);
+  if ([408, 409, 425, 429].includes(code)) return true;
+  if (code >= 500) return true;
+  return ["ETIMEDOUT", "ECONNRESET", "EAI_AGAIN", "ENOTFOUND"].includes(String(error && error.code || "").toUpperCase());
+}
+
+function retryFieldsForFailure(data, body, adapterKind, error, startedAt) {
+  const retryAttempt = retryAttemptFromBody(data, body);
+  const retryable = isRetryableFailure(error, adapterKind);
+  return {
+    retry_status: retryable ? "RETRYABLE" : "MANUAL_REVIEW",
+    retry_attempt: retryAttempt,
+    retry_source_run_id: retrySourceRunIdFromBody(body),
+    retry_reason: error && error.message ? error.message : "Adapter 运行失败",
+    next_retry_at: retryable ? nextRetryAt(retryAttempt, startedAt) : "",
+  };
+}
+
+function retryFieldsForSuccess(data, body = {}) {
+  const retrySourceRunId = retrySourceRunIdFromBody(body);
+  if (!retrySourceRunId) {
+    return {
+      retry_status: "NOT_REQUIRED",
+      retry_attempt: 0,
+      retry_source_run_id: "",
+      retry_reason: "",
+      next_retry_at: "",
+    };
+  }
+  return {
+    retry_status: "RETRY_SUCCEEDED",
+    retry_attempt: retryAttemptFromBody(data, body),
+    retry_source_run_id: retrySourceRunId,
+    retry_reason: "",
+    next_retry_at: "",
+  };
+}
+
+function buildRunBase(sourceType, adapterKind, mode, startedAt, fetched, retryFields = {}) {
   return {
     run_id: createId("adr"),
     source_type: sourceType,
@@ -264,6 +360,19 @@ function buildRunBase(sourceType, adapterKind, mode, startedAt, fetched) {
     cursor_after: fetched ? fetched.cursorAfter || "" : "",
     has_more: fetched ? Boolean(fetched.hasMore) : false,
     review_id: "",
+    rollback_status: "NOT_AVAILABLE",
+    rollback_targets: [],
+    rollback_notes: [],
+    rollback_result: null,
+    rollback_request_id: "",
+    rollback_reason: "",
+    rollback_operator_id: "",
+    rolled_back_at: "",
+    retry_status: retryFields.retry_status || "NOT_REQUIRED",
+    retry_attempt: Number(retryFields.retry_attempt || 0),
+    retry_source_run_id: retryFields.retry_source_run_id || "",
+    retry_reason: retryFields.retry_reason || "",
+    next_retry_at: retryFields.next_retry_at || "",
     error_code: "",
     error_message: "",
     started_at: startedAt,
@@ -292,7 +401,7 @@ async function runAdapter(data, body = {}, options = {}) {
       : externalAdapterSamples.previewExternalSamples(data, sourceType, fetched.input);
     const review = externalAdapterSamples.recordExternalSampleReview(data, mode === "IMPORT" ? "ADAPTER_IMPORT" : "ADAPTER_PREVIEW", result);
     const run = recordAdapterRun(data, {
-      ...buildRunBase(sourceType, adapterKind, mode, startedAt, fetched),
+      ...buildRunBase(sourceType, adapterKind, mode, startedAt, fetched, retryFieldsForSuccess(data, body)),
       status: result.errorCount ? "COMPLETED_WITH_ERRORS" : "COMPLETED",
       total: result.total || 0,
       importable_count: result.importableCount || 0,
@@ -300,6 +409,11 @@ async function runAdapter(data, body = {}, options = {}) {
       error_count: result.errorCount || 0,
       warning_count: result.warningCount || 0,
       review_id: review.review_id,
+      rollback_status: mode === "IMPORT" ? "NOT_APPLIED" : "NOT_AVAILABLE",
+      rollback_targets: mode === "IMPORT" ? rollbackTargetsFromResult(result) : [],
+      rollback_notes: mode === "IMPORT" ? rollbackNotesFromResult(result) : [],
+      rollback_result: null,
+      rolled_back_at: "",
       finished_at: nowISO(),
     });
     const cursor = shouldCommitCursor(adapterKind, mode, body) ? upsertAdapterCursor(data, run) : null;
@@ -314,7 +428,7 @@ async function runAdapter(data, body = {}, options = {}) {
     };
   } catch (error) {
     const run = recordAdapterRun(data, {
-      ...buildRunBase(sourceType, adapterKind, mode, startedAt, fetched),
+      ...buildRunBase(sourceType, adapterKind, mode, startedAt, fetched, retryFieldsForFailure(data, body, adapterKind, error, startedAt)),
       status: "FAILED",
       error_code: String(error.code || 500),
       error_message: error.message || "Adapter 运行失败",
@@ -325,10 +439,190 @@ async function runAdapter(data, body = {}, options = {}) {
   }
 }
 
+function removeByKey(data, listKey, key, value) {
+  const list = Array.isArray(data[listKey]) ? data[listKey] : [];
+  const index = list.findIndex((item) => item && item[key] === value);
+  if (index < 0) return null;
+  const [removed] = list.splice(index, 1);
+  return removed || null;
+}
+
+function cloneRecord(record) {
+  return record ? JSON.parse(JSON.stringify(record)) : null;
+}
+
+function rollbackSnapshotFor(target) {
+  const snapshot = target && target.metadata ? target.metadata.beforeSnapshot : null;
+  return snapshot && typeof snapshot === "object" && !Array.isArray(snapshot) ? cloneRecord(snapshot) : null;
+}
+
+function restoreByKey(data, listKey, key, value, snapshot) {
+  if (!Array.isArray(data[listKey])) data[listKey] = [];
+  const list = data[listKey];
+  const restored = cloneRecord(snapshot);
+  const index = list.findIndex((item) => item && item[key] === value);
+  if (index >= 0) {
+    list[index] = restored;
+  } else {
+    list.push(restored);
+  }
+  return restored;
+}
+
+function restoreSnapshotTarget(data, target, listKey, key) {
+  const snapshot = rollbackSnapshotFor(target);
+  if (!snapshot) return null;
+  restoreByKey(data, listKey, key, target.targetId, snapshot);
+  return { ...target, status: "ROLLED_BACK", reason: "已恢复导入前字段快照" };
+}
+
+function hasCriticalOrderReferences(data, orderId) {
+  return [
+    ["checkinSessions", "order_id"],
+    ["refundWorkItems", "order_id"],
+  ].some(([listKey, key]) => {
+    return Array.isArray(data[listKey]) && data[listKey].some((item) => item && item[key] === orderId);
+  });
+}
+
+function rollbackFulfillmentTarget(data, target) {
+  const restored = restoreSnapshotTarget(data, target, "orderFulfillments", "fulfillment_id");
+  if (restored) return restored;
+  const fulfillment = (data.orderFulfillments || []).find((item) => item.fulfillment_id === target.targetId);
+  if (!fulfillment) return { ...target, status: "SKIPPED", reason: "目标已不存在" };
+  if (target.metadata && (target.metadata.createdByImport || target.metadata.rollbackWithOrder)) {
+    removeByKey(data, "orderFulfillments", "fulfillment_id", target.targetId);
+    return { ...target, status: "ROLLED_BACK", reason: "" };
+  }
+  return { ...target, status: "SKIPPED", reason: "该物流记录缺少导入前快照，需人工恢复订单物流旧值" };
+}
+
+function rollbackOrderTarget(data, target) {
+  const restored = restoreSnapshotTarget(data, target, "youzanOrders", "order_id");
+  if (restored) return restored;
+  const order = (data.youzanOrders || []).find((item) => item.order_id === target.targetId);
+  if (!order) return { ...target, status: "SKIPPED", reason: "目标已不存在" };
+  if (hasCriticalOrderReferences(data, order.order_id)) {
+    return { ...target, status: "SKIPPED", reason: "订单已被打卡或退款流程引用，需人工处理" };
+  }
+  (data.orderFulfillments || [])
+    .filter((item) => item.order_id === order.order_id)
+    .forEach((item) => removeByKey(data, "orderFulfillments", "fulfillment_id", item.fulfillment_id));
+  removeByKey(data, "youzanOrders", "order_id", target.targetId);
+  return { ...target, status: "ROLLED_BACK", reason: "" };
+}
+
+function rollbackCustomerTarget(data, target) {
+  const restored = restoreSnapshotTarget(data, target, "youzanCustomers", "youzan_yz_uid");
+  if (restored) return restored;
+  const customer = (data.youzanCustomers || []).find((item) => item.youzan_yz_uid === target.targetId);
+  if (!customer) return { ...target, status: "SKIPPED", reason: "目标已不存在" };
+  const hasOrders = (data.youzanOrders || []).some((order) => order.youzan_yz_uid === customer.youzan_yz_uid);
+  if (hasOrders) return { ...target, status: "SKIPPED", reason: "客户已被订单引用，需人工处理" };
+  removeByKey(data, "youzanCustomers", "youzan_yz_uid", target.targetId);
+  return { ...target, status: "ROLLED_BACK", reason: "" };
+}
+
+function rollbackLeadTarget(data, target) {
+  const restored = restoreSnapshotTarget(data, target, "leadProfiles", "lead_id");
+  if (restored) return restored;
+  const lead = (data.leadProfiles || []).find((item) => item.lead_id === target.targetId);
+  if (!lead) return { ...target, status: "SKIPPED", reason: "目标已不存在" };
+  removeByKey(data, "leadProfiles", "lead_id", target.targetId);
+  return { ...target, status: "ROLLED_BACK", reason: "" };
+}
+
+function rollbackTarget(data, target) {
+  if (target.targetType === "FULFILLMENT") return rollbackFulfillmentTarget(data, target);
+  if (target.targetType === "YOUZAN_ORDER") return rollbackOrderTarget(data, target);
+  if (target.targetType === "YOUZAN_CUSTOMER") return rollbackCustomerTarget(data, target);
+  if (target.targetType === "WECHAT_LEAD") return rollbackLeadTarget(data, target);
+  return { ...target, status: "SKIPPED", reason: "未知回滚目标类型" };
+}
+
+function previousSuccessfulRun(data, run) {
+  return ensureAdapterRuns(data).find((item) => {
+    return item.run_id !== run.run_id
+      && item.source_type === run.source_type
+      && item.adapter_kind === run.adapter_kind
+      && item.mode === "IMPORT"
+      && item.status === "COMPLETED"
+      && item.cursor_after === run.cursor_before
+      && item.rollback_status !== "ROLLED_BACK";
+  }) || null;
+}
+
+function rollbackCursor(data, run) {
+  if (!isRealAdapter(run.adapter_kind) || !run.cursor_after) return null;
+  const cursor = cursorFor(data, run.source_type, run.adapter_kind);
+  if (!cursor) return { status: "SKIPPED", reason: "游标记录不存在" };
+  if (cursor.last_successful_run_id !== run.run_id) {
+    return { status: "SKIPPED", reason: "游标已被后续运行推进" };
+  }
+  const previous = previousSuccessfulRun(data, run);
+  cursor.cursor_value = run.cursor_before || "";
+  cursor.last_successful_run_id = previous ? previous.run_id : "";
+  cursor.last_successful_at = previous ? previous.finished_at || "" : "";
+  cursor.updated_at = nowISO();
+  return {
+    status: "ROLLED_BACK",
+    cursorBefore: run.cursor_after || "",
+    cursorAfter: cursor.cursor_value,
+    previousRunId: cursor.last_successful_run_id,
+  };
+}
+
+function rollbackSummary(results) {
+  const rolledBack = results.filter((item) => item.status === "ROLLED_BACK").length;
+  const skipped = results.filter((item) => item.status === "SKIPPED").length;
+  return {
+    total: results.length,
+    rolledBack,
+    skipped,
+    status: skipped ? rolledBack ? "PARTIAL" : "SKIPPED" : "ROLLED_BACK",
+  };
+}
+
+function rollbackAdapterRun(data, body = {}) {
+  const runId = body.runId || body.run_id || "";
+  const requestId = body.requestId || body.request_id || "";
+  if (!runId) throw adapterError(400, "run_id 必填");
+  if (!requestId) throw adapterError(400, "request_id 必填");
+  if (!body.confirmRisk && !body.confirm_risk) throw adapterError(400, "请先确认回滚风险");
+  const run = ensureAdapterRuns(data).find((item) => item.run_id === runId);
+  if (!run) throw adapterError(404, "Adapter 运行不存在");
+  if (run.mode !== "IMPORT") throw adapterError(400, "只有 IMPORT 运行可回滚");
+  if (["ROLLED_BACK", "PARTIAL", "SKIPPED"].includes(run.rollback_status)) throw adapterError(409, "该运行已经执行过回滚");
+  const targets = Array.isArray(run.rollback_targets) ? run.rollback_targets : [];
+  if (!targets.length) throw adapterError(400, "该运行没有可自动回滚目标");
+  const sortedTargets = targets.slice().sort((left, right) => {
+    const order = { FULFILLMENT: 0, YOUZAN_ORDER: 1, YOUZAN_CUSTOMER: 2, WECHAT_LEAD: 3 };
+    const leftRank = Object.prototype.hasOwnProperty.call(order, left.targetType) ? order[left.targetType] : 99;
+    const rightRank = Object.prototype.hasOwnProperty.call(order, right.targetType) ? order[right.targetType] : 99;
+    return leftRank - rightRank;
+  });
+  const results = sortedTargets.map((target) => rollbackTarget(data, target));
+  const cursorResult = rollbackCursor(data, run);
+  const summary = rollbackSummary(results);
+  run.rollback_status = summary.status;
+  run.rollback_result = { summary, results, cursor: cursorResult };
+  run.rollback_request_id = requestId;
+  run.rollback_reason = body.reason || "";
+  run.rollback_operator_id = body.operatorId || body.operator_id || "";
+  run.rolled_back_at = nowISO();
+  return {
+    run,
+    summary,
+    results,
+    cursor: cursorResult,
+  };
+}
+
 module.exports = {
   ADAPTER_KINDS,
   buildAdapterCatalog,
   listAdapterCursors,
   listAdapterRuns,
+  rollbackAdapterRun,
   runAdapter,
 };

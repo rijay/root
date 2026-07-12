@@ -1,0 +1,35 @@
+<view class="root-page task-submit-page">
+  <view class="submit-header">
+    <view class="eyebrow">阶段问卷</view>
+    <view class="submit-title">{{questionnaire.questionnaire_type === 'DAY8_SUMMARY' ? '收尾反馈' : '中期反馈'}}</view>
+    <view class="submit-copy">问卷提交后会进入任务进度，用于后续活动结算判断。</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="root-card submit-card">
+    <view class="root-helper-text">正在加载问卷...</view>
+  </view>
+
+  <view wx:elif="{{questionnaire}}" class="question-list">
+    <view wx:for="{{questionRows}}" wx:key="field" class="root-card question-card {{missingFields[item.field] ? 'question-card--error' : ''}}">
+      <view class="question-title-row">
+        <view class="root-section-title">{{item.title}}</view>
+        <view wx:if="{{item.required}}" class="required-pill">必填</view>
+      </view>
+      <view wx:if="{{missingFields[item.field]}}" class="error-text">请完成这一项</view>
+      <view wx:if="{{item.type === 'single'}}" class="choice-list">
+        <view wx:for="{{item.options}}" wx:for-item="option" wx:key="*this" class="choice {{item.answer === option ? 'active' : ''}}" data-field="{{item.field}}" data-value="{{option}}" bindtap="selectOption">{{option}}</view>
+      </view>
+      <view wx:elif="{{item.type === 'scale'}}" class="scale-list">
+        <view wx:for="{{scaleOptions}}" wx:for-item="score" wx:key="*this" class="scale-choice {{item.answer === score ? 'active' : ''}}" data-field="{{item.field}}" data-value="{{score}}" bindtap="selectScale">{{score}}</view>
+      </view>
+      <view wx:elif="{{item.type === 'boolean'}}" class="choice-row">
+        <view class="choice {{item.answer === true ? 'active' : ''}}" data-field="{{item.field}}" data-value="true" bindtap="toggleBoolean">需要</view>
+        <view class="choice {{item.answer === false ? 'active' : ''}}" data-field="{{item.field}}" data-value="false" bindtap="toggleBoolean">暂不需要</view>
+      </view>
+      <textarea wx:else class="feedback-input" maxlength="160" placeholder="可选" data-field="{{item.field}}" bindinput="inputText" />
+    </view>
+    <view class="sticky-actions">
+      <button class="root-button" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">提交问卷</button>
+    </view>
+  </view>
+</view>

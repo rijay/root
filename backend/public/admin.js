@@ -20,6 +20,7 @@ const summaryLabels = {
 };
 
 let currentData = null;
+let currentConfig = null;
 let currentTaskType = "";
 let currentDetailUserId = "";
 let currentSampleTemplates = [];
@@ -342,6 +343,106 @@ function renderOpsDashboard(ops = {}) {
   setHtml("#risk-feedback-preview", renderFeedbackRows((ops.riskFeedbacks || []).slice(0, 4), "暂无异常反馈。"));
   setHtml("#risk-feedbacks", renderFeedbackRows(ops.riskFeedbacks || [], "暂无异常反馈。"));
   setHtml("#ready-users-preview", renderReadyRows((ops.readyToStartUsers || []).slice(0, 4)));
+}
+
+function configMetricItems(metrics = {}) {
+  return [
+    { key: "activeCampaigns", label: "活动中", value: metrics.activeCampaigns || 0, description: "当前 ACTIVE 活动" },
+    { key: "activeTaskDefinitions", label: "任务配置", value: metrics.activeTaskDefinitions || 0, description: "可记录任务事实" },
+    { key: "publishedRuleVersions", label: "规则版本", value: metrics.publishedRuleVersions || 0, description: "已发布结算规则" },
+    { key: "pendingDeliveryJobs", label: "待发放", value: metrics.pendingDeliveryJobs || 0, description: "外部发放队列" },
+    { key: "openManualReviews", label: "待复核", value: metrics.openManualReviews || 0, description: "免单/奖励复核" },
+    { key: "recentSettlements", label: "结算记录", value: metrics.recentSettlements || 0, description: "最近结算判断" },
+  ];
+}
+
+function ruleTemplate() {
+  return JSON.stringify({
+    conditions: [
+      { conditionType: "TASK_COUNT", taskType: "CHECKIN", minCount: 7, uniqueBy: "taskDate", label: "完成 7 天身体记录" },
+      { conditionType: "QUESTIONNAIRE_COMPLETED", questionnaireType: "DAY8_SUMMARY", label: "完成收尾问卷" },
+    ],
+    rewards: [
+      { rewardType: "YOUZAN_COUPON", rewardKey: "completion_coupon", title: "有赞优惠券", description: "完成活动条件后生成待发放优惠券记录。" },
+      { rewardType: "FREE_ORDER_CHANCE", rewardKey: "free_order_review", title: "免单机会", description: "进入人工复核，运营确认后处理。" },
+    ],
+  }, null, 2);
+}
+
+function renderConfigWorkbench(config = {}) {
+  currentConfig = config;
+  setHtml("#config-metrics", configMetricItems(config.metrics || {}).map(renderOpsMetric).join(""));
+  setHtml("#config-campaigns", renderConfigRows(config.campaigns || [], "暂无活动配置。", (item) => `
+    <div>
+      <div class="title">${escapeHtml(item.title)} · ${escapeHtml(item.campaignId)}</div>
+      <div class="meta">${escapeHtml(item.status)} · 周期 ${escapeHtml((item.config || {}).durationDays || "-")} 天 · 参与 ${item.participantCount || 0} · 任务 ${item.taskCount || 0} · 规则 ${item.ruleVersionCount || 0}</div>
+    </div>
+    <span class="pill">${escapeHtml(item.status)}</span>
+  `));
+  setHtml("#config-tasks", renderConfigRows(config.taskDefinitions || [], "暂无任务配置。", (item) => `
+    <div>
+      <div class="title">${escapeHtml(item.title)} · ${escapeHtml(item.taskType)}</div>
+      <div class="meta">${escapeHtml(item.campaignId)} · ${item.required ? "必做" : "可选"} · 目标 ${escapeHtml((item.config || {}).targetCount || (item.config || {}).minCount || 1)}</div>
+    </div>
+    <span class="pill">${escapeHtml(item.status)}</span>
+  `));
+  setHtml("#config-products", renderConfigRows(config.products || [], "暂无商品镜像。", (item) => `
+    <div>
+      <div class="title">${escapeHtml(item.title)} · ${escapeHtml(item.productId)}</div>
+      <div class="meta">${escapeHtml(item.priceText || "-")} · SKU ${item.skuCount || 0} · 活动关系 ${item.relationCount || 0}</div>
+    </div>
+    <span class="pill">${escapeHtml(item.status)}</span>
+  `));
+  setHtml("#config-rules", renderConfigRows(config.ruleVersions || [], "暂无规则版本。", (item) => `
+    <div>
+      <div class="title">${escapeHtml(item.campaignId)} · v${escapeHtml(item.version)}</div>
+      <div class="meta">条件 ${item.conditionCount || 0} · 奖励 ${item.rewardCount || 0} · ${escapeHtml(item.publishedAt || "")}</div>
+    </div>
+    <span class="pill">${escapeHtml(item.status)}</span>
+  `));
+  setHtml("#config-settlements", renderConfigRows(config.settlements || [], "暂无结算记录。", (item) => `
+    <div>
+      <div class="title">${escapeHtml(item.userLabel)} · ${escapeHtml(item.status)}</div>
+      <div class="meta">${escapeHtml(item.campaignId)} · v${escapeHtml(item.ruleVersion)} · 奖励 ${item.rewardCount || 0} · 缺口 ${item.missingCount || 0}</div>
+    </div>
+    <span class="pill">${escapeHtml(item.status)}</span>
+  `));
+  setHtml("#config-rewards", renderConfigRows(config.rewardGrants || [], "暂无奖励记录。", (item) => `
+    <div>
+      <div class="title">${escapeHtml(item.title)} · ${escapeHtml(item.userLabel)}</div>
+      <div class="meta">${escapeHtml(item.rewardType)} · ${escapeHtml(item.description || "")}</div>
+    </div>
+    <span class="pill">${escapeHtml(item.status)}</span>
+  `));
+  setHtml("#config-delivery-jobs", renderConfigRows(config.deliveryJobs || [], "暂无外部发放队列。", (item) => `
+    <div>
+      <div class="title">${escapeHtml(item.rewardTitle || item.rewardGrantId)} · ${escapeHtml(item.adapterType)}</div>
+      <div class="meta">${escapeHtml(item.userLabel || "-")} · 尝试 ${item.attemptCount || 0} · ${escapeHtml(item.lastError || "等待 Adapter")}</div>
+    </div>
+    <span class="pill">${escapeHtml(item.status)}</span>
+  `));
+  renderManualReviewRows(config.manualReviews || []);
+}
+
+function renderConfigRows(items, emptyText, mapper) {
+  return items.length
+    ? items.map((item) => `<div class="config-row">${mapper(item)}</div>`).join("")
+    : `<div class="meta">${escapeHtml(emptyText)}</div>`;
+}
+
+function renderManualReviewRows(items = []) {
+  setHtml("#config-manual-reviews", items.length ? items.map((item) => `<div class="config-row">
+    <div>
+      <div class="title">${escapeHtml(item.reviewType)} · ${escapeHtml(item.userLabel)}</div>
+      <div class="meta">${escapeHtml(item.reason)}${item.rewardTitle ? ` · ${escapeHtml(item.rewardTitle)}` : ""}</div>
+      ${item.resolution ? `<div class="meta">处理结果：${escapeHtml(item.resolution)}</div>` : ""}
+    </div>
+    <div class="task-actions">
+      <span class="pill">${escapeHtml(item.status)}</span>
+      ${item.status === "OPEN" ? `<button data-review-id="${escapeHtml(item.reviewItemId)}" data-review-decision="APPROVED">通过</button>
+      <button class="ghost" data-review-id="${escapeHtml(item.reviewItemId)}" data-review-decision="REJECTED">拒绝</button>` : ""}
+    </div>
+  </div>`).join("") : `<div class="meta">暂无人工复核项。</div>`);
 }
 
 function selectedOrder() {
@@ -1430,6 +1531,137 @@ function renderCurrentUsers() {
   renderUsers(currentData ? currentData.opsUsers || currentData.users || [] : [], currentData ? currentData.sessions || [] : []);
 }
 
+function readRulePayload() {
+  const raw = document.querySelector("#config-rule-json").value.trim();
+  if (!raw) throw new Error("请先填写规则 JSON");
+  const parsed = JSON.parse(raw);
+  return {
+    campaignId: document.querySelector("#config-rule-campaign-id").value.trim(),
+    version: document.querySelector("#config-rule-version").value || undefined,
+    conditions: parsed.conditions || parsed.conditions_json || [],
+    rewards: parsed.rewards || parsed.rewards_json || [],
+    reason: "后台运营配置发布",
+  };
+}
+
+async function saveCampaignConfig() {
+  try {
+    const campaignId = document.querySelector("#config-campaign-id").value.trim();
+    const title = document.querySelector("#config-campaign-title").value.trim();
+    const durationDays = Number(document.querySelector("#config-campaign-duration").value || 7);
+    const status = document.querySelector("#config-campaign-status").value;
+    const data = await api("/api/v1/admin/campaigns/upsert", {
+      method: "POST",
+      body: JSON.stringify({
+        campaignId,
+        title,
+        status,
+        config: { durationDays, allowNoOrderParticipation: true },
+      }),
+    });
+    setHtml("#config-rule-result", `<div class="inline-success">已保存活动 ${escapeHtml(data.campaign.campaignId)}</div>`);
+    await load();
+  } catch (error) {
+    setHtml("#config-rule-result", `<div class="sample-error">${escapeHtml(error.message)}</div>`);
+  }
+}
+
+async function saveTaskConfig() {
+  try {
+    const campaignId = document.querySelector("#config-task-campaign-id").value.trim();
+    const taskType = document.querySelector("#config-task-type").value;
+    const title = document.querySelector("#config-task-title").value.trim();
+    const targetCount = Number(document.querySelector("#config-task-target").value || 1);
+    const required = document.querySelector("#config-task-required").checked;
+    const data = await api("/api/v1/admin/task-definitions/upsert", {
+      method: "POST",
+      body: JSON.stringify({
+        campaignId,
+        taskType,
+        title,
+        required,
+        config: {
+          targetCount,
+          uniqueBy: taskType === "CHECKIN" ? "taskDate" : "",
+        },
+      }),
+    });
+    setHtml("#config-rule-result", `<div class="inline-success">已保存任务 ${escapeHtml(data.taskDefinition.task_definition_id || data.taskDefinition.taskDefinitionId)}</div>`);
+    await load();
+  } catch (error) {
+    setHtml("#config-rule-result", `<div class="sample-error">${escapeHtml(error.message)}</div>`);
+  }
+}
+
+async function saveProductConfig() {
+  try {
+    const data = await api("/api/v1/admin/products/upsert", {
+      method: "POST",
+      body: JSON.stringify({
+        youzanProductId: document.querySelector("#config-product-id").value.trim(),
+        title: document.querySelector("#config-product-title").value.trim(),
+        priceText: document.querySelector("#config-product-price").value.trim(),
+        campaignId: document.querySelector("#config-product-campaign-id").value.trim(),
+        youzanAppId: document.querySelector("#config-product-appid").value.trim(),
+        youzanPath: document.querySelector("#config-product-path").value.trim(),
+      }),
+    });
+    setHtml("#config-rule-result", `<div class="inline-success">已保存商品 ${escapeHtml(data.product.productId)}</div>`);
+    await load();
+  } catch (error) {
+    setHtml("#config-rule-result", `<div class="sample-error">${escapeHtml(error.message)}</div>`);
+  }
+}
+
+async function publishRuleConfig() {
+  try {
+    const data = await api("/api/v1/admin/campaign-rules/publish", {
+      method: "POST",
+      body: JSON.stringify(readRulePayload()),
+    });
+    setHtml("#config-rule-result", `<div class="inline-success">已发布 ${escapeHtml(data.ruleVersion.campaignId)} v${escapeHtml(data.ruleVersion.version)}</div>`);
+    await load();
+  } catch (error) {
+    setHtml("#config-rule-result", `<div class="sample-error">${escapeHtml(error.message)}</div>`);
+  }
+}
+
+async function previewSettlementConfig() {
+  try {
+    const data = await api("/api/v1/admin/settlement/preview", {
+      method: "POST",
+      body: JSON.stringify({
+        rootUserId: document.querySelector("#settlement-preview-user-id").value.trim(),
+        campaignId: document.querySelector("#settlement-preview-campaign-id").value.trim(),
+      }),
+    });
+    const missing = (data.result.missingConditions || []).map((item) => `${item.label}: 差 ${item.missing}`).join("；") || "无缺口";
+    setHtml("#settlement-preview-result", `<div class="config-row">
+      <div>
+        <div class="title">${data.result.qualified ? "已达标" : "未达标"} · ${escapeHtml(data.campaign.title)}</div>
+        <div class="meta">规则 v${escapeHtml(data.ruleVersion.version)} · ${escapeHtml(missing)}</div>
+      </div>
+      <span class="pill">${data.result.qualified ? "QUALIFIED" : "NOT_READY"}</span>
+    </div>`);
+  } catch (error) {
+    setHtml("#settlement-preview-result", `<div class="sample-error">${escapeHtml(error.message)}</div>`);
+  }
+}
+
+async function resolveManualReviewConfig(reviewId, decision) {
+  const note = window.prompt(decision === "REJECTED" ? "请输入拒绝原因" : "请输入通过备注", decision === "REJECTED" ? "运营复核不通过" : "运营复核通过");
+  if (note === null) return;
+  try {
+    await api(`/api/v1/admin/manual-reviews/${encodeURIComponent(reviewId)}/resolve`, {
+      method: "POST",
+      body: JSON.stringify({ decision, reason: note.trim() }),
+    });
+    await load();
+  } catch (error) {
+    setHtml("#config-rule-result", `<div class="sample-error">${escapeHtml(error.message)}</div>`);
+  }
+}
+
 async function loadUserDetail(userId) {
   currentDetailUserId = userId;
   const detail = await api(`/api/v1/admin/users/${encodeURIComponent(userId)}/detail`);
@@ -1439,8 +1671,10 @@ async function loadUserDetail(userId) {
 async function load() {
   const data = await api("/api/v1/admin/dashboard");
   currentData = data;
+  currentConfig = data.configWorkbench || {};
   currentSampleTemplates = data.externalSampleTemplates || [];
   renderOpsDashboard(data.opsDashboard || {});
+  renderConfigWorkbench(data.configWorkbench || {});
   renderMetrics(data.metrics);
   renderSummary(data.summary);
   renderDailyOpsSummary(data.dailyOpsSummary || {});
@@ -1542,6 +1776,19 @@ on("#order-match-search", "keydown", (event) => {
 on("#clear-order-matching", "click", clearOrderMatchingSelection);
 on("#sync-order", "click", syncManualOrderFromForm);
 on("#confirm-match", "click", confirmSelectedMatch);
+on("#save-campaign-config", "click", saveCampaignConfig);
+on("#save-task-config", "click", saveTaskConfig);
+on("#save-product-config", "click", saveProductConfig);
+on("#publish-rule-config", "click", publishRuleConfig);
+on("#preview-settlement-config", "click", previewSettlementConfig);
+on("#insert-rule-template", "click", () => {
+  document.querySelector("#config-rule-json").value = ruleTemplate();
+});
+on("#config-manual-reviews", "click", async (event) => {
+  const button = event.target.closest("[data-review-id]");
+  if (!button) return;
+  await resolveManualReviewConfig(button.dataset.reviewId, button.dataset.reviewDecision || "APPROVED");
+});
 on("#toggle-bulk-orders", "click", toggleBulkOrderPanel);
 on("#insert-bulk-order-template", "click", insertBulkOrderTemplate);
 on("#bulk-order-file", "change", loadBulkOrderCsvFile);
@@ -1693,6 +1940,9 @@ on("#user-detail", "click", async (event) => {
 });
 
 setSamplePlaceholder();
+if (document.querySelector("#config-rule-json")) {
+  document.querySelector("#config-rule-json").placeholder = ruleTemplate();
+}
 load().catch((error) => {
   document.body.insertAdjacentHTML("beforeend", `<p style="padding:20px;color:#9b332c">${error.message}</p>`);
 });

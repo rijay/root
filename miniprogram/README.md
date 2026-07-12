@@ -1,10 +1,10 @@
 # ROOT 7日身体重启小程序
 
-原生微信小程序实现，页面路径按 PRD V2.1 调整。底部仅保留「首页 / 我的」两个 Tab，`pages/home/index` 是智能首页容器，会读取 `/api/v1/user/state` 并直接渲染登录、注册、活动、首程打卡、完成态或日常打卡视图。
+原生微信小程序实现，页面路径按 PRD V2.1 调整。底部仅保留「首页 / 我的」两个 Tab，`pages/home/index` 是智能首页容器，会读取 `/api/v1/user/state` 并直接渲染登录、注册、活动、首程打卡、完成态或只读历史记录视图。
 
 ## 页面
 
-- `/pages/home/index` 智能首页容器，按用户状态渲染登录/问卷/活动/打卡/日常打卡
+- `/pages/home/index` 智能首页容器，按用户状态渲染登录/问卷/活动/打卡/完成态/只读历史记录
 - `/pages/order/match` 有赞订单匹配
 - `/subpkg/checkin/pages/today/index` 今日打卡填写
 - `/subpkg/checkin/pages/history/index` 历史记录
@@ -22,12 +22,20 @@
 接口地址和云托管调用信息在 `config/env.js`：
 
 ```js
-const productionApiBaseUrl = "https://express-x7te-258599-9-1404419431.sh.run.tcloudbase.com";
-const cloudEnvId = "prod-d3grtjkva76c93e00";
-const cloudServiceName = "express-x7te";
+const productionApiBaseUrl = "https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com";
+const productionCloudServiceName = "myroot-api";
+const internalTestCloudServiceName = "myroot-api";
+const internalTestCloudContainerConfig = {
+  cloudEnvId: "myroot-prod-d5gl3gzg7115f149a",
+  cloudServiceName: internalTestCloudServiceName,
+};
+const productionCloudContainerConfig = {
+  cloudEnvId: "myroot-prod-d5gl3gzg7115f149a",
+  cloudServiceName: productionCloudServiceName,
+};
 ```
 
-开发版、体验版和正式版都会默认使用 `wx.cloud.callContainer` 调用微信云托管，不走 `wx.request` 直连公网域名，因此不需要单独配置 request 合法域名；登录链路统一使用微信手机号授权。如需本机临时联调 `http://127.0.0.1:8787`，只能在本地临时修改请求 Adapter，上传审核前必须恢复为云托管 Adapter 并执行 `npm run check`。
+开发版、体验版和正式版都会默认使用 `wx.cloud.callContainer`，不让小程序直连 SQL。当前团队内测阶段的 `develop`、`trial` 和 `release` 均使用腾讯云 CloudBase 环境 `myroot-prod-d5gl3gzg7115f149a` 与云托管 `myroot-api`，由后端连接 CloudBase MySQL；这是一项明确的临时环境策略。恢复独立测试环境时，只替换 `develop/trial` 的 `cloudEnvId` 和对应后端 secret。如果开发者工具或脚本运行态没有注入 `__wxConfig.envVersion`，本地仍按 `develop` 处理。
 
 ## 调试排错
 

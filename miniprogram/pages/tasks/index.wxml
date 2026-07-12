@@ -1,0 +1,58 @@
+<view class="root-page tasks-page">
+  <view class="tasks-hero">
+    <image class="tasks-logo" src="/static/brand/root-logo-horizontal.png" mode="aspectFit" />
+    <view class="tasks-title">任务中心</view>
+    <view class="tasks-copy">打卡、问卷、分享和咨询都会进入同一份进度记录。购买不是参与任务的前置条件。</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="root-card state-card">
+    <view class="root-helper-text">正在加载任务...</view>
+  </view>
+
+  <view wx:elif="{{errorText}}" class="root-card state-card">
+    <view class="root-section-title">任务暂未加载</view>
+    <view class="root-helper-text">{{errorText}}</view>
+    <button class="root-button state-btn" bindtap="load">重新加载</button>
+  </view>
+
+  <view wx:else>
+    <view class="root-card progress-card">
+      <view class="progress-top">
+        <view>
+          <view class="eyebrow">{{campaign.title || 'ROOT 活动'}}</view>
+          <view class="progress-title">{{progress.summary.requiredCompletedTasks || 0}}/{{progress.summary.requiredTasks || 0}} 个必做任务</view>
+        </view>
+        <view class="progress-percent">{{progress.summary.progressPercent || 0}}%</view>
+      </view>
+      <view class="progress-track">
+        <view class="progress-fill" style="width: {{progress.summary.progressPercent || 0}}%;"></view>
+      </view>
+      <view class="progress-actions">
+        <button wx:if="{{!campaign.participant}}" class="root-button join-btn" loading="{{joining}}" bindtap="joinCampaign">加入计划</button>
+        <button class="root-button root-button--secondary join-btn" bindtap="openProgress">查看明细</button>
+      </view>
+    </view>
+
+    <view wx:if="{{primaryTask}}" class="root-card primary-task-card">
+      <view class="eyebrow">下一步</view>
+      <view class="primary-title">{{primaryTask.title}}</view>
+      <view class="root-helper-text">{{primaryTask.description}}</view>
+      <button class="root-button primary-btn" data-task-id="{{primaryTask.taskDefinitionId}}" bindtap="openTask" loading="{{actionTaskId === primaryTask.taskDefinitionId}}" disabled="{{primaryTask.actionDisabled}}">{{primaryTask.actionLabel}}</button>
+    </view>
+
+    <view class="task-list">
+      <view wx:for="{{tasks}}" wx:key="taskDefinitionId" class="task-card {{item.statusClass}}">
+        <view class="task-main">
+          <view class="task-type">{{item.typeLabel}}</view>
+          <view class="task-title">{{item.title}}</view>
+          <view class="task-desc">{{item.description}}</view>
+        </view>
+        <view class="task-side">
+          <view class="task-progress">{{item.progressText}}</view>
+          <view class="task-status">{{item.statusLabel}}</view>
+          <button class="task-action" data-task-id="{{item.taskDefinitionId}}" bindtap="openTask" loading="{{actionTaskId === item.taskDefinitionId}}" disabled="{{item.actionDisabled}}">{{item.actionLabel}}</button>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

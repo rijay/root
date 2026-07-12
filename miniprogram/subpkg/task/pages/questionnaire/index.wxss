@@ -1,0 +1,113 @@
+.task-submit-page {
+  padding-top: 40rpx;
+  padding-bottom: 160rpx;
+}
+
+.submit-header {
+  padding: 20rpx 0 28rpx;
+}
+
+.submit-title {
+  margin-top: 14rpx;
+  color: var(--color-root-ink);
+  font-size: 48rpx;
+  font-weight: 800;
+  line-height: 1.18;
+}
+
+.submit-copy {
+  margin-top: 16rpx;
+  color: var(--color-root-copy);
+  font-size: var(--font-size-base);
+  line-height: 1.7;
+}
+
+.submit-card,
+.question-card {
+  margin-top: 24rpx;
+}
+
+.question-card--error {
+  border: 1rpx solid rgba(181, 82, 60, 0.22);
+}
+
+.question-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.required-pill {
+  flex-shrink: 0;
+  padding: 6rpx 14rpx;
+  color: var(--color-danger);
+  background: rgba(181, 82, 60, 0.08);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+}
+
+.error-text {
+  margin-top: 10rpx;
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+}
+
+.choice-list,
+.choice-row,
+.scale-list {
+  display: grid;
+  gap: 14rpx;
+  margin-top: 22rpx;
+}
+
+.choice-row {
+  grid-template-columns: 1fr 1fr;
+}
+
+.scale-list {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.choice,
+.scale-choice {
+  min-height: 76rpx;
+  padding: 0 18rpx;
+  color: var(--color-root-copy);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  line-height: 76rpx;
+  text-align: center;
+}
+
+.choice.active,
+.scale-choice.active {
+  color: var(--color-root-surface);
+  background: var(--color-root-moss);
+}
+
+.feedback-input {
+  width: 100%;
+  min-height: 180rpx;
+  margin-top: 20rpx;
+  padding: 20rpx;
+  box-sizing: border-box;
+  color: var(--color-root-ink);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+}
+
+.sticky-actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
+  background: var(--color-glass);
+  border-top: 1rpx solid var(--color-root-line);
+}

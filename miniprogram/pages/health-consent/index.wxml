@@ -1,0 +1,59 @@
+<view class="page health-consent-page">
+  <view class="consent-header">
+    <view class="eyebrow">单独同意</view>
+    <view class="consent-title">{{notice.title}}</view>
+    <view class="consent-copy">{{active ? '你已同意当前版本，可在这里撤回。撤回后将停止新的身体记录提交。' : '请在提交身体画像、健康问卷或打卡前单独确认。商品浏览和人工协助不以同意为前提。'}}</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="consent-state">正在加载说明...</view>
+
+  <view wx:elif="{{!required}}" class="consent-state">
+    <view>当前环境尚未启用身体记录单独同意 Gate。</view>
+    <button class="btn-secondary consent-fallback" bindtap="goBack">返回</button>
+  </view>
+
+  <block wx:elif="{{configured}}">
+    <view class="consent-section">
+      <view class="section-title">我们处理什么</view>
+      <view wx:for="{{notice.dataCategories}}" wx:key="*this" class="consent-list-item">{{index + 1}}. {{item}}</view>
+    </view>
+
+    <view class="consent-section">
+      <view class="section-title">用于什么</view>
+      <view wx:for="{{notice.purposes}}" wx:key="*this" class="consent-list-item">{{index + 1}}. {{item}}</view>
+      <view class="consent-note">{{notice.necessity}}</view>
+    </view>
+
+    <view class="consent-section">
+      <view class="section-title">拒绝与保存</view>
+      <view class="consent-note">{{notice.refusalImpact}}</view>
+      <view class="consent-note">{{notice.retentionText}}</view>
+      <view class="consent-meta">处理者：{{notice.controllerName}}</view>
+      <view class="consent-meta">联系方式：{{notice.contact}}</view>
+    </view>
+
+    <view class="consent-link" bindtap="openPrivacyPolicy">查看完整隐私保护指引</view>
+
+    <checkbox-group wx:if="{{!active}}" class="consent-confirm" bindchange="toggleConfirmed">
+      <label class="consent-confirm-label">
+        <checkbox value="confirmed" checked="{{confirmed}}" color="#586B3F" />
+        <text>我已阅读，并单独同意处理上述敏感个人信息</text>
+      </label>
+    </checkbox-group>
+
+    <view wx:if="{{active}}" class="consent-actions">
+      <button class="btn-secondary" bindtap="goBack">返回</button>
+      <button class="btn-primary consent-withdraw" loading="{{submitting}}" bindtap="withdraw">撤回同意</button>
+    </view>
+    <view wx:else class="consent-actions">
+      <button class="btn-secondary" bindtap="decline">暂不同意，去看商品</button>
+      <button class="btn-primary" loading="{{submitting}}" disabled="{{!confirmed || submitting}}" bindtap="agree">单独同意并继续</button>
+    </view>
+  </block>
+
+  <view wx:else class="consent-state consent-state--error">
+    <view>敏感信息处理说明尚未配置，当前不会收集新的身体反馈。</view>
+    <button class="btn-secondary consent-fallback" bindtap="decline">返回商品页</button>
+    <button class="contact-button" open-type="contact">联系人工协助</button>
+  </view>
+</view>

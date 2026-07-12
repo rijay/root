@@ -44,9 +44,16 @@ for (let index = 1; index <= 7; index += 1) {
 }
 
 require("../utils/options.js");
-require("../utils/router.js");
+const routerModule = require("../utils/router.js");
+const requestModule = require("../utils/request.js");
+const transientHealthState = require("../utils/transient-health-state.js");
 require("../utils/legal.js");
+const privacyAuthorization = require("../utils/privacy-authorization.js");
+require("../utils/cloud-media-upload.js");
+const healthConsent = require("../utils/health-consent.js");
 const runtimeEnv = require("../config/env.js");
+const { appVersion } = require("../config/version.js");
+const youzanJump = require("../utils/youzan-jump.js");
 const {
   formatDateCn,
   formatDateRangeCn,
@@ -89,10 +96,17 @@ const disallowedCopy = [
   "allowMockPhoneLogin",
   "微信授权并开始",
   "微信授权登录",
+  "需要手机号才能继续",
 ];
 const copyProblems = [];
 const nativeControlProblems = [];
 const networkProblems = [];
+const routeContractProblems = [];
+
+const packageVersion = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
+if (appVersion !== packageVersion) {
+  routeContractProblems.push(`version mismatch: config=${appVersion}, package=${packageVersion}`);
+}
 
 if (runtimeEnv.requestAdapter !== "cloudContainer") {
   networkProblems.push(`config/env.js: default requestAdapter must be cloudContainer, got ${runtimeEnv.requestAdapter}`);
@@ -100,11 +114,168 @@ if (runtimeEnv.requestAdapter !== "cloudContainer") {
 if (!runtimeEnv.cloudEnvId || !runtimeEnv.cloudServiceName) {
   networkProblems.push("config/env.js: cloudEnvId and cloudServiceName are required for wx.cloud.callContainer");
 }
+if (runtimeEnv.youzanAppId === "wx1234567890abcdef" || runtimeEnv.youzanProductPath === "pages/product/detail?id=ROOT_PREBIOTIC") {
+  networkProblems.push("config/env.js: Root member center purchase jump must not use placeholder appid or product path");
+}
+if (runtimeEnv.youzanAppId && !youzanJump.isConfiguredAppId(runtimeEnv.youzanAppId)) {
+  networkProblems.push("config/env.js: youzanAppId must be empty or a real Root member center mini-program appid");
+}
 if (projectConfig.setting && projectConfig.setting.urlCheck !== true) {
   networkProblems.push("project.config.json: setting.urlCheck must be true before upload");
 }
 if (privateConfig && privateConfig.setting && privateConfig.setting.urlCheck === false) {
   networkProblems.push("project.private.config.json: setting.urlCheck must not disable domain checks");
+}
+
+const requiredUploadSettings = {
+  ignoreUploadUnusedFiles: true,
+  minified: true,
+  minifyJS: true,
+  minifyWXML: true,
+  minifyWXSS: true,
+  uploadWithSourceMap: false,
+};
+Object.entries(requiredUploadSettings).forEach(([setting, expected]) => {
+  const projectValue = projectConfig.setting && projectConfig.setting[setting];
+  if (projectValue !== expected) {
+    networkProblems.push(`project.config.json: setting.${setting} must be ${expected} before upload`);
+  }
+  const privateValue = privateConfig && privateConfig.setting && privateConfig.setting[setting];
+  if (privateValue !== undefined && privateValue !== expected) {
+    networkProblems.push(`project.private.config.json: setting.${setting} must remain ${expected} before upload`);
+  }
+});
+
+const requiredPackIgnores = [
+  ["folder", "scripts"],
+  ["folder", "pages/dev-identity-probe"],
+  ["file", "package.json"],
+  ["file", "README.md"],
+  ["file", ".gitignore"],
+  ["file", "project.private.config.json"],
+];
+const configuredPackIgnores = new Set(
+  (((projectConfig.packOptions || {}).ignore) || []).map((rule) => `${rule.type}:${rule.value}`)
+);
+requiredPackIgnores.forEach(([type, value]) => {
+  if (!configuredPackIgnores.has(`${type}:${value}`)) {
+    networkProblems.push(`project.config.json: packOptions.ignore must exclude ${type}:${value}`);
+  }
+});
+
+if (scannedPages.includes("pages/dev-identity-probe/index")) {
+  routeContractProblems.push("app.json: development identity probe must not be registered in a release package");
+}
+
+const diagnosticSecrets = [
+  "release-token-value-that-must-not-leak",
+  "oAbCdEfGhIjKlMnOpQrStUvWxYz12",
+  "uAbCdEfGhIjKlMnOpQrStUvWxYz12",
+  "13800138000",
+];
+const diagnosticInputs = [
+  `cloud.callContainer:fail 102 Bearer ${diagnosticSecrets[0]} openid: ${diagnosticSecrets[1]}`,
+  `{\"unionid\":\"${diagnosticSecrets[2]}\",\"phone\":\"${diagnosticSecrets[3]}\"}`,
+  `https://root.test/probe?openid=${diagnosticSecrets[1]}&code=${diagnosticSecrets[0]}`,
+  `raw identity ${diagnosticSecrets[1]}`,
+];
+const safeDiagnostics = diagnosticInputs.map((errMsg) => JSON.stringify(requestModule.safeErrorSummary({
+  errCode: 102,
+  errMsg,
+})));
+if (safeDiagnostics.some((diagnostic) => diagnosticSecrets.some((value) => diagnostic.includes(value)))) {
+  networkProblems.push("utils/request.js: diagnostic error summary must redact credentials and identity values");
+}
+if (safeDiagnostics.some((diagnostic) => !diagnostic.includes('"code":"102"'))) {
+  networkProblems.push("utils/request.js: diagnostic error summary must preserve non-sensitive error codes");
+}
+
+async function verifyCloudTransportFailureMessage() {
+  const rawIdentity = diagnosticSecrets[1];
+  const originalWarn = console.warn;
+  let diagnosticLog = "";
+  console.warn = (...args) => {
+    diagnosticLog = JSON.stringify(args);
+  };
+  global.wx = {
+    getStorageSync() {
+      return "";
+    },
+    cloud: {
+      callContainer(options) {
+        options.fail({
+          errCode: 102,
+          errMsg: `cloud.callContainer:fail 102 openid=${rawIdentity}`,
+        });
+      },
+    },
+  };
+  try {
+    await requestModule.request({ url: "/health" });
+    return "utils/request.js: cloud transport failure must reject";
+  } catch (error) {
+    const message = error && error.message ? error.message : "";
+    if (message !== "服务暂时不可用（云托管102）") {
+      return `utils/request.js: cloud transport failure exposed unexpected message ${message}`;
+    }
+    if (message.includes(rawIdentity)) {
+      return "utils/request.js: cloud transport failure exposed raw identity data";
+    }
+    if (!diagnosticLog.includes('"code":"102"') || diagnosticLog.includes(rawIdentity)) {
+      return "utils/request.js: cloud transport diagnostic log is not safely redacted";
+    }
+    return "";
+  } finally {
+    delete global.wx;
+    console.warn = originalWarn;
+  }
+}
+
+async function verifyRootMemberCenterShortLinkJump() {
+  const shortLink = "#小程序://ROOT会员中心/lnQOjYsk8gZoABH";
+  const target = youzanJump.mergeJumpTarget(
+    { productId: "ROOT_PREBIOTIC_7D_RESET" },
+    {
+      jumpTarget: {
+        appId: "wxfb75c0b432670215",
+        path: shortLink,
+        envVersion: "release",
+      },
+    },
+  );
+  if (target.shortLink !== shortLink || target.path !== "" || target.appId !== "wxfb75c0b432670215") {
+    return "utils/youzan-jump.js: Root member center short link target was not normalized correctly";
+  }
+  let capturedOptions = null;
+  global.wx = {
+    navigateToMiniProgram(options) {
+      capturedOptions = options;
+      options.success({ errMsg: "navigateToMiniProgram:ok" });
+    },
+  };
+  try {
+    await youzanJump.jumpToYouzanProduct(target);
+  } catch (error) {
+    return `utils/youzan-jump.js: Root member center short link jump failed ${error && error.message ? error.message : error}`;
+  } finally {
+    delete global.wx;
+  }
+  if (!capturedOptions || capturedOptions.shortLink !== shortLink || capturedOptions.envVersion !== "release") {
+    return "utils/youzan-jump.js: navigateToMiniProgram did not receive the configured short link";
+  }
+  if (capturedOptions.appId || capturedOptions.path) {
+    return "utils/youzan-jump.js: short link jump must not mix appId/path arguments";
+  }
+  return "";
+}
+
+async function verifyRuntimeInterfaces() {
+  const checks = [verifyCloudTransportFailureMessage, verifyRootMemberCenterShortLinkJump];
+  for (const check of checks) {
+    const problem = await check();
+    if (problem) return problem;
+  }
+  return "";
 }
 
 scannedPages.forEach((pagePath) => {
@@ -139,13 +310,204 @@ const standaloneLogin = fs.readFileSync(path.join(root, "pages/login/index.wxml"
   ["pages/home/index.wxml", homeLogin],
   ["pages/login/index.wxml", standaloneLogin],
 ].forEach(([file, content]) => {
-  if (!content.includes("手机号快捷登录")) {
-    copyProblems.push(`${path.join(root, file)}: missing 手机号快捷登录 copy`);
+  if (!content.includes("微信身份进入")) {
+    copyProblems.push(`${path.join(root, file)}: missing 微信身份进入 copy`);
+  }
+  if (!content.includes("手机号后续可选补充")) {
+    copyProblems.push(`${path.join(root, file)}: missing optional phone copy`);
   }
   if (!content.includes("openPrivacyPolicy")) {
     copyProblems.push(`${path.join(root, file)}: privacy policy link is not wired`);
   }
 });
+
+const reviewPagePath = "subpkg/profile/pages/review/index";
+const reviewRoute = "/subpkg/profile/pages/review/index";
+const reviewPage = fs.readFileSync(path.join(root, "subpkg/profile/pages/review/index.wxml"), "utf8");
+const reviewScript = fs.readFileSync(path.join(root, "subpkg/profile/pages/review/index.js"), "utf8");
+const homePage = fs.readFileSync(path.join(root, "pages/home/index.wxml"), "utf8");
+const homeScript = fs.readFileSync(path.join(root, "pages/home/index.js"), "utf8");
+const rewardsPage = fs.readFileSync(path.join(root, "pages/rewards/index.wxml"), "utf8");
+const profilePage = fs.readFileSync(path.join(root, "pages/profile/index.wxml"), "utf8");
+const ordersPage = fs.readFileSync(path.join(root, "subpkg/profile/pages/orders/index.wxml"), "utf8");
+const ordersScript = fs.readFileSync(path.join(root, "subpkg/profile/pages/orders/index.js"), "utf8");
+const supportPage = fs.readFileSync(path.join(root, "subpkg/profile/pages/support/index.wxml"), "utf8");
+const supportScript = fs.readFileSync(path.join(root, "subpkg/profile/pages/support/index.js"), "utf8");
+const questionnaireScript = fs.readFileSync(path.join(root, "subpkg/task/pages/questionnaire/index.js"), "utf8");
+const legacyTodayScript = fs.readFileSync(path.join(root, "subpkg/checkin/pages/today/index.js"), "utf8");
+const privacyComponentScript = fs.readFileSync(path.join(root, "components/privacy-consent/index.js"), "utf8");
+const privacyComponentPage = fs.readFileSync(path.join(root, "components/privacy-consent/index.wxml"), "utf8");
+const legalPageScript = fs.readFileSync(path.join(root, "pages/legal/index.js"), "utf8");
+const legalPage = fs.readFileSync(path.join(root, "pages/legal/index.wxml"), "utf8");
+const legalModule = fs.readFileSync(path.join(root, "utils/legal.js"), "utf8");
+const healthConsentPage = fs.readFileSync(path.join(root, "pages/health-consent/index.wxml"), "utf8");
+const healthConsentScript = fs.readFileSync(path.join(root, "pages/health-consent/index.js"), "utf8");
+const taskCheckinScript = fs.readFileSync(path.join(root, "subpkg/task/pages/checkin/index.js"), "utf8");
+const resultPageScript = fs.readFileSync(path.join(root, "subpkg/checkin/pages/result/index.js"), "utf8");
+const sharePosterScript = fs.readFileSync(path.join(root, "subpkg/checkin/pages/share-poster/index.js"), "utf8");
+const appScript = fs.readFileSync(path.join(root, "app.js"), "utf8");
+
+[
+  "components/privacy-consent/index.js",
+  "components/privacy-consent/index.json",
+  "components/privacy-consent/index.wxml",
+  "components/privacy-consent/index.wxss",
+  "utils/privacy-authorization.js",
+  "utils/cloud-media-upload.js",
+  "utils/health-consent.js",
+  "utils/transient-health-state.js",
+].forEach((file) => {
+  if (!fs.existsSync(path.join(root, file))) missing.push(path.join(root, file));
+});
+
+if (!app.usingComponents || app.usingComponents["privacy-consent"] !== "/components/privacy-consent/index") {
+  routeContractProblems.push("app.json: privacy-consent must be registered globally");
+}
+if (typeof privacyAuthorization.initializePrivacyAuthorization !== "function") {
+  routeContractProblems.push("privacy authorization Module is unavailable");
+}
+
+transientHealthState.clearTransientHealthData();
+transientHealthState.setTransientHealthData(transientHealthState.TRANSIENT_HEALTH_KEYS.LAST_RESULT, {
+  feedback: "sensitive-health-test-value",
+});
+const consumedHealthState = transientHealthState.consumeTransientHealthData(
+  transientHealthState.TRANSIENT_HEALTH_KEYS.LAST_RESULT,
+  null,
+);
+const consumedHealthStateAgain = transientHealthState.consumeTransientHealthData(
+  transientHealthState.TRANSIENT_HEALTH_KEYS.LAST_RESULT,
+  null,
+);
+const legacyStorageRemoved = [];
+transientHealthState.clearLegacyTransientHealthStorage({
+  removeStorageSync(key) {
+    legacyStorageRemoved.push(key);
+  },
+});
+if (!consumedHealthState || consumedHealthState.feedback !== "sensitive-health-test-value" || consumedHealthStateAgain !== null) {
+  routeContractProblems.push("transient health state must be consumed exactly once");
+}
+if (!legacyStorageRemoved.includes("ROOT_LAST_RESULT") || !legacyStorageRemoved.includes("ROOT_SHARE_POSTER_PAYLOAD")) {
+  routeContractProblems.push("app launch must remove legacy persistent health caches");
+}
+if (legacyTodayScript.includes('setStorageSync("ROOT_LAST_RESULT"') ||
+  resultPageScript.includes('getStorageSync("ROOT_LAST_RESULT"') ||
+  resultPageScript.includes('setStorageSync("ROOT_SHARE_POSTER_PAYLOAD"') ||
+  sharePosterScript.includes('getStorageSync("ROOT_SHARE_POSTER_PAYLOAD"')) {
+  routeContractProblems.push("check-in results and poster payloads must not use persistent storage");
+}
+if (!legacyTodayScript.includes("setTransientHealthData") ||
+  !resultPageScript.includes("consumeTransientHealthData") ||
+  !sharePosterScript.includes("consumeTransientHealthData") ||
+  !appScript.includes("clearLegacyTransientHealthStorage")) {
+  routeContractProblems.push("transient health state Interface is incomplete");
+}
+if (!privacyComponentScript.includes("initializePrivacyAuthorization") ||
+  !privacyComponentScript.includes('buttonId: "root-privacy-agree"') ||
+  !privacyComponentPage.includes('open-type="agreePrivacyAuthorization"') ||
+  !privacyComponentPage.includes('id="root-privacy-agree"')) {
+  routeContractProblems.push("privacy-consent: platform privacy authorization Interface is incomplete");
+}
+[
+  "2026年7月11日",
+  "敏感个人信息",
+  "腾讯云 CloudBase",
+  "有赞",
+  "企业微信",
+].forEach((requiredText) => {
+  if (!legalPageScript.includes(requiredText)) {
+    routeContractProblems.push(`pages/legal/index.js: missing privacy disclosure ${requiredText}`);
+  }
+});
+if (!legalModule.includes("wx.openPrivacyContract")) {
+  routeContractProblems.push("utils/legal.js: privacy policy entry must prefer the platform privacy contract");
+}
+if (!legalPageScript.includes("/api/v1/privacy/notice") ||
+  !legalPage.includes("privacyNotice.controllerName") ||
+  !legalPage.includes("privacyNotice.contact") ||
+  !legalPage.includes("privacyNotice.retentionText")) {
+  routeContractProblems.push("pages/legal: fallback privacy policy must expose configured controller, contact and retention period");
+}
+if (typeof healthConsent.ensureHealthConsent !== "function" ||
+  !healthConsentPage.includes("单独同意并继续") ||
+  !healthConsentPage.includes("撤回同意") ||
+  !healthConsentScript.includes('decision: "GRANTED"') ||
+  !healthConsentScript.includes('decision: "WITHDRAWN"')) {
+  routeContractProblems.push("pages/health-consent: sensitive information consent and withdrawal Interface is incomplete");
+}
+if (!routerModule.routePermissions["/pages/health-consent/index"] ||
+  !profilePage.includes("/pages/health-consent/index?mode=manage")) {
+  routeContractProblems.push("health consent management route must remain reachable from profile");
+}
+[
+  ["pages/home/index.js", homeScript],
+  ["subpkg/task/pages/checkin/index.js", taskCheckinScript],
+  ["subpkg/task/pages/questionnaire/index.js", questionnaireScript],
+  ["subpkg/checkin/pages/today/index.js", legacyTodayScript],
+].forEach(([file, script]) => {
+  if (!script.includes("ensureHealthConsent")) routeContractProblems.push(`${file}: missing health consent Gate`);
+});
+[
+  "pages/register/index.wxml",
+  "pages/profile/index.wxml",
+  "subpkg/checkin/pages/today/index.wxml",
+  "subpkg/checkin/pages/share-poster/index.wxml",
+].forEach((file) => {
+  const page = fs.readFileSync(path.join(root, file), "utf8");
+  if (!page.includes("<privacy-consent")) routeContractProblems.push(`${file}: missing privacy-consent presenter`);
+});
+if (!legacyTodayScript.includes("uploadCloudMedia") ||
+  !legacyTodayScript.includes("deleteCloudMedia") ||
+  legacyTodayScript.includes('/api/v1/upload/image')) {
+  routeContractProblems.push("legacy check-in images must upload to CloudBase and clean up failed submissions");
+}
+
+if (!scannedPages.includes(reviewPagePath)) {
+  routeContractProblems.push(`${reviewPagePath}: missing from app.json scanned pages`);
+}
+if (!routerModule.routePermissions[reviewRoute] || !routerModule.routePermissions[reviewRoute].includes("CHECKIN_COMPLETED")) {
+  routeContractProblems.push(`${reviewRoute}: route guard must allow settled users to review status`);
+}
+if (!rewardsPage.includes(reviewRoute) && !rewardsPage.includes("openReviewPage")) {
+  routeContractProblems.push("pages/rewards/index.wxml: missing status review entry");
+}
+if (!reviewPage.includes("review-note") || !reviewScript.includes("expectedResolutionAt") || !reviewScript.includes("slaText")) {
+  routeContractProblems.push("subpkg/profile/pages/review: missing manual review SLA or public note display");
+}
+if (!reviewPage.includes("review-explanation") || !reviewScript.includes("evidenceRequired") || !reviewScript.includes("openReviewSectionCopy")) {
+  routeContractProblems.push("subpkg/profile/pages/review: missing manual review explanation template display");
+}
+if (!profilePage.includes(reviewRoute)) {
+  routeContractProblems.push("pages/profile/index.wxml: missing status review menu entry");
+}
+if (
+  !homePage.includes("activityHome") ||
+  !homePage.includes("Root 会员中心商品") ||
+  !homeScript.includes("/api/v1/tasks/progress") ||
+  !homeScript.includes("/api/v1/products") ||
+  !homeScript.includes("openHomePrimaryTask")
+) {
+  routeContractProblems.push("pages/home: rebuilt myRoot activity home must expose campaign progress, tasks and product mirror entries");
+}
+if (!ordersPage.includes("同步说明") || !ordersPage.includes("查看商品") || !ordersScript.includes("/api/v1/user/orders")) {
+  routeContractProblems.push("subpkg/profile/pages/orders: missing order sync explainer or orders Interface");
+}
+if (!ordersScript.includes('/pages/products/index') || !ordersScript.includes('/subpkg/profile/pages/support/index')) {
+  routeContractProblems.push("subpkg/profile/pages/orders/index.js: missing product/support fallback route");
+}
+if (!supportPage.includes('open-type="contact"')) {
+  routeContractProblems.push("subpkg/profile/pages/support/index.wxml: missing WeChat contact entry");
+}
+if (!supportScript.includes('/api/v1/tasks/events') || !supportScript.includes('taskType: "CONSULTATION"')) {
+  routeContractProblems.push("subpkg/profile/pages/support/index.js: consultation must record task event");
+}
+if (!supportPage.includes("跟进状态") || !supportScript.includes("/api/v1/user/consultations")) {
+  routeContractProblems.push("subpkg/profile/pages/support: missing consultation follow-up status Interface");
+}
+if (!questionnaireScript.includes("/api/v1/questionnaire/answers") || !questionnaireScript.includes("questionnaireType")) {
+  routeContractProblems.push("subpkg/task/pages/questionnaire/index.js: questionnaire must submit through questionnaire answer Interface");
+}
 
 if (missing.length) {
   console.error(`Missing files:\\n${missing.join("\\n")}`);
@@ -167,4 +529,21 @@ if (networkProblems.length) {
   process.exit(1);
 }
 
-console.log("miniprogram validation ok");
+if (routeContractProblems.length) {
+  console.error(`Route contract risks:\\n${routeContractProblems.join("\\n")}`);
+  process.exit(1);
+}
+
+verifyRuntimeInterfaces()
+  .then((problem) => {
+    if (problem) {
+      console.error(`Network config risks:\\n${problem}`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log("miniprogram validation ok");
+  })
+  .catch((error) => {
+    console.error(`Network config risks:\\n${error && error.message ? error.message : error}`);
+    process.exitCode = 1;
+  });
