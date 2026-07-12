@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -124,6 +125,47 @@ function releaseVersionAlignmentCheck() {
     durationMs: Date.now() - startedAt,
     checks,
     failures: failed,
+  };
+}
+
+function migrationChecksumManifestCheck() {
+  const startedAt = Date.now();
+  const migrationsDir = path.join(backendDir, "db", "migrations");
+  const manifestPath = path.join(migrationsDir, "checksums.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  const expected = manifest.files && typeof manifest.files === "object" ? manifest.files : {};
+  const sqlFiles = fs.readdirSync(migrationsDir)
+    .filter((name) => /^\d+_[a-z0-9_]+\.sql$/i.test(name))
+    .sort();
+  const manifestFiles = Object.keys(expected).sort();
+  const checks = sqlFiles.map((file) => {
+    const actual = crypto.createHash("sha256")
+      .update(fs.readFileSync(path.join(migrationsDir, file)))
+      .digest("hex");
+    return {
+      id: file,
+      status: expected[file] === actual ? "PASS" : "FAIL",
+      expected: expected[file] || "MISSING",
+      actual,
+    };
+  });
+  const fileSetCheck = {
+    id: "manifest_file_set",
+    status: JSON.stringify(sqlFiles) === JSON.stringify(manifestFiles) ? "PASS" : "FAIL",
+    expected: manifestFiles,
+    actual: sqlFiles,
+  };
+  checks.push(fileSetCheck);
+  const failures = checks.filter((check) => check.status !== "PASS");
+  return {
+    label: "Immutable migration checksums",
+    command: "compare backend/db/migrations/*.sql with checksums.json",
+    status: failures.length ? "FAIL" : "PASS",
+    code: failures.length ? 1 : 0,
+    durationMs: Date.now() - startedAt,
+    filesChecked: sqlFiles.length,
+    checks,
+    failures,
   };
 }
 
@@ -2507,6 +2549,7 @@ async function runFinalVerification() {
   const results = [
     syntaxCheck(),
     releaseVersionAlignmentCheck(),
+    migrationChecksumManifestCheck(),
     cloudbaseConfigSecretCheck(),
     cloudbaseTriggerTopologyCheck(),
     cloudbaseJobManifestCheck(),
@@ -2553,6 +2596,7 @@ module.exports = {
   cloudbaseTriggerTopologyCheck,
   httpSmoke,
   runFinalVerification,
+  migrationChecksumManifestCheck,
   releaseVersionAlignmentCheck,
   miniprogramReleaseManifestCheck,
   syntaxCheck,

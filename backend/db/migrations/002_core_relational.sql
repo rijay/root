@@ -374,3 +374,4 @@ CREATE TABLE IF NOT EXISTS manual_review_item (
   KEY idx_manual_review_status_priority (status, priority, created_at),
   KEY idx_manual_review_user_campaign (root_user_id, campaign_id)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+

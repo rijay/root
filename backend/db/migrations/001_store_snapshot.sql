@@ -5,3 +5,4 @@ CREATE TABLE IF NOT EXISTS root_store_snapshot (
   payload_json JSON NOT NULL,
   updated_at DATETIME(3) NOT NULL
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
