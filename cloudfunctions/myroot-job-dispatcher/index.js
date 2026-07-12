@@ -77,6 +77,16 @@ function normalizeBaseUrl(value) {
   return url.toString().replace(/\/+$/, "");
 }
 
+function buildJobRequestUrl(baseUrl, path, routeQuery = "") {
+  const url = new URL(path, `${normalizeBaseUrl(baseUrl)}/`);
+  const query = String(routeQuery || "").trim().replace(/^\?/, "");
+  if (query.length > 512) throw new Error("ROOT_JOB_ROUTE_QUERY exceeds 512 characters");
+  for (const [key, value] of new URLSearchParams(query)) {
+    if (key) url.searchParams.set(key, value);
+  }
+  return url.toString();
+}
+
 function resolveJob(event = {}) {
   const jobId = String(event.jobId || event.job_id || event.TriggerName || event.triggerName || "").trim();
   const job = JOBS[jobId];
@@ -179,7 +189,12 @@ async function dispatch(event = {}, env = process.env, request = postJson) {
     "X-ROOT-ADMIN-TOKEN": token,
     ...(dryRun ? {} : { "X-Request-Id": requestId }),
   };
-  const result = await request(`${normalizeBaseUrl(env.ROOT_JOB_BASE_URL)}${job.path}`, body, headers, timeoutMs);
+  const result = await request(
+    buildJobRequestUrl(env.ROOT_JOB_BASE_URL, job.path, env.ROOT_JOB_ROUTE_QUERY),
+    body,
+    headers,
+    timeoutMs,
+  );
   const response = result.body || {};
   if (result.statusCode < 200 || result.statusCode >= 300 || response.code !== 0) {
     throw new Error(`Job Interface failed (${result.statusCode}/${response.code ?? "UNKNOWN"}): ${response.message || "unknown error"}`);
@@ -202,6 +217,7 @@ exports.main = async (event) => dispatch(event);
 exports.dispatch = dispatch;
 exports.JOBS = JOBS;
 exports.RELEASE_VERSION = RELEASE_VERSION;
+exports.buildJobRequestUrl = buildJobRequestUrl;
 exports.normalizeBaseUrl = normalizeBaseUrl;
 exports.requestIdFor = requestIdFor;
 exports.resolveJob = resolveJob;

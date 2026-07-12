@@ -31,7 +31,9 @@ function privacyNoticeResponse(version = "0.5.5", overrides = {}) {
 test("canary verifier attributes candidate health and executes the candidate-only object probe", async () => {
   const counts = { health: 0, ready: 0, object: 0 };
   const fetchImpl = async (url) => {
-    const path = new URL(url).pathname;
+    const parsedUrl = new URL(url);
+    const path = parsedUrl.pathname;
+    assert.equal(parsedUrl.searchParams.get("myroot_candidate"), "v0.5.6");
     if (path === "/health") {
       counts.health += 1;
       if (counts.health === 1) return jsonResponse(200, { code: 0, data: { service: "root-checkin" } });
@@ -74,10 +76,12 @@ test("canary verifier attributes candidate health and executes the candidate-onl
     "--execute-object-probe",
     "--object-probe-attempts", "3",
     "--request-id", "canary-object-1",
+    "--route-query", "myroot_candidate=v0.5.6",
   ], { ROOT_ADMIN_TOKEN: "do-not-print" });
   const report = await runCanaryVerification(options, { fetchImpl });
   assert.equal(report.status, "PASS");
   assert.equal(report.trafficChanged, false);
+  assert.equal(report.routeQueryConfigured, true);
   assert.equal(report.health.observedVersions.UNVERSIONED, 1);
   assert.equal(report.health.version, "0.5.5");
   assert.equal(report.ready.store.connected, true);

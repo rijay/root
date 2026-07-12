@@ -418,6 +418,7 @@ function cloudbaseJobManifestCheck() {
       id: "job_environment",
       status: manifest.environment.requiredEnv.includes("ROOT_JOB_BASE_URL") &&
         manifest.environment.requiredEnv.includes("ROOT_ADMIN_JOB_TOKEN") &&
+        manifest.environment.optionalEnv.includes("ROOT_JOB_ROUTE_QUERY") &&
         manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_CLEANUP_LIMIT") &&
         manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_CHANNEL") &&
         manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_TEMPLATE") &&

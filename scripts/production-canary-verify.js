@@ -37,6 +37,7 @@ function parseArgs(argv = process.argv.slice(2), env = process.env) {
     objectProbeAttempts: 120,
     requestId: "",
     adminToken: text(env.ROOT_ADMIN_TOKEN),
+    routeQuery: text(env.ROOT_CANARY_ROUTE_QUERY),
     json: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
@@ -52,6 +53,7 @@ function parseArgs(argv = process.argv.slice(2), env = process.env) {
     else if (item === "--execute-object-probe") args.executeObjectProbe = true;
     else if (item === "--object-probe-attempts") args.objectProbeAttempts = clampNumber(next(), 120, 1, 1000);
     else if (item === "--request-id") args.requestId = text(next());
+    else if (item === "--route-query") args.routeQuery = text(next());
     else if (item === "--json") args.json = true;
     else throw new Error(`unknown argument: ${item}`);
   }
@@ -87,9 +89,20 @@ async function fetchJson(fetchImpl, url, init = {}, timeoutMs = 5000) {
   }
 }
 
-function probeUrl(baseUrl, path, attempt) {
-  const separator = path.includes("?") ? "&" : "?";
-  return `${baseUrl}${path}${separator}canary_probe=${Date.now()}-${attempt}`;
+function appendRouteQuery(rawUrl, routeQuery = "") {
+  const url = new URL(rawUrl);
+  const query = text(routeQuery).replace(/^\?/, "");
+  if (query.length > 512) throw new Error("candidate route query exceeds 512 characters");
+  for (const [key, value] of new URLSearchParams(query)) {
+    if (key) url.searchParams.set(key, value);
+  }
+  return url.toString();
+}
+
+function probeUrl(baseUrl, path, attempt, routeQuery = "") {
+  const url = new URL(path, `${baseUrl}/`);
+  url.searchParams.set("canary_probe", `${Date.now()}-${attempt}`);
+  return appendRouteQuery(url.toString(), routeQuery);
 }
 
 async function waitForVersion(path, options, fetchImpl) {
@@ -97,7 +110,12 @@ async function waitForVersion(path, options, fetchImpl) {
   const errors = [];
   for (let attempt = 1; attempt <= options.attempts; attempt += 1) {
     try {
-      const { response, body } = await fetchJson(fetchImpl, probeUrl(options.baseUrl, path, attempt), {
+      const { response, body } = await fetchJson(fetchImpl, probeUrl(
+        options.baseUrl,
+        path,
+        attempt,
+        options.routeQuery,
+      ), {
         headers: { "Cache-Control": "no-cache", Connection: "close" },
       }, options.timeoutMs);
       const data = body && body.data && typeof body.data === "object" ? body.data : {};
@@ -156,7 +174,10 @@ async function waitForObjectProbe(options, fetchImpl) {
   const errors = [];
   for (let attempt = 1; attempt <= options.objectProbeAttempts; attempt += 1) {
     try {
-      const { response, body } = await fetchJson(fetchImpl, `${options.baseUrl}${path}`, {
+      const { response, body } = await fetchJson(fetchImpl, appendRouteQuery(
+        `${options.baseUrl}${path}`,
+        options.routeQuery,
+      ), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${options.adminToken}`,
@@ -277,6 +298,7 @@ async function runCanaryVerification(options, context = {}) {
     expectedMigrationVersion: options.expectedMigrationVersion,
     trafficChanged: false,
     executeObjectProbe: options.executeObjectProbe,
+    routeQueryConfigured: Boolean(options.routeQuery),
     startedAt,
     completedAt: new Date().toISOString(),
     health,
@@ -299,6 +321,7 @@ function printHuman(report) {
   process.stdout.write(`状态：${report.status}\n`);
   process.stdout.write(`目标版本：${report.expectedVersion}\n`);
   process.stdout.write(`流量变更：否\n`);
+  process.stdout.write(`定向路由：${report.routeQueryConfigured ? "是" : "否"}\n`);
   process.stdout.write(`健康探针：${report.health.status}，第 ${report.health.attempt || 0} 次命中\n`);
   process.stdout.write(`就绪探针：${report.ready.status}，第 ${report.ready.attempt || 0} 次命中\n`);
   process.stdout.write(`隐私说明：${report.privacyNotice.status}，第 ${report.privacyNotice.attempt || 0} 次命中\n`);
@@ -322,6 +345,7 @@ async function main() {
 if (require.main === module) main();
 
 module.exports = {
+  appendRouteQuery,
   determineExitCode,
   parseArgs,
   runCanaryVerification,

@@ -55,6 +55,7 @@ function buildCloudbaseJobManifest(options = {}) {
       baseUrl,
       requiredEnv: REQUIRED_ENV,
       optionalEnv: [
+        "ROOT_JOB_ROUTE_QUERY",
         "ROOT_ALERT_CAMPAIGN_ID",
         "ROOT_LIFECYCLE_SETTLEMENT_CAMPAIGN_ID",
         "ROOT_LIFECYCLE_EXPORT_CAMPAIGN_ID",

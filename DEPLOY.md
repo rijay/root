@@ -112,6 +112,8 @@ ROOT_ALERT_CAMPAIGN_ID=ROOT_7D_RESET
 
 仓库已提供共享代码目录 `cloudfunctions/myroot-job-dispatcher` 与根目录 `cloudbaserc.json`。CloudBase 单函数最多 10 个定时触发器，因此生产拓扑拆为 `myroot-job-dispatcher` 10 个触发器和 `myroot-health-retention` 1 个健康数据清理触发器，合计覆盖 11 个 Job；两个函数复用同一代码目录。配置只保存函数代码、规格和触发器，不保存任何环境变量；否则再次执行 `tcb fn deploy` 可能把生产 token 写进仓库，或用不完整变量覆盖云端配置。`ROOT_JOB_BASE_URL`、`ROOT_ADMIN_JOB_TOKEN`、`ROOT_JOB_DRY_RUN` 等变量统一在 CloudBase 控制台维护。2026-07-12 两个生产函数均为 `Active`，环境变量保持 5 项且 `ROOT_JOB_DRY_RUN=true`；新 Job 手工调用已到达调度代码，但稳定版后端尚无对应路由而返回 HTTP 404，必须在 `v0.5.6` 后端生效后重新验证，当前不得开启 execute。
 
+0% 候选验收可使用 CloudBase 官方 URL 参数定向流量：稳定版保持默认版本，候选版只匹配一次性非秘密参数。Cloud Function 临时设置 `ROOT_JOB_ROUTE_QUERY=<key>=<value>`，灰度验证脚本设置同值 `ROOT_CANARY_ROUTE_QUERY` 或传 `--route-query <key>=<value>`；调度器会把参数附加到 Job Interface，默认未配置时 URL 完全不变。验收结束后移除两个变量并恢复百分比流量配置，路由参数不能替代鉴权，也不得承载 token、密码或用户标识。
+
 有赞身份对账首次开放 execute 前，必须先完成 User Query Interface 权限与 token 生命周期确认，再把 `ROOT_YOUZAN_IDENTITY_RECONCILE_ENABLED` 改为 `true`。自用型无容器 token 由 `client_id + client_secret + grant_id` 换取；当前版本采用单一负责人集中轮换，不允许两个实例各自换 token。生产调用会检查轮换模式与到期时间，缺失或已过期时在请求有赞前失败关闭。建议先运行：
 
 ```bash

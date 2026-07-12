@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
+  buildJobRequestUrl,
   dispatch,
   JOBS,
   RELEASE_VERSION,
@@ -43,6 +44,35 @@ test("CloudBase dispatcher keeps Youzan identity reconciliation dry-run by defau
   assert.equal(captured.body.batchSize, 5);
   assert.equal(captured.body.requestId, undefined);
   assert.equal(result.data.candidateCount, 2);
+});
+
+test("CloudBase dispatcher appends an explicit candidate route query without changing the default URL", async () => {
+  assert.equal(
+    buildJobRequestUrl("https://example.test", "/api/v1/jobs/checkin-reminders"),
+    "https://example.test/api/v1/jobs/checkin-reminders",
+  );
+  assert.equal(
+    buildJobRequestUrl(
+      "https://example.test",
+      "/api/v1/jobs/checkin-reminders",
+      "myroot_candidate=v0.5.6&probe=dry-run",
+    ),
+    "https://example.test/api/v1/jobs/checkin-reminders?myroot_candidate=v0.5.6&probe=dry-run",
+  );
+
+  let capturedUrl = "";
+  await dispatch({ TriggerName: "health_data_retention_cleanup" }, {
+    ROOT_ADMIN_JOB_TOKEN: "job-secret",
+    ROOT_JOB_BASE_URL: "https://example.test",
+    ROOT_JOB_ROUTE_QUERY: "myroot_candidate=v0.5.6",
+  }, async (url) => {
+    capturedUrl = url;
+    return { statusCode: 200, body: { code: 0, message: "ok", data: { dryRun: true } } };
+  });
+  assert.equal(
+    capturedUrl,
+    "https://example.test/api/v1/jobs/health-data-retention-cleanup?myroot_candidate=v0.5.6",
+  );
 });
 
 test("CloudBase dispatcher defaults to dry-run and keeps the Job token out of output", async () => {
