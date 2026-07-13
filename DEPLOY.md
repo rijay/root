@@ -116,7 +116,7 @@ ROOT_ALERT_CAMPAIGN_ID=ROOT_7D_RESET
 
 生产 MySQL 使用私网地址时，CloudRun 候选必须显式继承当前稳定版本的 `VpcConf`。CloudBase CLI `3.5.7` 的差异配置转换不会自动提交 `VpcConf`；2026-07-12 的 `020/021` 因遗漏该项，在应用监听 80 端口前无法连接 MySQL，探针均以 `connection refused` 失败。发布脚本必须从稳定版本 `DescribeVersionDetail` 回读 VPC 配置，在 `UpdateCloudRunServer.Items` 中显式提交 `{ Key: "VpcConf", VpcConf: ... }`，并在候选创建后再次回读 `DescribeVersionDetail.VpcConf`。缺 VPC、稳定版不是默认版本或候选百分比不为 0 时立即停止，不进入探针。
 
-CloudRun 中的 CloudBase 对象存储使用服务端 HTTP Interface，生产候选必须同时配置 `ROOT_CLOUDBASE_STORAGE_TRANSPORT=HTTP`、匹配生产环境的 `ROOT_CLOUDBASE_ENV_ID` 和服务端 `CLOUDBASE_APIKEY`。API Key 只保存于受控密钥存储，不写入仓库、命令参数、发布文档或客户端代码。探针只允许上传一个随机小对象，并按上传授权返回的精确 `cloudObjectId` 删除；上传结果含糊时只对该精确 ID 做补偿删除，禁止按目录或前缀清理。2026-07-12 的 023 候选已完成 HTTP 200、上传确认、删除确认、审计匹配和目录 `total=0` 回读。
+CloudRun 中的 CloudBase 对象存储使用服务端 HTTP Interface，生产候选必须同时配置 `ROOT_CLOUDBASE_STORAGE_TRANSPORT=HTTP`、匹配生产环境的 `ROOT_CLOUDBASE_ENV_ID` 和服务端 `CLOUDBASE_APIKEY`。API Key 只保存于受控密钥存储，不写入仓库、命令参数、发布文档或客户端代码。探针只允许上传一个随机小对象，并按上传授权返回的精确 `cloudObjectId` 删除；上传结果含糊时只对该精确 ID 做补偿删除，禁止按目录或前缀清理。2026-07-13 的 024 候选已完成 HTTP 200、上传确认、删除确认、审计匹配和目录 `total=0` 回读。
 
 有赞身份对账首次开放 execute 前，必须先完成 User Query Interface 权限与 token 生命周期确认，再把 `ROOT_YOUZAN_IDENTITY_RECONCILE_ENABLED` 改为 `true`。自用型无容器 token 由 `client_id + client_secret + grant_id` 换取；当前版本采用单一负责人集中轮换，不允许两个实例各自换 token。生产调用会检查轮换模式与到期时间，缺失或已过期时在请求有赞前失败关闭。建议先运行：
 
@@ -205,8 +205,8 @@ const productionApiBaseUrl = "https://myroot-api-273748-8-1437260454.sh.run.tclo
 - `GET /api/v1/admin/cloudbase-identity-probe` 已在真实 CloudBase 请求下验证 openid 与 unionid，身份探针为 `READY`，且已留存脱敏证明。
 - 小程序发布包不包含开发调试登录入口，后端未启用直接手机号登录测试开关。
 - 生产数据已接入 CloudBase MySQL Adapter；连接池、迁移版本、修订号与核心关系表均有实测证据。
-- 两个 Cloud Function 当前合计 11 个触发器；11/11 已在 `v0.5.6` 候选定向路由上取得 HTTP 200、业务码 0、`dryRun=true` 证明，正式外部动作校准完成前继续保持 `ROOT_JOB_DRY_RUN=true`。
-- CloudBase 对象存储生产探针已在 023 候选完成单对象上传、精确删除和空目录回读；正式业务对象 execute 仍需按各自 Gate 独立授权。
+- 两个 Cloud Function 当前合计 11 个触发器；11/11 已通过 024 定向路由取得 HTTP 200、业务码 0、`dryRun=true` 证明。函数部署包仍为 0.5.6，仓库包为 0.5.7；版本对齐前继续保持 `ROOT_JOB_DRY_RUN=true`。
+- CloudBase 对象存储生产探针已在 024 候选完成单对象上传、精确删除和空目录回读；正式业务对象 execute 仍需按各自 Gate 独立授权。
 - 迁移后快照已非破坏性恢复到隔离库并回读 24 张表、迁移版本与快照版本；恢复演练库保留至审计结束。
 - 已按 `docs/release_readiness.md` 跑完最小手工验收矩阵。
 - 正式发布前仍需用真实账号核对有赞订单、物流、企业微信和奖励履约 Adapter 字段与回执。

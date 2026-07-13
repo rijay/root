@@ -1,9 +1,9 @@
 # ROOT 7 日打卡上线前验收清单
 
 更新日期：2026-07-13
-状态：P0/P1、本地 `v0.5.7` 候选、CloudBase MySQL、20 并发、双实例、滚动重启、数据库恢复、`myroot-api-023 / v0.5.6` 0% 定向候选、schema 级最小权限、隐私 180 天、CloudBase 对象存储写删和 11/11 Cloud Function dry-run 均已验证；`v0.5.7` 尚未部署或上传，正式发布仍由体验版真机、真实外部 Adapter、execute 校准、5% 灰度、完整业务回滚和签字 Gate 阻塞。
+状态：P0/P1、CloudBase MySQL、20 并发、双实例、滚动重启、数据库恢复、`myroot-api-024 / v0.5.7` 0% 定向候选、schema 级最小权限、隐私 180 天、CloudBase 对象存储写删和 11/11 Cloud Function dry-run 均已验证；小程序尚未上传，Cloud Function 部署包仍为 0.5.6，正式发布仍由函数包对齐、体验版真机、真实外部 Adapter、execute 校准、5% 灰度、完整业务回滚和签字 Gate 阻塞。
 
-最新生产只读状态与 `v0.5.6` 数据最小化迁移见 [2026-07-12 正式上线检查点](./formal_launch_checkpoint_2026-07-12.md)。
+最新 024 生产运行证据见 [2026-07-13 候选 024 证据](./production_gray_release_024_2026-07-13.md)；历史迁移与 023 证据见 [2026-07-12 正式上线检查点](./formal_launch_checkpoint_2026-07-12.md)。
 
 ## 1. 当前结论
 
@@ -452,5 +452,5 @@ curl -s https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com/ready
 4. 发券和状态响应写入 Store 与审计前统一脱敏，手机号、OpenID、UnionID、`yz_open_id`、token 和完整响应不持久化；外部 `coupon_id` 只通过独立 `external_ref` 支撑后续状态查询。官方发券已成功但缺少有效券 ID 时阻止自动重试并创建高优先级复核待办，券状态响应 ID 不一致时失败关闭。
 5. 根项目、后端、小程序、Admin 与 Cloud Function 版本已统一提升为 `0.5.7`。完整 `npm run verify` 为 `15/15 PASS`，覆盖 216 个 JavaScript 文件；小程序清单 SHA-256 为 `38a2553de2f784f3f984fd759186277022e549d7a45238ae2c2e9aa595f01eeb`，后端候选 ZIP 为 181 个条目、1,048,548 bytes，SHA-256 `abde4fd1d30a7543a2c10e9c6fbdf41b7b582cf29e69e3ae7c9ab69d5cf2bb62`；172 个候选源文件的内容清单 SHA-256 为 `f436464ab91485f0ddb6bcadd488e95191fda4b5509b88c2724d1d9fcfe69b61`。
 6. 本地镜像 digest 为 `sha256:718b96a88a375786d667e4afc80705730414c3348bd82040f5d289338f8682b7`，大小 70,076,395 bytes；隔离容器 `/health`、`/ready`、`/admin` 与公开隐私说明均为 HTTP 200 和 `0.5.7`，隐私说明回读处理者名称、公开邮箱和 180 天保存期限，容器已停止。
-7. 本版尚未创建 CloudRun 候选、修改生产变量、部署 Cloud Function、上传体验版或执行真实 Adapter。线上仍为稳定版 012 与 0% 条件候选 023，不得用 023 的运行证据证明 `v0.5.7`。
-8. 2026-07-13 只读复核确认 023 发布单仍为 `URL_PARAMS / 0% / IsReleasing=true`，012 与 023 均为 `normal`，运行配置、VPC、48 个变量名和对象存储钥匙串条目仍在；当前 CLI 无法保证在不结束活动灰度的情况下创建 024，因此候选替换必须取得单独行动时授权。详见 [024 上线前预检](./production_candidate_024_preflight_2026-07-13.md)。
+7. `v0.5.7` 已由本地提交 `af70ff9` 部署为 `myroot-api-024 / URL_PARAMS / 0%` 条件候选；012 仍承接默认流量，未修改生产变量、未上传体验版、未执行真实 Adapter。
+8. 024 定向健康、MySQL、隐私和对象存储 Gate 均通过，路由配置前后各 15 次默认请求未命中 0.5.7；11/11 Cloud Function 作业均为 dry-run 并通过，但函数部署包仍报告 0.5.6，需单独授权对齐到 0.5.7。详见 [024 生产证据](./production_gray_release_024_2026-07-13.md)。
