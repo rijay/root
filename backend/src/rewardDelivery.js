@@ -1,6 +1,8 @@
 const { nowISO } = require("./dates");
 const auditLog = require("./auditLog");
+const operationTask = require("./operationTask");
 const { createDefaultRewardDeliveryAdapters, createDefaultRewardStatusAdapters } = require("./rewardDeliveryAdapters");
+const { sanitizeExternalReviewRecord } = require("./externalEvidenceSanitizer");
 const { grantStatusForExternalStatus, normalizeExternalStatus } = require("./youzanCouponStatusAdapter");
 
 function businessError(code, message, status = 200) {
@@ -88,6 +90,31 @@ function adapterLabel(adapterType) {
   return adapterType || "奖励";
 }
 
+function externalOutcomeMessage(job, ok, action = "发放", code = "") {
+  const label = adapterLabel(job && job.adapter_type);
+  const suffix = code ? `（外部错误码 ${String(code).replace(/[^A-Za-z0-9_.-]/g, "").slice(0, 32)}）` : "";
+  return ok ? `${label}${action}完成` : `${label}${action}失败${suffix}`;
+}
+
+function createDeliveryReviewTask(data, job, grant, adapterResult, now) {
+  if (!adapterResult.requiresReview) return null;
+  return operationTask.createOperationTaskOnce(data, {
+    task_type: "YOUZAN_COUPON_DELIVERY_REVIEW_REQUIRED",
+    user_id: grant.root_user_id || "",
+    order_id: grant.order_id || "",
+    task_date: String(now || nowISO()).slice(0, 10),
+    dedupe_key: job.reward_delivery_job_id,
+    reason: "有赞已返回发券成功，但响应未包含可用于状态查询的 coupon_id",
+    suggested_action: "在有赞后台按活动与用户核对发券记录，补录 coupon_id 后再查询状态；不要重新发券",
+    metadata: {
+      reviewCode: adapterResult.reviewCode || "YOUZAN_COUPON_ID_MISSING",
+      rewardDeliveryJobId: job.reward_delivery_job_id,
+      rewardGrantId: grant.reward_grant_id,
+      adapterType: job.adapter_type,
+    },
+  }).task;
+}
+
 function manualAdapterResultFor(job, grant, body = {}) {
   if (shouldFail(body)) {
     const message = text(body.errorMessage || body.error_message || body.lastError || body.last_error, "人工发放标记失败");
@@ -150,21 +177,25 @@ async function adapterResultFor(job, grant, body = {}, context = {}) {
     return {
       ok: Boolean(result && result.ok),
       status: result && result.ok ? "DELIVERED" : "FAILED",
-      message: text(result && result.message, result && result.ok ? `${adapterLabel(job.adapter_type)}发放完成` : `${adapterLabel(job.adapter_type)}发放失败`),
+      message: result && result.requiresReview
+        ? "有赞优惠券发放完成，缺少券 ID，需人工核对"
+        : externalOutcomeMessage(job, Boolean(result && result.ok)),
       externalRef: text(result && result.externalRef),
-      payload: result && result.payload ? result.payload : result || {},
+      requiresReview: Boolean(result && result.requiresReview),
+      reviewCode: text(result && result.reviewCode),
+      payload: sanitizeExternalReviewRecord(result && result.payload ? result.payload : result || {}),
     };
   } catch (error) {
     return {
       ok: false,
       status: "FAILED",
-      message: error.message || "奖励发放 Adapter 运行失败",
+      message: externalOutcomeMessage(job, false, "发放", error.code || 500),
       externalRef: "",
       payload: {
         adapterType: job.adapter_type,
         errorCode: String(error.code || 500),
-        errorMessage: error.message || "奖励发放 Adapter 运行失败",
-        detail: error.detail || null,
+        errorMessage: externalOutcomeMessage(job, false, "发放", error.code || 500),
+        detail: sanitizeExternalReviewRecord(error.detail || {}),
       },
     };
   }
@@ -230,24 +261,24 @@ async function statusAdapterResultFor(job, grant, body = {}, context = {}) {
       ok: Boolean(result && result.ok),
       externalStatus: text(result && result.externalStatus, "UNKNOWN"),
       grantStatus: text(result && result.grantStatus, grant.status),
-      message: text(result && result.message, result && result.ok ? "有赞优惠券状态查询完成" : "有赞优惠券状态查询失败"),
+      message: externalOutcomeMessage(job, Boolean(result && result.ok), "状态查询"),
       externalRef: text(result && result.externalRef, grant.external_ref || ""),
       usedAt: text(result && result.usedAt),
       expiredAt: text(result && result.expiredAt),
-      payload: result && result.payload ? result.payload : result || {},
+      payload: sanitizeExternalReviewRecord(result && result.payload ? result.payload : result || {}),
     };
   } catch (error) {
     return {
       ok: false,
       externalStatus: "UNKNOWN",
       grantStatus: grant.status,
-      message: error.message || "奖励状态 Adapter 运行失败",
+      message: externalOutcomeMessage(job, false, "状态查询", error.code || 500),
       externalRef: grant.external_ref || "",
       payload: {
         adapterType: job.adapter_type,
         errorCode: String(error.code || 500),
-        errorMessage: error.message || "奖励状态 Adapter 运行失败",
-        detail: error.detail || null,
+        errorMessage: externalOutcomeMessage(job, false, "状态查询", error.code || 500),
+        detail: sanitizeExternalReviewRecord(error.detail || {}),
       },
     };
   }
@@ -276,6 +307,7 @@ async function applyDeliveryResult(data, deliveryJobId, body = {}, context = {})
 
   const now = nowISO();
   const adapterResult = await adapterResultFor(job, grant, body, context);
+  let reviewTask = null;
   job.attempt_count = Number(job.attempt_count || 0) + 1;
   job.updated_at = now;
   job.external_result_json = adapterResult.payload;
@@ -290,6 +322,7 @@ async function applyDeliveryResult(data, deliveryJobId, body = {}, context = {})
     grant.delivered_at = now;
     grant.external_ref = adapterResult.externalRef;
     grant.updated_at = now;
+    reviewTask = createDeliveryReviewTask(data, job, grant, adapterResult, now);
   } else {
     job.status = "FAILED";
     job.last_error = adapterResult.message;
@@ -305,12 +338,13 @@ async function applyDeliveryResult(data, deliveryJobId, body = {}, context = {})
     operatorId: body.operatorId || body.operator_id || "",
     reason: body.reason || body.note || "处理奖励发放任务",
     before,
-    after: { job: clone(job), grant: clone(grant), adapterResult },
+    after: { job: clone(job), grant: clone(grant), adapterResult, reviewTask: clone(reviewTask) },
     metadata: {
       requestId: body.requestId || body.request_id || "",
       adapterType: job.adapter_type,
       outcome: adapterResult.status,
       externalRef: adapterResult.externalRef || "",
+      reviewRequired: Boolean(reviewTask),
     },
   });
 
@@ -320,6 +354,7 @@ async function applyDeliveryResult(data, deliveryJobId, body = {}, context = {})
     skipped: false,
     message: adapterResult.message,
     adapterResult,
+    reviewTask,
     audit,
   };
 }
@@ -339,7 +374,7 @@ async function applyDeliveryStatusResult(data, deliveryJobId, body = {}, context
   job.updated_at = now;
   job.status_checked_at = now;
   job.external_result_json = {
-    ...(job.external_result_json && typeof job.external_result_json === "object" ? job.external_result_json : {}),
+    ...sanitizeExternalReviewRecord(job.external_result_json && typeof job.external_result_json === "object" ? job.external_result_json : {}),
     statusQuery: adapterResult.payload,
     lastStatus: adapterResult.externalStatus,
     lastStatusCheckedAt: now,

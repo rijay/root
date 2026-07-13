@@ -1,6 +1,6 @@
 {
   "name": "myroot-job-dispatcher",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "private": true,
   "main": "index.js",
   "engines": {

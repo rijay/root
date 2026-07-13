@@ -142,7 +142,7 @@ tcb cloudrun traffic \
 
 # 2. 在当前 shell 安全注入 ROOT_ADMIN_TOKEN 后执行候选版验证
 ROOT_PUBLIC_BASE_URL=https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com \
-ROOT_CANARY_EXPECTED_VERSION=0.5.6 \
+ROOT_CANARY_EXPECTED_VERSION=0.5.7 \
 ROOT_CANARY_EXPECTED_STORE_KIND=mysql \
 ROOT_CANARY_EXPECTED_MIGRATION_VERSION=004_external_evidence_minimization.sql \
 npm run verify:canary -- \

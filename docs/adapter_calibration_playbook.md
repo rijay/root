@@ -184,6 +184,15 @@ Token 校准要求：
 
 ### 2.3 有赞优惠券发放与状态查询
 
+官方 Interface 基线：
+
+| 用途 | Interface | 方法 | 业务字段 |
+| --- | --- | --- | --- |
+| 发放优惠券 | `https://open.youzanyun.com/api/youzan.ump.voucheractivity.send/3.0.1` | `POST` | `activity_id`、唯一补链的 `yz_open_id` |
+| 查询券状态 | `https://open.youzanyun.com/api/youzan.ump.voucher.query.detail/1.0.0` | `POST` | `coupon_id`、`coupon_type` |
+
+`coupon_type=0` 表示优惠券，`coupon_type=1` 表示优惠码。具体版本仍以 ROOT 店铺能力包中实际获批版本为准；不得把文档示例 token 或店铺 ID 写入配置。
+
 发券必须配置：
 
 | 环境变量 | 说明 |
@@ -197,13 +206,14 @@ Token 校准要求：
 | --- | --- |
 | `YOUZAN_COUPON_STATUS_URL` | 优惠券状态查询请求地址 |
 | `YOUZAN_COUPON_STATUS_ACCESS_TOKEN`、`YOUZAN_COUPON_ACCESS_TOKEN` 或 `YOUZAN_ACCESS_TOKEN` | 至少配置一个可用访问 token |
+| `YOUZAN_COUPON_STATUS_COUPON_TYPE` | ROOT 当前发放优惠券时设为 `0`；若后续改为优惠码，独立候选设为 `1` 并重新校准 |
 
 建议配置：
 
 | 环境变量 | 说明 |
 | --- | --- |
-| `YOUZAN_COUPON_RESULT_REF_PATH` | 发券响应里的外部券码路径 |
-| `YOUZAN_COUPON_STATUS_REF_PARAM` | 查询请求里的券码参数名，默认 `coupon_no` |
+| `YOUZAN_COUPON_RESULT_REF_PATH` | 仅自定义 Adapter 使用；官方 Interface 只接受正整数 `coupon_id` 或 `voucher_identity.coupon_id` |
+| `YOUZAN_COUPON_STATUS_REF_PARAM` | 仅自定义 Adapter 使用；官方 Interface 固定使用 `coupon_id` |
 | `YOUZAN_COUPON_STATUS_PATH` | 状态字段路径 |
 | `YOUZAN_COUPON_STATUS_REF_PATH` | 状态响应里的外部券码路径 |
 | `YOUZAN_COUPON_STATUS_USED_AT_PATH` | 核销时间字段路径 |
@@ -212,9 +222,19 @@ Token 校准要求：
 
 最小字段确认：
 
-1. 外部券码。
+1. 发券活动 `activity_id` 与返回的 `coupon_id`。
 2. 外部状态，至少能区分 `ISSUED`、`USED`、`EXPIRED`、`CANCELLED`。
 3. 核销时间或过期时间，若平台返回。
+4. 奖励用户的 `root_user_id` 必须在 `youzan_customer` 中唯一命中一个 `youzan_yz_uid`；零个或多个都不允许自动发券。
+
+安全不变量：
+
+1. 活动规则 `payload` 只配置 `activity_id`，不得配置手机号、`yz_open_id` 或固定核销码；这些值会被所有命中规则的用户共享。
+2. 官方发券 Adapter 只从当前奖励用户唯一补链的有赞客户镜像取得 `yz_open_id`，不接受批量请求体覆盖接收人。
+3. 发券和状态响应写入任务、奖励记录与审计前必须脱敏；手机号、OpenID、UnionID、`yz_open_id`、token 和完整原始响应不得持久化。
+4. 先用一个测试账号完成身份补链与 `PREVIEW`；真实发券属于外部权益发放，必须使用单任务、稳定 `request_id` 并取得行动时确认。
+5. 若官方发券已成功但缺少有效 `coupon_id`，系统会阻止自动重试并生成 `YOUZAN_COUPON_DELIVERY_REVIEW_REQUIRED`；运营应在有赞后台核对并补录券 ID，不得直接重新发券。
+6. 官方券状态响应中的 `coupon_id` 必须与本地请求一致；不一致时暂停状态写回并人工核对。
 
 ### 2.4 物流状态
 

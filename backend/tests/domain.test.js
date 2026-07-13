@@ -837,7 +837,9 @@ test("built-in Youzan coupon Adapter sends reward grant and records external ref
           data: {
             status: "SUCCESS",
             couponNo: "YZ_COUPON_HTTP_001",
-            message: "发放成功",
+            message: "发放成功 mobile=13800138000 yz_open_id=yz-open-id-must-not-persist",
+            mobile: "13800138000",
+            yz_open_id: "yz-open-id-must-not-persist",
           },
         }),
       };
@@ -854,6 +856,9 @@ test("built-in Youzan coupon Adapter sends reward grant and records external ref
   assert.equal(requestBody.couponId, "ROOT_COUPON_7D");
   assert.equal(requestBody.yzUid, "yz_user_001");
   assert.equal(requestBody.rewardGrantId, couponGrant.reward_grant_id);
+  assert.equal(JSON.stringify(store.rewardDeliveryJobs[0].external_result_json).includes("13800138000"), false);
+  assert.equal(JSON.stringify(store.rewardDeliveryJobs[0].external_result_json).includes("yz-open-id-must-not-persist"), false);
+  assert.equal(JSON.stringify(delivered.audit).includes("13800138000"), false);
 });
 
 test("built-in Youzan coupon status Adapter updates reward external status", async () => {
@@ -914,7 +919,9 @@ test("built-in Youzan coupon status Adapter updates reward external status", asy
             useStatus: "USED",
             couponNo: "YZ_COUPON_STATUS_001",
             usedAt: "2026-06-28T12:30:00+08:00",
-            message: "已核销",
+            message: "已核销 mobile=13800138000 yz_open_id=yz-open-status-must-not-persist",
+            mobile: "13800138000",
+            yz_open_id: "yz-open-status-must-not-persist",
           },
         }),
       };
@@ -937,6 +944,9 @@ test("built-in Youzan coupon status Adapter updates reward external status", asy
   assert.equal(statusUrl.searchParams.get("coupon_no"), "YZ_COUPON_STATUS_001");
   assert.equal(calls[0].init.method, "GET");
   assert.equal(store.auditLogs.some((log) => log.action === "REWARD_DELIVERY_STATUS_QUERY" && log.target_id === deliveryJobId), true);
+  assert.equal(JSON.stringify(store.rewardDeliveryJobs[0].external_result_json).includes("13800138000"), false);
+  assert.equal(JSON.stringify(couponGrant.external_status_json).includes("yz-open-status-must-not-persist"), false);
+  assert.equal(JSON.stringify(store.auditLogs).includes("yz-open-status-must-not-persist"), false);
 });
 
 test("built-in WeWork tag Adapter applies tag by linked external contact", async () => {

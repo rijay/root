@@ -1,7 +1,7 @@
 # ROOT 7 日打卡上线前验收清单
 
-更新日期：2026-07-12
-状态：P0/P1、本地 `15/15`、CloudBase MySQL、20 并发、双实例、滚动重启、数据库恢复、`myroot-api-023` 0% 定向候选、schema 级最小权限、隐私 180 天、CloudBase 对象存储写删和 11/11 Cloud Function dry-run 均已验证；正式发布仍由体验版真机、真实外部 Adapter、execute 校准、5% 灰度、完整业务回滚和签字 Gate 阻塞。
+更新日期：2026-07-13
+状态：P0/P1、本地 `v0.5.7` 候选、CloudBase MySQL、20 并发、双实例、滚动重启、数据库恢复、`myroot-api-023 / v0.5.6` 0% 定向候选、schema 级最小权限、隐私 180 天、CloudBase 对象存储写删和 11/11 Cloud Function dry-run 均已验证；`v0.5.7` 尚未部署或上传，正式发布仍由体验版真机、真实外部 Adapter、execute 校准、5% 灰度、完整业务回滚和签字 Gate 阻塞。
 
 最新生产只读状态与 `v0.5.6` 数据最小化迁移见 [2026-07-12 正式上线检查点](./formal_launch_checkpoint_2026-07-12.md)。
 
@@ -443,3 +443,14 @@ curl -s https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com/ready
 6. 023 对象探针返回 HTTP 200、业务码 0、`VERIFIED`，上传与精确删除均确认，残留可能性为 false，审计匹配；随后直接列举探针目录仍为 0 个对象。
 7. 两个 Cloud Function 的候选路由已更新为 023，仍保持 10+1 触发器和全局 dry-run；11/11 Job 再次全部通过，未执行任何真实外部动作或健康数据清理。
 8. 当前正式发布阻塞已收敛为体验版真机、真实外部 Adapter 小批量校准、5% 灰度与告警观察、完整业务回滚、最终证据包和三方签字。完整脱敏证据见 [候选 023 证据](./production_gray_release_023_2026-07-12.md)。
+
+## 15. 2026-07-13 v0.5.7 有赞奖励契约候选
+
+1. 正式 Gate 审计发现 `v0.5.6` 发券 Adapter 会向官方 Interface 发送 myRoot 内部字段，券状态 Adapter 默认使用 `GET + coupon_no`，与有赞当前方法不一致；该缺陷在真实发券前被拦截。
+2. `v0.5.7` 增加有赞官方 URL 识别 Module：官方发券只发送 `activity_id + yz_open_id`，官方券状态只以 `POST` 发送 `coupon_id + coupon_type`；自定义 Adapter URL 的既有 Interface 保持不变。
+3. 发券接收人只能由奖励 `root_user_id` 唯一匹配有赞客户镜像，不能从活动级奖励 `payload` 或批量请求体读取手机号/`yz_open_id`；未补链或多身份冲突均在外部请求前失败关闭。
+4. 发券和状态响应写入 Store 与审计前统一脱敏，手机号、OpenID、UnionID、`yz_open_id`、token 和完整响应不持久化；外部 `coupon_id` 只通过独立 `external_ref` 支撑后续状态查询。官方发券已成功但缺少有效券 ID 时阻止自动重试并创建高优先级复核待办，券状态响应 ID 不一致时失败关闭。
+5. 根项目、后端、小程序、Admin 与 Cloud Function 版本已统一提升为 `0.5.7`。完整 `npm run verify` 为 `15/15 PASS`，覆盖 216 个 JavaScript 文件；小程序清单 SHA-256 为 `38a2553de2f784f3f984fd759186277022e549d7a45238ae2c2e9aa595f01eeb`，后端候选 ZIP 为 181 个条目、1,048,548 bytes，SHA-256 `abde4fd1d30a7543a2c10e9c6fbdf41b7b582cf29e69e3ae7c9ab69d5cf2bb62`；172 个候选源文件的内容清单 SHA-256 为 `f436464ab91485f0ddb6bcadd488e95191fda4b5509b88c2724d1d9fcfe69b61`。
+6. 本地镜像 digest 为 `sha256:718b96a88a375786d667e4afc80705730414c3348bd82040f5d289338f8682b7`，大小 70,076,395 bytes；隔离容器 `/health`、`/ready`、`/admin` 与公开隐私说明均为 HTTP 200 和 `0.5.7`，隐私说明回读处理者名称、公开邮箱和 180 天保存期限，容器已停止。
+7. 本版尚未创建 CloudRun 候选、修改生产变量、部署 Cloud Function、上传体验版或执行真实 Adapter。线上仍为稳定版 012 与 0% 条件候选 023，不得用 023 的运行证据证明 `v0.5.7`。
+8. 2026-07-13 只读复核确认 023 发布单仍为 `URL_PARAMS / 0% / IsReleasing=true`，012 与 023 均为 `normal`，运行配置、VPC、48 个变量名和对象存储钥匙串条目仍在；当前 CLI 无法保证在不结束活动灰度的情况下创建 024，因此候选替换必须取得单独行动时授权。详见 [024 上线前预检](./production_candidate_024_preflight_2026-07-13.md)。

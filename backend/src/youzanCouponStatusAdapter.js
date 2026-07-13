@@ -1,5 +1,6 @@
 const { assertYouzanBusinessSuccess } = require("./youzanResponse");
 const { assertYouzanTokenReady } = require("./youzanTokenPolicy");
+const { isOfficialYouzanUrl } = require("./youzanOpenRequest");
 
 function adapterError(code, message, detail) {
   const error = new Error(message);
@@ -8,8 +9,8 @@ function adapterError(code, message, detail) {
   return error;
 }
 
-function normalizeMethod(value) {
-  const method = String(value || "GET").toUpperCase();
+function normalizeMethod(value, fallback = "GET") {
+  const method = String(value || fallback).toUpperCase();
   return method === "POST" ? "POST" : "GET";
 }
 
@@ -93,16 +94,47 @@ function statusPayloadFor(context = {}) {
   };
 }
 
+function officialCouponStatusPayloadFor(payload = {}, env = {}) {
+  const couponId = firstDefined(payload, ["coupon_id", "couponId", "externalRef"]);
+  const configuredType = firstDefined(payload, ["coupon_type", "couponType"]);
+  const rawType = configuredType === undefined || configuredType === null || configuredType === ""
+    ? (env.YOUZAN_COUPON_STATUS_COUPON_TYPE === undefined ? 0 : env.YOUZAN_COUPON_STATUS_COUPON_TYPE)
+    : configuredType;
+  const numericType = Number(rawType);
+  return {
+    coupon_id: couponId,
+    coupon_type: Number.isFinite(numericType) ? numericType : rawType,
+  };
+}
+
+function assertOfficialCouponStatusPayload(payload) {
+  if (!/^[1-9]\d*$/.test(String(payload.coupon_id || "").trim())) {
+    throw adapterError(400, "有赞官方券状态 Interface 的 coupon_id 必须是正整数");
+  }
+  if (![0, 1, "0", "1"].includes(payload.coupon_type)) {
+    throw adapterError(400, "有赞官方券状态 Interface 的 coupon_type 必须是 0（优惠券）或 1（优惠码）");
+  }
+}
+
 function buildRequest(env, context = {}) {
   const url = new URL(env.YOUZAN_COUPON_STATUS_URL);
-  const method = normalizeMethod(env.YOUZAN_COUPON_STATUS_METHOD);
+  const official = isOfficialYouzanUrl(url, "youzan.ump.voucher.query.detail");
+  const method = official ? "POST" : normalizeMethod(env.YOUZAN_COUPON_STATUS_METHOD);
   const headers = { Accept: "application/json" };
-  const params = {
-    ...parseJsonEnv(env.YOUZAN_COUPON_STATUS_EXTRA_PARAMS, {}),
-    ...statusPayloadFor(context),
+  const extra = parseJsonEnv(env.YOUZAN_COUPON_STATUS_EXTRA_PARAMS, {});
+  const payload = statusPayloadFor(context);
+  const params = official ? officialCouponStatusPayloadFor({
+    externalRef: context.grant && context.grant.external_ref,
+  }, env) : {
+    ...extra,
+    ...payload,
   };
-  const refParam = env.YOUZAN_COUPON_STATUS_REF_PARAM || "coupon_no";
-  if (params.externalRef) params[refParam] = params.externalRef;
+  if (official) {
+    assertOfficialCouponStatusPayload(params);
+  } else {
+    const refParam = env.YOUZAN_COUPON_STATUS_REF_PARAM || "coupon_no";
+    if (params.externalRef) params[refParam] = params.externalRef;
+  }
   applyToken(env, url, headers, params);
 
   if (method === "GET") {
@@ -149,6 +181,7 @@ function grantStatusForExternalStatus(status, fallbackStatus = "") {
 }
 
 function normalizeCouponStatusResult(payload, env, fieldMap, context = {}) {
+  const official = isOfficialYouzanUrl(env.YOUZAN_COUPON_STATUS_URL, "youzan.ump.voucher.query.detail");
   const rawStatus = valueFor(payload, fieldMap, "externalStatus", [
     env.YOUZAN_COUPON_STATUS_PATH,
     "data.coupon_status",
@@ -166,8 +199,15 @@ function normalizeCouponStatusResult(payload, env, fieldMap, context = {}) {
     "state",
   ].filter(Boolean));
   const externalStatus = normalizeExternalStatus(rawStatus);
-  const externalRef = text(valueFor(payload, fieldMap, "externalRef", [
+  const requestedRef = text(context.grant && context.grant.external_ref);
+  const responseRef = text(firstDefined(payload, ["data.voucher_identity.coupon_id", "data.coupon_id"]));
+  if (official && responseRef && responseRef !== requestedRef) {
+    throw adapterError(502, "有赞官方券状态响应 coupon_id 与请求不一致");
+  }
+  const externalRef = official ? requestedRef : text(valueFor(payload, fieldMap, "externalRef", [
     env.YOUZAN_COUPON_STATUS_REF_PATH,
+    "data.voucher_identity.coupon_id",
+    "data.coupon_id",
     "data.coupon_no",
     "data.couponNo",
     "data.coupon_code",
@@ -177,7 +217,7 @@ function normalizeCouponStatusResult(payload, env, fieldMap, context = {}) {
     "coupon_code",
     "couponCode",
     "id",
-  ].filter(Boolean)), context.grant && context.grant.external_ref);
+  ].filter(Boolean)), requestedRef);
   const usedAt = text(valueFor(payload, fieldMap, "usedAt", [
     env.YOUZAN_COUPON_STATUS_USED_AT_PATH,
     "data.used_at",
@@ -237,9 +277,11 @@ function createYouzanCouponStatusImplementation(options = {}) {
 }
 
 module.exports = {
+  assertOfficialCouponStatusPayload,
   buildRequest,
   createYouzanCouponStatusImplementation,
   grantStatusForExternalStatus,
   normalizeCouponStatusResult,
   normalizeExternalStatus,
+  officialCouponStatusPayloadFor,
 };

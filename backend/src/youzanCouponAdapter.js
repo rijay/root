@@ -1,5 +1,6 @@
 const { assertYouzanBusinessSuccess } = require("./youzanResponse");
 const { assertYouzanTokenReady } = require("./youzanTokenPolicy");
+const { isOfficialYouzanUrl } = require("./youzanOpenRequest");
 
 function adapterError(code, message, detail) {
   const error = new Error(message);
@@ -29,6 +30,11 @@ function objectValue(value) {
 function text(value, fallback = "") {
   const normalized = String(value || "").trim();
   return normalized || fallback;
+}
+
+function positiveIntegerText(value) {
+  const normalized = text(value);
+  return /^[1-9]\d*$/.test(normalized) ? normalized : "";
 }
 
 function getPath(source, path) {
@@ -73,6 +79,29 @@ function couponPayloadFor(grant = {}, body = {}) {
   };
 }
 
+function officialCouponPayloadFor(payload = {}, recipientYzOpenId = "") {
+  const fields = {
+    activity_id: firstDefined(payload, ["activity_id", "activityId"]),
+    yz_open_id: recipientYzOpenId,
+  };
+  return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined && value !== null && value !== ""));
+}
+
+function assertOfficialCouponPayload(payload) {
+  if (!/^[1-9]\d*$/.test(String(payload.activity_id || "").trim())) {
+    throw adapterError(400, "有赞官方发券 Interface 的 activity_id 必须是正整数");
+  }
+  if (!payload.yz_open_id) throw adapterError(400, "有赞官方发券 Interface 缺少唯一补链的 yz_open_id");
+}
+
+function linkedYouzanRecipients(data = {}, rootUserId = "") {
+  const recipients = Array.isArray(data.youzanCustomers) ? data.youzanCustomers : [];
+  return Array.from(new Set(recipients
+    .filter((customer) => customer.root_user_id && customer.root_user_id === rootUserId)
+    .map((customer) => String(customer.youzan_yz_uid || "").trim())
+    .filter(Boolean)));
+}
+
 function applyToken(env, url, headers, params) {
   const token = env.YOUZAN_COUPON_ACCESS_TOKEN || env.YOUZAN_ACCESS_TOKEN || "";
   const tokenParam = env.YOUZAN_COUPON_ACCESS_TOKEN_PARAM || env.YOUZAN_ACCESS_TOKEN_PARAM || "access_token";
@@ -90,17 +119,31 @@ function applyToken(env, url, headers, params) {
 
 function buildRequest(env, context = {}) {
   const url = new URL(env.YOUZAN_COUPON_SEND_URL);
-  const method = normalizeMethod(env.YOUZAN_COUPON_SEND_METHOD);
+  const official = isOfficialYouzanUrl(url, "youzan.ump.voucheractivity.send");
+  const method = official ? "POST" : normalizeMethod(env.YOUZAN_COUPON_SEND_METHOD);
   const headers = { Accept: "application/json" };
   const grant = context.grant || {};
   const job = context.job || {};
   const body = context.body || {};
-  const params = {
-    ...parseJsonEnv(env.YOUZAN_COUPON_SEND_EXTRA_PARAMS, {}),
-    ...couponPayloadFor(grant, body),
+  const extra = parseJsonEnv(env.YOUZAN_COUPON_SEND_EXTRA_PARAMS, {});
+  const payload = couponPayloadFor(grant, body);
+  const grantPayload = objectValue(grant.payload_json || grant.payload || {});
+  const recipients = official ? linkedYouzanRecipients(context.data, grant.root_user_id) : [];
+  if (official && recipients.length !== 1) {
+    const reason = recipients.length
+      ? "有赞官方发券 Interface 匹配到多个 yz_open_id，请先完成身份冲突复核"
+      : "有赞官方发券 Interface 未找到唯一补链的 yz_open_id，请先完成有赞客户身份对账";
+    throw adapterError(400, reason);
+  }
+  const params = official ? {
+    ...officialCouponPayloadFor({ ...extra, ...grantPayload }, recipients[0]),
+  } : {
+    ...extra,
+    ...payload,
     deliveryJobId: job.reward_delivery_job_id || "",
     requestId: body.requestId || body.request_id || "",
   };
+  if (official) assertOfficialCouponPayload(params);
   applyToken(env, url, headers, params);
 
   if (method === "GET") {
@@ -127,6 +170,7 @@ async function readResponseJson(response) {
 }
 
 function normalizeCouponResult(payload, env, fieldMap) {
+  const official = isOfficialYouzanUrl(env.YOUZAN_COUPON_SEND_URL, "youzan.ump.voucheractivity.send");
   const status = String(valueFor(payload, fieldMap, "status", [
     env.YOUZAN_COUPON_RESULT_STATUS_PATH,
     "data.status",
@@ -138,8 +182,14 @@ function normalizeCouponResult(payload, env, fieldMap) {
     .split(",")
     .map((item) => item.trim().toUpperCase())
     .filter(Boolean);
-  const externalRef = text(valueFor(payload, fieldMap, "externalRef", [
+  const externalRef = official
+    ? positiveIntegerText(firstDefined(payload, ["data.voucher_identity.coupon_id", "data.coupon_id"]))
+    : text(valueFor(payload, fieldMap, "externalRef", [
     env.YOUZAN_COUPON_RESULT_REF_PATH,
+    "data.voucher_identity.coupon_id",
+    "data.coupon_id",
+    "data.verify_code",
+    "data.code_value",
     "data.coupon_code",
     "data.couponCode",
     "data.coupon_no",
@@ -159,11 +209,15 @@ function normalizeCouponResult(payload, env, fieldMap) {
     "msg",
     "error_msg",
   ].filter(Boolean)), "有赞优惠券发放完成");
+  const ok = official || successValues.includes(status);
+  const requiresReview = official && ok && !externalRef;
   return {
-    ok: successValues.includes(status),
-    status: successValues.includes(status) ? "DELIVERED" : "FAILED",
-    message,
+    ok,
+    status: ok ? "DELIVERED" : "FAILED",
+    message: requiresReview ? "有赞优惠券发放完成，缺少券 ID，需人工核对" : message,
     externalRef,
+    requiresReview,
+    reviewCode: requiresReview ? "YOUZAN_COUPON_ID_MISSING" : "",
     payload,
   };
 }
@@ -190,7 +244,10 @@ function createYouzanCouponImplementation(options = {}) {
 }
 
 module.exports = {
+  assertOfficialCouponPayload,
   buildRequest,
   createYouzanCouponImplementation,
+  linkedYouzanRecipients,
   normalizeCouponResult,
+  officialCouponPayloadFor,
 };

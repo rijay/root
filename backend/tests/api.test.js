@@ -421,7 +421,7 @@ test("prepare backend admin dist copies Element Plus build for backend-only depl
   assert.equal(target.usesAdminBase, true);
   assert.match(fs.readFileSync(path.join(targetDir, "assets", "app.js"), "utf8"), /__PREPARED_ADMIN__/);
   const buildManifest = JSON.parse(fs.readFileSync(path.join(targetDir, "admin-build-manifest.json"), "utf8"));
-  assert.equal(buildManifest.releaseVersion, "0.5.6");
+  assert.equal(buildManifest.releaseVersion, "0.5.7");
   assert.deepEqual(buildManifest.modules.map((item) => item.key), ["config", "users", "audit", "adapters", "analytics", "release"]);
 });
 
@@ -814,8 +814,8 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.equal(notice.data.contact, "privacy@example.com");
   assert.equal(notice.data.retentionDays, 180);
   assert.match(notice.data.retentionText, /180 天/);
-  assert.equal(notice.data.version, "0.5.6");
-  assert.equal(notice.data.releaseId, "0.5.6");
+  assert.equal(notice.data.version, "0.5.7");
+  assert.equal(notice.data.releaseId, "0.5.7");
 });
 
 test("ready Interface exposes only safe MySQL least-privilege proof", async (t) => {
