@@ -7,9 +7,11 @@ function text(value, fallback = "") {
 
 function buildRuntimeMetadata(env = process.env) {
   const version = text(packageVersion, "unknown");
+  const configuredReleaseId = text(env.ROOT_RELEASE_ID);
   return {
     version,
-    releaseId: text(env.ROOT_RELEASE_ID, version),
+    releaseId: configuredReleaseId || version,
+    releaseIdConfigured: Boolean(configuredReleaseId),
   };
 }
 

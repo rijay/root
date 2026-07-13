@@ -175,6 +175,9 @@ function validateSourceContracts() {
   assert(releasePage.includes("adminLegacyDecisionForm") && releasePage.includes("submitAdminLegacyDecision") && releasePage.includes("下线决策"), "release page must expose admin legacy deprecation decision recording");
   assert(releasePage.includes("cloudbaseStoreGate") && releasePage.includes("CloudBase Store 决策") && releasePage.includes("cloudbaseStoreChecks"), "release page must expose CloudBase Store decision readiness");
   assert(releasePage.includes("rootMemberCenterGate") && releasePage.includes("Root 会员中心购买跳转") && releasePage.includes("rootMemberCenterProducts") && releasePage.includes("submitRootJumpProof"), "release page must expose Root member center purchase jump readiness and proof recording");
+  assert(releaseApi.includes("/api/v1/admin/production-cutover-proofs") && releasePage.includes("生产切换 Gate"), "release Module must expose production cutover proof controls");
+  assert(releasePage.includes("cutoverProofSubmissionDisabled") && releasePage.includes("VERIFIED 必填"), "release page must block proof submission without required evidence");
+  assert(releasePage.includes("proofScope") && releasePage.includes("releaseVersion") && releasePage.includes("绑定版本"), "release page must expose production proof scope and release binding");
   assert(releaseApi.includes("/api/v1/admin/root-member-center-jump-proofs") && releaseApi.includes("recordRootMemberCenterJumpProof"), "release Module must record Root member center jump proofs through backend Interface");
   assert(lifecycleApi.includes("/api/v1/admin/lifecycle-users"), "lifecycle Module must read the backend lifecycle Interface");
   assert(lifecycleApi.includes("/api/v1/admin/lifecycle-users/export") && lifecycleApi.includes("exportLifecycleUsersCsv"), "lifecycle Module must export filtered lifecycle CSV");

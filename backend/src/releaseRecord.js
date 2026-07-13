@@ -540,6 +540,7 @@ function buildReleaseChecklist(
       "确认 Element Plus Admin 主入口、backend-only 部署包、/admin-legacy 回退状态和旧后台下线决策已写入发布记录。",
       "确认生产证据收口项中每一条外部证据都有负责人、下一步动作和留档路径。",
       "确认微信开放平台、Root 会员中心 appId、CloudBase unionid、有赞、企微、CloudBase Job、外部通道、导出存储和回滚演练的生产切换证明已写入发布记录。",
+      "确认 CloudRun 候选运行、同版本体验版真机、次日提醒真实送达、5% 灰度观察和候选工件追溯证明均已写入发布记录。",
       "确认旧 7 日试饮历史数据已选择只读归档、选择性补迁或人工处理，并在发布记录中留存评估结果。",
     ],
     statusHint: decisionText(status),
@@ -552,6 +553,7 @@ function buildReleaseRecord(data, options = {}) {
     env: options.env || process.env,
     adapterImplementations: options.adapterImplementations || {},
     fetchImpl: options.fetchImpl,
+    runtimeMetadata: options.runtimeMetadata || {},
   };
   const readiness = launchReadiness.buildLaunchReadiness(data, { ...context, target: options.target || "production" });
   const calibration = adapterCalibration.buildAdapterCalibration(data, context);
@@ -582,6 +584,7 @@ function buildReleaseRecord(data, options = {}) {
     env: context.env,
     target: readiness.target,
     proofs: productionCutoverProof.latestProductionCutoverProofs(data, { target: readiness.target }),
+    runtimeMetadata: context.runtimeMetadata,
   });
   const legacyMigration = legacyDataMigration.buildLegacyDataMigrationPlan(data, {
     target: readiness.target,

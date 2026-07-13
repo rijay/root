@@ -64,6 +64,22 @@ const CUTOVER_ITEMS = [
     action: "在 CloudBase 控制台创建 Adapter 重试、运营预警、生命周期结算和生命周期导出相关触发器。",
   },
   {
+    id: "wechat_checkin_reminder_delivery",
+    proofScope: "RELEASE",
+    group: "operations",
+    label: "次日打卡订阅提醒真实送达",
+    ownerRole: "研发/运营",
+    proofEnv: "ROOT_CUTOVER_WECHAT_REMINDER_DELIVERY_VERIFIED",
+    supportingEnv: [
+      "WECHAT_APPID",
+      "WECHAT_APPSECRET",
+      "ROOT_CHECKIN_REMINDER_ENABLED",
+      "ROOT_CHECKIN_REMINDER_TEMPLATE_ID",
+      "ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION",
+    ],
+    action: "使用新的独立账号和一次性订阅额度生成一条 SCHEDULED 任务，仅发送一次并核对真机可见、任务状态与额度账本；结果为 UNKNOWN 时禁止重试。",
+  },
+  {
     id: "external_channels_verified",
     group: "operations",
     label: "外部通道与负责人验收",
@@ -89,6 +105,45 @@ const CUTOVER_ITEMS = [
     proofEnv: "ROOT_CUTOVER_ROLLBACK_DRILL_COMPLETED",
     action: "完成 MANUAL_SAMPLE、Adapter rollback、字段快照回滚和运营人工兜底路径演练。",
   },
+  {
+    id: "cloudrun_candidate_runtime",
+    proofScope: "RELEASE",
+    group: "release",
+    label: "CloudRun 候选运行 Gate",
+    ownerRole: "研发",
+    proofEnv: "ROOT_CUTOVER_CLOUDRUN_CANDIDATE_VERIFIED",
+    supportingEnv: ["ROOT_PUBLIC_BASE_URL", "ROOT_CLOUDBASE_ENV_ID"],
+    action: "核对候选版本与 releaseId、0% 路由、/health、/ready、VPC/环境变量/规格，并用 15 次无参数请求证明默认流量未误入候选。",
+  },
+  {
+    id: "miniprogram_trial_core_flow",
+    proofScope: "RELEASE",
+    group: "release",
+    label: "同版本体验版真机核心流程",
+    ownerRole: "产品/研发",
+    proofEnv: "ROOT_CUTOVER_MINIPROGRAM_TRIAL_VERIFIED",
+    supportingEnv: ["WECHAT_APPID", "ROOT_PUBLIC_BASE_URL"],
+    action: "上传与候选后端同版本的体验版，在关闭调试的真机完成登录、隐私、健康同意、身体画像、参加活动、打卡、订阅授权和商品跳转。",
+  },
+  {
+    id: "cloudrun_canary_observation",
+    proofScope: "RELEASE",
+    group: "release",
+    label: "5% 灰度观察与回滚阈值",
+    ownerRole: "研发/运营",
+    proofEnv: "ROOT_CUTOVER_CLOUDRUN_CANARY_VERIFIED",
+    supportingEnv: ["ROOT_PUBLIC_BASE_URL"],
+    action: "完成备份且阻塞项清零后进入 5% 灰度，至少观察 30 分钟并覆盖 20 并发核心流程，记录错误率、延迟和明确回滚阈值；超阈值立即回滚。",
+  },
+  {
+    id: "release_artifact_traceability",
+    proofScope: "RELEASE",
+    group: "release",
+    label: "候选工件与版本库追溯",
+    ownerRole: "研发",
+    proofEnv: "ROOT_CUTOVER_RELEASE_ARTIFACT_TRACEABILITY_VERIFIED",
+    action: "确认候选 ZIP、SHA256、BuildId、版本号与已推送 commit/tag 一一对应，部署工作树无未追溯改动且回滚源码可获取。",
+  },
 ];
 
 const GROUP_LABELS = {
@@ -98,6 +153,11 @@ const GROUP_LABELS = {
   data: "数据导出",
   release: "发布回滚",
 };
+
+function text(value, fallback = "") {
+  const normalized = String(value || "").trim();
+  return normalized || fallback;
+}
 
 function boolEnv(value) {
   return ["1", "true", "yes", "y", "approved", "ready", "done", "verified"].includes(String(value || "").trim().toLowerCase());
@@ -128,9 +188,40 @@ function latestProofFor(item, proofs = []) {
   return proofs.find((proof) => proof && proof.itemId === item.id) || null;
 }
 
-function itemMessage(item, proofReady, proofRejected, missingRequired, missingAnyOf) {
+function itemMessage(item, proof, missingRequired, missingAnyOf) {
+  const {
+    target,
+    proofReady,
+    proofRejected,
+    proofRecord,
+    envProofReady,
+    recordProofReady,
+    recordEvidenceReady,
+    releaseBindingRequired,
+    releaseBindingReady,
+    expectedReleaseVersion,
+    expectedReleaseId,
+    expectedReleaseIdConfigured,
+    recordReleaseVersion,
+    recordReleaseId,
+  } = proof;
   if (proofRejected) return `${item.label} 已被拒绝，需要重新验收后记录 VERIFIED。${item.action}`;
-  if (!proofReady) return `缺少 ${item.proofEnv} 生产证明或后台 VERIFIED 证明。${item.action}`;
+  if (proofRecord && proofRecord.status === "VERIFIED" && !text(proofRecord.evidenceRef)) {
+    return `${item.label} 的 VERIFIED 记录缺少 evidenceRef，需要重新录入可追溯证据。${item.action}`;
+  }
+  if (releaseBindingRequired && (!expectedReleaseVersion || !expectedReleaseId || !expectedReleaseIdConfigured)) {
+    return `当前候选缺少 version 或显式 ROOT_RELEASE_ID，无法校验发布级证明。${item.action}`;
+  }
+  if (releaseBindingRequired && recordEvidenceReady && !releaseBindingReady) {
+    if (!recordReleaseVersion || !recordReleaseId) {
+      return `${item.label} 的 VERIFIED 记录未绑定候选 version 与 releaseId，需要在当前候选重新验收。${item.action}`;
+    }
+    return `${item.label} 的 VERIFIED 记录绑定 ${recordReleaseVersion}/${recordReleaseId}，与当前候选 ${expectedReleaseVersion}/${expectedReleaseId} 不一致。${item.action}`;
+  }
+  if (target === "production" && envProofReady && !recordProofReady) {
+    return `${item.proofEnv} 只能证明环境已准备；正式目标仍需带 evidenceRef 的后台 VERIFIED 记录。${item.action}`;
+  }
+  if (!proofReady) return `缺少带 evidenceRef 的后台 VERIFIED 记录。${item.action}`;
   const support = [];
   if (missingRequired.length) support.push(`缺少支持变量 ${missingRequired.join(", ")}`);
   if (missingAnyOf.length) {
@@ -140,21 +231,37 @@ function itemMessage(item, proofReady, proofRejected, missingRequired, missingAn
   return "生产证明与支持变量已就绪。";
 }
 
-function buildCutoverItem(item, env, target, proofs = []) {
+function buildCutoverItem(item, env, target, proofs = [], runtimeBinding = {}) {
   const required = envRows(env, item.supportingEnv || []);
   const anyOf = anyOfRows(env, item.supportingAnyOf || []);
   const missingRequired = required.filter((row) => !row.present).map((row) => row.name);
   const missingAnyOf = anyOf.filter((row) => !row.present).map((row) => row.names);
   const proofRecord = latestProofFor(item, proofs);
+  const proofScope = item.proofScope || "ENVIRONMENT";
+  const expectedReleaseVersion = text(runtimeBinding.version);
+  const expectedReleaseId = text(runtimeBinding.releaseId, expectedReleaseVersion);
+  const expectedReleaseIdConfigured = runtimeBinding.releaseIdConfigured === true;
+  const recordReleaseVersion = text(proofRecord && (proofRecord.releaseVersion || proofRecord.release_version));
+  const recordReleaseId = text(proofRecord && (proofRecord.releaseId || proofRecord.release_id));
+  const releaseBindingRequired = target === "production" && proofScope === "RELEASE";
+  const releaseBindingReady = !releaseBindingRequired || Boolean(
+    expectedReleaseVersion &&
+    expectedReleaseId &&
+    expectedReleaseIdConfigured &&
+    recordReleaseVersion === expectedReleaseVersion &&
+    recordReleaseId === expectedReleaseId &&
+    proofRecord.releaseIdConfigured === true
+  );
   const envProofReady = boolEnv(env && env[item.proofEnv]);
-  const recordProofReady = proofRecord && proofRecord.status === "VERIFIED";
+  const recordEvidenceReady = Boolean(proofRecord && proofRecord.status === "VERIFIED" && text(proofRecord.evidenceRef));
+  const recordProofReady = recordEvidenceReady && releaseBindingReady;
   const proofRejected = proofRecord && proofRecord.status === "REJECTED";
-  const proofReady = envProofReady || recordProofReady;
+  const proofReady = target === "production" ? recordProofReady : envProofReady || recordProofReady;
   const supportReady = !missingRequired.length && !missingAnyOf.length;
   const status = proofRejected
     ? "BLOCKED"
     : proofReady
-    ? supportReady ? "READY" : "NEEDS_REVIEW"
+    ? supportReady ? "READY" : target === "production" ? "BLOCKED" : "NEEDS_REVIEW"
     : target === "production" ? "BLOCKED" : "NEEDS_REVIEW";
   return {
     id: item.id,
@@ -162,9 +269,23 @@ function buildCutoverItem(item, env, target, proofs = []) {
     groupLabel: GROUP_LABELS[item.group] || item.group,
     label: item.label,
     ownerRole: item.ownerRole,
+    proofScope,
     proofEnv: item.proofEnv,
     proofReady,
-    proofSource: envProofReady ? "ENV" : recordProofReady ? "RECORD" : "NONE",
+    proofSource: recordProofReady ? "RECORD" : target !== "production" && envProofReady ? "ENV" : "NONE",
+    proofPolicy: target === "production"
+      ? releaseBindingRequired ? "VERIFIED_RECORD_WITH_EVIDENCE_AND_RELEASE_BINDING" : "VERIFIED_RECORD_WITH_EVIDENCE"
+      : "ENV_OR_VERIFIED_RECORD_WITH_EVIDENCE",
+    envProofReady,
+    recordEvidenceReady,
+    recordProofReady,
+    releaseBindingRequired,
+    releaseBindingReady,
+    expectedReleaseVersion,
+    expectedReleaseId,
+    expectedReleaseIdConfigured,
+    recordReleaseVersion,
+    recordReleaseId,
     proofRecord: proofRecord || null,
     proofRejected: Boolean(proofRejected),
     supportingEnv: required,
@@ -173,7 +294,22 @@ function buildCutoverItem(item, env, target, proofs = []) {
     missingAnyOf,
     status,
     action: item.action,
-    message: itemMessage(item, proofReady, proofRejected, missingRequired, missingAnyOf),
+    message: itemMessage(item, {
+      target,
+      proofReady,
+      proofRejected,
+      proofRecord,
+      envProofReady,
+      recordProofReady,
+      recordEvidenceReady,
+      releaseBindingRequired,
+      releaseBindingReady,
+      expectedReleaseVersion,
+      expectedReleaseId,
+      expectedReleaseIdConfigured,
+      recordReleaseVersion,
+      recordReleaseId,
+    }, missingRequired, missingAnyOf),
   };
 }
 
@@ -187,6 +323,8 @@ function summarize(items) {
     readyCount: ready,
     blockerCount: blockers,
     warningCount: warnings,
+    releaseScopedProofCount: items.filter((item) => item.proofScope === "RELEASE").length,
+    releaseBoundReadyCount: items.filter((item) => item.proofScope === "RELEASE" && item.releaseBindingReady && item.recordEvidenceReady).length,
     total: items.length,
   };
 }
@@ -209,7 +347,13 @@ function buildProductionCutoverReadiness(options = {}) {
   const target = normalizeTarget(options.target);
   const env = options.env || process.env;
   const proofs = Array.isArray(options.proofs) ? options.proofs : [];
-  const items = CUTOVER_ITEMS.map((item) => buildCutoverItem(item, env, target, proofs));
+  const runtimeMetadata = options.runtimeMetadata || {};
+  const runtimeBinding = {
+    version: text(options.releaseVersion || runtimeMetadata.version),
+    releaseId: text(options.releaseId || runtimeMetadata.releaseId, text(options.releaseVersion || runtimeMetadata.version)),
+    releaseIdConfigured: options.releaseIdConfigured === true || runtimeMetadata.releaseIdConfigured === true,
+  };
+  const items = CUTOVER_ITEMS.map((item) => buildCutoverItem(item, env, target, proofs, runtimeBinding));
   const summary = summarize(items);
   const groups = groupItems(items);
   const blockers = items
@@ -222,6 +366,7 @@ function buildProductionCutoverReadiness(options = {}) {
   return {
     status,
     target,
+    runtimeBinding,
     summary,
     groups,
     items,

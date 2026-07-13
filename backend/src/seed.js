@@ -25,6 +25,7 @@ function createSeedData() {
     taskProgressSnapshots: [],
     notificationTemplates: [],
     notificationSubscriptions: [],
+    notificationSubscriptionGrants: [],
     notificationJobs: [],
     notificationDeliveries: [],
     questionnaireAnswers: [],

@@ -4,6 +4,17 @@
     <view class="body">正在恢复你的身体记录...</view>
   </view>
 
+  <view wx:elif="{{viewType === 'healthConsent'}}" class="root-page health-consent-handoff">
+    <image class="brand-mark" src="/static/brand/logo.png" mode="aspectFit" />
+    <view class="eyebrow">单独同意</view>
+    <view class="health-consent-handoff__title">继续前，请确认身体记录的处理方式</view>
+    <view class="health-consent-handoff__copy">身体画像、问卷和打卡会涉及健康相关敏感个人信息。你可以查看完整说明后自行决定，拒绝不会影响商品浏览和人工协助。</view>
+    <view class="health-consent-handoff__actions">
+      <button class="root-button root-button--secondary" bindtap="browseWithoutHealthConsent">暂不同意，去看商品</button>
+      <button class="root-button" loading="{{loading}}" disabled="{{loading}}" bindtap="continueHealthConsent">查看并确认</button>
+    </view>
+  </view>
+
   <view wx:elif="{{viewType === 'login'}}" class="page login-view root-login-view">
     <image class="root-login-logo" src="/static/brand/root-logo-horizontal.png" mode="aspectFit" />
     <view class="root-login-title">身体，自有其序</view>

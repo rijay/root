@@ -45,7 +45,7 @@ test("canary verifier attributes candidate health and executes the candidate-onl
       return jsonResponse(200, { code: 0, data: { service: "root-checkin", version: "0.5.5", releaseId: "0.5.5", store: {
         kind: "mysql",
         connected: true,
-        migrationVersion: "004_external_evidence_minimization.sql",
+        migrationVersion: "005_notification_subscription_grants.sql",
         leastPrivilegeReady: true,
         privilegeScope: "SCHEMA",
         privilegePolicyEnforced: true,
@@ -112,7 +112,7 @@ test("canary verifier is read-only unless the object probe flag is explicit", as
       ...(path === "/ready" ? { store: {
         kind: "mysql",
         connected: true,
-        migrationVersion: "004_external_evidence_minimization.sql",
+        migrationVersion: "005_notification_subscription_grants.sql",
         leastPrivilegeReady: true,
         privilegeScope: "SCHEMA",
         privilegePolicyEnforced: true,
@@ -154,7 +154,7 @@ test("canary verifier blocks a candidate that has not applied the latest migrati
 
   assert.equal(report.status, "FAIL");
   assert.equal(report.ready.status, "FAIL");
-  assert.match(report.ready.reason, /004_external_evidence_minimization\.sql/);
+  assert.match(report.ready.reason, /005_notification_subscription_grants\.sql/);
   assert.equal(determineExitCode(report), 3);
 });
 
@@ -174,7 +174,7 @@ test("canary verifier blocks a MySQL candidate without enforced schema-scoped pr
       ...(isReady ? { store: {
         kind: "mysql",
         connected: true,
-        migrationVersion: "004_external_evidence_minimization.sql",
+        migrationVersion: "005_notification_subscription_grants.sql",
         leastPrivilegeReady: false,
         privilegeScope: "GLOBAL",
         privilegePolicyEnforced: false,
@@ -209,7 +209,7 @@ test("canary verifier blocks an incomplete public privacy notice", async () => {
       ...(path === "/ready" ? { store: {
         kind: "mysql",
         connected: true,
-        migrationVersion: "004_external_evidence_minimization.sql",
+        migrationVersion: "005_notification_subscription_grants.sql",
         leastPrivilegeReady: true,
         privilegeScope: "SCHEMA",
         privilegePolicyEnforced: true,

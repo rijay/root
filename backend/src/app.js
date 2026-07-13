@@ -539,7 +539,7 @@ function createApp(options = {}) {
       ? Promise.resolve().then(() => storeAdapter.save())
       : Promise.resolve();
 
-  async function handleRequest(req, res) {
+  async function handleRequest(req, res, requestContext = {}) {
     const url = new URL(req.url, "http://localhost");
     const method = req.method || "GET";
 
@@ -657,7 +657,13 @@ function createApp(options = {}) {
           dryRun: !execute,
           operatorId: adminOperatorId(adminPrincipal, body),
           requestId,
-        }, { ...runtimeContext, requestId }), requestId));
+        }, {
+          ...runtimeContext,
+          requestId,
+          requireTransactionalCheckpoint: execute,
+          transactionCheckpoint: requestContext.transactionCheckpoint,
+          transactionResume: requestContext.transactionResume,
+        }), requestId));
       }
       if (route === "POST /api/v1/jobs/adapter-retry-due") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
@@ -1209,6 +1215,9 @@ function createApp(options = {}) {
           ...body,
           operatorId: adminOperatorId(adminPrincipal, body),
           requestId,
+          releaseVersion: runtimeMetadata.version,
+          releaseId: runtimeMetadata.releaseId,
+          releaseIdConfigured: runtimeMetadata.releaseIdConfigured,
         }), requestId));
       }
       if (route === "GET /api/v1/admin/root-member-center-jump-proofs") {
@@ -1368,7 +1377,10 @@ function createApp(options = {}) {
         return;
       }
       const bufferedResponse = createBufferedResponse();
-      const execute = () => handleRequest(req, bufferedResponse);
+      const execute = (_storeData, transactionControl = {}) => handleRequest(req, bufferedResponse, {
+        transactionCheckpoint: transactionControl.checkpoint,
+        transactionResume: transactionControl.resume,
+      });
       if (typeof storeAdapter.runRequest === "function") {
         await storeAdapter.runRequest({
           write: true,

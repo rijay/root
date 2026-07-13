@@ -12,7 +12,7 @@ const {
 } = require("../../cloudfunctions/myroot-job-dispatcher");
 
 test("CloudBase dispatcher exposes exactly the eleven approved Jobs", () => {
-  assert.equal(RELEASE_VERSION, "0.5.7");
+  assert.equal(RELEASE_VERSION, "0.5.12");
   assert.deepEqual(Object.keys(JOBS).sort(), [
     "adapter_retry_due",
     "checkin_reminders",
@@ -97,7 +97,7 @@ test("CloudBase dispatcher defaults to dry-run and keeps the Job token out of ou
   assert.equal(captured.body.requestId, undefined);
   assert.equal(captured.headers["X-ROOT-ADMIN-TOKEN"], "job-secret");
   assert.equal(result.dryRun, true);
-  assert.equal(result.releaseVersion, "0.5.7");
+  assert.equal(result.releaseVersion, "0.5.12");
   assert.deepEqual(result.data, { scannedCount: 0 });
   assert.equal(JSON.stringify(result).includes("job-secret"), false);
 });

@@ -1,5 +1,9 @@
 const { request } = require("../../utils/request");
-const { requestCheckinReminderSubscribe } = require("../../utils/checkin-reminder-subscribe");
+const { joinCampaign } = require("../../utils/campaign-join");
+const {
+  preloadCheckinReminderTemplate,
+  requestCheckinReminderSubscribe,
+} = require("../../utils/checkin-reminder-subscribe");
 const router = require("../../utils/router");
 const { enrichProgress, todayChina } = require("../../utils/task-presenter");
 
@@ -18,11 +22,59 @@ Page({
     tasks: [],
     primaryTask: null,
     errorText: "",
+    reminderReady: false,
+    reminderLoading: true,
+    reminderRequesting: false,
+    reminderAccepted: false,
+    reminderStatusText: "正在准备提醒...",
+    reminderStatusTone: "muted",
+    reminderButtonText: "开启明日提醒",
   },
 
   async onShow() {
     const allowed = await router.routeGuard("/pages/tasks/index");
-    if (allowed) this.load();
+    if (allowed) {
+      this.load();
+      this.prepareReminder();
+    }
+  },
+
+  async prepareReminder(options = {}) {
+    this.setData({ reminderLoading: true });
+    const result = await preloadCheckinReminderTemplate(options);
+    this.setData({
+      reminderReady: result.ready,
+      reminderLoading: false,
+      reminderStatusText: result.ready
+        ? "微信会在你允许后，于明日发送一次打卡提醒。"
+        : result.message,
+      reminderStatusTone: result.ready ? "muted" : result.tone,
+      reminderButtonText: result.ready ? "开启明日提醒" : result.buttonText,
+    });
+  },
+
+  async enableReminder() {
+    if (this.data.reminderRequesting || this.data.reminderAccepted) return;
+    if (!this.data.reminderReady) {
+      await this.prepareReminder({ force: true });
+      return;
+    }
+
+    const campaignId = this.data.campaign ? this.data.campaign.campaignId : "";
+    const subscribePromise = requestCheckinReminderSubscribe({
+      trigger: "CAMPAIGN_JOIN",
+      campaignId,
+    });
+    this.setData({ reminderRequesting: true });
+    const result = await subscribePromise;
+    this.setData({
+      reminderRequesting: false,
+      reminderAccepted: result.result === "accept",
+      reminderStatusText: result.message,
+      reminderStatusTone: result.tone,
+      reminderButtonText: result.buttonText,
+      reminderReady: !result.skipped,
+    });
   },
 
   async load() {
@@ -52,18 +104,10 @@ Page({
     if (this.data.campaign && this.data.campaign.participant) return true;
     this.setData({ joining: true });
     try {
-      const data = await request({
-        url: "/api/v1/campaigns/join",
-        method: "POST",
-        data: { campaignId: this.data.campaign ? this.data.campaign.campaignId : "" },
+      const data = await joinCampaign({
+        campaignId: this.data.campaign ? this.data.campaign.campaignId : "",
       });
       this.setData({ campaign: data.campaign });
-      if (data.created) {
-        await requestCheckinReminderSubscribe({
-          trigger: "CAMPAIGN_JOIN",
-          campaignId: data.campaign ? data.campaign.campaignId : "",
-        });
-      }
       return true;
     } catch (error) {
       wx.showToast({ title: error.message || "加入失败", icon: "none" });

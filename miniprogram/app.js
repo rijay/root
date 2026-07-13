@@ -1,5 +1,6 @@
 const env = require("./config/env");
 const router = require("./utils/router");
+const { initializeCloudRoute } = require("./utils/cloud-route");
 const { initializePrivacyAuthorization } = require("./utils/privacy-authorization");
 const {
   clearLegacyTransientHealthStorage,
@@ -11,7 +12,8 @@ App({
     bootstrapped: false,
   },
 
-  onLaunch() {
+  onLaunch(options = {}) {
+    initializeCloudRoute(options, env.envVersion);
     clearTransientHealthData();
     clearLegacyTransientHealthStorage();
     initializePrivacyAuthorization();

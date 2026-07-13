@@ -1402,15 +1402,19 @@ test("release record gathers readiness, calibration, runs, and rollback evidence
   assert.equal(missing.evidence.adminTransitionReadiness.summary.requiredModuleCount, 6);
   assert.equal(missing.evidence.adminTransitionReadiness.legacyDeprecationDecision.status, "PENDING");
   assert.equal(missing.evidence.productionCutoverReadiness.status, "BLOCKED");
-  assert.equal(missing.evidence.productionCutoverReadiness.summary.requiredProofCount, 10);
+  assert.equal(missing.evidence.productionCutoverReadiness.summary.requiredProofCount, 15);
   assert.ok(missing.evidence.productionCutoverReadiness.blockers.some((item) => item.includes("微信开放平台")));
   assert.equal(missing.evidence.actionAdapterCalibration.status, "BLOCKED");
   assert.equal(missing.evidence.actionAdapterCalibration.actions.length, 4);
   assert.equal(missing.evidence.legacyDataMigration.status, "READY");
   assert.equal(missing.evidence.legacyDataMigration.summary.legacySessionCount, 0);
-  assert.equal(missing.evidence.productionEvidenceIntake.items.length, 10);
+  assert.equal(missing.evidence.productionEvidenceIntake.items.length, 15);
   assert.equal(missing.evidence.productionEvidenceIntake.status, "BLOCKED");
   assert.ok(missing.evidence.productionEvidenceIntake.items.some((item) => item.backlogId === "T-009" && item.id === "cloudbase_store_production"));
+  assert.deepEqual(
+    missing.evidence.productionEvidenceIntake.items.slice(-5).map((item) => item.backlogId),
+    ["T-011", "T-012", "T-013", "T-014", "T-015"],
+  );
   assert.equal(missing.evidence.cloudbaseStoreReadiness.status, "BLOCKED");
   assert.equal(missing.evidence.cloudbaseStoreReadiness.selectedDecision, "UNDECIDED");
   assert.ok(missing.evidence.cloudbaseStoreReadiness.blockers.some((item) => item.includes("CloudBase Store 决策")));
@@ -1420,6 +1424,45 @@ test("release record gathers readiness, calibration, runs, and rollback evidence
   assert.ok(missing.evidence.env.some((item) => item.name === "ROOT_OPERATIONAL_ALERT_WEBHOOK_URL"));
   assert.equal(missing.signoffs.length, 3);
   assert.ok(missing.rollback.some((item) => item.includes("MANUAL_SAMPLE")));
+
+  assert.throws(() => domain.recordProductionCutoverProof(store, {
+    target: "production",
+    itemId: "cloudbase_unionid",
+    status: "VERIFIED",
+    requestId: "release-record-cutover-proof-without-evidence",
+    operatorId: "release-engineer",
+  }), /必须提供 evidence_ref/);
+  assert.throws(() => domain.recordProductionCutoverProof(store, {
+    target: "production",
+    itemId: "cloudbase_unionid",
+    status: "REJECTED",
+    requestId: "release-record-cutover-rejection-without-reason",
+    operatorId: "release-engineer",
+  }), /必须提供 evidence_ref 或备注/);
+  assert.throws(() => domain.recordProductionCutoverProof(store, {
+    target: "production",
+    itemId: "cloudrun_candidate_runtime",
+    status: "VERIFIED",
+    evidenceRef: "https://root.example.com/releases/candidate",
+    requestId: "release-record-cutover-proof-without-release-binding",
+    operatorId: "release-engineer",
+  }), /必须由服务端绑定 release_version 与显式 ROOT_RELEASE_ID/);
+
+  const releaseScopedProof = domain.recordProductionCutoverProof(store, {
+    target: "production",
+    itemId: "cloudrun_candidate_runtime",
+    status: "VERIFIED",
+    evidenceRef: "https://root.example.com/releases/candidate",
+    releaseVersion: "0.5.12",
+    releaseId: "myroot-api-test-052",
+    releaseIdConfigured: true,
+    requestId: "release-record-cutover-proof-with-release-binding",
+    operatorId: "release-engineer",
+  }).data;
+  assert.equal(releaseScopedProof.proof.proofScope, "RELEASE");
+  assert.equal(releaseScopedProof.proof.releaseVersion, "0.5.12");
+  assert.equal(releaseScopedProof.proof.releaseId, "myroot-api-test-052");
+  assert.equal(releaseScopedProof.proof.releaseIdConfigured, true);
 
   const cutoverProof = domain.recordProductionCutoverProof(store, {
     target: "gray",
@@ -1499,6 +1542,7 @@ test("release record gathers readiness, calibration, runs, and rollback evidence
   assert.ok(ownerRecord.checklist.finalChecks.some((item) => item.includes("真实动作 Adapter")));
   assert.ok(ownerRecord.checklist.finalChecks.some((item) => item.includes("Element Plus Admin")));
   assert.ok(ownerRecord.checklist.finalChecks.some((item) => item.includes("生产切换证明")));
+  assert.ok(ownerRecord.checklist.finalChecks.some((item) => item.includes("5% 灰度观察")));
 
   await domain.runExternalAdapter(store, {
     sourceType: "YOUZAN_ORDER",
@@ -3294,6 +3338,40 @@ test("check-in reminder configured template data maps tpl10850 fields safely", a
   assert.equal(store.notificationJobs[0].data_json.thing1.value, "ROOT 7日身体重启计划");
 });
 
+test("check-in reminder grant recording is idempotent per native authorization", async () => {
+  const store = domain.createStore();
+  const env = {
+    ROOT_ALLOW_OPENID_LOGIN: "true",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_ID: "tmpl_checkin_next_day",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION: "v2026-06-28-test",
+  };
+  const login = await domain.loginWithWechat(store, {
+    openid: "checkin_reminder_grant_idempotency_openid",
+    appCode: "MYROOT",
+  }, env);
+  const input = {
+    templateKey: "CHECKIN_REMINDER_NEXT_DAY",
+    templateId: "tmpl_checkin_next_day",
+    templateVersion: "v2026-06-28-test",
+    grantRequestId: "checkin-subscribe-idempotency-1",
+    result: "accept",
+    subscribed: true,
+    campaignId: "ROOT_7D_RESET",
+  };
+
+  const first = domain.recordCheckinReminderSubscription(store, login.data.token, input, { env }).data;
+  const repeated = domain.recordCheckinReminderSubscription(store, login.data.token, input, { env }).data;
+  const second = domain.recordCheckinReminderSubscription(store, login.data.token, {
+    ...input,
+    grantRequestId: "checkin-subscribe-idempotency-2",
+  }, { env }).data;
+
+  assert.equal(store.notificationSubscriptionGrants.length, 2);
+  assert.equal(first.grant.notification_subscription_grant_id, repeated.grant.notification_subscription_grant_id);
+  assert.notEqual(first.grant.notification_subscription_grant_id, second.grant.notification_subscription_grant_id);
+  assert.ok(store.notificationSubscriptionGrants.every((grant) => grant.status === "AVAILABLE"));
+});
+
 test("check-in reminder job sends only after accepted subscription and skips completed day", async () => {
   const store = domain.createStore();
   const env = {
@@ -3312,6 +3390,7 @@ test("check-in reminder job sends only after accepted subscription and skips com
     templateKey: "CHECKIN_REMINDER_NEXT_DAY",
     templateId: "tmpl_checkin_next_day",
     templateVersion: "v2026-06-28-test",
+    grantRequestId: "checkin-subscribe-send-1",
     result: "accept",
     subscribed: true,
     rawResult: { errMsg: "requestSubscribeMessage:ok", token: "must-not-persist" },
@@ -3320,11 +3399,26 @@ test("check-in reminder job sends only after accepted subscription and skips com
   assert.deepEqual(store.notificationSubscriptions[0].raw_result_json, {});
 
   const sentPayloads = [];
+  const checkpointStates = [];
+  let resumeCount = 0;
   const sent = await domain.runDueCheckinReminders(store, {
     dryRun: false,
     now: "2026-06-29T09:00:00+08:00",
   }, {
     env,
+    transactionCheckpoint: async (metadata) => {
+      checkpointStates.push({
+        metadata,
+        jobStatus: store.notificationJobs[0].status,
+        jobAttempts: store.notificationJobs[0].attempts,
+        grantStatus: store.notificationSubscriptionGrants[0].status,
+      });
+    },
+    transactionResume: async () => {
+      resumeCount += 1;
+      store.notificationJobs = JSON.parse(JSON.stringify(store.notificationJobs));
+      store.notificationSubscriptionGrants = JSON.parse(JSON.stringify(store.notificationSubscriptionGrants));
+    },
     sendSubscribeMessage: async (payload) => {
       sentPayloads.push(payload);
       return { errcode: 0, msgid: "mock_msg_1" };
@@ -3334,10 +3428,48 @@ test("check-in reminder job sends only after accepted subscription and skips com
   assert.equal(sent.data.results[0].status, "SENT");
   assert.equal(store.notificationJobs[0].status, "SENT");
   assert.equal(store.notificationDeliveries[0].status, "SENT");
+  assert.equal(store.notificationDeliveries[0].delivery_outcome, "ACCEPTED_BY_WECHAT");
+  assert.equal(store.notificationSubscriptionGrants[0].status, "CONSUMED");
+  assert.equal(resumeCount, 1);
+  assert.deepEqual(checkpointStates, [{
+    metadata: {
+      reason: "CHECKIN_REMINDER_SEND_RESERVED",
+      notificationJobIds: [store.notificationJobs[0].notification_job_id],
+      notificationSubscriptionGrantIds: [store.notificationSubscriptionGrants[0].notification_subscription_grant_id],
+    },
+    jobStatus: "SENDING",
+    jobAttempts: 1,
+    grantStatus: "RESERVED",
+  }]);
+  assert.equal(store.notificationJobs[0].notification_subscription_grant_id, store.notificationSubscriptionGrants[0].notification_subscription_grant_id);
+  assert.equal(store.notificationDeliveries[0].notification_subscription_grant_id, store.notificationSubscriptionGrants[0].notification_subscription_grant_id);
+  assert.equal(store.notificationDeliveries[0].request_json.recipient_present, true);
+  assert.deepEqual(store.notificationDeliveries[0].request_json.data_keys, ["thing1", "thing2", "thing3"]);
+  assert.equal(store.notificationDeliveries[0].response_json.msgid_present, true);
+  assert.doesNotMatch(JSON.stringify(store.notificationDeliveries[0]), /checkin_reminder_send_openid|mock_msg_1/);
   assert.equal(sentPayloads[0].touser, "checkin_reminder_send_openid");
   assert.equal(sentPayloads[0].template_id, "tmpl_checkin_next_day");
   assert.deepEqual(Object.keys(sentPayloads[0].data).sort(), ["thing1", "thing2", "thing3"]);
   assert.equal(sentPayloads[0].data.thing2.value, "请完成今日打卡");
+
+  domain.recordUserTaskEvent(store, login.data.token, {
+    taskType: "CHECKIN",
+    taskDate: "2026-06-29",
+    payload: { taskDate: "2026-06-29", stoolType: "type4" },
+    idempotencyKey: "checkin-reminder-next-job-2026-06-29",
+  }, { env, date: "2026-06-29" });
+  const noSecondGrant = await domain.runDueCheckinReminders(store, {
+    dryRun: false,
+    now: "2026-06-30T09:00:00+08:00",
+  }, {
+    env,
+    sendSubscribeMessage: async (payload) => {
+      sentPayloads.push(payload);
+      return { errcode: 0 };
+    },
+  });
+  assert.ok(noSecondGrant.data.results.some((item) => item.status === "SKIPPED_NO_GRANT"));
+  assert.equal(sentPayloads.length, 1);
 
   const secondLogin = await domain.loginWithWechat(store, {
     openid: "checkin_reminder_skip_openid",
@@ -3348,6 +3480,7 @@ test("check-in reminder job sends only after accepted subscription and skips com
     templateKey: "CHECKIN_REMINDER_NEXT_DAY",
     templateId: "tmpl_checkin_next_day",
     templateVersion: "v2026-06-28-test",
+    grantRequestId: "checkin-subscribe-skip-1",
     result: "accept",
     subscribed: true,
   }, { env });
@@ -3371,6 +3504,280 @@ test("check-in reminder job sends only after accepted subscription and skips com
 
   assert.ok(skipped.data.results.some((item) => item.status === "SKIPPED_ALREADY_CHECKED_IN"));
   assert.equal(sentPayloads.length, 1);
+  assert.equal(store.notificationSubscriptionGrants.find((grant) => grant.grant_request_id === "checkin-subscribe-skip-1").status, "AVAILABLE");
+});
+
+test("check-in reminder preserves safe WeChat failure details without persisting identifiers", async () => {
+  const store = domain.createStore();
+  const env = {
+    ROOT_ALLOW_OPENID_LOGIN: "true",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_ID: "tmpl_checkin_next_day",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION: "v2026-06-28-test",
+  };
+  const login = await domain.loginWithWechat(store, {
+    openid: "checkin_reminder_failure_openid",
+    appCode: "MYROOT",
+  }, env);
+  domain.joinCampaign(store, login.data.token, {}, { env, date: "2026-06-28" });
+  domain.recordCheckinReminderSubscription(store, login.data.token, {
+    templateKey: "CHECKIN_REMINDER_NEXT_DAY",
+    templateId: "tmpl_checkin_next_day",
+    templateVersion: "v2026-06-28-test",
+    grantRequestId: "checkin-subscribe-failure-1",
+    result: "accept",
+    subscribed: true,
+  }, { env });
+
+  const wechatError = new Error("user refuse to accept the msg access_token=secret-token openid=oSensitiveOpenidValue123456789");
+  wechatError.code = 1006;
+  wechatError.externalCode = "43101";
+  wechatError.deliveryOutcome = "NO_GRANT";
+  const failed = await domain.runDueCheckinReminders(store, {
+    dryRun: false,
+    now: "2026-06-29T09:00:00+08:00",
+  }, {
+    env,
+    sendSubscribeMessage: async () => {
+      throw wechatError;
+    },
+  });
+
+  assert.equal(failed.data.results[0].status, "FAILED");
+  assert.equal(failed.data.results[0].errorCode, "1006");
+  assert.equal(failed.data.results[0].externalErrorCode, "43101");
+  assert.equal(failed.data.results[0].deliveryOutcome, "NO_GRANT");
+  assert.match(failed.data.results[0].errorMessage, /user refuse to accept the msg/);
+  assert.equal(store.notificationJobs[0].attempts, 1);
+  assert.match(store.notificationJobs[0].last_error, /^1006: user refuse to accept the msg/);
+  assert.equal(store.notificationDeliveries[0].error_code, "1006");
+  assert.equal(store.notificationDeliveries[0].external_error_code, "43101");
+  assert.equal(store.notificationDeliveries[0].delivery_outcome, "NO_GRANT");
+  assert.equal(store.notificationSubscriptionGrants[0].status, "INVALIDATED");
+  assert.match(store.notificationDeliveries[0].error_message, /access_token=\[REDACTED\]/);
+  assert.match(store.notificationDeliveries[0].error_message, /openid=\[REDACTED\]/);
+  assert.doesNotMatch(JSON.stringify(store.notificationDeliveries[0]), /secret-token|oSensitiveOpenidValue/);
+  assert.doesNotMatch(JSON.stringify(store.notificationDeliveries[0]), /checkin_reminder_failure_openid/);
+});
+
+test("check-in reminder releases known-unsent grants and quarantines ambiguous outcomes", async () => {
+  async function executeFailure(suffix, deliveryOutcome) {
+    const store = domain.createStore();
+    const env = {
+      ROOT_ALLOW_OPENID_LOGIN: "true",
+      ROOT_CHECKIN_REMINDER_TEMPLATE_ID: "tmpl_checkin_next_day",
+      ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION: "v2026-06-28-test",
+    };
+    const login = await domain.loginWithWechat(store, {
+      openid: `checkin_reminder_${suffix}_openid`,
+      appCode: "MYROOT",
+    }, env);
+    domain.joinCampaign(store, login.data.token, {}, { env, date: "2026-06-28" });
+    domain.recordCheckinReminderSubscription(store, login.data.token, {
+      templateKey: "CHECKIN_REMINDER_NEXT_DAY",
+      templateId: "tmpl_checkin_next_day",
+      templateVersion: "v2026-06-28-test",
+      grantRequestId: `checkin-subscribe-${suffix}`,
+      result: "accept",
+      subscribed: true,
+      campaignId: "ROOT_7D_RESET",
+    }, { env });
+    const sendError = new Error(deliveryOutcome === "NOT_SENT" ? "invalid template data" : "request timed out");
+    sendError.code = 1006;
+    sendError.externalCode = deliveryOutcome === "NOT_SENT" ? "47003" : "";
+    sendError.deliveryOutcome = deliveryOutcome;
+    await domain.runDueCheckinReminders(store, {
+      dryRun: false,
+      now: "2026-06-29T09:00:00+08:00",
+    }, {
+      env,
+      sendSubscribeMessage: async () => {
+        throw sendError;
+      },
+    });
+    return store;
+  }
+
+  const knownUnsent = await executeFailure("known-unsent", "NOT_SENT");
+  assert.equal(knownUnsent.notificationSubscriptionGrants[0].status, "AVAILABLE");
+  assert.equal(knownUnsent.notificationSubscriptionGrants[0].notification_job_id, "");
+  assert.ok(knownUnsent.notificationSubscriptionGrants[0].released_at);
+  assert.equal(knownUnsent.notificationDeliveries[0].delivery_outcome, "NOT_SENT");
+
+  const ambiguous = await executeFailure("ambiguous", "UNKNOWN");
+  assert.equal(ambiguous.notificationSubscriptionGrants[0].status, "REVIEW_REQUIRED");
+  assert.ok(ambiguous.notificationSubscriptionGrants[0].review_required_at);
+  assert.equal(ambiguous.notificationDeliveries[0].delivery_outcome, "UNKNOWN");
+});
+
+test("check-in reminder checkpoint interruption never auto-resends and becomes review-required", async () => {
+  const store = domain.createStore();
+  const env = {
+    ROOT_ALLOW_OPENID_LOGIN: "true",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_ID: "tmpl_checkin_next_day",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION: "v2026-06-28-test",
+    ROOT_CHECKIN_REMINDER_SENDING_REVIEW_MINUTES: "15",
+  };
+  const login = await domain.loginWithWechat(store, {
+    openid: "checkin_reminder_checkpoint_interruption_openid",
+    appCode: "MYROOT",
+  }, env);
+  domain.joinCampaign(store, login.data.token, {}, { env, date: "2026-07-12" });
+  domain.recordCheckinReminderSubscription(store, login.data.token, {
+    templateKey: "CHECKIN_REMINDER_NEXT_DAY",
+    templateId: "tmpl_checkin_next_day",
+    templateVersion: "v2026-06-28-test",
+    grantRequestId: "checkin-subscribe-checkpoint-interruption",
+    result: "accept",
+    subscribed: true,
+    campaignId: "ROOT_7D_RESET",
+  }, { env });
+
+  let sendCount = 0;
+  await assert.rejects(() => domain.runDueCheckinReminders(store, {
+    dryRun: false,
+    now: "2026-07-13T09:00:00+08:00",
+  }, {
+    env,
+    transactionCheckpoint: async () => {
+      throw Object.assign(new Error("simulated process interruption after checkpoint"), {
+        code: "STORE_CHECKPOINT_INTERRUPTED",
+      });
+    },
+    transactionResume: async () => {},
+    sendSubscribeMessage: async () => {
+      sendCount += 1;
+      return { errcode: 0 };
+    },
+  }), /simulated process interruption/);
+
+  assert.equal(sendCount, 0);
+  assert.equal(store.notificationJobs[0].status, "SENDING");
+  assert.equal(store.notificationJobs[0].attempts, 1);
+  assert.equal(store.notificationSubscriptionGrants[0].status, "RESERVED");
+  store.notificationJobs[0].sending_at = "2026-07-13T09:00:00+08:00";
+  store.notificationJobs[0].updated_at = "2026-07-13T09:00:00+08:00";
+
+  const reviewed = await domain.runDueCheckinReminders(store, {
+    dryRun: false,
+    now: "2026-07-13T09:16:00+08:00",
+  }, {
+    env,
+    sendSubscribeMessage: async () => {
+      sendCount += 1;
+      return { errcode: 0 };
+    },
+  });
+
+  assert.equal(sendCount, 0);
+  assert.equal(reviewed.data.scannedCount, 0);
+  assert.equal(reviewed.data.staleSendingCount, 1);
+  assert.equal(reviewed.data.results[0].status, "REVIEW_REQUIRED");
+  assert.equal(store.notificationJobs[0].status, "REVIEW_REQUIRED");
+  assert.equal(store.notificationSubscriptionGrants[0].status, "REVIEW_REQUIRED");
+  assert.equal(store.notificationDeliveries[0].delivery_outcome, "UNKNOWN");
+  assert.equal(store.notificationDeliveries[0].error_code, "SEND_OUTCOME_UNKNOWN_AFTER_CHECKPOINT");
+});
+
+test("check-in reminder batches external sends with bounded concurrency and one checkpoint", async () => {
+  const store = domain.createStore();
+  const env = {
+    ROOT_ALLOW_OPENID_LOGIN: "true",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_ID: "tmpl_checkin_next_day",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION: "v2026-06-28-test",
+    ROOT_CHECKIN_REMINDER_SEND_CONCURRENCY: "2",
+  };
+  for (const suffix of ["one", "two"]) {
+    const login = await domain.loginWithWechat(store, {
+      openid: `checkin_reminder_batch_${suffix}_openid`,
+      appCode: "MYROOT",
+    }, env);
+    domain.joinCampaign(store, login.data.token, {}, { env, date: "2026-07-12" });
+    domain.recordCheckinReminderSubscription(store, login.data.token, {
+      templateKey: "CHECKIN_REMINDER_NEXT_DAY",
+      templateId: "tmpl_checkin_next_day",
+      templateVersion: "v2026-06-28-test",
+      grantRequestId: `checkin-subscribe-batch-${suffix}`,
+      result: "accept",
+      subscribed: true,
+      campaignId: "ROOT_7D_RESET",
+    }, { env });
+  }
+
+  let active = 0;
+  let maxActive = 0;
+  let checkpointCount = 0;
+  let resumeCount = 0;
+  const result = await domain.runDueCheckinReminders(store, {
+    dryRun: false,
+    now: "2026-07-13T09:00:00+08:00",
+  }, {
+    env,
+    transactionCheckpoint: async () => {
+      checkpointCount += 1;
+    },
+    transactionResume: async () => {
+      resumeCount += 1;
+    },
+    sendSubscribeMessage: async () => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      active -= 1;
+      return { errcode: 0 };
+    },
+  });
+
+  assert.equal(result.data.scannedCount, 2);
+  assert.equal(result.data.sendConcurrency, 2);
+  assert.equal(result.data.results.filter((item) => item.status === "SENT").length, 2);
+  assert.equal(checkpointCount, 1);
+  assert.equal(resumeCount, 1);
+  assert.equal(maxActive, 2);
+  assert.ok(store.notificationJobs.every((job) => job.status === "SENT"));
+  assert.ok(store.notificationSubscriptionGrants.every((grant) => grant.status === "CONSUMED"));
+});
+
+test("check-in reminder dry-run allocates each grant at most once", async () => {
+  const store = domain.createStore();
+  const env = {
+    ROOT_ALLOW_OPENID_LOGIN: "true",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_ID: "tmpl_checkin_next_day",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION: "v2026-06-28-test",
+  };
+  const login = await domain.loginWithWechat(store, {
+    openid: "checkin_reminder_dry_run_grant_openid",
+    appCode: "MYROOT",
+  }, env);
+  domain.joinCampaign(store, login.data.token, {}, { env, date: "2026-07-12" });
+  domain.recordCheckinReminderSubscription(store, login.data.token, {
+    templateKey: "CHECKIN_REMINDER_NEXT_DAY",
+    templateId: "tmpl_checkin_next_day",
+    templateVersion: "v2026-06-28-test",
+    grantRequestId: "checkin-subscribe-dry-run-grant",
+    result: "accept",
+    subscribed: true,
+  }, { env });
+  const firstJob = store.notificationJobs[0];
+  store.notificationJobs.push({
+    ...JSON.parse(JSON.stringify(firstJob)),
+    notification_job_id: "ntj_dry_run_second",
+    idempotency_key: "CHECKIN_REMINDER:dry-run-second",
+  });
+
+  const preview = await domain.runDueCheckinReminders(store, {
+    dryRun: true,
+    now: "2026-07-13T09:00:00+08:00",
+  }, { env });
+
+  assert.equal(preview.data.scannedCount, 2);
+  const ready = preview.data.results.find((item) => item.status === "DRY_RUN_READY");
+  assert.ok(ready);
+  assert.equal(ready.request.recipient_present, true);
+  assert.equal(ready.request.touser, undefined);
+  assert.doesNotMatch(JSON.stringify(preview), /checkin_reminder_dry_run_grant_openid/);
+  assert.equal(preview.data.results.filter((item) => item.status === "SKIPPED_NO_GRANT").length, 1);
+  assert.equal(store.notificationSubscriptionGrants[0].status, "AVAILABLE");
+  assert.ok(store.notificationJobs.every((job) => job.status === "SCHEDULED"));
 });
 
 test("admin can configure a 14-day campaign task without changing the task Interface", async () => {

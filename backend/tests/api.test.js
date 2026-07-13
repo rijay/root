@@ -6,6 +6,7 @@ const os = require("node:os");
 const path = require("node:path");
 
 const { createApp, hasElementAdminBuild, resolveElementAdminDir } = require("../src/app");
+const domain = require("../src/domain");
 const { shouldUseMysql } = require("../src/server");
 const {
   createEmptyData,
@@ -91,7 +92,8 @@ const {
   validateCloudbaseJobManifest,
 } = require("../scripts/cloudbase-job-manifest");
 const { buildProductionEnvMatrix } = require("../src/productionEnvMatrix");
-const { buildProductionCutoverReadiness } = require("../src/productionCutoverReadiness");
+const { CUTOVER_ITEMS, buildProductionCutoverReadiness } = require("../src/productionCutoverReadiness");
+const { assertProbeAllowed, isIsolatedDatabaseName } = require("../scripts/mysql-checkpoint-probe");
 const {
   buildProductionEnvMatrixReport,
   determineExitCode: determineProductionEnvExitCode,
@@ -124,6 +126,19 @@ test("cloud hosting MySQL variables select the MySQL Store Adapter", () => {
   assert.equal(shouldUseMysql({ ROOT_STORE_ADAPTER: "mysql" }), true);
 });
 
+test("MySQL checkpoint probe refuses production-like database names", () => {
+  assert.equal(isIsolatedDatabaseName("root_checkin_probe"), true);
+  assert.equal(isIsolatedDatabaseName("root_checkin"), false);
+  assert.throws(
+    () => assertProbeAllowed(["--confirm-isolated-database"], { database: "root_checkin" }),
+    /refuses a database name/
+  );
+  assert.throws(
+    () => assertProbeAllowed([], { database: "root_checkin_probe" }),
+    /confirm-isolated-database/
+  );
+});
+
 test("Store snapshot imports do not share mutable references with the source snapshot", () => {
   const source = createEmptyData();
   const store = createMemoryStore(undefined, { seedSampleData: false });
@@ -134,6 +149,16 @@ test("Store snapshot imports do not share mutable references with the source sna
 
   assert.equal(source.users.length, 0);
   assert.equal(source.idempotency.request, undefined);
+});
+
+test("Store normalization removes persisted WeChat access-token cache without mutating the source", () => {
+  const source = createEmptyData();
+  source.wechatAccessToken = { token: "must-not-persist", expires_at: Date.now() + 3600000 };
+
+  const store = createMemoryStore(source, { seedSampleData: false });
+
+  assert.equal(store.data.wechatAccessToken, undefined);
+  assert.equal(source.wechatAccessToken.token, "must-not-persist");
 });
 
 test("startup defaults use the transactional Store Interface when available", async () => {
@@ -163,6 +188,119 @@ test("startup defaults use the transactional Store Interface when available", as
   assert.equal(transactionCount, 1);
   assert.equal(saveCount, 0);
   assert.equal(server.store.youzanProducts.length, 1);
+});
+
+test("check-in reminder execution receives the transactional checkpoint before external send", async (t) => {
+  const env = {
+    ROOT_ALLOW_OPENID_LOGIN: "true",
+    ROOT_ADMIN_JOB_TOKEN: "job-secret",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_ID: "tmpl_checkpoint_test",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION: "v2026-07-13-test",
+    ROOT_CHECKIN_REMINDER_HOUR: "9",
+  };
+  const base = createMemoryStore(domain.createStore(), { seedSampleData: false });
+  const login = await domain.loginWithWechat(base.data, {
+    openid: "checkin_checkpoint_openid",
+    appCode: "MYROOT",
+  }, env);
+  domain.joinCampaign(base.data, login.data.token, {}, { env, date: "2026-07-12" });
+  domain.recordCheckinReminderSubscription(base.data, login.data.token, {
+    templateKey: "CHECKIN_REMINDER_NEXT_DAY",
+    templateId: "tmpl_checkpoint_test",
+    templateVersion: "v2026-07-13-test",
+    grantRequestId: "checkin-checkpoint-grant-1",
+    result: "accept",
+    subscribed: true,
+    campaignId: "ROOT_7D_RESET",
+  }, { env });
+
+  const checkpointStates = [];
+  let resumeCount = 0;
+  const storeAdapter = {
+    ...base,
+    async runRequest(_options, work) {
+      return work(base.data, {
+        checkpoint: async (metadata) => {
+          checkpointStates.push({
+            metadata,
+            jobStatus: base.data.notificationJobs[0].status,
+            jobAttempts: base.data.notificationJobs[0].attempts,
+            grantStatus: base.data.notificationSubscriptionGrants[0].status,
+          });
+        },
+        resume: async () => {
+          resumeCount += 1;
+        },
+      });
+    },
+  };
+  const server = createApp({ storeAdapter, env });
+  const baseUrl = await listen(server);
+  t.after(() => server.close());
+
+  const result = await request(baseUrl, "/api/v1/jobs/checkin-reminders", {
+    method: "POST",
+    headers: {
+      "X-ROOT-ADMIN-TOKEN": "job-secret",
+      "X-Request-Id": "checkin-checkpoint-execute-1",
+    },
+    body: JSON.stringify({ dryRun: false, now: "2026-07-13T09:00:00+08:00" }),
+  });
+
+  assert.equal(result.code, 0);
+  assert.equal(result.data.results[0].status, "FAILED");
+  assert.equal(result.data.results[0].deliveryOutcome, "NOT_SENT");
+  assert.equal(checkpointStates.length, 1);
+  assert.equal(checkpointStates[0].metadata.reason, "CHECKIN_REMINDER_SEND_RESERVED");
+  assert.equal(checkpointStates[0].jobStatus, "SENDING");
+  assert.equal(checkpointStates[0].jobAttempts, 1);
+  assert.equal(checkpointStates[0].grantStatus, "RESERVED");
+  assert.equal(resumeCount, 1);
+  assert.equal(base.data.notificationJobs[0].status, "FAILED");
+  assert.equal(base.data.notificationSubscriptionGrants[0].status, "AVAILABLE");
+});
+
+test("check-in reminder HTTP Interface fails closed without a transactional Store checkpoint", async (t) => {
+  const env = {
+    ROOT_ALLOW_OPENID_LOGIN: "true",
+    ROOT_ADMIN_JOB_TOKEN: "job-secret",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_ID: "tmpl_checkpoint_required",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION: "v2026-07-13-test",
+    ROOT_CHECKIN_REMINDER_HOUR: "9",
+  };
+  const storeAdapter = createMemoryStore(domain.createStore(), { seedSampleData: false });
+  const login = await domain.loginWithWechat(storeAdapter.data, {
+    openid: "checkin_checkpoint_required_openid",
+    appCode: "MYROOT",
+  }, env);
+  domain.joinCampaign(storeAdapter.data, login.data.token, {}, { env, date: "2026-07-12" });
+  domain.recordCheckinReminderSubscription(storeAdapter.data, login.data.token, {
+    templateKey: "CHECKIN_REMINDER_NEXT_DAY",
+    templateId: "tmpl_checkpoint_required",
+    templateVersion: "v2026-07-13-test",
+    grantRequestId: "checkin-checkpoint-required-grant-1",
+    result: "accept",
+    subscribed: true,
+    campaignId: "ROOT_7D_RESET",
+  }, { env });
+
+  const server = createApp({ storeAdapter, env });
+  const baseUrl = await listen(server);
+  t.after(() => server.close());
+  const result = await request(baseUrl, "/api/v1/jobs/checkin-reminders", {
+    method: "POST",
+    headers: {
+      "X-ROOT-ADMIN-TOKEN": "job-secret",
+      "X-Request-Id": "checkin-checkpoint-required-execute-1",
+    },
+    body: JSON.stringify({ dryRun: false, now: "2026-07-13T09:00:00+08:00" }),
+  });
+
+  assert.equal(result.code, 50301);
+  assert.match(result.message, /checkpoint\/resume/);
+  assert.equal(storeAdapter.data.notificationJobs[0].status, "SCHEDULED");
+  assert.equal(storeAdapter.data.notificationSubscriptionGrants[0].status, "AVAILABLE");
+  assert.equal(storeAdapter.data.notificationDeliveries.length, 0);
 });
 
 test("MySQL Store verifier accepts mysql2 JSON object payloads", async () => {
@@ -195,7 +333,7 @@ test("MySQL Store verifier accepts mysql2 JSON object payloads", async () => {
 
 test("MySQL migrations and core relational projection cover production Store facts", async () => {
   const migrationFiles = listMigrationFiles();
-  assert.deepEqual(migrationFiles, ["001_store_snapshot.sql", "002_core_relational.sql", "003_privacy_consent.sql", "004_external_evidence_minimization.sql"]);
+  assert.deepEqual(migrationFiles, ["001_store_snapshot.sql", "002_core_relational.sql", "003_privacy_consent.sql", "004_external_evidence_minimization.sql", "005_notification_subscription_grants.sql"]);
   migrationFiles.forEach((fileName) => {
     const sql = fs.readFileSync(path.join(__dirname, "..", "db", "migrations", fileName), "utf8");
     assert.ok(splitSqlStatements(sql).length > 0);
@@ -244,6 +382,22 @@ test("MySQL migrations and core relational projection cover production Store fac
     occurred_at: "2026-07-11T10:00:00+08:00",
     created_at: "2026-07-11T10:00:00+08:00",
   });
+  data.notificationSubscriptionGrants.push({
+    notification_subscription_grant_id: "nsg_mysql_projection",
+    notification_subscription_id: "nts_mysql_projection",
+    root_user_id: "usr_mysql_projection",
+    campaign_id: "ROOT_7D_RESET",
+    template_key: "CHECKIN_REMINDER_NEXT_DAY",
+    template_id: "tmpl_mysql_projection",
+    template_version: "v2026-06-28-test",
+    grant_request_id: "checkin-subscribe-mysql-projection",
+    status: "AVAILABLE",
+    idempotency_key: "SUBSCRIPTION_GRANT:usr_mysql_projection:checkin-subscribe-mysql-projection",
+    source_channel: "MYROOT",
+    granted_at: "2026-07-11T10:00:00+08:00",
+    created_at: "2026-07-11T10:00:00+08:00",
+    updated_at: "2026-07-11T10:00:00+08:00",
+  });
   const calls = [];
   const connection = {
     execute: async (sql, values) => {
@@ -260,10 +414,12 @@ test("MySQL migrations and core relational projection cover production Store fac
   assert.ok(report.tables.includes("task_event"));
   assert.ok(report.tables.includes("settlement_record"));
   assert.ok(report.tables.includes("notification_job"));
+  assert.ok(report.tables.includes("notification_subscription_grant"));
   assert.ok(report.tables.includes("privacy_consent_record"));
   assert.ok(calls.some((call) => /INSERT INTO `root_user`/.test(call.sql)));
   assert.ok(calls.some((call) => /INSERT INTO `task_event`/.test(call.sql)));
   assert.ok(calls.some((call) => /INSERT INTO `privacy_consent_record`/.test(call.sql)));
+  assert.ok(calls.some((call) => /INSERT INTO `notification_subscription_grant`/.test(call.sql)));
   assert.equal(rootUserRows(data)[0].unionid, "union_mysql_projection");
   assert.equal(toMysqlDateTime("2026-07-11T10:00:00+08:00"), "2026-07-11 10:00:00");
 });
@@ -421,7 +577,7 @@ test("prepare backend admin dist copies Element Plus build for backend-only depl
   assert.equal(target.usesAdminBase, true);
   assert.match(fs.readFileSync(path.join(targetDir, "assets", "app.js"), "utf8"), /__PREPARED_ADMIN__/);
   const buildManifest = JSON.parse(fs.readFileSync(path.join(targetDir, "admin-build-manifest.json"), "utf8"));
-  assert.equal(buildManifest.releaseVersion, "0.5.7");
+  assert.equal(buildManifest.releaseVersion, "0.5.12");
   assert.deepEqual(buildManifest.modules.map((item) => item.key), ["config", "users", "audit", "adapters", "analytics", "release"]);
 });
 
@@ -542,8 +698,18 @@ test("production cutover readiness gates live external proof", () => {
     ROOT_CUTOVER_EXTERNAL_CHANNELS_VERIFIED: "done",
     ROOT_CUTOVER_EXPORT_STORAGE_VERIFIED: "done",
     ROOT_CUTOVER_ROLLBACK_DRILL_COMPLETED: "done",
+    ROOT_CUTOVER_WECHAT_REMINDER_DELIVERY_VERIFIED: "done",
+    ROOT_CUTOVER_CLOUDRUN_CANDIDATE_VERIFIED: "done",
+    ROOT_CUTOVER_MINIPROGRAM_TRIAL_VERIFIED: "done",
+    ROOT_CUTOVER_CLOUDRUN_CANARY_VERIFIED: "done",
+    ROOT_CUTOVER_RELEASE_ARTIFACT_TRACEABILITY_VERIFIED: "done",
     WECHAT_APPID: "wx-root",
+    WECHAT_APPSECRET: "wechat-secret",
     ROOT_PUBLIC_BASE_URL: "https://root.example.com",
+    ROOT_CLOUDBASE_ENV_ID: "root-prod",
+    ROOT_CHECKIN_REMINDER_ENABLED: "true",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_ID: "reminder-template",
+    ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION: "1",
     ROOT_MEMBER_CENTER_APPID: "wx-root-member",
     YOUZAN_ORDER_LIST_URL: "https://youzan.example.com/orders",
     YOUZAN_CUSTOMER_LIST_URL: "https://youzan.example.com/customers",
@@ -557,30 +723,100 @@ test("production cutover readiness gates live external proof", () => {
     ROOT_OPERATIONAL_ALERT_WEBHOOK_URL: "https://hooks.example.com/root-alert",
     ROOT_LIFECYCLE_EXPORT_OBJECT_BUCKET: "root-export",
   };
+  const runtimeMetadata = { version: "0.5.12", releaseId: "myroot-api-test-052", releaseIdConfigured: true };
   const blocked = buildProductionCutoverReadiness({ env: {}, target: "production" });
   const gray = buildProductionCutoverReadiness({ env: {}, target: "gray" });
-  const ready = buildProductionCutoverReadiness({ env: readyEnv, target: "production" });
+  const readyProofs = CUTOVER_ITEMS.map((item) => ({
+    itemId: item.id,
+    status: "VERIFIED",
+    evidenceRef: `https://root.example.com/release-evidence/${item.id}`,
+    releaseVersion: runtimeMetadata.version,
+    releaseId: runtimeMetadata.releaseId,
+    releaseIdConfigured: runtimeMetadata.releaseIdConfigured,
+  }));
+  const envOnlyProduction = buildProductionCutoverReadiness({ env: readyEnv, target: "production", runtimeMetadata });
+  const ready = buildProductionCutoverReadiness({ env: readyEnv, target: "production", proofs: readyProofs, runtimeMetadata });
+  const grayReady = buildProductionCutoverReadiness({ env: readyEnv, target: "gray" });
   const rotatingJobToken = buildProductionCutoverReadiness({
     env: { ...readyEnv, ROOT_ADMIN_JOB_TOKEN: "", ROOT_ADMIN_JOB_TOKENS: JSON.stringify(["job-old", "job-new"]) },
     target: "production",
+    proofs: readyProofs,
+    runtimeMetadata,
   });
   const partial = buildProductionCutoverReadiness({
     env: { ...readyEnv, ROOT_MEMBER_CENTER_APPID: "", YOUZAN_MINIPROGRAM_APPID: "" },
     target: "production",
+    proofs: readyProofs,
+    runtimeMetadata,
+  });
+  const legacyProofWithoutEvidence = buildProductionCutoverReadiness({
+    env: readyEnv,
+    target: "production",
+    proofs: readyProofs.map((proof) => proof.itemId === "cloudbase_unionid" ? { ...proof, evidenceRef: "" } : proof),
+    runtimeMetadata,
+  });
+  const staleReleaseProofs = readyProofs.map((proof) => {
+    const item = CUTOVER_ITEMS.find((candidate) => candidate.id === proof.itemId);
+    return item && item.proofScope === "RELEASE"
+      ? { ...proof, releaseVersion: "0.5.11", releaseId: "myroot-api-026" }
+      : proof;
+  });
+  const staleRelease = buildProductionCutoverReadiness({
+    env: readyEnv,
+    target: "production",
+    proofs: staleReleaseProofs,
+    runtimeMetadata,
+  });
+  const fallbackReleaseId = buildProductionCutoverReadiness({
+    env: readyEnv,
+    target: "production",
+    proofs: readyProofs.map((proof) => ({
+      ...proof,
+      releaseId: "0.5.12",
+      releaseIdConfigured: false,
+    })),
+    runtimeMetadata: { version: "0.5.12", releaseId: "0.5.12", releaseIdConfigured: false },
   });
 
   assert.equal(blocked.status, "BLOCKED");
-  assert.equal(blocked.summary.requiredProofCount, 10);
-  assert.equal(blocked.summary.blockerCount, 10);
+  assert.equal(blocked.summary.requiredProofCount, 15);
+  assert.equal(blocked.summary.blockerCount, 15);
   assert.ok(blocked.blockers.some((item) => item.includes("微信开放平台")));
   assert.equal(gray.status, "NEEDS_REVIEW");
-  assert.equal(gray.summary.warningCount, 10);
+  assert.equal(gray.summary.warningCount, 15);
+  assert.equal(grayReady.status, "READY");
+  assert.equal(grayReady.items[0].proofSource, "ENV");
+  assert.equal(envOnlyProduction.status, "BLOCKED");
+  assert.equal(envOnlyProduction.summary.readyProofCount, 0);
+  assert.ok(envOnlyProduction.blockers.every((item) => item.includes("后台 VERIFIED 记录")));
   assert.equal(ready.status, "READY");
-  assert.equal(ready.summary.readyProofCount, 10);
+  assert.equal(ready.summary.readyProofCount, 15);
+  assert.equal(ready.summary.releaseScopedProofCount, 5);
+  assert.equal(ready.summary.releaseBoundReadyCount, 5);
+  assert.ok(ready.items.every((item) => item.proofSource === "RECORD"));
+  assert.ok(ready.items.filter((item) => item.proofScope === "ENVIRONMENT").every((item) => item.proofPolicy === "VERIFIED_RECORD_WITH_EVIDENCE"));
+  assert.ok(ready.items.filter((item) => item.proofScope === "RELEASE").every((item) => item.proofPolicy === "VERIFIED_RECORD_WITH_EVIDENCE_AND_RELEASE_BINDING"));
+  assert.equal(ready.items.find((item) => item.id === "wechat_checkin_reminder_delivery").status, "READY");
+  assert.equal(ready.items.find((item) => item.id === "cloudrun_candidate_runtime").status, "READY");
+  assert.equal(ready.items.find((item) => item.id === "miniprogram_trial_core_flow").status, "READY");
+  assert.equal(ready.items.find((item) => item.id === "cloudrun_canary_observation").status, "READY");
+  assert.equal(ready.items.find((item) => item.id === "release_artifact_traceability").status, "READY");
   assert.equal(rotatingJobToken.items.find((item) => item.id === "cloudbase_jobs_created").status, "READY");
   assert.equal(ready.groups.find((group) => group.group === "identity").status, "READY");
-  assert.equal(partial.status, "NEEDS_REVIEW");
-  assert.ok(partial.warnings.some((item) => item.includes("Root 会员中心 appId")));
+  assert.equal(partial.status, "BLOCKED");
+  assert.ok(partial.blockers.some((item) => item.includes("Root 会员中心 appId")));
+  assert.equal(legacyProofWithoutEvidence.status, "BLOCKED");
+  assert.equal(legacyProofWithoutEvidence.summary.readyProofCount, 14);
+  assert.ok(legacyProofWithoutEvidence.blockers.some((item) => item.includes("缺少 evidenceRef")));
+  assert.equal(staleRelease.status, "BLOCKED");
+  assert.equal(staleRelease.summary.readyProofCount, 10);
+  assert.equal(staleRelease.summary.releaseBoundReadyCount, 0);
+  assert.equal(staleRelease.items.find((item) => item.id === "cloudbase_unionid").status, "READY");
+  assert.equal(staleRelease.items.find((item) => item.id === "cloudrun_candidate_runtime").status, "BLOCKED");
+  assert.ok(staleRelease.blockers.some((item) => item.includes("与当前候选 0.5.12/myroot-api-test-052 不一致")));
+  assert.equal(fallbackReleaseId.status, "BLOCKED");
+  assert.equal(fallbackReleaseId.summary.readyProofCount, 10);
+  assert.ok(fallbackReleaseId.blockers.some((item) => item.includes("显式 ROOT_RELEASE_ID")));
 });
 
 test("production environment matrix groups launch and Adapter variables", () => {
@@ -588,6 +824,7 @@ test("production environment matrix groups launch and Adapter variables", () => 
     WECHAT_APPID: "wx-root",
     WECHAT_APPSECRET: "wechat-secret",
     ROOT_PUBLIC_BASE_URL: "https://root.example.com",
+    ROOT_RELEASE_ID: "myroot-api-test-052",
     ROOT_ADMIN_TOKEN: "admin-secret",
     ROOT_REQUIRE_HEALTH_CONSENT: "true",
     ROOT_PRIVACY_CONTROLLER_NAME: "ROOT 测试主体",
@@ -814,8 +1051,8 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.equal(notice.data.contact, "privacy@example.com");
   assert.equal(notice.data.retentionDays, 180);
   assert.match(notice.data.retentionText, /180 天/);
-  assert.equal(notice.data.version, "0.5.7");
-  assert.equal(notice.data.releaseId, "0.5.7");
+  assert.equal(notice.data.version, "0.5.12");
+  assert.equal(notice.data.releaseId, "0.5.12");
 });
 
 test("ready Interface exposes only safe MySQL least-privilege proof", async (t) => {
@@ -931,7 +1168,7 @@ test("serves the REST API and admin dashboard data", async (t) => {
   fs.mkdirSync(path.join(tempAdminDir, "assets"), { recursive: true });
   fs.writeFileSync(path.join(tempAdminDir, "index.html"), "<!doctype html><title>myRoot Admin</title><div id=\"app\"></div><script type=\"module\" src=\"/admin/assets/app.js\"></script>");
   fs.writeFileSync(path.join(tempAdminDir, "assets", "app.js"), "window.__ROOT_ADMIN_DIST__ = true;");
-  const server = createApp({ env: directPhoneLoginEnv, adminDistDir: tempAdminDir });
+  const server = createApp({ env: { ...directPhoneLoginEnv, ROOT_RELEASE_ID: "myroot-api-test-http" }, adminDistDir: tempAdminDir });
   const baseUrl = await listen(server);
   t.after(() => {
     server.close();
@@ -1040,13 +1277,13 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.equal(releaseRecord.data.evidence.adminTransitionReadiness.legacyDeprecationDecision.status, "PENDING");
   assert.equal(releaseRecord.data.evidence.adminTransitionReadiness.summary.deprecationSource, "NONE");
   assert.equal(releaseRecord.data.evidence.productionCutoverReadiness.status, "NEEDS_REVIEW");
-  assert.equal(releaseRecord.data.evidence.productionCutoverReadiness.summary.requiredProofCount, 10);
+  assert.equal(releaseRecord.data.evidence.productionCutoverReadiness.summary.requiredProofCount, 15);
   assert.ok(releaseRecord.data.evidence.productionCutoverReadiness.items.some((item) => item.proofEnv === "ROOT_CUTOVER_CLOUDBASE_UNIONID_VERIFIED"));
   assert.equal(releaseRecord.data.evidence.actionAdapterCalibration.status, "NEEDS_REVIEW");
   assert.equal(releaseRecord.data.evidence.actionAdapterCalibration.actions.length, 4);
   assert.equal(releaseRecord.data.evidence.legacyDataMigration.status, "READY");
   assert.equal(releaseRecord.data.evidence.legacyDataMigration.summary.legacySessionCount, 0);
-  assert.equal(releaseRecord.data.evidence.productionEvidenceIntake.items.length, 10);
+  assert.equal(releaseRecord.data.evidence.productionEvidenceIntake.items.length, 15);
   assert.equal(releaseRecord.data.evidence.productionEvidenceIntake.items.find((item) => item.backlogId === "T-010").status, "READY");
   assert.equal(releaseRecord.data.evidence.cloudbaseStoreReadiness.status, "NEEDS_REVIEW");
   assert.equal(releaseRecord.data.evidence.cloudbaseStoreReadiness.selectedDecision, "UNDECIDED");
@@ -1071,13 +1308,13 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.equal(evidencePack.data.pack.evidence.adminTransitionReadiness.summary.readyModuleCount, 6);
   assert.equal(evidencePack.data.pack.evidence.adminTransitionReadiness.legacyDeprecationDecision.status, "PENDING");
   assert.equal(evidencePack.data.pack.summary.productionCutoverStatus, "NEEDS_REVIEW");
-  assert.equal(evidencePack.data.pack.evidence.productionCutoverReadiness.summary.requiredProofCount, 10);
+  assert.equal(evidencePack.data.pack.evidence.productionCutoverReadiness.summary.requiredProofCount, 15);
   assert.equal(evidencePack.data.pack.summary.actionAdapterCalibrationStatus, "NEEDS_REVIEW");
   assert.equal(evidencePack.data.pack.evidence.actionAdapterCalibration.actions.length, 4);
   assert.equal(evidencePack.data.pack.summary.legacyDataMigrationStatus, "READY");
   assert.equal(evidencePack.data.pack.evidence.legacyDataMigration.summary.legacySessionCount, 0);
   assert.equal(evidencePack.data.pack.summary.productionEvidenceIntakeStatus, "BLOCKED");
-  assert.equal(evidencePack.data.pack.evidence.productionEvidenceIntake.items.length, 10);
+  assert.equal(evidencePack.data.pack.evidence.productionEvidenceIntake.items.length, 15);
   assert.equal(evidencePack.data.pack.summary.cloudbaseStoreStatus, "NEEDS_REVIEW");
   assert.equal(evidencePack.data.pack.evidence.cloudbaseStoreReadiness.selectedDecision, "UNDECIDED");
   assert.equal(evidencePack.data.pack.summary.rootMemberCenterStatus, "NEEDS_REVIEW");
@@ -1148,6 +1385,16 @@ test("serves the REST API and admin dashboard data", async (t) => {
     }),
   });
   const adminLegacyDecisions = await request(baseUrl, "/api/v1/admin/admin-legacy-deprecation-decisions?target=gray");
+  const cutoverProofWithoutEvidence = await request(baseUrl, "/api/v1/admin/production-cutover-proofs", {
+    method: "POST",
+    headers: { "X-Request-Id": "http-production-cutover-proof-without-evidence" },
+    body: JSON.stringify({
+      target: "production",
+      itemId: "cloudbase_unionid",
+      status: "VERIFIED",
+      requestId: "http-production-cutover-proof-without-evidence",
+    }),
+  });
   const cutoverProof = await request(baseUrl, "/api/v1/admin/production-cutover-proofs", {
     method: "POST",
     headers: { "X-Request-Id": "http-production-cutover-proof-1" },
@@ -1158,6 +1405,19 @@ test("serves the REST API and admin dashboard data", async (t) => {
       evidenceRef: "https://root.example.com/probe?token=secret",
       note: "HTTP CloudBase unionid 脱敏探针通过 token=secret",
       requestId: "http-production-cutover-proof-1",
+    }),
+  });
+  const releaseScopedCutoverProof = await request(baseUrl, "/api/v1/admin/production-cutover-proofs", {
+    method: "POST",
+    headers: { "X-Request-Id": "http-production-cutover-release-proof-1" },
+    body: JSON.stringify({
+      target: "production",
+      itemId: "cloudrun_candidate_runtime",
+      status: "VERIFIED",
+      evidenceRef: "https://root.example.com/releases/candidate?token=secret",
+      releaseVersion: "0.0.0-client-spoof",
+      releaseId: "client-spoof",
+      requestId: "http-production-cutover-release-proof-1",
     }),
   });
   const cutoverProofRepeated = await request(baseUrl, "/api/v1/admin/production-cutover-proofs", {
@@ -1264,9 +1524,17 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.equal(adminLegacyDecision.data.decision.rollbackRef, "https://root.example.com/admin-legacy/rollback");
   assert.equal(adminLegacyDecisionRepeated.data.decision.decisionId, adminLegacyDecision.data.decision.decisionId);
   assert.equal(adminLegacyDecisions.data.latest[0].status, "APPROVED");
+  assert.equal(cutoverProofWithoutEvidence.code, 400);
+  assert.match(cutoverProofWithoutEvidence.message, /evidence_ref/);
   assert.equal(cutoverProof.code, 0);
   assert.equal(cutoverProof.data.proof.status, "VERIFIED");
   assert.equal(cutoverProof.data.proof.evidenceRef, "https://root.example.com/probe");
+  assert.equal(releaseScopedCutoverProof.code, 0);
+  assert.equal(releaseScopedCutoverProof.data.proof.proofScope, "RELEASE");
+  assert.equal(releaseScopedCutoverProof.data.proof.releaseVersion, "0.5.12");
+  assert.equal(releaseScopedCutoverProof.data.proof.releaseId, "myroot-api-test-http");
+  assert.equal(releaseScopedCutoverProof.data.proof.releaseIdConfigured, true);
+  assert.equal(JSON.stringify(releaseScopedCutoverProof.data).includes("client-spoof"), false);
   assert.equal(cutoverProofRepeated.data.proof.proofId, cutoverProof.data.proof.proofId);
   assert.equal(cutoverProofs.data.latest.find((item) => item.itemId === "cloudbase_unionid").status, "VERIFIED");
   assert.equal(rootJumpProof.code, 0);

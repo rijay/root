@@ -33,6 +33,18 @@
       </view>
     </view>
 
+    <view wx:if="{{campaign.participant}}" class="reminder-band reminder-band--{{reminderStatusTone}}">
+      <view class="reminder-title">次日打卡提醒</view>
+      <view class="reminder-copy">{{reminderStatusText}}</view>
+      <view class="reminder-note">每次允许仅用于发送一次提醒。</view>
+      <button
+        class="root-button root-button--secondary reminder-button"
+        bindtap="enableReminder"
+        loading="{{reminderRequesting || reminderLoading}}"
+        disabled="{{reminderLoading || reminderRequesting || reminderAccepted}}"
+      >{{reminderButtonText}}</button>
+    </view>
+
     <view wx:if="{{primaryTask}}" class="root-card primary-task-card">
       <view class="eyebrow">下一步</view>
       <view class="primary-title">{{primaryTask.title}}</view>

@@ -9,17 +9,17 @@
 
 ## 用户流程
 
-1. 用户在任务页点击加入打卡活动。
-2. 小程序加入活动成功后，调用微信原生订阅消息授权弹层。
-3. 用户接受、拒绝或禁止订阅的结果写入后端 Store。
-4. 后端按 `用户 + 活动 + 模板版本 + 提醒日期` 创建次日提醒任务。
+1. 用户加入打卡活动，后端按 `用户 + 活动 + 模板版本 + 提醒日期` 创建次日提醒任务。
+2. 任务页或进度页在展示阶段预载当前提醒模板，不在此时弹出授权。
+3. 用户点击独立的“开启明日提醒”按钮；点击处理的第一项异步动作是调用微信原生订阅消息 Interface。
+4. 用户接受、拒绝、禁止或调用失败的标准化结果写入后端 Store，并在当前页面常驻展示；拒绝不阻断任务主流程。
 5. 定时任务到期执行：
    - 若用户当天已经完成打卡，跳过发送。
    - 若用户未授权当前模板版本，跳过发送。
    - 若找不到 myRoot openid，标记失败，不重试打扰用户。
    - 若满足条件，调用微信订阅消息发送。
 
-老用户兼容：如果用户已经加入过活动，下一次主动提交打卡时也会触发一次授权机会。同一模板版本的授权决定只询问一次，避免反复弹窗。
+老用户兼容：已经加入过活动的用户可以从任务页或进度页主动开启提醒；完成打卡后会进入带有同一按钮的进度页。该模板属于一次性订阅消息，小程序不自行永久缓存 `accept/reject`；是否展示授权面板及“总是保持以上选择”由微信原生设置决定。
 
 ## Module 设计
 
@@ -32,6 +32,11 @@
 
 外部发送能力通过 `sendWechatSubscribeMessage` Adapter 接入现有微信 access token 逻辑。这个 seam 保留在 Domain 层，便于测试替换和生产发送隔离。
 
+小程序端 `checkin-reminder-subscribe` Module 提供两个 Interface：
+
+- `preloadCheckinReminderTemplate`：在按钮可操作前加载并仅在当前进程缓存非敏感模板配置。
+- `requestCheckinReminderSubscribe`：只使用已预载模板，确保 `wx.requestSubscribeMessage` 先于订阅结果写入；该 Interface 不读取或写入本地授权缓存。
+
 ## 模板与配置
 
 正式上线前必须配置：
@@ -42,6 +47,8 @@ ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION=v2026-06-28-tpl10850
 ROOT_CHECKIN_REMINDER_HOUR=9
 ROOT_CHECKIN_REMINDER_PAGE=pages/tasks/index
 ROOT_CHECKIN_REMINDER_MINIPROGRAM_STATE=trial
+ROOT_CHECKIN_REMINDER_SEND_CONCURRENCY=5
+ROOT_CHECKIN_REMINDER_SENDING_REVIEW_MINUTES=15
 ROOT_CHECKIN_REMINDER_TEMPLATE_TITLE=活动提醒
 ROOT_WECHAT_APPID=wx7727a02565aed1c2
 ROOT_WECHAT_APPSECRET=...
@@ -79,16 +86,49 @@ ROOT_CHECKIN_REMINDER_TEMPLATE_DATA_JSON='{"thing3":{"value":"{{campaignTitle}}"
 2. 已生成的 `notificationJobs` 保留当时的 `template_id`、`template_version`、`page` 和 `data_json`，不被新版本覆盖。
 3. 下线旧模板前，先确认旧版本任务已经没有 `SCHEDULED` 状态。
 4. 若模板发送异常，先把 `ROOT_CHECKIN_REMINDER_ENABLED=false`，再排查模板字段或微信凭证。
-5. 小程序端按 `templateKey + templateId + version` 记录用户授权决定；版本提升后可重新请求授权。
+5. 小程序只把标准化授权结果写入后端 Store，不以本地缓存跳过原生调用；每次调用必须由标明“开启明日提醒”的独立按钮触发，且调用前不得等待网络请求。
+6. 当前模板是一次性订阅。每次原生授权接受都以稳定 `grant_request_id` 生成一条 `notificationSubscriptionGrants`；`ACCEPTED` 只描述最近一次选择，实际发送必须占用 `AVAILABLE` 授权并在微信受理后转为 `CONSUMED`。
+7. 旧版只有 `notificationSubscriptions.status=ACCEPTED` 的记录不补造授权额度；升级后必须由用户再次点击“开启明日提醒”。
+
+## 授权账本与发送一致性
+
+1. 小程序在调用 `wx.requestSubscribeMessage` 前同步生成 `grant_request_id`，原生授权完成后以同一个请求 ID 写入后端；网络重试复用该 ID，不重复生成额度。
+2. 到期执行只选择与用户、模板版本和活动相符的 `AVAILABLE` 授权；没有额度时返回 `SKIPPED_NO_GRANT`，不能仅凭最近一次 `ACCEPTED` 发送。
+3. Store Module 在调用微信前把任务写为 `SENDING`、授权写为 `RESERVED` 并提交检查点；提交后释放 MySQL 快照锁，再通过发送 Adapter 批量执行，默认并发 5、最大 20。
+4. 微信调用结束后重新进入 Store Module，按任务 ID 和授权 ID 绑定最新数据，再写入 `SENT/CONSUMED` 或失败结果。发送成功但最终提交失败时，已提交的 `SENDING/RESERVED` 会阻止自动重发。
+5. `NOT_SENT` 释放额度，微信 `43101` 对应 `NO_GRANT` 并使额度失效，网络结果不明确时进入 `REVIEW_REQUIRED`。`SENDING` 超过默认 15 分钟仍未完成时，同样进入人工核验，不自动重试。
+6. 送达证据只保存收件人存在性、模板、页面、字段键、微信受理状态、稳定错误码和脱敏说明；不保存 `touser/openid`、access token、完整请求或原始 `msgid`。
 
 ## 验证清单
 
 - 加入活动后生成 1 条 `notificationJobs`，重复加入不新增。
-- 用户接受订阅后，`notificationSubscriptions.status=ACCEPTED`。
+- 用户接受订阅后，`notificationSubscriptions.status=ACCEPTED` 且新增 1 条 `notificationSubscriptionGrants.status=AVAILABLE`；同一 `grant_request_id` 重试不新增。
+- `UNKNOWN`、`subscribed=0` 或仅看到页面正常跳转均不得记为订阅通过。
 - 到期任务执行前，如果当天已打卡，结果为 `SKIPPED_ALREADY_CHECKED_IN`。
 - 到期任务执行前，如果未授权，结果为 `SKIPPED_NO_SUBSCRIPTION`。
+- 最近状态为已接受但没有可用额度时，结果为 `SKIPPED_NO_GRANT`。
 - 已授权且未打卡时，发送 Adapter 收到 `touser/openid + template_id + page + data`。
 - 体验版测试时 `ROOT_CHECKIN_REMINDER_MINIPROGRAM_STATE=trial`，正式版改为 `formal`。
+- 失败记录必须同时保留稳定错误码和脱敏微信说明；不得只保存统一业务码，也不得把 token、openid 或完整请求写入错误文本。
+- 同一授权额度不得被两个提醒任务复用；结果不明确时不得自动重试，重新发送必须先取得新的用户授权、行动时确认和请求 ID。
+- 批量发送前只提交一次检查点，发送期间不持有 MySQL 快照锁；并发数必须受 `ROOT_CHECKIN_REMINDER_SEND_CONCURRENCY` 限制。
+- 真实发送的 HTTP Interface 必须同时获得 Store Module 的 `checkpoint` 与 `resume`；缺任一 Interface 时以 `50301` fail-closed，不调用微信发送 Adapter。
+- dry-run 只返回 `recipient_present`、模板、页面、运行态和字段键，不返回 `touser`、OpenID、消息内容或消息 ID。
+- 微信 JSON POST 必须显式设置 UTF-8 `Content-Length`；非 2xx 或非 JSON 响应只能保留状态、白名单内容类型、安全追踪号和限长脱敏摘要。没有微信业务 `errcode` 时继续按 `UNKNOWN` 处理，不得因 HTTP 状态推断为明确未发送。
+
+## 2026-07-13 真机证据
+
+- 第四轮 `v0.5.9` 定向预览中，用户点击独立提醒按钮后，页面常驻状态显示“已开启”。
+- CloudBase SQL 只读回读为 `notification_subscription.status=ACCEPTED`、`subscribed=1`，更新时间 `2026-07-13 13:52:05`。
+- 次日任务保持 `SCHEDULED`，计划 `2026-07-14 09:00` 执行，`attempts=0` 且无错误。
+- 本证据关闭订阅授权 Gate，不替代实际消息送达证明。
+- 当前任务为 `miniprogram_state=formal / lang=zh_CN`；它可用于正式目标验证，不能替代定向预览的 `trial` 跳转证明。
+- 024 候选 Job Interface 在模拟 `2026-07-14 09:01 +08:00` 时返回 `DRY_RUN_READY`，请求形状包含 openid、模板、`pages/tasks/index` 与 `thing1/thing2/thing3`；全程只输出存在性，不输出标识值。
+- Cloud Function 的 `checkin_reminders` 触发器每 10 分钟启用，但 `ROOT_JOB_DRY_RUN=true`，真实发送必须单独确认并使用稳定 `request_id`。
+- 正式目标发送已按确认执行一次，结果为 `FAILED / 1006 / attempts=1 / delivered_at=null`，未重试。AppID、密钥令牌、模板归属和字段均已通过只读探针，但 024 丢失微信原始 `errmsg`，所以实际失败原因尚未确定。
+- `v0.5.10` 已部署为 025 的 0% 条件候选，补齐一次性授权账本、发送前检查点、未知结果人工核验、受控并发和送达证据最小化；迁移为 `005_notification_subscription_grants.sql`。历史 `ACCEPTED` 不会自动转成可用额度。
+- 025 的新单用户真实发送只执行一次，返回 `FAILED / 1006 / external HTTP 412 / UNKNOWN`，没有微信业务 `errcode`，未重试；匹配额度按账本语义进入 `REVIEW_REQUIRED`。
+- `v0.5.11` 本地候选已显式写入 `Content-Length`，并增加非 JSON HTTP 响应的限长脱敏诊断；后端 `257/257`、完整验收 `15/15` 通过。该候选尚未部署，chunked 是否为 412 的唯一根因仍待验证。
 
 ## 定时任务
 
@@ -100,7 +140,7 @@ npm run checkin-reminders --prefix backend -- --dry-run --limit 50
 npm run checkin-reminders --prefix backend -- --execute --limit 50 --request-id checkin-reminders-YYYYMMDDHHmm
 ```
 
-正式执行要求 `ROOT_JOB_BASE_URL`、`ROOT_ADMIN_JOB_TOKEN` 与稳定 `request_id`。建议每 10 分钟触发一次，单轮默认最多 50 条。
+正式执行要求 `ROOT_JOB_BASE_URL`、`ROOT_ADMIN_JOB_TOKEN` 与稳定 `request_id`。建议每 10 分钟触发一次，单轮默认最多 50 条，外部发送默认最多 5 路并发。
 
 ## 官方参考
 

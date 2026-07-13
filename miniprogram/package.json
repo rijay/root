@@ -1,9 +1,9 @@
 {
   "name": "root-seven-day-checkin-miniprogram",
-  "version": "0.5.7",
+  "version": "0.5.12",
   "private": true,
   "description": "ROOT 7日身体重启计划微信小程序",
   "scripts": {
-    "check": "node scripts/validate.js"
+    "check": "node scripts/validate.js && node scripts/health-consent-recovery.test.js && node scripts/cloud-route.test.js && node scripts/campaign-join.test.js && node scripts/checkin-reminder-subscribe.test.js"
   }
 }

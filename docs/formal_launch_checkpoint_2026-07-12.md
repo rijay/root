@@ -1,10 +1,11 @@
 # myRoot 正式上线检查点
 
 检查时间：2026-07-12 19:39 +08:00
-当前候选版本：`v0.5.7 / myroot-api-024`；本文前半部分保留 `v0.5.6 / 023` 历史证据
+最近更新：2026-07-13 20:29 +08:00
+当前生产候选：`v0.5.11 / myroot-api-026 / URL_PARAMS / 0%`；本地下一候选为 `v0.5.12 / NOT_DEPLOYED`；本文前半部分保留 `v0.5.6 / 023`、`v0.5.7 / 024` 与 `v0.5.10 / 025` 历史证据
 状态：`BLOCKED`
 
-截至 2026-07-13，本轮已完成本地代码、构建、生产审计和已授权的上线准备动作：创建 schema-scoped 候选数据库账号，完成 023 历史候选验证后将其归档，部署 `myroot-api-024 / v0.5.7` 0% 定向候选，并完成 CloudBase 对象存储上传/精确删除探针及 10+1 个 Cloud Function 的 11/11 dry-run。无参数流量仍默认进入稳定版 `myroot-api-012`；小程序尚未上传，Cloud Function 包仍待从 0.5.6 对齐到 0.5.7，没有执行真实外部 Adapter、正式签字、5% 灰度或全量切流。
+截至 2026-07-13，本轮已完成本地代码、构建、生产审计和已授权的上线准备动作：创建 schema-scoped 候选数据库账号，应用迁移 005，保留 025 的对象存储与提醒失败证据，并部署 `myroot-api-026 / v0.5.11` 0% 定向候选。026 的运行、MySQL、最小权限、隐私、Admin 和默认流量保护 Gate 已通过；两个 Cloud Function 仍锁定 dry-run 并匹配 026 路由，本轮没有更新或调用。无参数流量仍默认进入稳定版 `myroot-api-012`；公众平台当前体验版仍为既有 `v0.5.10`。025 的新授权单用户真实提醒仅执行一次，返回 `FAILED / 1006 / external HTTP 412 / UNKNOWN` 且未重试；026 未上传体验版、未执行微信业务 POST 或提醒发送，也没有执行其他外部 Adapter、正式签字、5% 灰度或全量切流。
 
 ## 1. 实际读取来源
 
@@ -200,5 +201,49 @@
 2. 从已校验干净源码目录部署预期版本 024，BuildId `2601317457`；VPC、48 个变量名、1–2 副本、端口和开放方式均未漂移。
 3. 官方 `ReleaseGray` Interface 已复用原 `myroot_canary` 路由，发布单回读 `URL_PARAMS / 0% / grayStatus=success`；配置后 15 次默认请求均未命中 0.5.7。
 4. 024 定向健康、MySQL 迁移 004、schema 最小权限、隐私 180 天和对象存储精确写删均通过；探针目录回读 `total=0`。
-5. 11/11 Cloud Function 作业均 `dryRun=true / HTTP 200 / code 0` 并命中 024 后端；函数部署包仍报告 0.5.6，仓库包为 0.5.7，版本对齐仍是正式 Gate。
+5. 两个 Cloud Function 已使用只更新代码的 CLI Interface 对齐到 0.5.7；每个函数各 6 个变量、两函数合计 10+1 个启用触发器、候选路由和 `ROOT_JOB_DRY_RUN=true` 均未漂移，11/11 作业返回 `releaseVersion=0.5.7 / dryRun=true / HTTP 200 / code 0` 并命中 024 后端。
 6. 本次未上传小程序、未执行真实外部 Adapter、未开启 Cloud Function execute、未进入百分比灰度或正式切流。
+
+## 13. 2026-07-13 v0.5.10 本地提醒可靠性候选
+
+1. 024 首次正式目标提醒失败后没有重试；旧版统一 `1006` 且丢失微信说明，因此该次结果不能作为送达证明，也不能安全推断一次性额度是否仍可用。
+2. 本地候选新增 `notificationSubscriptionGrants`，把每次用户原生接受转成一个幂等、只消费一次的任务级额度；历史订阅状态不迁移成额度。
+3. Store Module 在微信发送前提交 `SENDING/RESERVED` 检查点并释放 MySQL 快照锁，受控并发调用后重新进入 Store、按 ID 绑定记录并提交结果。最终提交失败时不会自动重复发送。
+4. 未知发送结果和超时 `SENDING` 会进入人工核验；送达证据不保存 OpenID、token、原始 `msgid` 或完整响应。
+5. 新增迁移 `005_notification_subscription_grants.sql`，根项目、后端、Admin、小程序与 Cloud Function 版本统一为 `0.5.10`。本节只记录本地实现，未读取或修改生产环境。
+6. 完整验收已为 `15/15 PASS`；隔离 MySQL 8 的迁移 005、授权投影、检查点释放锁、并发写入、恢复与重启持久化均通过；候选 ZIP、展开源码和小程序清单已生成并校验。生产部署结果见下一节与 [025 生产证据](./production_gray_release_025_2026-07-13.md)。
+
+## 14. 2026-07-13 候选 025 执行结果
+
+1. 行动时回读确认 012 为默认稳定版本、024 为 `URL_PARAMS / 0%` 条件候选；在内存中保留原条件路由后安全结束 024，再提交 025。
+2. `myroot-api-025 / v0.5.10` 已构建为 `normal`，BuildId `2601318859`；VPC、1 至 2 副本、端口 80、48 个环境变量名和开放方式均未漂移。
+3. 发布单为 `012 -> 025 / URL_PARAMS / flowRatio=0 / grayStatus=success`。定向 `/health` 返回 `0.5.10`，`/ready` 返回 MySQL connected、迁移 005 与 schema 级最小权限；隐私和 Admin Gate 通过。
+4. 路由配置后额外 15 次无参数 `/health` 全部为稳定响应，025 命中 0 次。两个 Cloud Function 均为 `Active / Available / ROOT_JOB_DRY_RUN=true`，并精确匹配 025 路由。
+5. 经后续单独确认，只更新两个 Cloud Function 代码包到 `v0.5.10`；更新前 `v0.5.7` 回滚包已下载，更新后两个云端包与本地哈希精确一致，6 个变量、10+1 个启用触发器、025 路由和 dry-run 均未漂移。
+6. 10+1 个 Job 共 11/11 同步调用返回 `releaseVersion=0.5.10 / dryRun=true / HTTP 200 / code=0 / InvokeResult=0`，没有执行真实外部动作或健康数据清理。
+7. 微信开发者工具 CLI 已上传小程序 `v0.5.10`，实际上传 485,534 bytes；公众平台版本管理页确认该版本已指定为体验版，未提交审核。首个预览沿用旧 024 编译条件而提示“接口不存在”；改用仅存在于 `/tmp`、release 禁用的 025 定向预览后，真机原生授权成功，路由值未写入仓库或证据。
+8. 首次重新授权在 17:39:02 生成第 1 条 `AVAILABLE`。第二个微信账号因相同手机号被合并到同一 Root 用户，只增加额度；独立账号随后形成第 2 个独立参与用户、第 3 条 `AVAILABLE` 额度和 1 条新 `SCHEDULED / attempts=0` 任务。
+9. 模拟次日 09:01 的未来时刻 dry-run 返回 `HTTP 200 / code=0 / scannedCount=1 / DRY_RUN_READY=1`；接收方、模板、页面和 `thing1/thing2/thing3` 形状均就绪。事后回读证明任务仍为 `SCHEDULED / attempts=0`，额度仍全部 `AVAILABLE`，没有新增送达记录。
+10. 经单独授权，025 对象存储探针在 19:40:13 返回 `VERIFIED`：上传确认与精确删除确认均为 `true`，残留可能性为 `false`；探针目录回读 `total=0`，审计记录恰好 1 条并匹配 `0.5.10`。发布单随后仍为 `012 -> 025 / URL_PARAMS / 0% / gray success`。
+11. 旧 `FAILED / attempts=1 / 1006` 的结果证据为空，无法安全判断是否受理，因此没有恢复或重试。
+12. 经新的单独授权，19:48:57 只提交一次单用户真实提醒。Job Interface 返回 `HTTP 200 / code=0`，唯一任务返回 `FAILED / 1006 / external HTTP 412 / externalErrorCode=null / deliveryOutcome=UNKNOWN`；请求 ID 唯一且没有第二次请求。按 v0.5.10 未知结果语义，匹配额度进入 `REVIEW_REQUIRED`，不得释放、复用或重发。
+13. 发送后 dry-run 为 `scannedCount=0 / staleSendingCount=0 / resultCount=0`，发布单、012/025、0% 条件路由、两个函数、10+1 个触发器和全局 dry-run 均无漂移。微信 AppID、AppSecret 存在性、令牌和目标模板只读探针通过；官方文档未定义 `HTTP 412`，chunked 传输只作为下一版待验证假设。本次没有改变默认流量、生产凭据或历史版本，也没有执行 commit、push、其他外部 Adapter、5% 灰度或正式切流；正式发布继续为 `BLOCKED`。
+
+## 15. 2026-07-13 v0.5.11 传输修复候选与 026 部署
+
+1. 新 `wechatHttp` Module 为微信 JSON POST 显式写入 UTF-8 `Content-Length`，避免现有 Node.js Implementation 默认使用 chunked。
+2. 非 2xx 或非 JSON 响应现在保留脱敏的 HTTP 状态、内容类型、安全追踪号和限长摘要；64 KiB 响应上限防止异常外部响应扩大内存与证据面。
+3. 未返回微信业务 `errcode` 的失败继续分类为 `UNKNOWN`，授权进入 `REVIEW_REQUIRED`；没有改变 v0.5.10 的额度账本和禁止自动重发规则。
+4. 新传输测试 `4/4`、提醒与 HTTP Interface `171/171`、后端 `257/257`、完整验收 `15/15` 通过；225 个 JavaScript 文件、5 个迁移和版本一致性均通过。
+5. 最终候选 ZIP 为 185 个条目、1,072,804 bytes，SHA-256 `bf2ad367df73161d870eff2c467aaa54f264fbbd13542d10247c2f74e6787b48`；176 个展开源文件内容清单 SHA-256 为 `6e3bdcd940ea3826cb89c1f5cb065870ddf67af60def1d16168803429dd625bc`。
+6. 经单独确认，已结束 025 活动灰度并部署 `myroot-api-026 / URL_PARAMS / 0%`；026 为 `normal`、BuildId `2601310799`，VPC、48 个环境变量值和实例规格均无漂移。
+7. 026 定向 `/health`、`/ready`、MySQL 迁移 005、schema 最小权限、隐私和 Admin 通过；15 次无参数 `/health` 没有命中 026，012 继续承接默认流量。
+8. 两个 Cloud Function 保持上一轮代码包、10+1 个启用触发器、026 路由与全局 dry-run；本轮未更新、未调用 Job。未上传体验版、未发送提醒、未执行微信业务 POST、未 commit 或 push；chunked 与 412 的因果关系和提醒送达仍未验证。完整证据见 [026 生产证据](./production_gray_release_026_2026-07-13.md)。
+
+## 16. 2026-07-13 v0.5.12 正式 Gate 加固
+
+1. 旧正式切换 Gate 只能跟踪 10 项生产证明，遗漏候选运行、同版本体验版、真实提醒送达、5% 灰度和工件追溯。
+2. 本地 v0.5.12 将 Gate 扩展到 15 项，并把证据收口从 `T-001..T-010` 扩展到 `T-001..T-015`。
+3. 定向测试 `174/174`、完整验收 `15/15` 通过；没有新增数据库迁移或用户流程变化。
+4. 本版尚未部署、上传、更新函数、发送提醒、调整流量、commit 或 push；生产 026 与两个函数 dry-run 状态不变。
+5. 当前最长提前期是创建有赞云自用型无容器应用并绑定 ROOT 店铺。完整缺口、执行顺序、确认点与回滚约束见 [v0.5.12 正式上线 Gate](./formal_launch_gate_v0.5.12_2026-07-13.md)。

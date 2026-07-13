@@ -6,7 +6,7 @@ const { minimizePersistedExternalEvidence } = require("./externalEvidenceSanitiz
 
 const SQLITE_SCHEMA_VERSION = 1;
 const SQLITE_STORE_KEY = "root-checkin";
-const MYSQL_SCHEMA_VERSION = 4;
+const MYSQL_SCHEMA_VERSION = 5;
 const MYSQL_STORE_KEY = "root-checkin";
 
 function clone(value) {
@@ -44,6 +44,7 @@ function createEmptyData() {
   data.taskProgressSnapshots = [];
   data.notificationTemplates = [];
   data.notificationSubscriptions = [];
+  data.notificationSubscriptionGrants = [];
   data.notificationJobs = [];
   data.notificationDeliveries = [];
   data.questionnaireAnswers = [];
@@ -83,7 +84,9 @@ function defaultsForOptions(options = {}) {
 }
 
 function normalizeStoreData(rawData, options = {}) {
-  return minimizePersistedExternalEvidence(mergeDefaults(rawData || {}, defaultsForOptions(options)));
+  const normalized = minimizePersistedExternalEvidence(mergeDefaults(clone(rawData || {}), defaultsForOptions(options)));
+  delete normalized.wechatAccessToken;
+  return normalized;
 }
 
 function validateSnapshot(snapshot, options = {}) {
@@ -131,6 +134,8 @@ function validateSnapshot(snapshot, options = {}) {
     ["taskProgressSnapshots", "task_progress_snapshot_id"],
     ["notificationTemplates", "notification_template_id"],
     ["notificationSubscriptions", "notification_subscription_id"],
+    ["notificationSubscriptionGrants", "notification_subscription_grant_id"],
+    ["notificationSubscriptionGrants", "idempotency_key"],
     ["notificationJobs", "notification_job_id"],
     ["notificationJobs", "idempotency_key"],
     ["notificationDeliveries", "notification_delivery_id"],
@@ -634,44 +639,104 @@ async function createMysqlStore(config = {}, options = {}) {
         const connection = await pool.getConnection();
         let before = null;
         let phase = "store";
-        try {
+        let transactionActive = false;
+        let awaitingResume = false;
+
+        const beginLockedTransaction = async () => {
           await connection.beginTransaction();
+          transactionActive = true;
           const row = await selectSnapshot(connection, true);
-          before = normalizeStoreData(parseMysqlPayload(row.payload_json), options);
-          replaceStoreData(data, before, options);
+          const latest = normalizeStoreData(parseMysqlPayload(row.payload_json), options);
+          before = latest;
+          replaceStoreData(data, latest, options);
           revision = Number(row.revision || 0);
           lastReadAt = new Date().toISOString();
+          return row;
+        };
+
+        const commitCurrentTransaction = async () => {
+          const after = adapter.exportSnapshot();
+          const changedKeys = changedCollectionKeys(before, after);
+          const nextRevision = changedKeys.size ? revision + 1 : revision;
+          if (changedKeys.size) {
+            await writeSnapshot(connection, after, nextRevision);
+            lastProjection = await syncCoreProjections(connection, after, { changedKeys });
+          }
+          await connection.commit();
+          transactionActive = false;
+          revision = nextRevision;
+          before = normalizeStoreData(clone(after), options);
+          if (changedKeys.size) lastSavedAt = new Date().toISOString();
+          lastError = "";
+          return { revision, projection: lastProjection };
+        };
+
+        try {
+          await beginLockedTransaction();
           phase = "work";
-          const result = await work(data);
+          const checkpoint = async () => {
+            if (requestOptions.write === false) {
+              const error = new Error("MySQL Store checkpoint requires a writable request");
+              error.code = "STORE_CHECKPOINT_READ_ONLY";
+              throw error;
+            }
+            if (!transactionActive || awaitingResume) {
+              const error = new Error("MySQL Store checkpoint requires an active transaction");
+              error.code = "STORE_CHECKPOINT_NOT_ACTIVE";
+              throw error;
+            }
+            phase = "store";
+            const committed = await commitCurrentTransaction();
+            awaitingResume = true;
+            phase = "work";
+            return committed;
+          };
+          const resume = async () => {
+            if (transactionActive || !awaitingResume) {
+              const error = new Error("MySQL Store resume requires a completed checkpoint");
+              error.code = "STORE_RESUME_NOT_READY";
+              throw error;
+            }
+            phase = "store";
+            try {
+              await beginLockedTransaction();
+            } catch (error) {
+              if (transactionActive) {
+                await connection.rollback().catch(() => {});
+                transactionActive = false;
+              }
+              lastError = error.message;
+              throw error;
+            }
+            awaitingResume = false;
+            phase = "work";
+            return { revision };
+          };
+          const result = await work(data, { checkpoint, resume });
+          if (awaitingResume) {
+            const error = new Error("MySQL Store work completed before resuming its checkpoint");
+            error.code = "STORE_CHECKPOINT_NOT_RESUMED";
+            throw error;
+          }
           const shouldCommit = typeof requestOptions.shouldCommit === "function"
             ? requestOptions.shouldCommit()
             : requestOptions.write !== false;
           if (!shouldCommit) {
-            await connection.rollback();
+            if (transactionActive) await connection.rollback();
+            transactionActive = false;
             replaceStoreData(data, before, options);
             lastError = "";
             return result;
           }
-          const after = adapter.exportSnapshot();
-          const changedKeys = changedCollectionKeys(before, after);
+          if (!transactionActive) return result;
           phase = "store";
-          if (!changedKeys.size) {
-            await connection.commit();
-            lastError = "";
-            return result;
-          }
-          const nextRevision = revision + 1;
-          await writeSnapshot(connection, after, nextRevision);
-          lastProjection = await syncCoreProjections(connection, after, {
-            changedKeys,
-          });
-          await connection.commit();
-          revision = nextRevision;
-          lastSavedAt = new Date().toISOString();
-          lastError = "";
+          await commitCurrentTransaction();
           return result;
         } catch (error) {
-          const rollbackError = await connection.rollback().then(() => null, (failure) => failure);
+          const rollbackError = transactionActive
+            ? await connection.rollback().then(() => null, (failure) => failure)
+            : null;
+          transactionActive = false;
           if (before) replaceStoreData(data, before, options);
           if (phase === "store" || rollbackError) lastError = (rollbackError || error).message;
           throw error;

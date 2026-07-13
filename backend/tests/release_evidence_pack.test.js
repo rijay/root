@@ -56,11 +56,11 @@ test("release evidence pack summarizes launch evidence without leaking secrets",
   assert.equal(pack.evidence.adminTransitionReadiness.summary.requiredModuleCount, 6);
   assert.equal(pack.evidence.adminTransitionReadiness.legacyDeprecationDecision.status, "PENDING");
   assert.equal(pack.summary.productionCutoverStatus, "BLOCKED");
-  assert.equal(pack.evidence.productionCutoverReadiness.summary.requiredProofCount, 10);
+  assert.equal(pack.evidence.productionCutoverReadiness.summary.requiredProofCount, 15);
   assert.equal(pack.summary.legacyDataMigrationStatus, "READY");
   assert.equal(pack.evidence.legacyDataMigration.summary.legacySessionCount, 0);
   assert.equal(pack.summary.productionEvidenceIntakeStatus, "BLOCKED");
-  assert.equal(pack.evidence.productionEvidenceIntake.items.length, 10);
+  assert.equal(pack.evidence.productionEvidenceIntake.items.length, 15);
   assert.ok(pack.evidence.productionEvidenceIntake.items.some((item) => item.backlogId === "T-001"));
   assert.equal(pack.summary.cloudbaseStoreStatus, "BLOCKED");
   assert.equal(pack.evidence.cloudbaseStoreReadiness.selectedDecision, "UNDECIDED");

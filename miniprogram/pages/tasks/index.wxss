@@ -82,6 +82,46 @@
   width: 100%;
 }
 
+.reminder-band {
+  margin-top: 24rpx;
+  padding: 24rpx 0;
+  border-top: 1rpx solid var(--color-root-line);
+  border-bottom: 1rpx solid var(--color-root-line);
+}
+
+.reminder-band--success {
+  border-color: var(--color-root-sprout);
+}
+
+.reminder-band--warning {
+  border-color: var(--color-root-clay);
+}
+
+.reminder-title {
+  color: var(--color-root-ink);
+  font-size: 30rpx;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.reminder-copy,
+.reminder-note {
+  margin-top: 10rpx;
+  color: var(--color-root-copy);
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+}
+
+.reminder-note {
+  color: var(--color-root-muted);
+  font-size: var(--font-size-xs);
+}
+
+.reminder-button {
+  width: 100%;
+  margin-top: 20rpx;
+}
+
 .primary-title {
   margin-top: 14rpx;
   color: var(--color-root-ink);

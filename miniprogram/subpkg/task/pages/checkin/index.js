@@ -1,6 +1,5 @@
 const { request } = require("../../../../utils/request");
 const { ensureHealthConsent } = require("../../../../utils/health-consent");
-const { requestCheckinReminderSubscribe } = require("../../../../utils/checkin-reminder-subscribe");
 const { todayChina } = require("../../../../utils/task-presenter");
 
 Page({
@@ -78,12 +77,9 @@ Page({
           idempotencyKey: `task-checkin:${this.data.campaignId || "default"}:${this.data.taskDate}`,
         },
       });
-      await requestCheckinReminderSubscribe({
-        trigger: "CHECKIN_SUBMIT",
-        campaignId: this.data.campaignId,
+      wx.redirectTo({
+        url: `/subpkg/task/pages/progress/index?campaignId=${this.data.campaignId}&fromCheckin=1`,
       });
-      wx.showToast({ title: "已记录", icon: "success" });
-      wx.redirectTo({ url: `/subpkg/task/pages/progress/index?campaignId=${this.data.campaignId}` });
     } catch (error) {
       wx.showToast({ title: error.message || "提交失败", icon: "none" });
     } finally {

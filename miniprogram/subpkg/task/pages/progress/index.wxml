@@ -16,10 +16,28 @@
   </view>
 
   <view wx:else>
+    <view wx:if="{{checkinSaved}}" class="checkin-success-band">
+      <view class="checkin-success-title">今日打卡已记录</view>
+      <view class="checkin-success-copy">进度已更新，可以继续开启明日提醒。</view>
+    </view>
+
     <view class="root-card summary-card">
       <view class="summary-percent">{{progress.summary.progressPercent || 0}}%</view>
       <view class="root-helper-text">必做任务 {{progress.summary.requiredCompletedTasks || 0}}/{{progress.summary.requiredTasks || 0}}</view>
     </view>
+
+    <view wx:if="{{campaign.participant}}" class="reminder-band reminder-band--{{reminderStatusTone}}">
+      <view class="reminder-title">次日打卡提醒</view>
+      <view class="reminder-copy">{{reminderStatusText}}</view>
+      <view class="reminder-note">每次允许仅用于发送一次提醒。</view>
+      <button
+        class="root-button root-button--secondary reminder-button"
+        bindtap="enableReminder"
+        loading="{{reminderRequesting || reminderLoading}}"
+        disabled="{{reminderLoading || reminderRequesting || reminderAccepted}}"
+      >{{reminderButtonText}}</button>
+    </view>
+
     <view class="detail-list">
       <view wx:for="{{tasks}}" wx:key="taskDefinitionId" class="root-card detail-task-card {{item.statusClass}}">
         <view class="detail-task-top">

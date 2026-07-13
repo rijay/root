@@ -46,11 +46,14 @@ for (let index = 1; index <= 7; index += 1) {
 require("../utils/options.js");
 const routerModule = require("../utils/router.js");
 const requestModule = require("../utils/request.js");
+const cloudRoute = require("../utils/cloud-route.js");
 const transientHealthState = require("../utils/transient-health-state.js");
 require("../utils/legal.js");
 const privacyAuthorization = require("../utils/privacy-authorization.js");
 require("../utils/cloud-media-upload.js");
 const healthConsent = require("../utils/health-consent.js");
+const campaignJoin = require("../utils/campaign-join.js");
+const reminderSubscribe = require("../utils/checkin-reminder-subscribe.js");
 const runtimeEnv = require("../config/env.js");
 const { appVersion } = require("../config/version.js");
 const youzanJump = require("../utils/youzan-jump.js");
@@ -343,9 +346,16 @@ const legalModule = fs.readFileSync(path.join(root, "utils/legal.js"), "utf8");
 const healthConsentPage = fs.readFileSync(path.join(root, "pages/health-consent/index.wxml"), "utf8");
 const healthConsentScript = fs.readFileSync(path.join(root, "pages/health-consent/index.js"), "utf8");
 const taskCheckinScript = fs.readFileSync(path.join(root, "subpkg/task/pages/checkin/index.js"), "utf8");
+const taskProgressPage = fs.readFileSync(path.join(root, "subpkg/task/pages/progress/index.wxml"), "utf8");
+const taskProgressScript = fs.readFileSync(path.join(root, "subpkg/task/pages/progress/index.js"), "utf8");
+const tasksScript = fs.readFileSync(path.join(root, "pages/tasks/index.js"), "utf8");
 const resultPageScript = fs.readFileSync(path.join(root, "subpkg/checkin/pages/result/index.js"), "utf8");
 const sharePosterScript = fs.readFileSync(path.join(root, "subpkg/checkin/pages/share-poster/index.js"), "utf8");
 const appScript = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const requestScript = fs.readFileSync(path.join(root, "utils/request.js"), "utf8");
+const cloudRouteScript = fs.readFileSync(path.join(root, "utils/cloud-route.js"), "utf8");
+const campaignJoinScript = fs.readFileSync(path.join(root, "utils/campaign-join.js"), "utf8");
+const reminderSubscribeScript = fs.readFileSync(path.join(root, "utils/checkin-reminder-subscribe.js"), "utf8");
 
 [
   "components/privacy-consent/index.js",
@@ -354,6 +364,8 @@ const appScript = fs.readFileSync(path.join(root, "app.js"), "utf8");
   "components/privacy-consent/index.wxss",
   "utils/privacy-authorization.js",
   "utils/cloud-media-upload.js",
+  "utils/cloud-route.js",
+  "utils/campaign-join.js",
   "utils/health-consent.js",
   "utils/transient-health-state.js",
 ].forEach((file) => {
@@ -403,6 +415,32 @@ if (!legacyTodayScript.includes("setTransientHealthData") ||
   !appScript.includes("clearLegacyTransientHealthStorage")) {
   routeContractProblems.push("transient health state Interface is incomplete");
 }
+if (typeof cloudRoute.appendCloudRoute !== "function" ||
+  !appScript.includes("initializeCloudRoute(options, env.envVersion)") ||
+  !requestScript.includes("appendCloudRoute(options.url, env.envVersion)") ||
+  !cloudRouteScript.includes('envVersion === "release"') ||
+  /myroot_canary=[A-Za-z0-9_-]{8,}/.test(cloudRouteScript)) {
+  routeContractProblems.push("cloud route Module must remain launch-scoped, release-disabled and free of route values");
+}
+if (typeof campaignJoin.joinCampaign !== "function" ||
+  !homeScript.includes("joinCampaign") ||
+  !tasksScript.includes("joinCampaign") ||
+  campaignJoinScript.includes("requestCheckinReminderSubscribe")) {
+  routeContractProblems.push("campaign join Module must keep the join Interface separate from user-gesture reminder authorization");
+}
+if (typeof reminderSubscribe.preloadCheckinReminderTemplate !== "function" ||
+  typeof reminderSubscribe.requestCheckinReminderSubscribe !== "function" ||
+  !tasksScript.includes("preloadCheckinReminderTemplate") ||
+  !taskProgressScript.includes("preloadCheckinReminderTemplate") ||
+  !taskProgressPage.includes('bindtap="enableReminder"') ||
+  taskCheckinScript.includes("requestCheckinReminderSubscribe")) {
+  routeContractProblems.push("check-in reminder Module must preload before a dedicated user-tap authorization Interface");
+}
+if (reminderSubscribeScript.includes("getStorageSync") ||
+  reminderSubscribeScript.includes("setStorageSync") ||
+  reminderSubscribeScript.includes("ALREADY_DECIDED")) {
+  routeContractProblems.push("check-in reminder subscription must defer persistent authorization choices to WeChat");
+}
 if (!privacyComponentScript.includes("initializePrivacyAuthorization") ||
   !privacyComponentScript.includes('buttonId: "root-privacy-agree"') ||
   !privacyComponentPage.includes('open-type="agreePrivacyAuthorization"') ||
@@ -435,6 +473,13 @@ if (typeof healthConsent.ensureHealthConsent !== "function" ||
   !healthConsentScript.includes('decision: "GRANTED"') ||
   !healthConsentScript.includes('decision: "WITHDRAWN"')) {
   routeContractProblems.push("pages/health-consent: sensitive information consent and withdrawal Interface is incomplete");
+}
+if (!homePage.includes("viewType === 'healthConsent'") ||
+  !homePage.includes("continueHealthConsent") ||
+  !homeScript.includes('viewType: "healthConsent"') ||
+  !homeScript.includes("ensureHealthConsent({ navigate: shouldNavigate })") ||
+  !healthConsent.ensureHealthConsent.toString().includes("options.navigate !== false")) {
+  routeContractProblems.push("pages/home: health consent handoff must remain recoverable after login");
 }
 if (!routerModule.routePermissions["/pages/health-consent/index"] ||
   !profilePage.includes("/pages/health-consent/index?mode=manage")) {

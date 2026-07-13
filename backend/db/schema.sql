@@ -185,6 +185,7 @@ CREATE TABLE notification_job (
   template_key VARCHAR(64) NOT NULL,
   template_id VARCHAR(128) NOT NULL,
   template_version VARCHAR(32) NOT NULL,
+  notification_subscription_grant_id VARCHAR(32),
   reminder_date DATE NOT NULL,
   scheduled_at DATETIME NOT NULL,
   page VARCHAR(128),
@@ -212,9 +213,12 @@ CREATE TABLE notification_delivery (
   template_key VARCHAR(64) NOT NULL,
   template_id VARCHAR(128) NOT NULL,
   template_version VARCHAR(32) NOT NULL,
+  notification_subscription_grant_id VARCHAR(32),
   status VARCHAR(32) NOT NULL,
   error_code VARCHAR(64),
+  external_error_code VARCHAR(64),
   error_message TEXT,
+  delivery_outcome VARCHAR(32),
   request_json JSON,
   response_json JSON,
   delivered_at DATETIME,
@@ -222,6 +226,34 @@ CREATE TABLE notification_delivery (
   FOREIGN KEY (notification_job_id) REFERENCES notification_job(notification_job_id),
   FOREIGN KEY (root_user_id) REFERENCES root_user(root_user_id),
   FOREIGN KEY (campaign_id) REFERENCES campaign_definition(campaign_id)
+);
+
+CREATE TABLE notification_subscription_grant (
+  notification_subscription_grant_id VARCHAR(32) PRIMARY KEY,
+  notification_subscription_id VARCHAR(32) NOT NULL,
+  root_user_id VARCHAR(32) NOT NULL,
+  campaign_id VARCHAR(64),
+  template_key VARCHAR(64) NOT NULL,
+  template_id VARCHAR(128) NOT NULL,
+  template_version VARCHAR(32) NOT NULL,
+  grant_request_id VARCHAR(96) NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  notification_job_id VARCHAR(32),
+  last_notification_job_id VARCHAR(32),
+  idempotency_key VARCHAR(160) NOT NULL UNIQUE,
+  source_channel VARCHAR(64),
+  granted_at DATETIME NOT NULL,
+  reserved_at DATETIME,
+  consumed_at DATETIME,
+  released_at DATETIME,
+  invalidated_at DATETIME,
+  review_required_at DATETIME,
+  release_reason VARCHAR(128),
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  KEY idx_notification_subscription_grant_available (root_user_id, template_key, template_version, campaign_id, status),
+  KEY idx_notification_subscription_grant_job (notification_job_id),
+  KEY idx_notification_subscription_grant_review (status, updated_at)
 );
 
 CREATE TABLE questionnaire_answer (

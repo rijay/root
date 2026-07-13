@@ -503,6 +503,7 @@ function productionEnvMatrixCheck() {
     WECHAT_APPID: "wx-root",
     WECHAT_APPSECRET: "wechat-secret",
     ROOT_PUBLIC_BASE_URL: "https://express-x7te-258599-9-1404419431.sh.run.tcloudbase.com",
+    ROOT_RELEASE_ID: "v0.5.12+final-verification",
     ROOT_ADMIN_TOKEN: "admin-secret",
     ROOT_REQUIRE_HEALTH_CONSENT: "true",
     ROOT_PRIVACY_CONTROLLER_NAME: "ROOT 测试主体",
@@ -593,6 +594,12 @@ function productionEnvMatrixCheck() {
       id: "runtime_store_job_groups",
       status: ["runtime", "privacy_compliance", "store", "cloudbase_store", "cloudbase_object_storage", "cloudbase_jobs", "checkin_reminder_subscription", "root_member_center_jump"].every((id) =>
         ready.groups.some((group) => group.id === id && group.status === "PASS")) ? "PASS" : "FAIL",
+    },
+    {
+      id: "runtime_release_id",
+      status: ready.groups.some((group) =>
+        group.id === "runtime" &&
+        group.required.some((item) => item.name === "ROOT_RELEASE_ID" && item.present && item.valid)) ? "PASS" : "FAIL",
     },
     {
       id: "cloudbase_object_storage_http_env",
@@ -2332,7 +2339,7 @@ async function httpSmoke() {
         releaseRecord.evidence.adminTransitionReadiness.legacyDeprecationDecision.status === "PENDING" &&
         releaseRecord.evidence.productionCutoverReadiness &&
         releaseRecord.evidence.productionCutoverReadiness.status === "NEEDS_REVIEW" &&
-        releaseRecord.evidence.productionCutoverReadiness.summary.requiredProofCount === 10 &&
+        releaseRecord.evidence.productionCutoverReadiness.summary.requiredProofCount === 15 &&
         releaseRecord.evidence.actionAdapterCalibration &&
         ["READY", "NEEDS_REVIEW"].includes(releaseRecord.evidence.actionAdapterCalibration.status) &&
         releaseRecord.evidence.actionAdapterCalibration.actions.length === 4 &&
@@ -2340,7 +2347,7 @@ async function httpSmoke() {
         releaseRecord.evidence.legacyDataMigration.status === "READY" &&
         releaseRecord.evidence.legacyDataMigration.summary.legacySessionCount === 0 &&
         releaseRecord.evidence.productionEvidenceIntake &&
-        releaseRecord.evidence.productionEvidenceIntake.items.length === 10 &&
+        releaseRecord.evidence.productionEvidenceIntake.items.length === 15 &&
         releaseRecord.evidence.cloudbaseStoreReadiness &&
         releaseRecord.evidence.cloudbaseStoreReadiness.status === "NEEDS_REVIEW" &&
         releaseRecord.evidence.cloudbaseStoreReadiness.selectedDecision === "UNDECIDED" &&
@@ -2455,13 +2462,13 @@ async function httpSmoke() {
         releaseEvidencePack.evidence.adminTransitionReadiness.summary.readyModuleCount === 6 &&
         releaseEvidencePack.evidence.adminTransitionReadiness.summary.bundledDistReady === true &&
         releaseEvidencePack.evidence.adminTransitionReadiness.legacyDeprecationDecision.status === "PENDING" &&
-        releaseEvidencePack.evidence.productionCutoverReadiness.summary.requiredProofCount === 10 &&
+        releaseEvidencePack.evidence.productionCutoverReadiness.summary.requiredProofCount === 15 &&
         releaseEvidencePack.summary.productionCutoverStatus === "NEEDS_REVIEW" &&
         releaseEvidencePack.evidence.actionAdapterCalibration.actions.length === 4 &&
         ["READY", "NEEDS_REVIEW"].includes(releaseEvidencePack.summary.actionAdapterCalibrationStatus) &&
         releaseEvidencePack.evidence.legacyDataMigration.summary.legacySessionCount === 0 &&
         releaseEvidencePack.summary.legacyDataMigrationStatus === "READY" &&
-        releaseEvidencePack.evidence.productionEvidenceIntake.items.length === 10 &&
+        releaseEvidencePack.evidence.productionEvidenceIntake.items.length === 15 &&
         releaseEvidencePack.summary.productionEvidenceIntakeStatus === "BLOCKED" &&
         releaseEvidencePack.evidence.cloudbaseStoreReadiness.selectedDecision === "UNDECIDED" &&
         releaseEvidencePack.summary.cloudbaseStoreStatus === "NEEDS_REVIEW" &&

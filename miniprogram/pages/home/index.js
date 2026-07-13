@@ -1,4 +1,5 @@
 const options = require("../../utils/options");
+const { joinCampaign } = require("../../utils/campaign-join");
 const { formatDateCn } = require("../../utils/date-display");
 const { getHomeStageCopy } = require("../../utils/checkin-presenter");
 const { ensureHealthConsent } = require("../../utils/health-consent");
@@ -96,6 +97,7 @@ Page({
   },
 
   onLoad() {
+    this.healthConsentPrompted = false;
     this.setData({ registerQuestion: this.decorateQuestion(0, this.data.registerAnswers) });
   },
 
@@ -127,15 +129,17 @@ Page({
       const state = stateData.user.state;
       const flowView = stateData.flowView || "";
       const viewType = this.mapStateToView(state, flowView);
-      if (viewType === "register" && !(await ensureHealthConsent())) {
+      if (viewType === "register") {
+        const shouldNavigate = !this.healthConsentPrompted;
+        this.healthConsentPrompted = true;
         this.setData({
           state,
           flowView,
           homeView: stateData.homeView || null,
-          viewType: "loading",
+          viewType: "healthConsent",
           user: stateData.user,
         });
-        return;
+        if (!(await ensureHealthConsent({ navigate: shouldNavigate }))) return;
       }
       this.setData({
         state,
@@ -152,6 +156,7 @@ Page({
       if (viewType === "daily") await this.loadDailyState();
     } catch (error) {
       clearToken();
+      this.healthConsentPrompted = false;
       this.setData({ state: "GUEST", viewType: "login", user: null });
     } finally {
       this.setData({ loading: false });
@@ -168,6 +173,20 @@ Page({
 
   openPrivacyPolicy() {
     openLegalPage("privacy");
+  },
+
+  async continueHealthConsent() {
+    if (this.data.loading) return;
+    this.setData({ loading: true });
+    try {
+      if (await ensureHealthConsent()) await this.refresh();
+    } finally {
+      this.setData({ loading: false });
+    }
+  },
+
+  browseWithoutHealthConsent() {
+    wx.switchTab({ url: "/pages/products/index" });
   },
 
   loginWithWechat() {
@@ -194,6 +213,7 @@ Page({
             },
           });
           setToken(data.token);
+          this.healthConsentPrompted = false;
           await this.refresh();
         } catch (error) {
           const message = stringifyError(error) || "登录失败，请重试";
@@ -377,11 +397,7 @@ Page({
     if (home.participantText === "已加入") return true;
     this.setData({ loading: true });
     try {
-      const data = await request({
-        url: "/api/v1/campaigns/join",
-        method: "POST",
-        data: { campaignId: home.campaignId || "" },
-      });
+      const data = await joinCampaign({ campaignId: home.campaignId || "" });
       const nextHome = {
         ...home,
         campaignId: data.campaign ? data.campaign.campaignId : home.campaignId,

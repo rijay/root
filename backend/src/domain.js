@@ -1,7 +1,5 @@
 const crypto = require("node:crypto");
 const fs = require("node:fs");
-const http = require("node:http");
-const https = require("node:https");
 const { addDays, daysBetween, nowISO, todayISO } = require("./dates");
 const adapterRetryScheduler = require("./adapterRetryScheduler");
 const adapterCalibration = require("./adapterCalibration");
@@ -68,6 +66,10 @@ const rewardDelivery = require("./rewardDelivery");
 const rewardRecovery = require("./rewardRecovery");
 const settlement = require("./settlement");
 const taskProgress = require("./taskProgress");
+const { fetchWechatJson } = require("./wechatHttp");
+
+const wechatAccessTokenCache = new Map();
+const wechatAccessTokenRequests = new Map();
 const weworkTouch = require("./weworkTouch");
 const youzanCustomerMirror = require("./youzanCustomerMirror");
 const youzanIdentityReconciliation = require("./youzanIdentityReconciliation");
@@ -378,47 +380,6 @@ function businessError(code, message, status = 200) {
   return error;
 }
 
-function requestJson(url, options = {}) {
-  const target = url instanceof URL ? url : new URL(url);
-  const transport = target.protocol === "http:" ? http : https;
-  return new Promise((resolve, reject) => {
-    const request = transport.request(target, {
-      method: options.method || "GET",
-      headers: options.headers || {},
-      family: 4,
-      timeout: 8000,
-    }, (res) => {
-      let body = "";
-      res.setEncoding("utf8");
-      res.on("data", (chunk) => {
-        body += chunk;
-      });
-      res.on("end", () => {
-        try {
-          resolve({
-            ok: res.statusCode >= 200 && res.statusCode < 300,
-            status: res.statusCode,
-            payload: body ? JSON.parse(body) : {},
-          });
-        } catch (error) {
-          reject(new Error("WECHAT_RESPONSE_PARSE_FAILED"));
-        }
-      });
-    });
-    request.on("timeout", () => {
-      request.destroy(new Error("WECHAT_REQUEST_TIMEOUT"));
-    });
-    request.on("error", reject);
-    if (options.body) request.write(options.body);
-    request.end();
-  });
-}
-
-function sanitizeWechatErrorUrl(url) {
-  const target = url instanceof URL ? url : new URL(url);
-  return { host: target.host, path: target.pathname, protocol: target.protocol };
-}
-
 function readCloudbaseAccessToken() {
   try {
     if (!fs.existsSync(CLOUDBASE_ACCESS_TOKEN_FILE)) return "";
@@ -448,25 +409,6 @@ function shouldUseCloudbaseOpenApi(headers = {}) {
   return Boolean(getHeader(headers, "x-wx-openid"));
 }
 
-async function fetchWechatJson(url, options) {
-  let result;
-  try {
-    result = await requestJson(url, options);
-  } catch (error) {
-    console.error("[wechat] request failed", {
-      ...sanitizeWechatErrorUrl(url),
-      error: error && (error.code || error.message || String(error)),
-    });
-    throw businessError(1006, "微信登录服务暂时不可用，请稍后重试");
-  }
-  const payload = result.payload;
-  if (!result.ok || payload.errcode) {
-    const message = payload.errmsg || `微信接口请求失败：${result.status}`;
-    throw businessError(1006, message);
-  }
-  return payload;
-}
-
 async function fetchCloudbaseWechatJson(pathname, options, env = process.env) {
   const url = new URL(pathname, env.ROOT_WECHAT_OPENAPI_BASE_URL || "http://api.weixin.qq.com");
   const cloudbaseAccessToken = readCloudbaseAccessToken();
@@ -475,19 +417,31 @@ async function fetchCloudbaseWechatJson(pathname, options, env = process.env) {
 }
 
 async function getWechatAccessToken(data, config) {
-  const cached = data.wechatAccessToken;
+  const cacheKey = String(config.appid || "");
+  const cached = wechatAccessTokenCache.get(cacheKey) || data.wechatAccessToken;
   if (cached && cached.token && cached.expires_at > Date.now() + 60 * 1000) return cached.token;
 
-  const url = new URL("https://api.weixin.qq.com/cgi-bin/token");
-  url.searchParams.set("grant_type", "client_credential");
-  url.searchParams.set("appid", config.appid);
-  url.searchParams.set("secret", config.secret);
-  const payload = await fetchWechatJson(url);
-  data.wechatAccessToken = {
-    token: payload.access_token,
-    expires_at: Date.now() + Math.max(300, Number(payload.expires_in || 7200) - 300) * 1000,
-  };
-  return data.wechatAccessToken.token;
+  if (wechatAccessTokenRequests.has(cacheKey)) return wechatAccessTokenRequests.get(cacheKey);
+
+  const request = (async () => {
+    const url = new URL("https://api.weixin.qq.com/cgi-bin/token");
+    url.searchParams.set("grant_type", "client_credential");
+    url.searchParams.set("appid", config.appid);
+    url.searchParams.set("secret", config.secret);
+    const payload = await fetchWechatJson(url);
+    const next = {
+      token: payload.access_token,
+      expires_at: Date.now() + Math.max(300, Number(payload.expires_in || 7200) - 300) * 1000,
+    };
+    wechatAccessTokenCache.set(cacheKey, next);
+    return next.token;
+  })();
+  wechatAccessTokenRequests.set(cacheKey, request);
+  try {
+    return await request;
+  } finally {
+    wechatAccessTokenRequests.delete(cacheKey);
+  }
 }
 
 async function getWechatPhoneNumber(data, config, phoneCode) {
@@ -510,16 +464,30 @@ async function sendWechatSubscribeMessage(data, payload, context = {}) {
   if (!config.appid || !config.secret) {
     const error = new Error("微信订阅消息发送配置缺失");
     error.code = "WECHAT_SUBSCRIBE_CONFIG_MISSING";
+    error.deliveryOutcome = "NOT_SENT";
     throw error;
   }
-  const accessToken = await getWechatAccessToken(data, config);
+  let accessToken;
+  try {
+    accessToken = await getWechatAccessToken(data, config);
+  } catch (error) {
+    error.deliveryOutcome = "NOT_SENT";
+    throw error;
+  }
   const url = new URL(env.ROOT_WECHAT_SUBSCRIBE_SEND_URL || "https://api.weixin.qq.com/cgi-bin/message/subscribe/send");
   url.searchParams.set("access_token", accessToken);
-  return fetchWechatJson(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  try {
+    return await fetchWechatJson(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    error.deliveryOutcome = error.externalCode === "43101"
+      ? "NO_GRANT"
+      : (error.externalCode ? "NOT_SENT" : "UNKNOWN");
+    throw error;
+  }
 }
 
 async function getCloudbaseWechatPhoneNumber(phoneCode, env) {
@@ -858,10 +826,11 @@ function getCheckinReminderTemplate(data, token, context = {}) {
 
 function recordCheckinReminderSubscription(data, token, body = {}, context = {}) {
   const user = requireUser(data, token);
-  const subscription = checkinReminder.recordSubscription(data, user.root_user_id || user.user_id, body, {
+  const result = checkinReminder.recordSubscription(data, user.root_user_id || user.user_id, body, {
     ...context,
     sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_SUBSCRIBE",
   });
+  const subscription = result.subscription;
   recordLifecycleEvent(data, user.root_user_id || user.user_id, "CHECKIN_REMINDER_SUBSCRIPTION_UPDATED", {
     sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_SUBSCRIBE",
     appCode: user.app_code || "MYROOT",
@@ -872,7 +841,7 @@ function recordCheckinReminderSubscription(data, token, body = {}, context = {})
       campaignId: subscription.campaign_id,
     },
   });
-  return response({ subscription });
+  return response(result);
 }
 
 async function runDueCheckinReminders(data, body = {}, context = {}) {

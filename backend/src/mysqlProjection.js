@@ -26,12 +26,15 @@ const JSON_COLUMNS = new Set([
 const BOOLEAN_COLUMNS = new Set(["inventory_released", "required", "subscribed", "verified"]);
 const DATE_COLUMNS = new Set([
   "computed_at",
+  "consumed_at",
   "created_at",
   "delivered_at",
   "end_at",
   "evaluated_at",
   "expired_at",
   "external_status_checked_at",
+  "granted_at",
+  "invalidated_at",
   "joined_at",
   "last_seen_at",
   "next_retry_at",
@@ -39,6 +42,7 @@ const DATE_COLUMNS = new Set([
   "published_at",
   "recovered_at",
   "released_at",
+  "review_required_at",
   "reserved_at",
   "resolved_at",
   "scheduled_at",
@@ -165,16 +169,22 @@ const PROJECTIONS = [
     columns: ["notification_subscription_id", "root_user_id", "template_key", "template_id", "template_version", "status", "result", "subscribed", "trigger", "campaign_id", "raw_result_json", "setting_json", "source_channel", "created_at", "updated_at"],
   },
   {
+    table: "notification_subscription_grant",
+    source: "notificationSubscriptionGrants",
+    id: "notification_subscription_grant_id",
+    columns: ["notification_subscription_grant_id", "notification_subscription_id", "root_user_id", "campaign_id", "template_key", "template_id", "template_version", "grant_request_id", "status", "notification_job_id", "last_notification_job_id", "idempotency_key", "source_channel", "granted_at", "reserved_at", "consumed_at", "released_at", "invalidated_at", "review_required_at", "release_reason", "created_at", "updated_at"],
+  },
+  {
     table: "notification_job",
     source: "notificationJobs",
     id: "notification_job_id",
-    columns: ["notification_job_id", "root_user_id", "campaign_id", "template_key", "template_id", "template_version", "reminder_date", "scheduled_at", "page", "miniprogram_state", "lang", "data_json", "status", "attempts", "last_error", "idempotency_key", "source_channel", "sent_at", "skipped_at", "created_at", "updated_at"],
+    columns: ["notification_job_id", "root_user_id", "campaign_id", "template_key", "template_id", "template_version", "notification_subscription_grant_id", "reminder_date", "scheduled_at", "page", "miniprogram_state", "lang", "data_json", "status", "attempts", "last_error", "idempotency_key", "source_channel", "sent_at", "skipped_at", "created_at", "updated_at"],
   },
   {
     table: "notification_delivery",
     source: "notificationDeliveries",
     id: "notification_delivery_id",
-    columns: ["notification_delivery_id", "notification_job_id", "root_user_id", "campaign_id", "template_key", "template_id", "template_version", "status", "error_code", "error_message", "request_json", "response_json", "delivered_at", "created_at"],
+    columns: ["notification_delivery_id", "notification_job_id", "root_user_id", "campaign_id", "template_key", "template_id", "template_version", "notification_subscription_grant_id", "status", "error_code", "external_error_code", "error_message", "delivery_outcome", "request_json", "response_json", "delivered_at", "created_at"],
   },
   {
     table: "campaign_rule_version",

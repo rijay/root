@@ -8,6 +8,13 @@ const DEFAULT_PAGE = "pages/tasks/index";
 const DEFAULT_TEMPLATE_TITLE = "活动提醒";
 const DEFAULT_PRODUCT_NAME = "ROOT 7日身体重启计划";
 const DEFAULT_ACTION_TEXT = "请完成今日打卡";
+const GRANT_STATUS = Object.freeze({
+  AVAILABLE: "AVAILABLE",
+  RESERVED: "RESERVED",
+  CONSUMED: "CONSUMED",
+  INVALIDATED: "INVALIDATED",
+  REVIEW_REQUIRED: "REVIEW_REQUIRED",
+});
 
 function ensureList(data, key) {
   if (!Array.isArray(data[key])) data[key] = [];
@@ -33,6 +40,20 @@ function clampHour(value) {
   return Math.min(23, Math.max(0, Math.floor(hour)));
 }
 
+function boundedInteger(value, fallback, min, max) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(min, Math.min(max, Math.floor(parsed)));
+}
+
+function transactionalCheckpointError() {
+  const error = new Error("真实提醒发送需要支持 checkpoint/resume 的事务 Store Interface");
+  error.code = 50301;
+  error.status = 503;
+  error.internalCode = "CHECKIN_REMINDER_TRANSACTION_CHECKPOINT_REQUIRED";
+  return error;
+}
+
 function padHour(hour) {
   return String(hour).padStart(2, "0");
 }
@@ -54,6 +75,44 @@ function parseJsonObject(value) {
 
 function truncateThing(value) {
   return text(value).slice(0, 20);
+}
+
+function sanitizeFailureText(value, fallback = "SEND_FAILED") {
+  return text(value, fallback)
+    .replace(/\b(access_token|cloudbase_access_token|secret|token|openid|unionid|phone)=([^&\s]+)/gi, "$1=[REDACTED]")
+    .replace(/\bBearer\s+[A-Za-z0-9._~-]+/gi, "Bearer [REDACTED]")
+    .replace(/\b[A-Za-z0-9_-]{24,}\b/g, "[REDACTED_ID]")
+    .slice(0, 240);
+}
+
+function failureDetails(error) {
+  const errorCode = sanitizeFailureText(error && error.code, "SEND_FAILED").slice(0, 64);
+  const externalErrorCode = sanitizeFailureText(error && error.externalCode, "").slice(0, 64);
+  const errorMessage = sanitizeFailureText(error && (error.message || error), errorCode);
+  const deliveryOutcome = ["NOT_SENT", "NO_GRANT", "UNKNOWN"].includes(error && error.deliveryOutcome)
+    ? error.deliveryOutcome
+    : "UNKNOWN";
+  return {
+    errorCode,
+    externalErrorCode,
+    errorMessage,
+    deliveryOutcome,
+    lastError: errorMessage === errorCode ? errorCode : `${errorCode}: ${errorMessage}`.slice(0, 240),
+  };
+}
+
+function normalizeGrantRequestId(value) {
+  return text(value)
+    .replace(/[^A-Za-z0-9:._-]/g, "")
+    .slice(0, 96);
+}
+
+function grantRequestIdFor(input, rootUserId, template, context = {}) {
+  const supplied = normalizeGrantRequestId(input.grantRequestId || input.grant_request_id);
+  if (supplied) return supplied;
+  const dateText = text(context.dateText || context.date || nowISO().slice(0, 10));
+  const campaignId = text(input.campaignId || input.campaign_id, "NO_CAMPAIGN").slice(0, 32);
+  return normalizeGrantRequestId(`legacy:${dateText}:${template.version}:${campaignId}:${rootUserId.slice(-8)}`);
 }
 
 function defaultTemplateData(campaignTitle) {
@@ -275,7 +334,41 @@ function recordSubscription(data, rootUserId, input = {}, context = {}) {
     source_channel: text(context.sourceChannel || context.source_channel, "MINIPROGRAM_SUBSCRIBE"),
     updated_at: now,
   });
-  return subscription;
+  let grant = null;
+  if (status === "ACCEPTED") {
+    const grantRequestId = grantRequestIdFor(input, rootUserId, template, context);
+    const idempotencyKey = `SUBSCRIPTION_GRANT:${rootUserId}:${grantRequestId}`;
+    const grants = ensureList(data, "notificationSubscriptionGrants");
+    grant = grants.find((item) => item.idempotency_key === idempotencyKey) || null;
+    if (!grant) {
+      grant = {
+        notification_subscription_grant_id: createId("nsg"),
+        notification_subscription_id: subscription.notification_subscription_id,
+        root_user_id: rootUserId,
+        campaign_id: text(input.campaignId || input.campaign_id),
+        template_key: templateKey,
+        template_id: templateId,
+        template_version: templateVersion,
+        grant_request_id: grantRequestId,
+        status: GRANT_STATUS.AVAILABLE,
+        notification_job_id: "",
+        last_notification_job_id: "",
+        idempotency_key: idempotencyKey,
+        source_channel: text(context.sourceChannel || context.source_channel, "MINIPROGRAM_SUBSCRIBE"),
+        granted_at: now,
+        reserved_at: "",
+        consumed_at: "",
+        released_at: "",
+        invalidated_at: "",
+        review_required_at: "",
+        release_reason: "",
+        created_at: now,
+        updated_at: now,
+      };
+      grants.push(grant);
+    }
+  }
+  return { subscription, grant };
 }
 
 function acceptedSubscription(data, rootUserId, job) {
@@ -286,6 +379,62 @@ function acceptedSubscription(data, rootUserId, job) {
       item.template_version === job.template_version &&
       item.status === "ACCEPTED";
   }) || null;
+}
+
+function availableSubscriptionGrant(data, job, excludedGrantIds = new Set()) {
+  const candidates = ensureList(data, "notificationSubscriptionGrants")
+    .filter((item) => item.root_user_id === job.root_user_id &&
+      item.template_key === job.template_key &&
+      item.template_id === job.template_id &&
+      item.template_version === job.template_version &&
+      item.status === GRANT_STATUS.AVAILABLE &&
+      !excludedGrantIds.has(item.notification_subscription_grant_id) &&
+      (!item.campaign_id || item.campaign_id === job.campaign_id))
+    .sort((left, right) => {
+      const leftExact = left.campaign_id === job.campaign_id ? 0 : 1;
+      const rightExact = right.campaign_id === job.campaign_id ? 0 : 1;
+      if (leftExact !== rightExact) return leftExact - rightExact;
+      return String(left.granted_at || left.created_at || "").localeCompare(String(right.granted_at || right.created_at || ""));
+    });
+  return candidates[0] || null;
+}
+
+function reserveSubscriptionGrant(grant, job) {
+  const now = nowISO();
+  grant.status = GRANT_STATUS.RESERVED;
+  grant.notification_job_id = job.notification_job_id;
+  grant.last_notification_job_id = job.notification_job_id;
+  grant.reserved_at = now;
+  grant.updated_at = now;
+  job.notification_subscription_grant_id = grant.notification_subscription_grant_id;
+  return grant;
+}
+
+function consumeSubscriptionGrant(grant) {
+  const now = nowISO();
+  grant.status = GRANT_STATUS.CONSUMED;
+  grant.consumed_at = now;
+  grant.updated_at = now;
+  return grant;
+}
+
+function settleSubscriptionGrantFailure(grant, job, failure) {
+  const now = nowISO();
+  grant.last_notification_job_id = job.notification_job_id;
+  grant.release_reason = text(failure.externalErrorCode || failure.errorCode, "SEND_FAILED").slice(0, 128);
+  if (failure.deliveryOutcome === "NOT_SENT") {
+    grant.status = GRANT_STATUS.AVAILABLE;
+    grant.notification_job_id = "";
+    grant.released_at = now;
+  } else if (failure.deliveryOutcome === "NO_GRANT") {
+    grant.status = GRANT_STATUS.INVALIDATED;
+    grant.invalidated_at = now;
+  } else {
+    grant.status = GRANT_STATUS.REVIEW_REQUIRED;
+    grant.review_required_at = now;
+  }
+  grant.updated_at = now;
+  return grant;
 }
 
 function openidForRootUser(data, rootUserId) {
@@ -307,6 +456,29 @@ function hasCheckinForDate(data, rootUserId, campaignId, dateText) {
   });
 }
 
+function deliveryRequestEvidence(request = {}) {
+  return {
+    recipient_present: Boolean(request.touser),
+    template_id: text(request.template_id),
+    page: text(request.page),
+    miniprogram_state: text(request.miniprogram_state),
+    lang: text(request.lang),
+    data_keys: Object.keys(objectValue(request.data)).sort(),
+  };
+}
+
+function deliveryResponseEvidence(response) {
+  const present = Boolean(response && typeof response === "object" && Object.keys(response).length);
+  const normalized = present ? response : {};
+  return {
+    response_present: present,
+    accepted: present && !Number(normalized.errcode || 0),
+    errcode: normalized.errcode === undefined ? null : Number(normalized.errcode),
+    errmsg: sanitizeFailureText(normalized.errmsg, "").slice(0, 160),
+    msgid_present: Boolean(normalized.msgid),
+  };
+}
+
 function addDelivery(data, job, payload) {
   const deliveries = ensureList(data, "notificationDeliveries");
   const delivery = {
@@ -317,11 +489,14 @@ function addDelivery(data, job, payload) {
     template_key: job.template_key,
     template_id: job.template_id,
     template_version: job.template_version,
+    notification_subscription_grant_id: payload.grantId || job.notification_subscription_grant_id || "",
     status: payload.status,
     error_code: payload.errorCode || "",
+    external_error_code: payload.externalErrorCode || "",
     error_message: payload.errorMessage || "",
-    response_json: objectValue(payload.response),
-    request_json: objectValue(payload.request),
+    delivery_outcome: payload.deliveryOutcome || "",
+    response_json: deliveryResponseEvidence(payload.response),
+    request_json: deliveryRequestEvidence(payload.request),
     delivered_at: payload.status === "SENT" ? nowISO() : "",
     created_at: nowISO(),
   };
@@ -339,6 +514,64 @@ function markJob(job, status, extra = {}) {
   return job;
 }
 
+function markJobSending(job) {
+  const now = nowISO();
+  job.status = "SENDING";
+  job.attempts = Number(job.attempts || 0) + 1;
+  job.last_error = "";
+  job.sending_at = now;
+  job.updated_at = now;
+  return job;
+}
+
+function staleSendingJobs(data, nowText, input = {}, context = {}) {
+  const env = context.env || process.env;
+  const reviewAfterMinutes = boundedInteger(
+    input.sendingReviewAfterMinutes ||
+    input.sending_review_after_minutes ||
+    env.ROOT_CHECKIN_REMINDER_SENDING_REVIEW_MINUTES ||
+    15,
+    15,
+    5,
+    1440
+  );
+  const cutoff = Date.parse(nowText) - reviewAfterMinutes * 60 * 1000;
+  if (!Number.isFinite(cutoff)) return [];
+  return ensureList(data, "notificationJobs").filter((job) => {
+    if (job.status !== "SENDING") return false;
+    const updatedAt = Date.parse(job.sending_at || job.updated_at || "");
+    return Number.isFinite(updatedAt) && updatedAt <= cutoff;
+  });
+}
+
+function requireStaleSendingReview(data, job) {
+  const now = nowISO();
+  const errorCode = "SEND_OUTCOME_UNKNOWN_AFTER_CHECKPOINT";
+  job.status = "REVIEW_REQUIRED";
+  job.last_error = errorCode;
+  job.updated_at = now;
+  const grant = ensureList(data, "notificationSubscriptionGrants").find((item) => {
+    return item.notification_subscription_grant_id === job.notification_subscription_grant_id &&
+      item.notification_job_id === job.notification_job_id &&
+      item.status === GRANT_STATUS.RESERVED;
+  });
+  if (grant) {
+    grant.status = GRANT_STATUS.REVIEW_REQUIRED;
+    grant.last_notification_job_id = job.notification_job_id;
+    grant.release_reason = errorCode;
+    grant.review_required_at = now;
+    grant.updated_at = now;
+  }
+  addDelivery(data, job, {
+    status: "REVIEW_REQUIRED",
+    grantId: grant && grant.notification_subscription_grant_id,
+    errorCode,
+    errorMessage: "发送结果未确认，禁止自动重试",
+    deliveryOutcome: "UNKNOWN",
+  });
+  return grant;
+}
+
 function buildSendRequest(job, openid) {
   return {
     touser: openid,
@@ -350,18 +583,65 @@ function buildSendRequest(job, openid) {
   };
 }
 
+async function mapWithConcurrency(items, concurrency, worker) {
+  const results = new Array(items.length);
+  let cursor = 0;
+  async function consume() {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      results[index] = await worker(items[index], index);
+    }
+  }
+  const workerCount = Math.min(items.length, Math.max(1, concurrency));
+  await Promise.all(Array.from({ length: workerCount }, () => consume()));
+  return results;
+}
+
 async function runDueCheckinReminders(data, input = {}, context = {}) {
   const nowText = text(input.now || input.nowText || input.now_text, nowISO());
-  const limit = Math.max(1, Math.min(200, Number(input.limit || 50)));
+  const limit = boundedInteger(input.limit || 50, 50, 1, 200);
   const dryRun = input.dryRun === true || input.dry_run === true;
-  const jobs = ensureList(data, "notificationJobs")
+  const hasCheckpoint = typeof context.transactionCheckpoint === "function";
+  const hasResume = typeof context.transactionResume === "function";
+  const checkpointed = hasCheckpoint && hasResume;
+  if (!dryRun && (hasCheckpoint !== hasResume || (context.requireTransactionalCheckpoint === true && !checkpointed))) {
+    throw transactionalCheckpointError();
+  }
+  const staleJobs = staleSendingJobs(data, nowText, input, context);
+  const jobIds = ensureList(data, "notificationJobs")
     .filter((job) => job.status === "SCHEDULED" && job.scheduled_at <= nowText)
     .sort((left, right) => String(left.scheduled_at).localeCompare(String(right.scheduled_at)))
-    .slice(0, limit);
+    .slice(0, limit)
+    .map((job) => job.notification_job_id);
   const results = [];
   const sender = context.sendSubscribeMessage;
+  const pendingSends = [];
+  const dryRunGrantIds = new Set();
+  const env = context.env || process.env;
+  const sendConcurrency = boundedInteger(
+    input.sendConcurrency || input.send_concurrency || env.ROOT_CHECKIN_REMINDER_SEND_CONCURRENCY || 5,
+    5,
+    1,
+    20
+  );
 
-  for (const job of jobs) {
+  staleJobs.forEach((job) => {
+    if (!dryRun) requireStaleSendingReview(data, job);
+    results.push({
+      jobId: job.notification_job_id,
+      status: dryRun ? "DRY_RUN_REVIEW_REQUIRED" : "REVIEW_REQUIRED",
+      errorCode: "SEND_OUTCOME_UNKNOWN_AFTER_CHECKPOINT",
+      deliveryOutcome: "UNKNOWN",
+    });
+  });
+
+  for (const jobId of jobIds) {
+    let job = ensureList(data, "notificationJobs").find((item) => item.notification_job_id === jobId);
+    if (!job || job.status !== "SCHEDULED") {
+      results.push({ jobId, status: "SKIPPED_STATE_CHANGED" });
+      continue;
+    }
     if (hasCheckinForDate(data, job.root_user_id, job.campaign_id, job.reminder_date)) {
       if (!dryRun) {
         markJob(job, "SKIPPED_ALREADY_CHECKED_IN");
@@ -370,12 +650,15 @@ async function runDueCheckinReminders(data, input = {}, context = {}) {
       results.push({ jobId: job.notification_job_id, status: "SKIPPED_ALREADY_CHECKED_IN" });
       continue;
     }
-    if (!acceptedSubscription(data, job.root_user_id, job)) {
+    const accepted = acceptedSubscription(data, job.root_user_id, job);
+    const availableGrant = availableSubscriptionGrant(data, job, dryRunGrantIds);
+    if (!availableGrant) {
+      const status = accepted ? "SKIPPED_NO_GRANT" : "SKIPPED_NO_SUBSCRIPTION";
       if (!dryRun) {
-        markJob(job, "SKIPPED_NO_SUBSCRIPTION");
-        addDelivery(data, job, { status: "SKIPPED_NO_SUBSCRIPTION" });
+        markJob(job, status);
+        addDelivery(data, job, { status });
       }
-      results.push({ jobId: job.notification_job_id, status: "SKIPPED_NO_SUBSCRIPTION" });
+      results.push({ jobId: job.notification_job_id, status });
       continue;
     }
     const openid = openidForRootUser(data, job.root_user_id);
@@ -389,7 +672,13 @@ async function runDueCheckinReminders(data, input = {}, context = {}) {
     }
     const request = buildSendRequest(job, openid);
     if (dryRun) {
-      results.push({ jobId: job.notification_job_id, status: "DRY_RUN_READY", request });
+      dryRunGrantIds.add(availableGrant.notification_subscription_grant_id);
+      results.push({
+        jobId: job.notification_job_id,
+        status: "DRY_RUN_READY",
+        grantReady: true,
+        request: deliveryRequestEvidence(request),
+      });
       continue;
     }
     if (typeof sender !== "function") {
@@ -398,29 +687,102 @@ async function runDueCheckinReminders(data, input = {}, context = {}) {
       results.push({ jobId: job.notification_job_id, status: "FAILED", errorCode: "SEND_ADAPTER_NOT_CONFIGURED" });
       continue;
     }
-    try {
-      const response = await sender(request);
-      markJob(job, "SENT", { attempted: true });
-      addDelivery(data, job, { status: "SENT", request, response });
-      results.push({ jobId: job.notification_job_id, status: "SENT" });
-    } catch (error) {
-      const errorMessage = error && (error.code || error.message || String(error));
-      markJob(job, "FAILED", { attempted: true, error: errorMessage });
-      addDelivery(data, job, { status: "FAILED", errorCode: error && error.code, errorMessage, request });
-      results.push({ jobId: job.notification_job_id, status: "FAILED", errorCode: error && error.code, errorMessage });
+    const grant = reserveSubscriptionGrant(availableGrant, job);
+    markJobSending(job);
+    pendingSends.push({
+      jobId,
+      grantId: grant.notification_subscription_grant_id,
+      request,
+    });
+  }
+
+  if (pendingSends.length) {
+    if (checkpointed) {
+      await context.transactionCheckpoint({
+        reason: "CHECKIN_REMINDER_SEND_RESERVED",
+        notificationJobIds: pendingSends.map((item) => item.jobId),
+        notificationSubscriptionGrantIds: pendingSends.map((item) => item.grantId),
+      });
     }
+    const sendOutcomes = await mapWithConcurrency(pendingSends, sendConcurrency, async (item) => {
+      try {
+        return { response: await sender(item.request), error: null };
+      } catch (error) {
+        return { response: null, error };
+      }
+    });
+    if (checkpointed && typeof context.transactionResume === "function") {
+      await context.transactionResume({
+        reason: "CHECKIN_REMINDER_SEND_FINALIZE",
+        notificationJobIds: pendingSends.map((item) => item.jobId),
+        notificationSubscriptionGrantIds: pendingSends.map((item) => item.grantId),
+      });
+    }
+
+    const finalizations = pendingSends.map((item, index) => {
+      const job = ensureList(data, "notificationJobs").find((candidate) => candidate.notification_job_id === item.jobId);
+      const grant = ensureList(data, "notificationSubscriptionGrants").find((candidate) => {
+        return candidate.notification_subscription_grant_id === item.grantId;
+      });
+      if (!job || job.status !== "SENDING" || !grant || grant.status !== GRANT_STATUS.RESERVED || grant.notification_job_id !== item.jobId) {
+        const error = new Error("提醒发送占用状态发生变化，禁止覆盖");
+        error.code = "CHECKIN_REMINDER_RESERVATION_LOST";
+        error.deliveryOutcome = "UNKNOWN";
+        throw error;
+      }
+      return { ...item, job, grant, outcome: sendOutcomes[index] };
+    });
+
+    finalizations.forEach(({ job, grant, request, outcome }) => {
+      if (!outcome.error) {
+        consumeSubscriptionGrant(grant);
+        markJob(job, "SENT");
+        addDelivery(data, job, {
+          status: "SENT",
+          grantId: grant.notification_subscription_grant_id,
+          deliveryOutcome: "ACCEPTED_BY_WECHAT",
+          request,
+          response: outcome.response,
+        });
+        results.push({ jobId: job.notification_job_id, status: "SENT" });
+      } else {
+        const failure = failureDetails(outcome.error);
+        settleSubscriptionGrantFailure(grant, job, failure);
+        markJob(job, "FAILED", { error: failure.lastError });
+        addDelivery(data, job, {
+          status: "FAILED",
+          grantId: grant.notification_subscription_grant_id,
+          errorCode: failure.errorCode,
+          externalErrorCode: failure.externalErrorCode,
+          errorMessage: failure.errorMessage,
+          deliveryOutcome: failure.deliveryOutcome,
+          request,
+        });
+        results.push({
+          jobId: job.notification_job_id,
+          status: "FAILED",
+          errorCode: failure.errorCode,
+          externalErrorCode: failure.externalErrorCode,
+          errorMessage: failure.errorMessage,
+          deliveryOutcome: failure.deliveryOutcome,
+        });
+      }
+    });
   }
 
   return {
     dryRun,
     now: nowText,
-    scannedCount: jobs.length,
+    scannedCount: jobIds.length,
+    staleSendingCount: staleJobs.length,
+    sendConcurrency,
     results,
   };
 }
 
 module.exports = {
   TEMPLATE_KEY,
+  GRANT_STATUS,
   getCheckinReminderTemplate,
   recordSubscription,
   resolveTemplate,

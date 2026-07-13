@@ -1,4 +1,5 @@
 const env = require("../config/env");
+const { appendCloudRoute } = require("./cloud-route");
 
 const DEFAULT_REQUEST_TIMEOUT = 10000;
 const CLOUD_REQUEST_TIMEOUT = 30000;
@@ -117,11 +118,12 @@ function requestByCloudContainer(options, token, requestId) {
       return;
     }
 
+    const requestPath = appendCloudRoute(options.url, env.envVersion);
     wx.cloud.callContainer({
       config: {
         env: env.cloudEnvId,
       },
-      path: options.url,
+      path: requestPath,
       method: options.method || "GET",
       timeout: options.timeout || CLOUD_REQUEST_TIMEOUT,
       data: options.data || {},
@@ -140,7 +142,7 @@ function requestByCloudContainer(options, token, requestId) {
         console.warn("MYROOT_CLOUD_CONTAINER_FAIL", {
           envVersion: env.envVersion,
           cloudServiceName: env.cloudServiceName,
-          path: String(options.url || "").split("?")[0],
+          path: String(requestPath || "").split("?")[0],
           error: safeErrorSummary(error),
         });
         reject(new Error(requestFailMessage(error, "cloudContainer")));
@@ -151,7 +153,9 @@ function requestByCloudContainer(options, token, requestId) {
 
 function request(options) {
   const token = getToken();
-  const requestId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const requestId = String(options.requestId || `${Date.now()}-${Math.random().toString(16).slice(2)}`)
+    .replace(/[^A-Za-z0-9:._-]/g, "")
+    .slice(0, 120);
   if (env.requestAdapter === "cloudContainer") return requestByCloudContainer(options, token, requestId);
   return requestByWxRequest(options, token, requestId);
 }

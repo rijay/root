@@ -5,6 +5,7 @@
     "001_store_snapshot.sql": "57f0c3032dea218ad010f41ee4e9af6667ea4ae8f13c76096bc67f56763792e0",
     "002_core_relational.sql": "62362767da1748f1aa7e2ec974677b410f123b1c002f2f1519102f19ff905821",
     "003_privacy_consent.sql": "5758b1040533ef411361c8a2aad251497dfad7fb353348d6c887d3856bd68631",
-    "004_external_evidence_minimization.sql": "64c9ba3325c3950732fa09daf07ead178cccf5b661b012944dac32abf4976ac3"
+    "004_external_evidence_minimization.sql": "64c9ba3325c3950732fa09daf07ead178cccf5b661b012944dac32abf4976ac3",
+    "005_notification_subscription_grants.sql": "ce3d429e8de8608caf8faf5ef39d6de1566cd94558449e245476a26ee58a3909"
   }
 }

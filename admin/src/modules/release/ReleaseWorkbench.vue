@@ -434,10 +434,10 @@
               <el-option label="VERIFIED" value="VERIFIED" />
               <el-option label="REJECTED" value="REJECTED" />
             </el-select>
-            <el-input v-model="cutoverProofForm.evidenceRef" class="cutover-proof-ref-input" clearable placeholder="证据引用" />
+            <el-input v-model="cutoverProofForm.evidenceRef" class="cutover-proof-ref-input" clearable placeholder="证据引用（VERIFIED 必填）" />
             <el-input v-model="cutoverProofForm.note" class="cutover-proof-note-input" clearable placeholder="备注" />
             <el-button
-              :disabled="!productionCutoverItems.length"
+              :disabled="cutoverProofSubmissionDisabled"
               :loading="cutoverProofLoading"
               type="primary"
               @click="submitCutoverProof"
@@ -469,7 +469,17 @@
                   </template>
                 </el-table-column>
                 <el-table-column prop="ownerRole" label="负责人" width="120" />
+                <el-table-column label="证明范围" width="110">
+                  <template #default="{ row }">
+                    {{ row.proofScope === "RELEASE" ? "候选版本" : "运行环境" }}
+                  </template>
+                </el-table-column>
                 <el-table-column prop="proofSource" label="来源" width="90" />
+                <el-table-column label="绑定版本" min-width="170">
+                  <template #default="{ row }">
+                    {{ row.proofRecord?.releaseVersion ? `${row.proofRecord.releaseVersion} / ${row.proofRecord.releaseId}` : "-" }}
+                  </template>
+                </el-table-column>
                 <el-table-column prop="proofEnv" label="证明变量" min-width="260" />
                 <el-table-column label="最新记录" min-width="190">
                   <template #default="{ row }">
@@ -819,6 +829,11 @@ const adminTransitionGate = computed(() => releaseRecord.value?.evidence?.adminT
 const adminLegacyDeprecationDecision = computed(() => adminTransitionGate.value?.legacyDeprecationDecision || null);
 const productionEvidenceIntake = computed(() => releaseRecord.value?.evidence?.productionEvidenceIntake || releaseEvidencePack.value?.evidence?.productionEvidenceIntake || null);
 const productionCutoverGate = computed(() => releaseRecord.value?.evidence?.productionCutoverReadiness || null);
+const cutoverProofSubmissionDisabled = computed(() => {
+  if (!productionCutoverItems.value.length || !cutoverProofForm.itemId) return true;
+  if (cutoverProofForm.status === "VERIFIED") return !cutoverProofForm.evidenceRef.trim();
+  return !cutoverProofForm.evidenceRef.trim() && !cutoverProofForm.note.trim();
+});
 const legacyMigrationGate = computed(() => releaseRecord.value?.evidence?.legacyDataMigration || null);
 const cloudbaseStoreGate = computed(() => releaseRecord.value?.evidence?.cloudbaseStoreReadiness || null);
 const rootMemberCenterGate = computed(() => releaseRecord.value?.evidence?.rootMemberCenterReadiness || null);
@@ -962,6 +977,7 @@ const productionCutoverSummaryCards = computed(() => {
   return [
     { key: "status", label: "Gate", value: productionCutoverGate.value?.status || "-" },
     { key: "proof", label: "已证明", value: `${summary.readyProofCount ?? 0}/${summary.requiredProofCount ?? 0}` },
+    { key: "release", label: "版本证明", value: `${summary.releaseBoundReadyCount ?? 0}/${summary.releaseScopedProofCount ?? 0}` },
     { key: "ready", label: "已就绪", value: summary.readyCount ?? 0 },
     { key: "blocked", label: "阻塞", value: summary.blockerCount ?? 0 },
     { key: "warning", label: "提醒", value: summary.warningCount ?? 0 },
@@ -1215,7 +1231,7 @@ async function submitSignoff() {
 }
 
 async function submitCutoverProof() {
-  if (!cutoverProofForm.itemId) return;
+  if (cutoverProofSubmissionDisabled.value) return;
   cutoverProofLoading.value = true;
   errorMessage.value = "";
   const requestId = newRequestId("production-cutover-proof");

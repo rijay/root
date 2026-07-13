@@ -14,6 +14,44 @@
   height: 160rpx;
 }
 
+.health-consent-handoff {
+  display: flex;
+  min-height: 100vh;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding-bottom: 120rpx;
+}
+
+.health-consent-handoff .brand-mark {
+  margin-bottom: var(--spacing-lg);
+}
+
+.health-consent-handoff__title {
+  max-width: 620rpx;
+  margin-top: var(--spacing-sm);
+  color: var(--color-root-ink);
+  font-size: 42rpx;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.health-consent-handoff__copy {
+  max-width: 620rpx;
+  margin-top: var(--spacing-lg);
+  color: var(--color-root-copy);
+  font-size: var(--font-size-base);
+  line-height: 1.7;
+}
+
+.health-consent-handoff__actions {
+  display: grid;
+  width: 100%;
+  gap: var(--spacing-md);
+  margin-top: 64rpx;
+}
+
 .login-view {
   display: flex;
   flex-direction: column;

@@ -6,10 +6,10 @@ const ENV_GROUPS = [
     id: "runtime",
     label: "运行与微信登录",
     ownerRole: "研发",
-    required: ["WECHAT_APPID", "WECHAT_APPSECRET", "ROOT_PUBLIC_BASE_URL"],
+    required: ["WECHAT_APPID", "WECHAT_APPSECRET", "ROOT_PUBLIC_BASE_URL", "ROOT_RELEASE_ID"],
     anyOf: [["ROOT_ADMIN_TOKEN", "ROOT_ADMIN_TOKENS"]],
     optional: ["ROOT_ALLOW_OPENID_LOGIN", "MYROOT_REBUILD_ENABLED"],
-    action: "配置正式小程序密钥、HTTPS 域名和后台访问口令。",
+    action: "配置正式小程序密钥、HTTPS 域名、唯一候选 ROOT_RELEASE_ID 和后台访问口令。",
   },
   {
     id: "privacy_compliance",
