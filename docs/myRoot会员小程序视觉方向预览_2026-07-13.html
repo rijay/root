@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>myRoot 会员小程序视觉方向预览</title>
+  <style>
+    :root {
+      --background: #FFFFFF;
+      --surface: #F8FAFC;
+      --text: #0F172A;
+      --secondary: #64748B;
+      --accent: #84A98C;
+      --accent-hover: #6B8F73;
+      --line: rgba(15, 23, 42, 0.08);
+      --section-gap: 96px;
+      --content-padding: 24px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    main { width: min(1120px, calc(100% - 48px)); margin: 0 auto; padding: 48px 0 96px; }
+    .notice {
+      margin-bottom: 48px;
+      padding: 16px 20px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--secondary);
+    }
+    h1 { margin: 0 0 12px; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.1; font-weight: 600; }
+    h2 { margin: 0 0 24px; font-size: 28px; line-height: 1.2; }
+    p { margin: 0; }
+    section { margin-top: var(--section-gap); }
+    .swatches { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)); gap: 12px; }
+    .swatch { border: 1px solid var(--line); min-height: 148px; display: flex; flex-direction: column; }
+    .swatch-color { flex: 1; min-height: 92px; }
+    .swatch-label { padding: 12px; background: var(--background); font-size: 13px; }
+    .swatch-label strong { display: block; margin-bottom: 2px; font-size: 14px; }
+    .type-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 24px; }
+    .type-block { padding: 24px; border: 1px solid var(--line); background: var(--surface); }
+    .type-label { color: var(--secondary); font-size: 13px; margin-bottom: 16px; }
+    .display-sample { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 600; line-height: 1.1; }
+    .body-sample { font-size: 16px; line-height: 1.6; }
+    .mono-sample { font: 400 14px/1.6 "JetBrains Mono", ui-monospace, monospace; }
+    .ruler { padding: 24px; border: 1px solid var(--line); background: var(--surface); }
+    .bar { display: flex; align-items: center; margin: 16px 0; color: var(--secondary); font-size: 14px; }
+    .bar::before { content: ""; display: block; height: 16px; margin-right: 16px; background: var(--accent); }
+    .bar-96::before { width: 96px; }
+    .bar-48::before { width: 48px; }
+    .bar-24::before { width: 24px; }
+    .preview-grid { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 32px; align-items: start; }
+    .phone {
+      width: min(100%, 390px);
+      margin: 0 auto;
+      border: 1px solid var(--line);
+      background: var(--background);
+      overflow: hidden;
+    }
+    .hero {
+      min-height: 520px;
+      padding: 32px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      background: var(--text);
+      color: var(--background);
+      position: relative;
+    }
+    .hero::before {
+      content: "ROOT PRODUCT IMAGE";
+      position: absolute;
+      inset: 24px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.25);
+      color: rgba(255,255,255,.45);
+      font-size: 12px;
+      letter-spacing: .16em;
+    }
+    .hero-content { position: relative; z-index: 1; background: var(--text); padding-top: 16px; }
+    .eyebrow { font-size: 12px; letter-spacing: .12em; margin-bottom: 8px; }
+    .hero h3 { margin: 0 0 12px; font-size: 34px; line-height: 1.15; }
+    .hero p { color: #CBD5E1; margin-bottom: 20px; }
+    button {
+      min-height: 48px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 0 20px;
+      background: var(--accent);
+      color: var(--text);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: var(--accent-hover); color: var(--background); }
+    button:focus-visible, input:focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
+    .tabbar { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); }
+    .tab { padding: 12px 2px; text-align: center; color: var(--secondary); font-size: 12px; }
+    .tab.active { color: var(--text); font-weight: 600; }
+    .docs-card { padding: 32px; border: 1px solid var(--line); background: var(--surface); }
+    .docs-card h3 { margin: 0 0 10px; font-size: 24px; }
+    .docs-card > p { color: var(--secondary); margin-bottom: 24px; }
+    label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
+    input {
+      width: 100%; min-height: 48px; border: 0; border-bottom: 1px solid var(--text);
+      background: transparent; padding: 8px 0; color: var(--text); font: inherit;
+    }
+    .actions { display: flex; gap: 12px; margin-top: 24px; }
+    .secondary-button { background: transparent; border-color: var(--text); }
+    @media (max-width: 900px) {
+      .swatches { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .type-grid, .preview-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) {
+      main { width: min(100% - 32px, 1120px); padding-top: 24px; }
+      section { margin-top: 72px; }
+      .swatches { grid-template-columns: 1fr; }
+      .hero { min-height: 460px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>myRoot 会员小程序</h1>
+    <p>视觉方向草案 · Editorial × Health Clarity</p>
+    <div class="notice">此预览用于验证结构、气质和五 Tab 可读性；生产色彩仍以现有 Root design.md 为准。</div>
+
+    <section aria-labelledby="colors-title">
+      <h2 id="colors-title">1. Color palette</h2>
+      <div class="swatches">
+        <div class="swatch"><div class="swatch-color" style="background:#FFFFFF"></div><div class="swatch-label"><strong>Background</strong>#FFFFFF</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#F8FAFC"></div><div class="swatch-label"><strong>Surface</strong>#F8FAFC</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#0F172A"></div><div class="swatch-label"><strong>Text</strong>#0F172A</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#64748B"></div><div class="swatch-label"><strong>Secondary</strong>#64748B</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#84A98C"></div><div class="swatch-label"><strong>Accent</strong>#84A98C</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#6B8F73"></div><div class="swatch-label"><strong>Accent hover</strong>#6B8F73</div></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="type-title">
+      <h2 id="type-title">2. Typography specimens</h2>
+      <div class="type-grid">
+        <div class="type-block"><div class="type-label">Display · system-ui 600</div><div class="display-sample">身体，自有其序</div></div>
+        <div class="type-block"><div class="type-label">Body · system-ui 400</div><div class="body-sample">The quick brown fox jumps over the lazy dog. 了解身体状态，从一个清楚的下一步开始。</div></div>
+        <div class="type-block"><div class="type-label">Mono · JetBrains Mono 400</div><div class="mono-sample">The quick brown fox...<br>HEALTH / ACTIVITY / TASK</div></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="spacing-title">
+      <h2 id="spacing-title">3. Spacing ruler</h2>
+      <div class="ruler">
+        <div class="bar bar-96">96px · section spacing</div>
+        <div class="bar bar-48">48px · wide content padding</div>
+        <div class="bar bar-24">24px · mobile content padding</div>
+      </div>
+    </section>
+
+    <section aria-labelledby="components-title">
+      <h2 id="components-title">4. Component preview</h2>
+      <div class="preview-grid">
+        <div class="phone" aria-label="myRoot 首页结构预览">
+          <div class="hero">
+            <div class="hero-content">
+              <div class="eyebrow">ROOT MEMBER EXPERIENCE</div>
+              <h3>从产品开始，理解 Root</h3>
+              <p>认识产品理念、使用场景与 Root 对长期健康生活的理解。</p>
+              <button type="button">进入 myRoot</button>
+            </div>
+          </div>
+          <nav class="tabbar" aria-label="主导航">
+            <div class="tab active">⌂<br>首页</div>
+            <div class="tab">○<br>健康</div>
+            <div class="tab">◇<br>活动</div>
+            <div class="tab">✓<br>任务</div>
+            <div class="tab">□<br>我的</div>
+          </nav>
+        </div>
+        <div class="docs-card">
+          <h3>完善会员关联</h3>
+          <p>表单演示：清楚标签、底部边框和单一主行动。健康信息不与普通注册混在同一表单。</p>
+          <label for="member-id">会员手机号</label>
+          <input id="member-id" inputmode="tel" placeholder="用于匹配已有 Root 会员" />
+          <div class="actions">
+            <button type="button">继续</button>
+            <button type="button" class="secondary-button">稍后处理</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
