@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "releaseVersion": "0.5.12",
+  "releaseVersion": "0.5.13",
   "modules": [
     {
       "key": "config",

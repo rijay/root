@@ -1,6 +1,6 @@
 {
   "name": "root-seven-day-checkin",
-  "version": "0.5.12",
+  "version": "0.5.13",
   "private": true,
   "description": "ROOT 7 day check-in mini-program and operations backend",
   "scripts": {
@@ -8,6 +8,7 @@
     "admin:build": "npm run build --prefix admin",
     "deploy:prepare-admin": "node scripts/prepare-backend-admin-dist.js --clean",
     "release:manifest:miniprogram": "node scripts/miniprogram-release-manifest.js",
+    "release:qrcode:trial": "node scripts/generate-wechat-trial-qrcode.js",
     "verify:canary": "node scripts/production-canary-verify.js",
     "verify": "node scripts/final-verification.js"
   },

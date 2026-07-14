@@ -150,6 +150,7 @@ Object.entries(requiredUploadSettings).forEach(([setting, expected]) => {
 });
 
 const requiredPackIgnores = [
+  ["folder", ".git"],
   ["folder", "scripts"],
   ["folder", "pages/dev-identity-probe"],
   ["file", "package.json"],
@@ -416,7 +417,9 @@ if (!legacyTodayScript.includes("setTransientHealthData") ||
   routeContractProblems.push("transient health state Interface is incomplete");
 }
 if (typeof cloudRoute.appendCloudRoute !== "function" ||
+  typeof cloudRoute.refreshCloudRoute !== "function" ||
   !appScript.includes("initializeCloudRoute(options, env.envVersion)") ||
+  !appScript.includes("refreshCloudRoute(options, env.envVersion)") ||
   !requestScript.includes("appendCloudRoute(options.url, env.envVersion)") ||
   !cloudRouteScript.includes('envVersion === "release"') ||
   /myroot_canary=[A-Za-z0-9_-]{8,}/.test(cloudRouteScript)) {

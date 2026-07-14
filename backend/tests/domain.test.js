@@ -1453,14 +1453,14 @@ test("release record gathers readiness, calibration, runs, and rollback evidence
     itemId: "cloudrun_candidate_runtime",
     status: "VERIFIED",
     evidenceRef: "https://root.example.com/releases/candidate",
-    releaseVersion: "0.5.12",
+    releaseVersion: "0.5.13",
     releaseId: "myroot-api-test-052",
     releaseIdConfigured: true,
     requestId: "release-record-cutover-proof-with-release-binding",
     operatorId: "release-engineer",
   }).data;
   assert.equal(releaseScopedProof.proof.proofScope, "RELEASE");
-  assert.equal(releaseScopedProof.proof.releaseVersion, "0.5.12");
+  assert.equal(releaseScopedProof.proof.releaseVersion, "0.5.13");
   assert.equal(releaseScopedProof.proof.releaseId, "myroot-api-test-052");
   assert.equal(releaseScopedProof.proof.releaseIdConfigured, true);
 

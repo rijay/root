@@ -10,6 +10,18 @@ function initializeCloudRoute(launchOptions = {}, envVersion = "release") {
   return Boolean(canaryRouteValue);
 }
 
+function refreshCloudRoute(showOptions = {}, envVersion = "release") {
+  if (envVersion === "release") {
+    canaryRouteValue = "";
+    return false;
+  }
+  const query = showOptions && showOptions.query ? showOptions.query : {};
+  if (!Object.prototype.hasOwnProperty.call(query, CANARY_ROUTE_KEY)) return Boolean(canaryRouteValue);
+  const value = String(query[CANARY_ROUTE_KEY] || "");
+  canaryRouteValue = CANARY_VALUE_PATTERN.test(value) ? value : "";
+  return Boolean(canaryRouteValue);
+}
+
 function appendCloudRoute(path, envVersion = "release") {
   const requestPath = String(path || "");
   if (envVersion === "release" || !canaryRouteValue || !requestPath) return requestPath;
@@ -26,4 +38,5 @@ module.exports = {
   appendCloudRoute,
   clearCloudRoute,
   initializeCloudRoute,
+  refreshCloudRoute,
 };

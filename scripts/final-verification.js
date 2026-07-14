@@ -210,7 +210,7 @@ function miniprogramReleaseManifestCheck() {
       },
       {
         id: "explicit_pack_ignores",
-        status: manifest.safeguards.explicitIgnoreRuleCount >= 6 ? "PASS" : "FAIL",
+        status: manifest.safeguards.explicitIgnoreRuleCount >= 7 ? "PASS" : "FAIL",
       },
       {
         id: "manifest_nonempty",
@@ -503,7 +503,7 @@ function productionEnvMatrixCheck() {
     WECHAT_APPID: "wx-root",
     WECHAT_APPSECRET: "wechat-secret",
     ROOT_PUBLIC_BASE_URL: "https://express-x7te-258599-9-1404419431.sh.run.tcloudbase.com",
-    ROOT_RELEASE_ID: "v0.5.12+final-verification",
+    ROOT_RELEASE_ID: "v0.5.13+final-verification",
     ROOT_ADMIN_TOKEN: "admin-secret",
     ROOT_REQUIRE_HEALTH_CONSENT: "true",
     ROOT_PRIVACY_CONTROLLER_NAME: "ROOT 测试主体",
@@ -2583,6 +2583,7 @@ async function runFinalVerification() {
     adminDeployBundleCheck(),
     runCommand("Mini-program validation", "npm", ["run", "check", "--prefix", miniprogramDir]),
     miniprogramReleaseManifestCheck(),
+    runCommand("WeChat trial QR release contract", process.execPath, ["scripts/generate-wechat-trial-qrcode.test.js"]),
     await httpSmoke(),
   ];
   return { summary: summarize(results), results };

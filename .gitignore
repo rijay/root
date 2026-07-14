@@ -8,6 +8,7 @@ dist/
 build/
 miniprogram_npm/
 tmp/
+/release-artifacts/
 miniprogram/project.private.config.json
 backend/data/*.json
 backend/data/*.tmp

@@ -1,6 +1,6 @@
 const env = require("./config/env");
 const router = require("./utils/router");
-const { initializeCloudRoute } = require("./utils/cloud-route");
+const { initializeCloudRoute, refreshCloudRoute } = require("./utils/cloud-route");
 const { initializePrivacyAuthorization } = require("./utils/privacy-authorization");
 const {
   clearLegacyTransientHealthStorage,
@@ -23,6 +23,10 @@ App({
       wx.cloud.init(cloudOptions);
     }
     this.globalData.bootstrapped = true;
+  },
+
+  onShow(options = {}) {
+    refreshCloudRoute(options, env.envVersion);
   },
 
   fetchUserState() {

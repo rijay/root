@@ -577,7 +577,7 @@ test("prepare backend admin dist copies Element Plus build for backend-only depl
   assert.equal(target.usesAdminBase, true);
   assert.match(fs.readFileSync(path.join(targetDir, "assets", "app.js"), "utf8"), /__PREPARED_ADMIN__/);
   const buildManifest = JSON.parse(fs.readFileSync(path.join(targetDir, "admin-build-manifest.json"), "utf8"));
-  assert.equal(buildManifest.releaseVersion, "0.5.12");
+  assert.equal(buildManifest.releaseVersion, "0.5.13");
   assert.deepEqual(buildManifest.modules.map((item) => item.key), ["config", "users", "audit", "adapters", "analytics", "release"]);
 });
 
@@ -723,7 +723,7 @@ test("production cutover readiness gates live external proof", () => {
     ROOT_OPERATIONAL_ALERT_WEBHOOK_URL: "https://hooks.example.com/root-alert",
     ROOT_LIFECYCLE_EXPORT_OBJECT_BUCKET: "root-export",
   };
-  const runtimeMetadata = { version: "0.5.12", releaseId: "myroot-api-test-052", releaseIdConfigured: true };
+  const runtimeMetadata = { version: "0.5.13", releaseId: "myroot-api-test-053", releaseIdConfigured: true };
   const blocked = buildProductionCutoverReadiness({ env: {}, target: "production" });
   const gray = buildProductionCutoverReadiness({ env: {}, target: "gray" });
   const readyProofs = CUTOVER_ITEMS.map((item) => ({
@@ -772,10 +772,10 @@ test("production cutover readiness gates live external proof", () => {
     target: "production",
     proofs: readyProofs.map((proof) => ({
       ...proof,
-      releaseId: "0.5.12",
+      releaseId: "0.5.13",
       releaseIdConfigured: false,
     })),
-    runtimeMetadata: { version: "0.5.12", releaseId: "0.5.12", releaseIdConfigured: false },
+    runtimeMetadata: { version: "0.5.13", releaseId: "0.5.13", releaseIdConfigured: false },
   });
 
   assert.equal(blocked.status, "BLOCKED");
@@ -813,7 +813,7 @@ test("production cutover readiness gates live external proof", () => {
   assert.equal(staleRelease.summary.releaseBoundReadyCount, 0);
   assert.equal(staleRelease.items.find((item) => item.id === "cloudbase_unionid").status, "READY");
   assert.equal(staleRelease.items.find((item) => item.id === "cloudrun_candidate_runtime").status, "BLOCKED");
-  assert.ok(staleRelease.blockers.some((item) => item.includes("与当前候选 0.5.12/myroot-api-test-052 不一致")));
+  assert.ok(staleRelease.blockers.some((item) => item.includes("与当前候选 0.5.13/myroot-api-test-053 不一致")));
   assert.equal(fallbackReleaseId.status, "BLOCKED");
   assert.equal(fallbackReleaseId.summary.readyProofCount, 10);
   assert.ok(fallbackReleaseId.blockers.some((item) => item.includes("显式 ROOT_RELEASE_ID")));
@@ -1051,8 +1051,8 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.equal(notice.data.contact, "privacy@example.com");
   assert.equal(notice.data.retentionDays, 180);
   assert.match(notice.data.retentionText, /180 天/);
-  assert.equal(notice.data.version, "0.5.12");
-  assert.equal(notice.data.releaseId, "0.5.12");
+  assert.equal(notice.data.version, "0.5.13");
+  assert.equal(notice.data.releaseId, "0.5.13");
 });
 
 test("ready Interface exposes only safe MySQL least-privilege proof", async (t) => {
@@ -1531,7 +1531,7 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.equal(cutoverProof.data.proof.evidenceRef, "https://root.example.com/probe");
   assert.equal(releaseScopedCutoverProof.code, 0);
   assert.equal(releaseScopedCutoverProof.data.proof.proofScope, "RELEASE");
-  assert.equal(releaseScopedCutoverProof.data.proof.releaseVersion, "0.5.12");
+  assert.equal(releaseScopedCutoverProof.data.proof.releaseVersion, "0.5.13");
   assert.equal(releaseScopedCutoverProof.data.proof.releaseId, "myroot-api-test-http");
   assert.equal(releaseScopedCutoverProof.data.proof.releaseIdConfigured, true);
   assert.equal(JSON.stringify(releaseScopedCutoverProof.data).includes("client-spoof"), false);

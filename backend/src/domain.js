@@ -67,9 +67,7 @@ const rewardRecovery = require("./rewardRecovery");
 const settlement = require("./settlement");
 const taskProgress = require("./taskProgress");
 const { fetchWechatJson } = require("./wechatHttp");
-
-const wechatAccessTokenCache = new Map();
-const wechatAccessTokenRequests = new Map();
+const { resolveWechatAccessToken } = require("./wechatAccessToken");
 const weworkTouch = require("./weworkTouch");
 const youzanCustomerMirror = require("./youzanCustomerMirror");
 const youzanIdentityReconciliation = require("./youzanIdentityReconciliation");
@@ -416,36 +414,8 @@ async function fetchCloudbaseWechatJson(pathname, options, env = process.env) {
   return fetchWechatJson(url, options);
 }
 
-async function getWechatAccessToken(data, config) {
-  const cacheKey = String(config.appid || "");
-  const cached = wechatAccessTokenCache.get(cacheKey) || data.wechatAccessToken;
-  if (cached && cached.token && cached.expires_at > Date.now() + 60 * 1000) return cached.token;
-
-  if (wechatAccessTokenRequests.has(cacheKey)) return wechatAccessTokenRequests.get(cacheKey);
-
-  const request = (async () => {
-    const url = new URL("https://api.weixin.qq.com/cgi-bin/token");
-    url.searchParams.set("grant_type", "client_credential");
-    url.searchParams.set("appid", config.appid);
-    url.searchParams.set("secret", config.secret);
-    const payload = await fetchWechatJson(url);
-    const next = {
-      token: payload.access_token,
-      expires_at: Date.now() + Math.max(300, Number(payload.expires_in || 7200) - 300) * 1000,
-    };
-    wechatAccessTokenCache.set(cacheKey, next);
-    return next.token;
-  })();
-  wechatAccessTokenRequests.set(cacheKey, request);
-  try {
-    return await request;
-  } finally {
-    wechatAccessTokenRequests.delete(cacheKey);
-  }
-}
-
-async function getWechatPhoneNumber(data, config, phoneCode) {
-  const accessToken = await getWechatAccessToken(data, config);
+async function getWechatPhoneNumber(config, phoneCode) {
+  const accessToken = await resolveWechatAccessToken(config);
   const url = new URL("https://api.weixin.qq.com/wxa/business/getuserphonenumber");
   url.searchParams.set("access_token", accessToken);
   const payload = await fetchWechatJson(url, {
@@ -469,7 +439,7 @@ async function sendWechatSubscribeMessage(data, payload, context = {}) {
   }
   let accessToken;
   try {
-    accessToken = await getWechatAccessToken(data, config);
+    accessToken = await resolveWechatAccessToken(config);
   } catch (error) {
     error.deliveryOutcome = "NOT_SENT";
     throw error;
@@ -684,7 +654,7 @@ async function loginWithWechat(data, body = {}, context = process.env) {
 
   const [session, phone] = await Promise.all([
     getWechatSession(config, body.wxCode),
-    getWechatPhoneNumber(data, config, body.phoneCode),
+    getWechatPhoneNumber(config, body.phoneCode),
   ]);
   return loginByPhone(data, { ...body, env, appCode, openid: session.openid, unionid: session.unionid }, phone);
 }
