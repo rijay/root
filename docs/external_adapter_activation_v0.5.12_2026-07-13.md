@@ -1,10 +1,11 @@
 # myRoot 外部 Adapter 正式接入执行包
 
 日期：2026-07-13
+最近复核：2026-07-14
 
-状态：`E-01_SUBMITTED / YOUZAN_REVIEWING / NO_CREDENTIALS_STORED / NO_LIVE_ADAPTER_ACTION_EXECUTED`
+状态：`E-01_COMPLETE / ROOT_SHOP_AUTHORIZED / A_PLAN_ACTIVE / READ_INTERFACES_GRANTED / CLIENT_SECRET_ROTATION_REQUIRED / PRIVACY_PAYLOAD_PROBE_PENDING / COUPON_CAPABILITY_REVIEWING / NO_LIVE_ADAPTER_ACTION_EXECUTED`
 
-适用候选：本地 `v0.5.12`；生产仍为 `myroot-api-026 / v0.5.11 / 0%`
+历史生产候选：`myroot-api-027 / v0.5.12 / URL_PARAMS / 0%`。当前本地执行目标已转为 `v0.5.13 / planned 028 / NOT_DEPLOYED`。
 
 ## 1. 实际读取来源
 
@@ -12,6 +13,10 @@
 2. Admin 的样本预览、真实 Adapter 运行、回滚和发布 Gate Interface。
 3. 生产发布记录对缺失变量、样本校准和真实动作证据的只读回读。
 4. 企业微信导出 `/Users/rijay/Desktop/整理归档_2026-05-30/10_项目文件夹/Root项目/客户列表.xlsx` 的结构只读检查；不读取或留存客户明细。
+5. 2026-07-14 10:08 刷新有赞云应用中心后，应用卡不再显示“审核中”；进入正式应用概览后确认 App Id、`client_id` 和 `client_secret` 字段已经生成。凭据值未读取或保存。
+6. 凭据页曾被本轮临时截图捕获；截图已删除并离开凭据页。当前 `client_secret` 按已暴露处理，E-02 前必须轮换。
+7. 有赞官方的商家自研无容器接入、token 获取、开发规范与套餐限制说明；链接集中记录在 E-01 审核证据中。
+8. 2026-07-14 已登录的有赞控制台：ROOT 店铺授权、A 套餐购买记录与 API 账单、565 个 Interface、能力包、回调地址和 IP 白名单页面；全程未读取或保存凭据值，未调用真实 Interface。
 
 ## 2. 共同停止规则
 
@@ -26,10 +31,13 @@
 
 ### 3.1 前置材料
 
-1. 有赞云自用型无容器应用“myRoot会员数据对接”已于 2026-07-13 提交，应用中心回读为 `审核中`；审核通过后必须再次确认 ROOT 店铺授权。
-2. 获取 `client_id`、店铺 `grant_id`、集中管理的 access token、到期时间和轮换负责人。
+1. 有赞云自用型无容器应用“myRoot会员数据对接”已审核通过；ROOT 店铺已授权，授权有效期已回读。
+2. 轮换当前 `client_secret` 后，再受控保存 `client_id`、店铺 `grant_id`、集中管理的 access token、到期时间和轮换负责人。
 3. `client_secret` 只在受控授权/轮换端使用，不注入 CloudRun。
-4. 确认订单列表、客户列表、用户查询、发券和券状态 Interface 的正式 URL 与权限。
+4. 商品、订单、客户和用户查询目标 Interface 已获授权；优惠券发送和状态查询 Interface 仍未获授权。
+5. A 套餐当前月额度与 QPS 已回读可用；精确套餐到期日未在本轮页面显示，后续不得以店铺授权到期日替代。
+6. 控制台菜单不能证明消费者隐私字段实际返回明文或密文。当前没有有赞隐私字段解密 Implementation；订单手机号、地址或客户字段出现密文时，停止 PREVIEW 后续流程，不能 IMPORT。
+7. 回调地址保持空白。当前 Implementation 不接收有赞通知；未来只有在通知接收、验签、幂等和重放防护 Module 完成后，才单独配置回调。
 
 ### 3.2 正式变量
 
@@ -42,6 +50,12 @@
 - `YOUZAN_TOKEN_MANAGEMENT_MODE=static_rotation`
 - `YOUZAN_TOKEN_ROTATION_OWNER`
 - `YOUZAN_ORDER_LIST_URL`
+
+后续商品同步候选使用，027 不注入：
+
+- `YOUZAN_PRODUCT_LIST_URL`
+- `YOUZAN_PRODUCT_ACCESS_TOKEN`，或复用 `YOUZAN_ACCESS_TOKEN`
+- `YOUZAN_PRODUCT_ACCESS_TOKEN_EXPIRES_AT`，仅使用独立商品 token 时必需
 
 客户与身份对账必需：
 
@@ -60,13 +74,25 @@
 
 ### 3.3 E-01 执行证据
 
-1. 有赞云应用中心仅显示 1 个应用：`myRoot会员数据对接`。
-2. 页面回读类型为 `无容器 / 自用型`，状态为 `审核中`，创建时间为 `2026-07-13 22:01:07`。
-3. 点击应用后平台提示审核需要 1–3 个工作日，审核通过前不能进入应用控制台。
-4. 审核中页面没有展示应用 ID、ROOT 店铺授权详情或凭据，因此这些字段仍为待验，不以“已提交”替代“已授权”。
-5. 本次未打开或复制 `client_secret`，未保存 E-02 变量，未运行 PREVIEW/IMPORT、发券或券状态查询。
+1. 有赞云应用中心仅显示 1 个应用：`myRoot会员数据对接`，类型为 `无容器 / 自用型`，创建时间为 `2026-07-13 22:01:07`。
+2. 2026-07-14 刷新后“审核中”标签消失，应用可以进入正式概览，E-01 状态更新为 `APPROVED`。
+3. 正式 App Id、`client_id` 和 `client_secret` 字段已生成；本证据不记录其值。
+4. 质量负责人已配置；ROOT 店铺授权、A 套餐当前月额度及读取 Interface 已回读。消费者隐私字段返回形态、token 管理和真实样本仍待验证。回调地址因当前无接收 Interface 而明确保持空白。
+5. 当前 `client_secret` 因页面默认明文及临时截图暴露而必须轮换；相关临时截图已删除，未保存 E-02 变量，未运行 PREVIEW/IMPORT、发券或券状态查询。
+6. 完整脱敏证据见 [有赞应用 E-01 审核通过证据](./youzan_application_approval_v0.5.12_2026-07-14.md)。
 
-### 3.4 样本准入
+### 3.4 当前授权、套餐与 Interface 回读
+
+1. 应用 App Id 为 `10007712`；ROOT 店铺号为 `543131955`，授权有效期至 `2027-05-31`；Root 会员中心小程序 AppID 为 `wxfb75c0b432670215`。
+2. A 套餐于 2026-07-14 12:03:10 开通；当前月为 500,000 次、20 QPS、已用 0、剩余 500,000、费用 0。套餐精确到期日未在本轮页面显示。
+3. 已授权：`youzan.items.onsale.get`、`youzan.item.get`、`youzan.trades.sold.get`、`youzan.scrm.customer.list`、`youzan.users.info.query`。
+4. 未授权：`youzan.ump.voucheractivity.send`、`youzan.ump.voucher.query.detail`；优惠券能力包仍为审核中。
+5. 有赞 CRM 能力包被驳回，理由为“仅限订购有赞CRM申请”；但当前所需客户列表与用户查询 Interface 已独立授权，因此读取链路以后续脱敏回执为准，高级 CRM 范围不作为当前读取链路的错误阻塞项。
+6. IP 白名单为 0 条；固定出口方案未确定，不写入临时或随机 CloudBase 出口 IP。
+7. 数据加密入口未在当前菜单出现，这不是明文证明。必须对已知测试订单和客户执行脱敏只读探针，只记录字段存在性、是否密文、业务码与分页形状。
+8. 完整回读与停止规则见 [有赞 ROOT 店铺脱敏回读证据](./youzan_live_readback_v0.5.13_2026-07-14.md)。
+
+### 3.5 样本准入
 
 订单至少 3 条，覆盖实际状态：
 
@@ -80,9 +106,9 @@
 有赞客户ID,unionid,手机号,昵称
 ```
 
-原始样本只进入受控 Admin 预览，不写入仓库。评审结果必须达到 READY，未知订单/物流状态先补映射。
+原始样本只进入受控 Admin 预览，不写入仓库。评审结果必须达到 READY，未知订单/物流状态先补映射。若有赞返回任何加密隐私字段，只记录字段存在性和密文状态，不复制原值、不执行 IMPORT；先完成解密与脱敏验证。
 
-### 3.5 执行批次
+### 3.6 执行批次
 
 1. `YOUZAN_ORDER / YOUZAN_OPEN / PREVIEW / limit=3`，核对订单号、手机号、金额、订单状态和物流状态。
 2. `YOUZAN_CUSTOMER / YOUZAN_CUSTOMER / PREVIEW / limit=3`，核对 yzUid、unionid、手机号和昵称。
@@ -91,11 +117,19 @@
 5. 发券使用一个已明确同意的测试用户和一张测试券，确认唯一 `yz_open_id`、`activity_id`、外部券 ID 与幂等引用。
 6. 使用同一张测试券查询状态，确认 `ISSUED/USED/EXPIRED/CANCELLED` 映射；发券和状态查询必须分别取得确认。
 
-### 3.6 回滚
+### 3.7 回滚
 
 1. 暂停有赞真实 Adapter，恢复 `MANUAL_SAMPLE` 和后台手工同步。
 2. 对可回滚的单页 IMPORT 使用 runId 回滚，并核对订单、客户镜像、游标和审计。
 3. 已在有赞成功发出的券不得通过重复请求“回滚”；改由运营核对、作废或补偿，并保留外部券 ID。
+
+### 3.8 商品展示与持续同步决策
+
+1. v0.5.12 首发商品展示使用生产 Store 中已验证的商品镜像、Root 会员中心 AppID 和短链；正式 Gate 还要求同版本真机打开证明。
+2. 持续自动商品同步不是本版切流前置。ROOT 商品发生上下架、SKU、价格或购买路径变化时，灰度期由运营通过后台商品镜像流程预览并确认更新。
+3. 当前商品 Adapter 尚未复用订单/客户 Adapter 的有赞 HTTP 200 业务错误判断，也未按官方分页结构推导下一页；因此 027 不执行商品 PREVIEW，不能把空列表当作成功。
+4. 获得 `youzan.items.onsale.get` 权限后，先在后续候选补齐业务错误和分页处理并增加专向测试；通过后才可执行最多 3 条商品只读 PREVIEW，核对商品 ID、标题、SKU、价格、状态和购买路径。
+5. `POST /api/v1/admin/products/sync-execute` 会写生产商品镜像，必须使用独立 request ID、二次确认和前后快照；不能与订单/客户 E-03 共用授权，也不能因 PREVIEW 成功自动执行。
 
 ## 4. 企业微信客户联系
 
@@ -183,8 +217,8 @@
 
 | 批次 | 动作 | 外部影响 | 必须单独确认 |
 | --- | --- | --- | --- |
-| E-01 | 创建有赞云应用并提交审核 | 创建第三方应用 | 是 |
-| E-02 | 保存有赞只读变量并 PREVIEW | 读取真实订单/客户 | 是 |
+| E-01 | 创建有赞云应用并提交审核 | 已完成；应用审核通过 | 已确认并完成 |
+| E-02 | 轮换凭据、完成 ROOT 授权、保存只读变量并 PREVIEW | 修改第三方凭据，回读商品权限并读取真实订单/客户；商品 PREVIEW 暂缓 | 是 |
 | E-03 | 有赞订单/客户单页 IMPORT | 写入生产 Store 与游标 | 是 |
 | E-04 | 有赞测试券发放 | 消耗真实券额度 | 是 |
 | E-05 | 有赞券状态查询 | 读取并更新奖励状态 | 是 |

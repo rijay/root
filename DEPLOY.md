@@ -44,6 +44,8 @@ ROOT_CLOUDBASE_STORE_BACKUP_PLAN=发布前快照+每日备份
 ROOT_CLOUDBASE_STORE_ROLLBACK_PLAN=按发布前快照回滚
 ROOT_CLOUDBASE_STORE_PROOF=生产证明引用
 YOUZAN_CLIENT_ID=<有赞应用 client id>
+YOUZAN_PRODUCT_LIST_URL=<后续候选使用；027 保持为空>
+YOUZAN_PRODUCT_ACCESS_TOKEN=<后续候选可选；027 保持为空>
 YOUZAN_ORDER_LIST_URL=https://open.youzanyun.com/api/youzan.trades.sold.get/4.0.4
 YOUZAN_CUSTOMER_LIST_URL=https://open.youzanyun.com/api/youzan.scrm.customer.list/1.0.0
 YOUZAN_USER_QUERY_URL=https://open.youzanyun.com/api/youzan.users.info.query/1.0.1
@@ -57,6 +59,8 @@ ROOT_YOUZAN_IDENTITY_RECONCILE_REFRESH_HOURS=168
 ```
 
 `STATIC_ROTATION` 下，`YOUZAN_CLIENT_SECRET` 只在受控轮换终端或密码管理器中用于换取 token，不进入 CloudRun 运行容器；容器只持有调用所需的 access token、到期时间与非秘密轮换元数据。
+
+v0.5.12 首发商品展示继续使用已验证的商品镜像和 Root 会员中心短链，正式 Gate 由活跃商品、AppID、购买路径和真机跳转证明共同约束；持续自动商品同步不是本版切流前置。当前商品 Adapter 尚未验证有赞官方 HTTP 200 业务错误与分页响应，027 不配置 `YOUZAN_PRODUCT_LIST_URL`，不执行商品 PREVIEW 或 `sync-execute`。商品读取权限可以先申请；后续候选补齐并验证响应处理后，再分别确认只读 PREVIEW 与商品镜像写入，不能与订单/客户 IMPORT 共用授权。
 
 本轮内测直接使用 CloudBase MySQL，不再以容器临时 SQLite 承接业务数据。小程序始终通过 `wx.cloud.callContainer -> myroot-api -> MySQL`，不允许直连数据库。Store Module 使用连接池、迁移锁、修订号行锁和事务内核心关系表同步；20 并发写、容器重启、双实例、跨实例幂等、结算奖励幂等和数据库恢复均已实测。生产启动还会读取 `SHOW GRANTS FOR CURRENT_USER()`：运行账号必须只在 `MYSQL_DATABASE` 上具备 `SELECT / INSERT / UPDATE / DELETE / CREATE / ALTER`，存在 `*.*` 数据权限、额外 schema 权限或 `GRANT OPTION` 时失败关闭。正式发布仍需关闭真实外部 Adapter、真机跳转、业务回滚和三方签字 Gate。
 
@@ -111,7 +115,7 @@ ROOT_ALERT_CAMPAIGN_ID=ROOT_7D_RESET
 
 提醒模板、微信凭据和发送状态只配置在 CloudRun `myroot-api`；Cloud Function 仅以 Job token 调用后端，不重复保存这些值。
 
-仓库已提供共享代码目录 `cloudfunctions/myroot-job-dispatcher` 与根目录 `cloudbaserc.json`。CloudBase 单函数最多 10 个定时触发器，因此生产拓扑拆为 `myroot-job-dispatcher` 10 个触发器和 `myroot-health-retention` 1 个健康数据清理触发器，合计覆盖 11 个 Job；两个函数复用同一代码目录。配置只保存函数代码、规格和触发器，不保存任何环境变量；否则再次执行 `tcb fn deploy` 可能把生产 token 写进仓库，或用不完整变量覆盖云端配置。`ROOT_JOB_BASE_URL`、`ROOT_ADMIN_JOB_TOKEN`、`ROOT_JOB_DRY_RUN` 等变量统一在 CloudBase 控制台维护。2026-07-13 经单独授权使用 `tcb fn code update` 把两个生产函数对齐到 0.5.10；11/11 个 Job 曾在 025 路由下返回 `releaseVersion=0.5.10`、HTTP 200、业务码 0 和 `dryRun=true`。026 部署后只读回读确认两函数仍为 `Active / Available`、各 6 个变量、10+1 个启用触发器，条件路由已匹配 026 且 `ROOT_JOB_DRY_RUN=true`；本轮未再次调用 Job。真实外部 Adapter 完成小批量校准及负责人确认前不得开启 execute。
+仓库已提供共享代码目录 `cloudfunctions/myroot-job-dispatcher` 与根目录 `cloudbaserc.json`。CloudBase 单函数最多 10 个定时触发器，因此生产拓扑拆为 `myroot-job-dispatcher` 10 个触发器和 `myroot-health-retention` 1 个健康数据清理触发器，合计覆盖 11 个 Job；两个函数复用同一代码目录。配置只保存函数代码、规格和触发器，不保存任何环境变量；否则再次执行 `tcb fn deploy` 可能把生产 token 写进仓库，或用不完整变量覆盖云端配置。`ROOT_JOB_BASE_URL`、`ROOT_ADMIN_JOB_TOKEN`、`ROOT_JOB_DRY_RUN` 等变量统一在 CloudBase 控制台维护。2026-07-13 经单独授权使用 `tcb fn code update` 把两个生产函数对齐到 0.5.10；11/11 个 Job 曾在 025 路由下返回 `releaseVersion=0.5.10`、HTTP 200、业务码 0 和 `dryRun=true`。027 部署后只读回读确认两函数仍为 `Active / Available`、各 6 个变量、10+1 个启用触发器，条件路由已匹配 027 且 `ROOT_JOB_DRY_RUN=true`；本轮未更新 Function 或调用 Job。真实外部 Adapter 完成小批量校准及负责人确认前不得开启 execute。
 
 0% 候选验收可使用 CloudBase 官方 URL 参数定向流量：稳定版保持默认版本，候选版只匹配一次性非秘密参数。Cloud Function 临时设置 `ROOT_JOB_ROUTE_QUERY=<key>=<value>`，灰度验证脚本设置同值 `ROOT_CANARY_ROUTE_QUERY` 或传 `--route-query <key>=<value>`；调度器会把参数附加到 Job Interface，默认未配置时 URL 完全不变。验收结束后移除两个变量并恢复百分比流量配置，路由参数不能替代鉴权，也不得承载 token、密码或用户标识。
 
@@ -120,6 +124,8 @@ ROOT_ALERT_CAMPAIGN_ID=ROOT_7D_RESET
 CloudRun 中的 CloudBase 对象存储使用服务端 HTTP Interface，生产候选必须同时配置 `ROOT_CLOUDBASE_STORAGE_TRANSPORT=HTTP`、匹配生产环境的 `ROOT_CLOUDBASE_ENV_ID` 和服务端 `CLOUDBASE_APIKEY`。API Key 只保存于受控密钥存储，不写入仓库、命令参数、发布文档或客户端代码。探针只允许上传一个随机小对象，并按上传授权返回的精确 `cloudObjectId` 删除；上传结果含糊时只对该精确 ID 做补偿删除，禁止按目录或前缀清理。2026-07-13 的 025 候选已完成 HTTP 200、上传确认、删除确认、审计匹配和目录 `total=0` 回读。
 
 有赞身份对账首次开放 execute 前，必须先完成 User Query Interface 权限与 token 生命周期确认，再把 `ROOT_YOUZAN_IDENTITY_RECONCILE_ENABLED` 改为 `true`。自用型无容器 token 由 `client_id + client_secret + grant_id` 换取；当前版本采用单一负责人集中轮换，不允许两个实例各自换 token。生产调用会检查轮换模式与到期时间，缺失或已过期时在请求有赞前失败关闭。建议先运行：
+
+当前有赞接入采用主动拉取与动作调用，没有接收通知、验签和幂等消费的回调 Interface；有赞后台回调地址应保持空白，不能填 CloudRun 根地址或 `/health` 占位。首次真实 PREVIEW 还必须核对有赞“消费者隐私数据/数据加密”状态；当前版本没有有赞隐私字段解密 Implementation，若订单手机号、地址或客户字段返回密文，应停止后续 IMPORT，先完成解密与脱敏验证。
 
 ```bash
 ROOT_JOB_BASE_URL=https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com \
@@ -206,13 +212,13 @@ const productionApiBaseUrl = "https://myroot-api-273748-8-1437260454.sh.run.tclo
 - `GET /api/v1/admin/cloudbase-identity-probe` 已在真实 CloudBase 请求下验证 openid 与 unionid，身份探针为 `READY`，且已留存脱敏证明。
 - 小程序发布包不包含开发调试登录入口，后端未启用直接手机号登录测试开关。
 - 生产数据已接入 CloudBase MySQL Adapter；连接池、迁移版本、修订号与核心关系表均有实测证据。
-- 两个 Cloud Function 当前合计 11 个触发器，代码包继续保持上一轮已验证的 0.5.10；026 部署后只读回读为 `Active / Available`、各 6 个变量、10+1 个启用触发器，定向路由精确匹配 026 且 `ROOT_JOB_DRY_RUN=true`。本轮没有更新 Function 或调用 Job。
+- 两个 Cloud Function 当前合计 11 个触发器，代码包继续保持上一轮已验证版本；027 部署后只读回读为 `Active / Available`、各 6 个变量、10+1 个启用触发器，定向路由精确匹配 027 且 `ROOT_JOB_DRY_RUN=true`。本轮没有更新 Function 或调用 Job。
 - 微信公众平台已确认 `v0.5.10` 为体验版；独立用户流程已生成匹配的 `SCHEDULED` 提醒任务，未来时刻 dry-run 返回 `DRY_RUN_READY`，事后回读确认任务 `attempts=0`、授权额度未占用且送达记录未增加。该结果不是实际送达证明。
 - CloudBase 对象存储生产探针已在 025 候选完成单对象上传、按返回对象标识精确删除、审计匹配和探针目录 `total=0` 回读；正式业务对象 execute 仍需按各自 Gate 独立授权。
 - 经新的单独授权，025 候选仅执行一次单用户真实提醒；Job Interface 返回 `HTTP 200 / code=0`，唯一任务返回 `FAILED / 1006 / external HTTP 412 / externalErrorCode=null / deliveryOutcome=UNKNOWN`。没有重试；匹配额度按 v0.5.10 语义进入 `REVIEW_REQUIRED`。发送后 dry-run 无到期任务或卡住的 `SENDING`，函数仍保持全局 dry-run；修复并取得全新额度与新授权前不得再次发送。
 - `v0.5.11` 已部署为 `myroot-api-026 / URL_PARAMS / 0%`，定向 `/health`、`/ready`、隐私和 Admin Gate 通过，15 次无参数健康请求均未命中 026；未上传新的体验版。该候选包含微信 JSON POST 的 UTF-8 `Content-Length`、64 KiB 响应上限和脱敏诊断，但本轮没有执行微信业务 POST 或提醒发送，不能据此判定 412 根因已修复或消息已送达。
-- `v0.5.12` 当前仅为本地正式 Gate 加固候选，尚未部署。生产切换证明从 10 项扩展到 15 项，新增候选运行、同版本体验版、真实提醒送达、5% 灰度和工件追溯；部署前仍需重新生成可追溯工件并取得单独确认。
-- v0.5.12 将生产证明分为运行环境与发布候选两种范围。5 个发布级证明由后端自动绑定当前 `version + releaseId`，其中 `releaseId` 必须来自显式、唯一的 `ROOT_RELEASE_ID`；正式 Gate 拒绝版本号 fallback、旧候选、缺版本字段或客户端伪造的绑定。其余环境级证明可跨候选复用。线上现有 4 条环境级 VERIFIED 已回读确认均带 `evidenceRef`，部署后预期保留为 4/15。
+- `v0.5.12` 已部署为 `myroot-api-027 / URL_PARAMS / 0%`，显式 `ROOT_RELEASE_ID=v0.5.12+ef9fab932a08`；定向健康、就绪、隐私和 Admin Gate 通过，15 次无参数请求未命中 027。完整证据见 `docs/production_gray_release_027_2026-07-13.md`。
+- v0.5.12 将生产证明分为运行环境与发布候选两种范围。5 个发布级证明由后端自动绑定当前 `version + releaseId`，其中 `releaseId` 必须来自显式、唯一的 `ROOT_RELEASE_ID`；正式 Gate 拒绝版本号 fallback、旧候选、缺版本字段或客户端伪造的绑定。其余环境级证明可跨候选复用。线上现有 4 条环境级 VERIFIED 已回读确认均带 `evidenceRef`；T-012/T-015 虽已有本地材料，但尚未写入正式 Evidence Intake。
 - 迁移后快照已非破坏性恢复到隔离库并回读 24 张表、迁移版本与快照版本；恢复演练库保留至审计结束。
 - 已按 `docs/release_readiness.md` 跑完最小手工验收矩阵。
 - 正式发布前仍需用真实账号核对有赞订单、物流、企业微信和奖励履约 Adapter 字段与回执。

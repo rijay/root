@@ -133,10 +133,12 @@ npm run calibrate --prefix root_seven_day_checkin/backend -- --base-url http://1
 
 Token 校准要求：
 
-1. 自用型无容器应用使用 `client_id + client_secret + grant_id` 换取 token；有赞官方说明 token 约 7 天有效。
-2. 当前 CloudBase 最多 2 个实例，不允许各实例独立换 token；由唯一负责人集中换取后写入密钥管理，并同步到期时间。
-3. 生产环境缺轮换模式、负责人、grant_id、到期时间，或 token 已过期时，六个有赞调用点都会在网络请求前失败关闭。
-4. 换取与轮换过程不得把 client secret、token 或完整响应写入仓库、命令参数、日志和证据包。
+1. 自用型无容器应用只通过 `POST https://open.youzanyun.com/auth/token` 换取 token，请求体为 JSON，并固定使用 `authorize_type=silent`、`client_id`、`client_secret`、`grant_id` 和布尔值 `refresh`。
+2. 首次换取或只需复用仍有效 token 时使用 `refresh=false`；只有计划轮换时才使用 `refresh=true`。官方契约说明，主动刷新产生新 token 后，旧 token 仍有 1 小时过渡期；不得把该窗口当长期双 token 机制。
+3. 成功响应必须同时满足 `success=true`、`code=200`，并包含非空 `data.access_token`、毫秒时间戳 `data.expires` 和与 ROOT 店铺一致的 `data.authority_id`。正常 token 约 7 天有效，部署前把 `expires` 转为 `YOUZAN_ACCESS_TOKEN_EXPIRES_AT`，且至少剩余 24 小时。
+4. 当前 CloudBase 最多 2 个实例，不允许各实例独立换 token；由唯一负责人在受控终端集中换取，保存到密钥管理后再配置 CloudRun。`client_secret` 不进入 CloudRun，只有 access token、到期时间、grant_id 和轮换负责人进入运行配置。
+5. 生产环境缺轮换模式、负责人、grant_id、到期时间，或 token 已过期时，六个有赞调用点都会在网络请求前失败关闭。
+6. 换取与轮换过程不得把 client secret、token、请求体或完整响应写入仓库、命令参数、终端转录、日志和证据包；证据只记录响应结构、店铺匹配结果、到期时间和 token 指纹。
 
 官方参考：
 

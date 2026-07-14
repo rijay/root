@@ -128,7 +128,8 @@ ROOT_CHECKIN_REMINDER_TEMPLATE_DATA_JSON='{"thing3":{"value":"{{campaignTitle}}"
 - 正式目标发送已按确认执行一次，结果为 `FAILED / 1006 / attempts=1 / delivered_at=null`，未重试。AppID、密钥令牌、模板归属和字段均已通过只读探针，但 024 丢失微信原始 `errmsg`，所以实际失败原因尚未确定。
 - `v0.5.10` 已部署为 025 的 0% 条件候选，补齐一次性授权账本、发送前检查点、未知结果人工核验、受控并发和送达证据最小化；迁移为 `005_notification_subscription_grants.sql`。历史 `ACCEPTED` 不会自动转成可用额度。
 - 025 的新单用户真实发送只执行一次，返回 `FAILED / 1006 / external HTTP 412 / UNKNOWN`，没有微信业务 `errcode`，未重试；匹配额度按账本语义进入 `REVIEW_REQUIRED`。
-- `v0.5.11` 本地候选已显式写入 `Content-Length`，并增加非 JSON HTTP 响应的限长脱敏诊断；后端 `257/257`、完整验收 `15/15` 通过。该候选尚未部署，chunked 是否为 412 的唯一根因仍待验证。
+- `v0.5.11` 后续已部署为 026 的 0% 条件候选，显式写入 `Content-Length` 并增加非 JSON HTTP 响应的限长脱敏诊断；但 026 没有执行微信业务 POST 或提醒发送，因此不能证明 chunked 是 412 的唯一根因，也不能证明消息送达。
+- 当前 `v0.5.12` 已部署为 027 的 0% 条件候选，仍未发送提醒；唯一已执行的新授权单用户发送证据继续是 025 的 `HTTP 412 / UNKNOWN`，不得据 027 运行健康推断提醒 Gate 已关闭。
 
 ## 定时任务
 

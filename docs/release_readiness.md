@@ -1,9 +1,9 @@
 # ROOT 7 日打卡上线前验收清单
 
-更新日期：2026-07-13
-状态：P0/P1、CloudBase MySQL、20 并发、双实例、滚动重启、数据库恢复、迁移 005、schema 级最小权限、隐私 180 天、公众平台既有体验版、独立用户授权账本、`DRY_RUN_READY` 与对象存储精确写删均已验证。`myroot-api-026 / v0.5.11` 已作为 0% 定向候选通过运行 Gate，默认流量仍由 012 承接；两个 Cloud Function 保持上一轮代码包、10+1 个启用触发器与全局 dry-run。025 的单用户真实提醒仍是 `FAILED / 1006 / external HTTP 412 / UNKNOWN`，未重试且额度保持人工核验语义；026 尚未执行微信业务 POST 或提醒发送。本地 `v0.5.12` 已把候选运行、同版本真机、提醒送达、5% 灰度和工件追溯纳入正式 Gate，但尚未部署；本地完整业务回滚演练已 `9/9 PASS`，生产候选联合回滚仍待验证。正式发布仍由真实提醒、真实外部 Adapter、真机跳转、外部通道、生产联合回滚、灰度与签字阻塞。
+更新日期：2026-07-14
+状态：P0/P1、CloudBase MySQL、20 并发、双实例、滚动重启、数据库恢复、迁移 005、schema 级最小权限、隐私 180 天、独立用户授权账本、`DRY_RUN_READY` 与对象存储精确写删均已验证。生产仍为 `myroot-api-027 / v0.5.12 / 0%`，默认流量由 012 承接；v0.5.13 新增微信 stable token Module 并通过 `16/16` 全量验证，运行候选已提交为 `c3d14f2`，本证据集由随后文档提交收录，但尚未 push、tag、部署或上传。CloudBase CLI 身份已恢复，环境为标准版预付费、Normal、`IsAutoRenew=true`，到期 `2026-07-23 23:59:59`；项目负责人已确认腾讯云及其他项目费用不构成上线风险，计费保障 Gate 已关闭。两个 Cloud Function 仍为线上 v0.5.10 代码包、10+1 个启用触发器与全局 dry-run。ROOT 店铺授权、A 套餐及商品/订单/客户/用户查询/优惠券目标 Interface 已回读通过；有赞 E-02 仍由 secret 轮换、token、隐私字段探针和真实 PREVIEW 阻塞，优惠券真实查询与发放还缺活动参数校准和独立回执。025 的真实提醒仍是 `HTTP 412 / UNKNOWN`。正式发布继续由 v0.5.13 运行与真机证明、提醒送达、外部 Adapter、生产联合回滚、灰度和签字阻塞。
 
-最新生产运行证据见 [2026-07-13 候选 026 证据](./production_gray_release_026_2026-07-13.md)；正式上线缺口与执行顺序见 [v0.5.12 正式上线 Gate](./formal_launch_gate_v0.5.12_2026-07-13.md)；025 的提醒失败与对象存储证据见 [候选 025 证据](./production_gray_release_025_2026-07-13.md)，更早历史见 [2026-07-12 正式上线检查点](./formal_launch_checkpoint_2026-07-12.md)。
+当前执行顺序见 [v0.5.13 正式上线 Gate](./formal_launch_gate_v0.5.13_2026-07-14.md)，本地代码范围见 [v0.5.13 发布说明](./release_notes_v0.5.13.md)，有赞结果见 [ROOT 店铺脱敏回读证据](./youzan_live_readback_v0.5.13_2026-07-14.md)。最新生产运行证据仍是 [2026-07-13 候选 027 证据](./production_gray_release_027_2026-07-13.md)；025 的提醒失败与对象存储证据见 [候选 025 证据](./production_gray_release_025_2026-07-13.md)。
 
 ## 1. 当前结论
 
@@ -511,9 +511,87 @@ curl -s https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com/ready
 1. 对抗式审查发现旧生产切换 Gate 只有 10 项，不能阻止“未做同版本真机、未证实提醒送达、未做 5% 灰度、工件不可追溯”时被判定为可发布。
 2. `productionCutoverReadiness` Module 新增 5 项证明，合计 15 项；`productionEvidenceIntake` 同步从 10 项扩展到 15 项。
 3. 新增 `T-011` 次日提醒送达、`T-012` 候选运行、`T-013` 同版本真机、`T-014` 5% 灰度和 `T-015` 工件追溯。
-4. 定向测试 `174/174`、完整验收 `15/15` 通过；225 个 JavaScript 文件、5 个迁移、11 个 Job 和 157 个小程序发布源文件均通过。
-5. 本版是本地候选，未部署、未上传、未更新 Cloud Function、未发送提醒、未改流量、未 commit 或 push。生产仍为 `026 / v0.5.11 / 0%`。详见 [发布说明](./release_notes_v0.5.12.md)和[正式上线 Gate](./formal_launch_gate_v0.5.12_2026-07-13.md)。
+4. 定向测试 `174/174`、完整验收 `15/15` 通过；228 个 JavaScript 文件、5 个迁移、11 个 Job 和 157 个小程序发布源文件均通过。
+5. 本版已由本地提交 `7190d44`、`ef9fab9` 生成本地可复核工件，并部署为 `027 / v0.5.12 / URL_PARAMS / 0%`；未上传小程序、未更新 Cloud Function、未发送提醒、未进入 5% 流量、未 push，远端追溯仍未闭环。详见 [发布说明](./release_notes_v0.5.12.md)和[正式上线 Gate](./formal_launch_gate_v0.5.12_2026-07-13.md)。
 6. 后续对抗式审查关闭了弱证明路径：正式目标只认可带 `evidenceRef` 的后台 VERIFIED 记录，环境布尔值不能替代正式证据，缺支持变量仍为 `BLOCKED`。
 7. 再次回读线上 4 条 VERIFIED 后确认其 `evidenceRef` 均非空；四条均属于运行环境证明，可在 v0.5.12 Gate 中继续复用。新增的候选运行、同版本体验版、真实提醒送达、5% 灰度和工件追溯属于发布级证明，后端会强制写入当前 `version + releaseId`，Gate 拒绝缺绑定、旧候选绑定和客户端伪造绑定。
 8. 对抗式审查发现包版本 fallback 不能区分同版本重复部署；v0.5.12 因此要求生产运行组显式配置唯一 `ROOT_RELEASE_ID`。未配置时 `/health` 会保留兼容 fallback，但同时返回 `releaseIdConfigured=false`，生产环境矩阵与 5 个发布级证明都会保持 `BLOCKED`。
-7. 有赞、企微和物流已拆成 11 个需分别确认的外部批次；变量、样本、PREVIEW、单页 IMPORT、动作与回滚见 [外部 Adapter 正式接入执行包](./external_adapter_activation_v0.5.12_2026-07-13.md)。
+9. 候选 ZIP 为 188 个条目、179 个文件、1,076,513 bytes，SHA-256 `ff4491fafa36f8dc68b12593c46ac258397c24bce89c780228d6aa1242b586cc`；027 BuildId 为 `2601322251`，49 个变量包含显式 `ROOT_RELEASE_ID=v0.5.12+ef9fab932a08`，VPC 与实例规格回读通过。
+10. 027 定向 `/health`、`/ready`、隐私和 Admin Gate 通过，三条版本响应均匹配目标 releaseId；15 次无参数 `/health` 中 027 命中 0 次。发布单为 `012 -> 027 / URL_PARAMS / flowRatio=0 / gray success`。
+11. 两个 Cloud Function 均为 `Active / Available / Nodejs18.15`、各 6 个变量、10+1 个启用触发器、路由匹配 027 且 `ROOT_JOB_DRY_RUN=true`；本轮未更新代码或调用 Job。
+12. 027 定向生产发布记录回读为 `BLOCKED / 4 of 15`；T-012/T-015 当前只有本地证据材料，线上均为 `proofSource=NONE` 且没有证据引用。对象存储、同版本体验版、真实提醒、5% 灰度、外部 Adapter 与联合回滚均未在本轮执行。完整行动时结果见 [候选 027 证据](./production_gray_release_027_2026-07-13.md)。
+13. 有赞、企微和物流已拆成 11 个需分别确认的外部批次；变量、样本、PREVIEW、单页 IMPORT、动作与回滚见 [外部 Adapter 正式接入执行包](./external_adapter_activation_v0.5.12_2026-07-13.md)。
+
+## 20. 2026-07-14 027 Gate 回读与 Cloud Function 对齐预检
+
+1. 027 定向发布记录只读回读为 `BLOCKED`，包含 45 个 must-fix 和 17 个进入灰度前确认项；上线 Gate 为 4/8 通过，四类真实样本仍全部阻塞。
+2. Production Env Matrix 为 21 组：9 通过、6 可选、6 阻塞；缺口集中在有赞订单/客户/优惠券、物流、企微联系人和企微标签变量。
+3. 四类读取 Adapter 均为 `BLOCKED`，共 12 个 blocker、8 个 warning；四类动作 Adapter 均为 `BLOCKED`，配置和真实小批量证据均未完成。
+4. Evidence Intake 为 15 项：3 ready、10 blocker、2 needs-review；T-012 和 T-015 已有本地材料但线上仍为 `proofSource=NONE`。生产切换证明为 4/15，三方签字为 0/3。
+5. 外部通道为 `NEEDS_REVIEW`：7 条规则均缺负责人姓名和联系方式，外部 Webhook 为 0 条。Admin 6/6 Module 和 bundled dist 就绪，但旧后台下线决策仍为 pending。
+6. 严格发布证据包结构校验为 `PASS / 0 error / 1 warning`，包业务状态仍为 `BLOCKED`，不能据此进入灰度。
+7. 该轮浏览器只读检查尚未取得新的有赞审核状态；后续 2026-07-14 10:08 刷新后已确认 E-01 审核通过，见第 23 节。
+8. 两个 Cloud Function 当前下载包均为 `0.5.10` 且内容一致；本地 `0.5.12` 与线上 `index.js` 字节级相同，唯一差异是包版本。
+9. v0.5.12 Function 候选和 v0.5.10 回滚 ZIP 已在 `/tmp` 确定性生成并通过完整性检查；专向测试 `7/7 PASS`，严格 11 Job Manifest 为 `PASS`。
+10. 云端配置回读仍为 `Active / Available / Nodejs18.15 / 6 vars / ROOT_JOB_DRY_RUN=true / 027 route matched / 10+1 enabled triggers`。本轮没有更新 Function 或调用 Job；完整预检见 [Cloud Function v0.5.12 对齐预检](./cloud_functions_v0.5.12_preflight_2026-07-14.md)。
+
+## 21. 2026-07-14 v0.5.12 体验版预检
+
+1. 027 再次定向回读 `/health`、`/ready` 和隐私说明，均返回 HTTP 200、业务码 0、`version=0.5.12` 和匹配的唯一 releaseId；MySQL connected、迁移 005、隐私保存期 180 天。
+2. 额外 15 次无参数健康请求均正常，027 命中 0 次。稳定版 012 的旧健康响应不提供版本字段，本轮不据此推断默认响应版本。
+3. 小程序 v0.5.12 专向检查通过；上传集合为 157 个文件、510,231 bytes，发布清单 SHA-256 为 `abbff642386d53525ae8d5338d656bbea03f1eacbb2e259b309f912869f44097`，上传集合没有候选值字面量，并显式排除嵌套 `.git`。
+4. 对抗式审查发现原 Route Module 只在 `App.onLaunch` 初始化；小程序处于后台时扫描带参体验版小程序码会通过 `App.onShow` 回前台，候选路由可能不生效。现已增加会话内刷新 Interface，普通回前台保持当前路由、显式带参唤起更新路由、正式版强制清空，专向场景 `20/20 PASS`。
+5. 微信官方文档确认普通小程序可调用 `getQRCode`，其 `path` 最大 1024 字符且可携带 query，`env_version=trial` 明确指向体验版；第三方平台 `getTrialQRCode` 不适用于本项目。T-013 必须使用 `getQRCode` 生成的带候选参数小程序码；默认无参体验二维码不能作为证明。
+6. 微信开发者工具版本为 `2.01.2510290`，CLI 行动时 `islogin=false`。本轮未上传、未取得普通小程序短期 token、未生成体验版小程序码、未写入 T-013、未发送提醒或调整流量；完整预检见 [v0.5.12 体验版预检](./miniprogram_v0.5.12_trial_preflight_2026-07-14.md)。
+7. 2026-07-14 再次确认 `miniprogram/` 内的旧 Git 只有 2026-06-23 本地初始提交且无远端；根仓库才是发布源权威。微信上传配置和最终验收现均要求显式排除 `.git`，专向检查通过。
+8. 12:40 复核确认第三方平台 `getTrialQRCode` 不适用；普通小程序 `getQRCode` 可用带 query 的 `path` 和 `env_version=trial` 生成正确入口，现有 Route Module 无需增加 scene 解析。开发者工具仍为 `login=false`，CloudBase CLI 仍无有效身份，未执行任何平台写入。
+9. 新增默认 dry-run 的 trial 小程序码发布工具和无网络契约测试：只接受 `/private/tmp` 下 `0600` 的 027 路由/凭据文件，固定 `stable_token(force_refresh=false)`、目标 AppID、trial path 和单码输出，且不打印敏感值。尚未读取真实 AppSecret 或生成小程序码；`40164` 必须停止并单独处理 IP 白名单。
+10. 15:03 synthetic CLI dry-run 为 `networkCalled=false` 且没有图片残留；完整开发验收升级为 `16/16 PASS`，覆盖 230 个 JavaScript 文件。新增工具仍只是本地准备状态，不构成 T-013 真机证明。
+
+## 22. 2026-07-14 T-012/T-015 生产证明预检
+
+1. 027 原始候选 ZIP 仍可读取，188 个条目、179 个文件、1,076,513 bytes 和 SHA-256 `ff4491fafa36f8dc68b12593c46ac258397c24bce89c780228d6aa1242b586cc` 均与发布记录一致。
+2. 从 `ef9fab9` 的同一后端树重建 ZIP 后，大小与条目结构一致；ZIP 容器元数据导致字节哈希不同，但解压后逐文件 `diff -rq` 为零差异。原始哈希仍是 027 唯一部署工件哈希，不能被重建哈希替换。
+3. `ef9fab9` 当前不在任何远端分支或 tag 上，主分支领先 `origin/main` 10 个提交；当前证据文档和小程序 Route Module 修复也仍未提交。
+4. T-012 已具备运行证据内容，但永久 `evidenceRef` 尚未形成，因此未写生产证明。T-015 还缺已推送 commit/tag、团队可获取的原始工件和回滚源码引用，继续 `BLOCKED`。
+5. 生产切换证明 Module 采用追加式审计记录，不支持删除。错误证明只能用新请求 ID 追加 `REJECTED` 或重新验收后的 `VERIFIED`，因此写入必须另行确认并立即回读。
+6. 截至该轮 07:40，未 commit、未 push、未持久化工件、未写生产 Store；12:05 后续已增加仅本机的工作区保全副本，但仍无远端工件链接，见第 24 节。完整预检见 [T-012/T-015 生产证明预检](./production_cutover_proof_preflight_v0.5.12_2026-07-14.md)。
+
+## 23. 2026-07-14 有赞应用 E-01 审核通过
+
+1. 刷新有赞云应用中心后，“myRoot会员数据对接”不再显示“审核中”，并可进入正式应用概览；E-01 更新为 `APPROVED`。
+2. 正式 App Id、`client_id` 和 `client_secret` 字段已生成，但任何值均未写入仓库、文档、命令参数或候选变量。
+3. 平台页面默认明文展示凭据并被本轮临时截图捕获；相关截图已从 `/private/tmp` 删除，浏览器已离开凭据页。当前 secret 按已暴露处理，生产使用前必须轮换。
+4. 质量负责人、ROOT 店铺授权、`API 套餐包`与额度、商品/订单/客户/User Query/优惠券能力范围、消费者隐私数据加密状态、`grant_id`、token 管理和真实样本仍未完成；E-02 至 E-05 继续阻塞。当前代码没有有赞通知接收 Interface，回调地址明确留空，不作为主动拉取链路的完成条件。
+5. 轮换 secret、保存凭据和配置负责人属于写动作，需要单独确认；不得复用当前 secret。若控制台强制要求回调，必须先补通知接收、验签、幂等和重放防护 Module，不能填根地址或 `/health` 占位。完整证据见 [有赞应用 E-01 审核通过证据](./youzan_application_approval_v0.5.12_2026-07-14.md)。
+6. 官方资料复核确认：自用型无容器应用只能绑定同账号店铺，待授权时需由店铺管理员确认；token 依赖 `client_id + client_secret + grant_id`，且未订购适用 `API 套餐包`的授权店铺会被限制调用。以上只形成 E-02 前置条件，不视为 ROOT 当前状态已通过。
+7. 有赞消费者隐私数据可能需要加密与解密适配；当前代码没有对应解密 Implementation。在受控 PREVIEW 证明字段形状、解密和脱敏前，不允许真实订单或客户 IMPORT。
+
+## 24. 2026-07-14 执行身份与工件刷新
+
+1. 12:01 只读运行 CloudBase CLI 3.5.7 的环境列表命令，返回“无有效身份信息”；未启动登录、读取生产环境或写入云端。两个 Function 对齐前仍须恢复 CLI 身份并重新下载线上包。
+2. Function v0.5.12 候选 ZIP 与 v0.5.10 回滚 ZIP 仍存在；重新计算的 SHA-256 分别为 `8b4870f1b280040c18e984d349d73e0c6b31b6dc670e65d5fe95edaab0aa9ef7` 与 `00be904f5eb2914a28e4e692a34003e0e7fe2793f1eeefe16a8256806b6fdbe6`，和预检记录一致。
+3. 同时只读运行微信开发者工具 CLI `islogin`，结果为 `login=false`；仅查看登录命令帮助，没有启动扫码、上传或生成体验二维码。
+4. 因此 Function 对齐与体验版上传都保持 `PREFLIGHT_PASS / NOT_EXECUTABLE_WITHOUT_LOGIN`；正式流量、Job dry-run 状态和线上版本均未由本轮改变。
+5. 12:05 将 027 原始部署 ZIP 字节级复制到工作区忽略目录 `release-artifacts/v0.5.12/`；副本大小 1,076,513 bytes，SHA-256 仍为 `ff4491fafa36f8dc68b12593c46ac258397c24bce89c780228d6aa1242b586cc`，与 `/private/tmp` 原件比较一致。该动作只降低本机临时文件丢失风险；远端 commit/tag、团队工件链接和 T-015 Evidence Intake 仍未完成，详见 [发布工件本地持久化清单](./release_artifact_manifest_v0.5.12_2026-07-14.md)。
+6. 该轮工作树按两个候选提交完成拆分设计：Commit A 只包含小程序候选路由生命周期与上传保护，Commit B 包含 027 证据、有赞门禁、CLI 状态和工件清单；行动时尚未 commit、tag 或 push，后续已由 `7190d44` 与 `ef9fab9` 完成本地提交。正式 tag 仍推迟到同版本真机与其余 Gate 完成，详见 [v0.5.12 提交与远端追溯计划](./v0.5.12_commit_and_traceability_plan_2026-07-14.md)。
+7. 12:09 在工件保全、`.gitignore` 和当前态文档修正后重新运行完整 `npm run verify`，结果仍为 `15/15 PASS`：228 个 JavaScript 文件、5 个迁移、11 个 Job、后端测试、生产依赖审计、Admin 构建、157 个小程序发布文件和 HTTP Interface smoke 全部通过。
+8. 商品读取 Adapter 存在，但没有纳入 Production Env Matrix 的强制组；v0.5.12 首发明确以已验证商品镜像、Root 会员中心 AppID/短链和同版本真机跳转关闭用户侧商品 Gate。对抗式审查发现当前商品 Adapter 尚未判断有赞 HTTP 200 内的业务错误，也未验证官方分页结构；027 只回读 `youzan.items.onsale.get` 权限，不配置商品 URL、不做商品 PREVIEW 或 `sync-execute`。持续自动同步留给补齐 Implementation 和专向测试后的后续候选，不与订单/客户 IMPORT 合并。
+9. 订阅消息请求契约已对照微信官方文档复核：地址、POST JSON 字段和模板结构一致，v0.5.11 起显式写入 UTF-8 `Content-Length`；官方业务错误表没有 HTTP 412。027 因而达到 `RETEST_ELIGIBLE`，但 026/027 均未执行微信业务 POST，T-011 继续阻塞。下一次只能在 Function 对齐、同版本体验版、新独立用户、新额度和单任务 dry-run 后，以 `limit=1 / sendConcurrency=1` 单独确认执行；任一 `UNKNOWN` 停止且不重试。详见 [027 提醒复测就绪审查](./checkin_reminder_027_retest_readiness_2026-07-14.md)。
+
+## 25. 2026-07-14 v0.5.13 本地候选与有赞后台回读
+
+1. 微信 `access_token` 获取已从调用点内的经典 GET Implementation 收敛为独立 `wechatAccessToken` Module，使用官方 stable token POST 契约；URL 不再携带 AppID/AppSecret，手机号与订阅消息调用点复用同一 Interface。
+2. 新 Module 使用进程内缓存、5 分钟提前刷新、相同凭据并发合并和包含 AppSecret 哈希的缓存键；AppSecret 轮换会进入新缓存项。缺凭据或缺 `access_token` 响应均失败关闭，错误不回显 secret。
+3. 根项目、后端、Admin、小程序与 Job Dispatcher 版本统一为 `0.5.13`；完整 `npm run verify` 为 `16/16 PASS`，覆盖 232 个 JavaScript 文件、5 个迁移、11 Job 拓扑、后端、Admin、小程序发布清单与 HTTP Interface smoke。`git diff --check` 和部署源版本残留检查通过。
+4. v0.5.13 运行候选已提交为 `c3d14f2`，本证据集由随后文档提交收录；未 push、未 tag、未部署或上传。生产仍为 `027 / v0.5.12 / 0%`，稳定默认流量仍由 012 承接；后续候选计划编号为 028，但尚未创建。
+5. 有赞 ROOT 店铺已授权，有效期至 `2027-05-31`；A 套餐当前月为 500,000 次与 20 QPS，已用 0、剩余 500,000。商品、订单、客户与用户查询的目标 Interface 已授权。
+6. 优惠券管理能力包及发送与查询目标 Interface 已授权，控制面前置关闭；真实状态查询、发券、幂等和回执仍须分别验证。有赞 CRM 能力包被驳回，但当前所需客户列表与用户查询 Interface 已由“店铺客户信息同步”能力包提供；读取链路仍以真实脱敏回执为准。
+7. 当前 secret 因临时截图暴露必须轮换；没有换取 token。控制台菜单不能证明隐私字段返回形态，必须先对已知测试订单/客户做不落原始数据的只读探针。IP 白名单为 0 条，固定出口方案未确定。
+8. 完整权限会话中 CloudBase CLI 已登录并可见生产环境，环境状态 Normal，到期时间为 `2026-07-23 23:59:59`；微信开发者工具 CLI 完成扫码后独立回读为 `login=true`。没有部署、更新 Function、调用 Job、上传体验版、发送提醒、写生产 Store 或调整流量。
+9. `TCB.DescribeBillingInfo` 只读回读为标准版预付费、`IsAutoRenew=true / Status=NORMAL / ExpireTime=2026-07-23 23:59:59`。项目负责人已确认腾讯云及其他项目费用不构成上线风险，计费保障 Gate 关闭；不再申请费用权限或执行手工提前续费。
+10. 当前正式上线结论保持 `BLOCKED`，但不再由费用或本地提交事项阻塞。下一顺序为从最终 HEAD 重建可追溯工件、部署 028 0%、对齐 Function 并跑 11/11 dry-run、上传同源体验版、完成有赞只读探针，再分别推进真实提醒和外部动作。
+11. 代码范围见 [v0.5.13 发布说明](./release_notes_v0.5.13.md)，当前 Gate 见 [v0.5.13 正式上线 Gate](./formal_launch_gate_v0.5.13_2026-07-14.md)，有赞脱敏证据见 [ROOT 店铺回读](./youzan_live_readback_v0.5.13_2026-07-14.md)，CloudBase 证据见 [CLI 身份与环境到期回读](./cloudbase_cli_auth_and_expiry_v0.5.13_2026-07-14.md)。
+12. 身份恢复后已重新下载两个 Function 线上包：均为 v0.5.10，线上彼此完全一致；`index.js` 与本地 v0.5.13 同哈希，唯一差异是 `package.json` 版本。6+6 变量集合哈希一致、dry-run 为 true、canary 与受控文件精确匹配、10+1 触发器全部启用。本轮仍未更新或调用 Job；详见 [v0.5.13 Function 对齐预检](./cloud_functions_v0.5.13_preflight_2026-07-14.md)。
+13. 提交前工作树已预构建 v0.5.13 CloudRun r2 ZIP：181 个文件、1,073,862 bytes、SHA-256 `fc4f6e7aedf53eac5567a401ac04ff305878ff8248e2167013fc871875d44b1f`，结构、版本、禁止路径、符号链接、完整性与凭据模式检查通过。重建前后源清单哈希一致而 ZIP 容器哈希因时间元数据变化，进一步证明该包不能承担正式追溯。它构建时没有来源提交，状态固定为 `DO_NOT_DEPLOY`；现有本地提交不会追溯性地改变该属性，仍须从最终 HEAD 重建，详见 [预提交候选工件](./cloudrun_candidate_v0.5.13_precommit_2026-07-14.md)。
+14. trial 小程序码工具已拒绝输入和输出父目录符号链接逃逸，并把通用敏感串脱敏阈值收紧到 24 字符。受控 canary 文件真实 dry-run 返回 `networkCalled=false`、路由长度 20 且没有输出值；该文件的 `versionName` 仍是历史 023，028 建立后必须生成新的 0600 元数据文件，不能直接复用旧文件生成 T-013 入口。
