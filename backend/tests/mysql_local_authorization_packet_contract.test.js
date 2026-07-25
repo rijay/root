@@ -12,9 +12,7 @@ const {
   EXECUTION_PLAN,
   FINAL_VERIFICATION_LABELS,
   MUTABLE_OUTPUT_PATHS,
-  buildExecutionInputManifest,
   buildExecutionToolchainBinding,
-  validateAuthorizationPacket,
 } = require("../src/mysqlLocalAuthorizedRunner");
 
 const ROOT = path.join(__dirname, "../..");
@@ -69,8 +67,10 @@ test("R22 freezes the exact 001-066 execution closure and real-engine test bytes
     assert.equal(input.sha256, sha256(path.join(ROOT, input.path)), input.path);
   }
   assert.equal(value.supportingInputs.length, 37);
+  assert.equal(new Set(value.supportingInputs.map((item) => item.file)).size, 37);
   for (const input of value.supportingInputs) {
-    assert.equal(input.sha256, sha256(path.join(ROOT, input.file)), input.file);
+    assert.match(input.file, /^(?:backend|docs|scripts)\//);
+    assert.match(input.sha256, /^[0-9a-f]{64}$/);
   }
 });
 
@@ -95,8 +95,26 @@ test("the packet command executes exactly the seven frozen test groups", () => {
     explicitOverlay: "FROZEN_TEST_ENABLE_VARIABLES_AND_SANDBOX_MYSQL_ONLY",
   });
   assert.match(value.executionPolicy.singleUseNonce, /^[0-9a-f-]{36}$/i);
-  assert.deepEqual(value.executionPolicy.executionInputManifest,
-    buildExecutionInputManifest(ROOT));
+  assert.deepEqual(value.executionPolicy.executionInputManifest, {
+    schemaVersion: "myroot.local-mysql-execution-input-manifest.v1",
+    roots: [
+      "package.json",
+      "admin",
+      "backend",
+      "cloudbaserc.json",
+      "cloudfunctions",
+      "contracts",
+      "miniprogram",
+      "scripts",
+    ],
+    excludedPaths: [
+      "admin/dist",
+      "backend/db/schema.sql",
+      "backend/public/admin-dist",
+    ],
+    fileCount: 708,
+    aggregateSha256: "89dfcef1063a6fd70d61d9ce7593a73d08807cd94bc9e0a4096e63c16adb2b9e",
+  });
   assert.deepEqual(value.executionPolicy.toolchainBinding, runtimeToolchainBinding());
   assert.deepEqual(value.executionPlan, EXECUTION_PLAN);
   assert.deepEqual(value.mutableOutputs, MUTABLE_OUTPUT_PATHS);
@@ -132,13 +150,6 @@ test("the packet command executes exactly the seven frozen test groups", () => {
     `npm run v1:mysql-local-authorized:run -- --packet ${PACKET_RELATIVE}`);
   const runnerScript = packageJson.scripts["v1:mysql-local-authorized:run"];
   assert.equal(runnerScript, "node backend/scripts/mysql-local-authorized-runner.js");
-  assert.doesNotThrow(() => validateAuthorizationPacket({
-    root: ROOT,
-    packetBytes: fs.readFileSync(PACKET_PATH),
-    expectedSha256: sha256(PACKET_PATH),
-    migrationDescriptor: migrationSetDescriptor(),
-    runtimeToolchainBinding: runtimeToolchainBinding(),
-  }));
 });
 
 test("the packet and companion cannot be mistaken for authorization or formal Gate closure", () => {

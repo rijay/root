@@ -68,8 +68,11 @@ const EXECUTION_INPUT_ROOTS = Object.freeze([
 ]);
 const EXECUTION_INPUT_EXCLUDED_PATHS = Object.freeze([
   "admin/dist",
+  "backend/data",
   "backend/db/schema.sql",
   "backend/public/admin-dist",
+  "miniprogram/project.private.config.json",
+  "scripts/cloudbase-clone-conditional-candidate.js",
 ]);
 const MUTABLE_OUTPUT_PATHS = Object.freeze([
   "backend/db/schema.sql",

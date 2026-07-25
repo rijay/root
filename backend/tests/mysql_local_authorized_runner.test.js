@@ -278,6 +278,26 @@ test("execution input manifest rejects added, removed, or changed executable inp
   }
 });
 
+test("execution input manifest excludes local Store, private WeChat config, and transient candidate tooling", () => {
+  const fixture = tempPacketFixture();
+  try {
+    const expected = buildExecutionInputManifest(fixture.root);
+    const localOnlyFiles = [
+      ["backend/data/dev-store.json", "{}\n"],
+      ["backend/data/dev-store.sqlite", "local sqlite bytes"],
+      ["miniprogram/project.private.config.json", "{}\n"],
+      ["scripts/cloudbase-clone-conditional-candidate.js", "throw new Error('local only');\n"],
+    ];
+    for (const [relative, bytes] of localOnlyFiles) {
+      fs.mkdirSync(path.dirname(path.join(fixture.root, relative)), { recursive: true });
+      fs.writeFileSync(path.join(fixture.root, relative), bytes);
+    }
+    assert.deepEqual(buildExecutionInputManifest(fixture.root), expected);
+  } finally {
+    fs.rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("packet validation rejects SHA, remote bind, and command drift before Docker", () => {
   const fixture = tempPacketFixture();
   try {
