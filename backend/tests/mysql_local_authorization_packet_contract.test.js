@@ -2,7 +2,6 @@ const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
 const test = require("node:test");
 
 const { migrationSetDescriptor } = require("../src/mysqlSchemaSnapshot");
@@ -12,7 +11,6 @@ const {
   EXECUTION_PLAN,
   FINAL_VERIFICATION_LABELS,
   MUTABLE_OUTPUT_PATHS,
-  buildExecutionToolchainBinding,
 } = require("../src/mysqlLocalAuthorizedRunner");
 
 const ROOT = path.join(__dirname, "../..");
@@ -28,12 +26,6 @@ function sha256(file) {
 
 function packet() {
   return JSON.parse(fs.readFileSync(PACKET_PATH, "utf8"));
-}
-
-function runtimeToolchainBinding() {
-  return buildExecutionToolchainBinding({
-    npmVersion: execFileSync("npm", ["--version"], { encoding: "utf8" }).trim(),
-  });
 }
 
 test("R22 freezes the exact 001-066 execution closure and real-engine test bytes", () => {
@@ -115,7 +107,14 @@ test("the packet command executes exactly the seven frozen test groups", () => {
     fileCount: 708,
     aggregateSha256: "89dfcef1063a6fd70d61d9ce7593a73d08807cd94bc9e0a4096e63c16adb2b9e",
   });
-  assert.deepEqual(value.executionPolicy.toolchainBinding, runtimeToolchainBinding());
+  assert.deepEqual(value.executionPolicy.toolchainBinding, {
+    schemaVersion: "myroot.local-mysql-toolchain-binding.v1",
+    nodeVersion: "v24.13.1",
+    nodePlatform: "darwin",
+    nodeArch: "arm64",
+    nodeExecutableSha256: "29ecb10b64e8de28f5073f0b91f2fdc9ee60a0e21995edfcacb02eb0aae01a79",
+    npmVersion: "11.8.0",
+  });
   assert.deepEqual(value.executionPlan, EXECUTION_PLAN);
   assert.deepEqual(value.mutableOutputs, MUTABLE_OUTPUT_PATHS);
   assert.equal(value.requiredOutcomes.allEnabledTests, 13);
