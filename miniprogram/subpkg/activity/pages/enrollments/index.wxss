@@ -1,0 +1,236 @@
+.enrollments-page {
+  padding-top: var(--spacing-lg);
+}
+
+.enrollments-head {
+  padding: var(--spacing-md) var(--spacing-xs) var(--spacing-lg);
+}
+
+.enrollments-kicker,
+.state-label {
+  color: var(--color-root-moss);
+  font-size: var(--font-size-xs);
+  font-weight: 750;
+  letter-spacing: 2rpx;
+}
+
+.enrollments-title {
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-2xl);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.enrollments-copy,
+.state-title,
+.state-copy {
+  margin-top: var(--spacing-sm);
+}
+
+.state-card {
+  margin-top: var(--spacing-md);
+}
+
+.state-action {
+  width: 100%;
+  margin-top: var(--spacing-lg);
+  padding: 0;
+}
+
+.text-action {
+  width: 100%;
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  color: var(--color-root-moss);
+  background: transparent;
+  border: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.text-action::after {
+  border: 0;
+}
+
+.enrollment-groups,
+.enrollment-list {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.enrollment-group + .enrollment-group {
+  margin-top: var(--spacing-xl);
+}
+
+.enrollment-group__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: 0 var(--spacing-xs) var(--spacing-sm);
+}
+
+.enrollment-group__title {
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+}
+
+.enrollment-group__copy {
+  text-align: right;
+}
+
+.enrollment-card {
+  padding: var(--spacing-lg);
+  background: var(--color-root-surface);
+  border: 1rpx solid var(--color-root-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.enrollment-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.enrollment-status,
+.enrollment-city,
+.enrollment-meta {
+  color: var(--color-root-muted);
+  font-size: var(--font-size-xs);
+}
+
+.enrollment-status--available {
+  color: var(--color-root-moss);
+  font-weight: 750;
+}
+
+.enrollment-status--pending {
+  color: var(--color-warning);
+}
+
+.enrollment-status--closed {
+  color: var(--color-root-clay);
+}
+
+.enrollment-title {
+  margin-top: var(--spacing-md);
+  font-size: var(--font-size-lg);
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.enrollment-meta {
+  margin-top: var(--spacing-xs);
+  line-height: 1.5;
+}
+
+.enrollment-meta--cutoff {
+  color: var(--color-root-clay);
+}
+
+.enrollment-arrow {
+  margin-top: var(--spacing-lg);
+  color: var(--color-root-moss);
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+}
+
+.result-card {
+  margin-bottom: var(--spacing-lg);
+}
+
+.cancel-action {
+  width: 100%;
+  margin-top: var(--spacing-md);
+  color: var(--color-root-clay);
+  background: transparent;
+  border: 1rpx solid var(--color-root-clay);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+}
+
+.cancel-action::after {
+  border: 0;
+}
+
+.pagination-state {
+  padding: var(--spacing-lg) 0 var(--spacing-xl);
+  text-align: center;
+}
+
+.load-more {
+  min-width: 320rpx;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  color: var(--color-root-moss);
+  background: transparent;
+  border: 1rpx solid var(--color-root-line);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+}
+
+.load-more--retry {
+  margin-top: var(--spacing-sm);
+}
+
+.load-more::after {
+  border: 0;
+}
+
+.sheet-mask {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(18, 20, 16, 0.52);
+}
+
+.confirmation-sheet {
+  width: 100%;
+  padding: 24rpx var(--spacing-lg) calc(36rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: var(--color-root-nav);
+  border-radius: 36rpx 36rpx 0 0;
+}
+
+.sheet-handle {
+  width: 72rpx;
+  height: 8rpx;
+  margin: 0 auto var(--spacing-lg);
+  background: var(--color-root-line);
+  border-radius: var(--radius-full);
+}
+
+.sheet-title,
+.sheet-copy,
+.sheet-fact {
+  margin-top: var(--spacing-sm);
+}
+
+.sheet-fact {
+  color: var(--color-root-copy);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.sheet-warning {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  color: var(--color-root-clay);
+  background: rgba(146, 96, 66, 0.1);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.sheet-primary {
+  width: 100%;
+  margin-top: var(--spacing-lg);
+}
+
+.sheet-secondary {
+  width: 100%;
+  margin-top: var(--spacing-sm);
+}

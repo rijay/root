@@ -8,6 +8,7 @@ function statusLabel(status) {
     DONE: "已完成",
     IN_PROGRESS: "进行中",
     NOT_STARTED: "待完成",
+    CANCELED: "已取消",
   }[status] || "待确认";
 }
 
@@ -16,11 +17,13 @@ function statusClass(status) {
     DONE: "done",
     IN_PROGRESS: "active",
     NOT_STARTED: "pending",
+    CANCELED: "canceled",
   }[status] || "pending";
 }
 
 function taskActionLabel(task) {
   if (!task) return "查看";
+  if (task.status === "CANCELED") return "已取消";
   if (task.status === "DONE") return "已完成";
   if (task.taskType === "CHECKIN") return "去打卡";
   if (task.taskType === "QUESTIONNAIRE") return "填问卷";
@@ -46,7 +49,7 @@ function enrichTask(task) {
     statusLabel: statusLabel(task.status),
     statusClass: statusClass(task.status),
     actionLabel: taskActionLabel(task),
-    actionDisabled: task.status === "DONE",
+    actionDisabled: ["DONE", "CANCELED"].includes(task.status),
     typeLabel: taskTypeLabel(task.taskType),
     progressText: `${task.completedCount || 0}/${task.targetCount || 1}`,
   };

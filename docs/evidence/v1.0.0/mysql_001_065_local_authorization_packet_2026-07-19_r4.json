@@ -1,0 +1,174 @@
+{
+  "schemaVersion": "myroot.local-mysql-authorization-packet.v6",
+  "generatedAt": "2026-07-19T19:57:54+08:00",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "status": "PREPARED_NOT_AUTHORIZED_NOT_EXECUTED",
+  "attempt": 4,
+  "supersedesPacketSha256": "8c46d1b15b8e858bc8b2ea00ddc8d9f4068c93eee4fb63a4efc8c2a0df1004e8",
+  "priorAttemptEvidence": [
+    {
+      "path": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt1.json",
+      "sha256": "a6796cbb114c9a9a23a457fb011857fc046dd0dd034d9c94fd94c71fe4f07b44",
+      "status": "FAIL_HARNESS_ORCHESTRATION_CLEANED"
+    },
+    {
+      "path": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt2.json",
+      "sha256": "3e5ed3e853e4cca3e93d89caf0ed5820dba14bef335e38dfd2f136a936ec0dd8",
+      "status": "FAIL_STARTUP_READINESS_FALSE_POSITIVE_CLEANED"
+    },
+    {
+      "path": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt3.json",
+      "sha256": "d2a52d9d4987ada7250350327db1c26618c498c17b2b1e6352cffb0d0f288498",
+      "status": "FAIL_AUTHENTICATED_READINESS_QUERY_PARSE_ERROR_CLEANED"
+    }
+  ],
+  "scope": {
+    "host": "127.0.0.1",
+    "port": "EPHEMERAL_RANDOM_HOST_PORT",
+    "databaseClass": "DISPOSABLE_RANDOM_TEST_DATABASES_ONLY",
+    "candidateConnectionAuthorized": false,
+    "productionConnectionAuthorized": false,
+    "deploymentAuthorized": false,
+    "commitAuthorized": false,
+    "pushAuthorized": false
+  },
+  "container": {
+    "image": "mysql:8.0.43@sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10",
+    "bindAddress": "127.0.0.1",
+    "sandboxMarkerDatabase": "myroot_schema_snapshot_sandbox_marker",
+    "removeAfterRun": true
+  },
+  "migrationSet": {
+    "first": "001_store_snapshot.sql",
+    "last": "065_v1_runtime_alert_registration_return_row.sql",
+    "count": 65,
+    "lastChecksum": "263a4edb996596d9c8868471006ddc636e904dc17e7ce39813495fd3db20f39e",
+    "expectedDigest": "68eccf21a90de28059e0b553799a8d4200feee64bbbd67746ade174cfb70467e"
+  },
+  "runnerCommand": "npm run v1:mysql-local-authorized:run -- --packet docs/evidence/v1.0.0/mysql_001_065_local_authorization_packet_2026-07-19_r4.json",
+  "executionCommand": "npm run v1:mysql-001-065-authorized:check",
+  "postSuccessCommands": [
+    "npm run db:schema-snapshot:write",
+    "npm run db:schema-snapshot:verify",
+    "npm run verify -- --json"
+  ],
+  "executionPolicy": {
+    "testFileConcurrency": 1,
+    "authenticatedReadinessConsecutiveObservations": 2,
+    "exactMysqlVersion": "8.0.43",
+    "authenticatedReadinessSqlSha256": "33dc8683efdf1fc97ed8e63c3593bf59ed8ad5e35f3d19747b12ad5d635ab220",
+    "deterministicReadinessFailureImmediate": true,
+    "sanitizedMysqlDiagnostic": true,
+    "singleUseNonce": "3c08ffa9-4c95-4774-bae5-9c326933d5db",
+    "packageJsonSha256": "c07a70d58511da16f6c7a0e763cba18500246af1d2e32e7309c3c23123acfc03",
+    "reason": "fix the MySQL reserved-word alias parse error, exercise the exact readiness SQL inside the frozen real-engine set, reject deterministic readiness failures immediately, and preserve all R3 containment guarantees"
+  },
+  "testGroups": [
+    {
+      "file": "backend/tests/mysql_local_readiness.integration.test.js",
+      "enableVariable": "MYSQL_LOCAL_READINESS_INTEGRATION_ENABLED",
+      "sha256": "66085b0b9e4dfbdd7a5cc71a37197391a71142501ed81e38aae3fec2a0f2fa44"
+    },
+    {
+      "file": "backend/tests/mysql_identity_notification_binding_migrations.integration.test.js",
+      "enableVariable": "IDENTITY_NOTIFICATION_BINDING_MYSQL_INTEGRATION_ENABLED",
+      "sha256": "34d0738e46a2c7b4105f58e9617582a03bfd78beea49e0461c75fdb35481f128"
+    },
+    {
+      "file": "backend/tests/mysql_notification_provider_call_fence.integration.test.js",
+      "enableVariable": "NOTIFICATION_PROVIDER_FENCE_MYSQL_INTEGRATION_ENABLED",
+      "sha256": "fe012ba8281fcbe6e232cc83da7d75dd6782dccfc8d2d57257967a662b704f31"
+    },
+    {
+      "file": "backend/tests/mysql_v1_runtime_alert_delivery.integration.test.js",
+      "enableVariable": "V1_RUNTIME_ALERT_DELIVERY_MYSQL_INTEGRATION_ENABLED",
+      "sha256": "f930bd09fef56ad6f20b310d937690339e3e148ee33ff587d719aab71be6ab93"
+    },
+    {
+      "file": "backend/tests/mysql_settlement_source_authority.integration.test.js",
+      "enableVariable": "SETTLEMENT_SOURCE_AUTHORITY_MYSQL_INTEGRATION_ENABLED",
+      "sha256": "7a1a3186df82f5a6d323191ed44e72ffbffcca1e05d97c3badd1b9e04476dedb"
+    },
+    {
+      "file": "backend/tests/mysql_v1_runtime_control_ledger.integration.test.js",
+      "enableVariable": "V1_RUNTIME_LEDGER_INTEGRATION_ENABLED",
+      "sha256": "92a20ba421508561dbaab5b79c2d3a657685e4ce5b15c3183ac9032676132460"
+    },
+    {
+      "file": "backend/tests/mysql_runtime_principal_bootstrap.integration.test.js",
+      "enableVariable": "MYSQL_RUNTIME_PRINCIPAL_BOOTSTRAP_INTEGRATION_ENABLED",
+      "sha256": "83e693e02d56af892fa11e59796ac3a4f6e8b13e3b9c86dbe938f6a12ad701f1"
+    }
+  ],
+  "supportingInputs": [
+    {
+      "file": "backend/src/mysqlRuntimePrincipalBootstrap.js",
+      "sha256": "146e8ebc419ba8e7d95c73ce9f97907fade6611d4a11c815884b72fc4439dd29"
+    },
+    {
+      "file": "backend/tests/mysql_runtime_principal_bootstrap.test.js",
+      "sha256": "a294a329a5560eebdd0d4a6fb7c0199c12fe7d46d0be980fc3c53ce0f2bd7c97"
+    },
+    {
+      "file": "backend/src/mysqlLocalAuthorizedRunner.js",
+      "sha256": "a73d3c20c379b16cb79f52f67cb31e45729212e1e7aeb561cf7f66d751d4b2cf"
+    },
+    {
+      "file": "backend/scripts/mysql-local-authorized-runner.js",
+      "sha256": "6e5d819bae48cb0805693fb381fd049b279c60aef38a207e32b23b37c9cec5a8"
+    },
+    {
+      "file": "backend/tests/mysql_local_authorized_runner.test.js",
+      "sha256": "d16a8945190a06ac70e1790aa147a7b9f1998b1398f574b835c4479cc0e4005d"
+    },
+    {
+      "file": "backend/src/mysqlSchemaSnapshot.js",
+      "sha256": "e4bf8daf00331dccdb193d4f29901781afd8b1605b817f5a81643be056bcf349"
+    }
+  ],
+  "orchestrationCorrections": {
+    "sequentialTestFiles": true,
+    "hostSideAuthenticatedSqlReadiness": true,
+    "reservedWordAliasRemoved": true,
+    "exactReadinessSqlFrozen": true,
+    "exactReadinessSqlRealEngineTest": true,
+    "deterministicReadinessFailureImmediate": true,
+    "sanitizedParserDiagnostic": true,
+    "exactMysqlVersion": true,
+    "stableServerUuid": true,
+    "exactDisposableMarker": true,
+    "ownedContainerIdAndLabelCleanup": true,
+    "testSummarySkipRejected": true,
+    "duplicateTestSummaryRejected": true,
+    "preStartAndPreTestHashVerification": true,
+    "singleUseAuthorizationNonce": true,
+    "secretInArgv": false
+  },
+  "requiredOutcomes": {
+    "allEnabledTests": 13,
+    "allEnabledTestsPass": 13,
+    "enabledTestsFail": 0,
+    "enabledTestsSkip": 0,
+    "schemaSnapshotWriteThenIndependentVerifyMatches": true,
+    "finalRepositoryVerifyPassCount": 18,
+    "finalRepositoryVerifyFailCount": 0,
+    "containerRemoved": true,
+    "temporaryListenerRemoved": true,
+    "temporaryDatabasesRemoved": true,
+    "temporaryPrincipalsRemoved": true
+  },
+  "formalGateEffect": {
+    "localMysqlEngineProofMayAdvance": true,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "liveDeliveryGateClosed": false,
+    "runtimeDatabaseWriteAuthorityGateClosed": false
+  },
+  "authorization": {
+    "requestedInThisPacket": false,
+    "granted": false,
+    "executed": false
+  }
+}

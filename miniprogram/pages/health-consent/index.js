@@ -1,6 +1,7 @@
 const { getHealthConsentStatus } = require("../../utils/health-consent");
 const { openLegalPage } = require("../../utils/legal");
 const { request } = require("../../utils/request");
+const router = require("../../utils/router");
 
 Page({
   data: {
@@ -94,7 +95,7 @@ Page({
       // Declining must remain available even if the audit write temporarily fails.
     } finally {
       this.setData({ submitting: false });
-      wx.switchTab({ url: "/pages/products/index" });
+      router.go("/pages/health/index");
     }
   },
 

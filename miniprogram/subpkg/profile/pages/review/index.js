@@ -187,7 +187,7 @@ Page({
       return;
     }
     if (this.data.primaryAction === "查看奖励") {
-      wx.switchTab({ url: "/pages/rewards/index" });
+      router.open("/pages/rewards/index?source=review");
       return;
     }
     wx.switchTab({ url: "/pages/tasks/index" });
@@ -195,7 +195,7 @@ Page({
 
   handleSecondaryAction() {
     if (this.data.secondaryAction === "查看奖励") {
-      wx.switchTab({ url: "/pages/rewards/index" });
+      router.open("/pages/rewards/index?source=review");
       return;
     }
     this.openSupport();

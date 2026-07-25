@@ -397,7 +397,13 @@ async function runAdapter(data, body = {}, options = {}) {
   try {
     fetched = await fetchSamples(data, options.env || process.env, { ...body, adapterKind }, options, sourceType, adapterKind);
     const result = mode === "IMPORT"
-      ? externalAdapterSamples.importExternalSamples(data, sourceType, fetched.input, options.dateText || todayISO())
+      ? externalAdapterSamples.importExternalSamples(
+        data,
+        sourceType,
+        fetched.input,
+        options.dateText || todayISO(),
+        options
+      )
       : externalAdapterSamples.previewExternalSamples(data, sourceType, fetched.input);
     const review = externalAdapterSamples.recordExternalSampleReview(data, mode === "IMPORT" ? "ADAPTER_IMPORT" : "ADAPTER_PREVIEW", result);
     const run = recordAdapterRun(data, {

@@ -1,5 +1,7 @@
 # CloudBase 生产环境与 MySQL Store 决策
 
+> **HISTORICAL_V0_5_ONLY / NOT_V1_EVIDENCE**：本文是 2026-07-11 v0.5.x Store 决策与历史实测。其部署、身份、定时 Job、并发与恢复结论不得关闭 v1.0.0 的 Candidate MySQL、容量、Trusted WeChat Identity、timer-only IAM 或 artifact provenance Gate；v1 当前状态仅以 [v1 Gate tracker](./v1.0.0_launch_gate_closure_tracker_2026-07-17.md) 为准。
+
 状态：P0/P1 已完成 CloudBase 配置、部署与实测；正式发布外部 Gate 单独跟踪
 决策日期：2026-07-11
 适用范围：myRoot 会员小程序重构生产发布
@@ -215,4 +217,4 @@ ROOT_CLOUDBASE_STORE_PROOF=<脱敏证明引用>
 17. 定时 Job 使用独立的 `ROOT_ADMIN_JOB_TOKEN`，只允许访问 `/api/v1/jobs/*`；同一 token 访问 `/api/v1/admin/me` 返回 HTTP 401。Job 日志只输出聚合结果，不写用户明细或凭据。
 18. 部署前快照 `9699594` 恢复后为 0 张表，因早于迁移被判定为不合格；随后创建迁移后逻辑备份 `9700109` 和快照 `9700117`。快照 `9700117` 已通过任务 `13145837` 非破坏性恢复到 `myroot-restore-drill-v2-20260711`，回读 24 张表、两条迁移记录、`schema_version=2` 和备份时修订号 76。
 
-因此 CloudBase MySQL Store、真实小程序身份、并发与双实例、定时 Job、Admin 部署产物和数据库隔离恢复这些 P0/P1 项已完成。整体正式发布仍保持 `BLOCKED`，原因是 Root 会员中心真机打开证明、真实有赞/企微/物流/奖励履约 Adapter、小批量执行回执、完整业务回滚和三方签字尚未完成；这些事项不应与本次 Store 迁移完成状态混为一谈。完整脱敏证据见 [2026-07-11 CloudBase MySQL P0/P1 证据](./cloudbase_mysql_p0_p1_evidence_2026-07-11.md)。
+因此，在本文对应的 v0.5.x releaseId 下，CloudBase MySQL Store、当时的小程序身份、并发与双实例、定时 Job、Admin 部署产物和数据库隔离恢复这些 P0/P1 项已完成。该结论不适用于 v1.0.0。整体正式发布仍保持 `BLOCKED`，原因是 Root 会员中心真机打开证明、真实有赞/企微/物流/奖励履约 Adapter、小批量执行回执、完整业务回滚和三方签字尚未完成；这些事项不应与本次 Store 迁移完成状态混为一谈。完整脱敏证据见 [2026-07-11 CloudBase MySQL P0/P1 证据](./cloudbase_mysql_p0_p1_evidence_2026-07-11.md)。

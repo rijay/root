@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "myroot.local-mysql-execution-result.v7",
+  "observedAt": "2026-07-19T23:15:53+08:00",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "attempt": 7,
+  "authorizationPacket": {
+    "path": "docs/evidence/v1.0.0/mysql_001_065_local_authorization_packet_2026-07-19_r7.json",
+    "sha256": "168bb5bd43be21513b8367f60c44296f3b7eeb64628e8255107985a45ffeb062",
+    "singleUseNonce": "f3203727-8afa-40b1-a8ed-b40e6fc919d2",
+    "singleUseNonceConsumed": true
+  },
+  "scope": {
+    "host": "127.0.0.1",
+    "port": "EPHEMERAL_RANDOM_HOST_PORT",
+    "candidateConnected": false,
+    "productionConnected": false,
+    "deploymentPerformed": false,
+    "commitPerformed": false,
+    "pushPerformed": false
+  },
+  "container": {
+    "image": "mysql:8.0.43@sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10",
+    "bindAddress": "127.0.0.1",
+    "randomHostPort": true,
+    "removed": true,
+    "residualOwnedContainerCount": 0
+  },
+  "result": {
+    "status": "FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED",
+    "exitCode": 1,
+    "failedStage": "FROZEN_V1_MYSQL_001_065_AUTHORIZED_CHECK",
+    "runnerError": "MYSQL_LOCAL_RUNNER_COMMAND_FAILED:npm run v1:mysql-001-065-authorized:check:EXIT_1",
+    "authenticatedReadinessPassed": true,
+    "frozenCommandStarted": true,
+    "integrationTestsStarted": true,
+    "integrationTestsExpected": 13,
+    "integrationTestsPassed": 11,
+    "integrationTestsFailed": 2,
+    "integrationTestsSkipped": 0,
+    "integrationTestsCancelled": 0,
+    "durationMilliseconds": 19865.13825,
+    "schemaSnapshotRun": false,
+    "finalRepositoryVerifyRun": false,
+    "schemaSnapshotSha256AfterFailure": "e84fe654b674981917c472cc73593657dd6a9189dd32b736ff1bae895be7a7c3",
+    "schemaSnapshotMtimeAfterFailure": "2026-07-18T19:30:22+08:00"
+  },
+  "boundedRedactedDiagnostic": {
+    "stdoutFullRedactedSha256": "b63db0ff7ca331fa81a56ee1732bff42790389732a6cac417a9e2ffa6eebbaeb",
+    "stdoutRedactedBytes": 13631,
+    "stdoutTailRetainedBytesLimit": 4096,
+    "stdoutTruncated": true,
+    "stderrFullRedactedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderrPresent": false,
+    "terminationKind": "EXIT",
+    "terminationExitCode": 1
+  },
+  "observedFailures": [
+    {
+      "testFile": "backend/tests/mysql_runtime_principal_bootstrap.integration.test.js",
+      "testName": "real MySQL seals the migration creator and enforces cross-role procedure authority",
+      "observedAssertion": "The Create Procedure DDL did not match /SQL SECURITY DEFINER/i at line 184.",
+      "evidenceLimit": "The bounded tail retains the assertion and procedure body but truncates the DDL header, so it proves the failed match but not why MySQL omitted or reshaped the expected clause."
+    },
+    {
+      "testFile": "UNRESOLVED_FROM_BOUNDED_TAIL",
+      "testName": "UNRESOLVED_FROM_BOUNDED_TAIL",
+      "observedAssertion": "One additional real-engine subtest failed before the retained tail.",
+      "evidenceLimit": "The runner intentionally retained only the final 4096-byte stdout tail. The first failing label and assertion were outside that window, so assigning a file or root cause would be inference rather than execution evidence."
+    }
+  ],
+  "stopPolicy": {
+    "stoppedImmediately": true,
+    "automaticRetryPerformed": false,
+    "postSuccessCommandsRun": false,
+    "newAuthorizationRequiredForRetry": true
+  },
+  "cleanupVerification": {
+    "runnerReportedContainerRemoved": true,
+    "ownedContainerLabelListEmptyAfterExit": true,
+    "unrelatedRunningContainersObserved": 3,
+    "unrelatedContainersModified": false,
+    "temporaryListenerRemovedWithContainer": true,
+    "temporaryDatabasesRemovedWithContainer": true,
+    "temporaryPrincipalsRemovedWithContainer": true
+  },
+  "formalGateEffect": {
+    "localMysqlEngineProofClosed": false,
+    "localSchemaSnapshotProvenanceClosed": false,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "liveDeliveryGateClosed": false
+  }
+}

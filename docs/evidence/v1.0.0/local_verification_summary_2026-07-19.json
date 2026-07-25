@@ -1,0 +1,186 @@
+{
+  "schemaVersion": "myroot-local-verification-summary:v1",
+  "releaseTarget": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "observedAt": "2026-07-19T15:38:24+08:00",
+  "git": {
+    "branch": "codex/v1.0.0-foundation-20260715",
+    "head": "d761ae26fd328df703d2f2d3233124b07065e453",
+    "originMain": "d761ae26fd328df703d2f2d3233124b07065e453",
+    "worktreeTrackedByHead": false,
+    "candidateCreatedByThisVerification": false
+  },
+  "scope": {
+    "environment": "LOCAL_ONLY",
+    "candidateConnected": false,
+    "productionConnected": false,
+    "dockerStarted": false,
+    "externalMessageSent": false,
+    "commitCreated": false,
+    "pushPerformed": false,
+    "deploymentPerformed": false
+  },
+  "verification": {
+    "activityFoundation": {
+      "status": "PASS",
+      "tests": 130,
+      "passed": 130,
+      "failed": 0,
+      "includes": [
+        "Activity Module and HTTP Interface",
+        "Activity task Event Transport",
+        "Settlement source invalidation read Adapter",
+        "Settlement source invalidation resolve Adapter",
+        "task.source_invalidated.v1 Settlement successor",
+        "deterministic Handler-first and Store-first same-scope TOCTOU ordering",
+        "legacy HTTP Interface regression"
+      ]
+    },
+    "notificationDelivery": {
+      "status": "PASS",
+      "tests": 119,
+      "passed": 119,
+      "failed": 0,
+      "meaning": "the local fake-pool regression deterministically pauses START after the authoritative identity read, mutates the same identity row from a competing instance, and proves the fenced UPDATE affects zero rows; this does not prove real MySQL locking or a real Provider Adapter"
+    },
+    "runtimeAlertDelivery": {
+      "status": "PASS",
+      "tests": 140,
+      "passed": 139,
+      "failed": 0,
+      "skipped": 1,
+      "skipReason": "the isolated real-MySQL principal proof remains default-disabled without a fresh one-time authorization"
+    },
+    "runtimeControl": {
+      "status": "PASS",
+      "tests": 74,
+      "passed": 74,
+      "failed": 0,
+      "meaning": "local assembly requires distinct Orchestration, Registrar, Worker, and Inspector pool objects; the Authority Adapter checks expected CURRENT_USER values in simulated connections. This does not prove real MySQL principals, grants, credentials, or Candidate deployment."
+    },
+    "migrationExecution": {
+      "status": "PASS",
+      "tests": 71,
+      "passed": 71,
+      "failed": 0,
+      "latestMigration": "065_v1_runtime_alert_registration_return_row.sql",
+      "meaning": "the independent migration check now directly includes the 065 registration return-row contract and the parsed 064/065 procedure-set cross-contract against policy, bootstrap grants, and Adapter calls"
+    },
+    "migrationSqlParser": {
+      "status": "PASS_LOCAL_PARSER_ONLY",
+      "tests": 4,
+      "passed": 4,
+      "failed": 0,
+      "implementationSha256": "78eddbeb1147a937cac0d8814a82c962315709622bb4d6eaf760989915969e27",
+      "testSha256": "81fc5de3dc48530c1b25009423fec06f42ebf0ef1986e9bce71a81edec6a3202",
+      "meaning": "ordinary statements, quoted/commented delimiters, compound DELIMITER routines, and malformed SQL fail-close are covered locally; no stored procedure or trigger has been executed by a real MySQL engine"
+    },
+    "inboxHandlers": {
+      "status": "PASS",
+      "tests": 22,
+      "passed": 22,
+      "failed": 0,
+      "registeredHandlerCount": 4
+    },
+    "inboxReplay": {
+      "status": "PASS",
+      "tests": 84,
+      "passed": 84,
+      "failed": 0
+    },
+    "backendFull": {
+      "status": "PASS",
+      "tests": 1255,
+      "passed": 1247,
+      "failed": 0,
+      "skipped": 8,
+      "skipReason": "real MySQL integration groups remain default-disabled in the ordinary backend suite"
+    },
+    "runtimePrincipal": {
+      "status": "PASS_STATIC_REAL_ENGINE_NOT_EXECUTED",
+      "command": "npm run v1:runtime-principal:check",
+      "tests": 53,
+      "passed": 52,
+      "failed": 0,
+      "skipped": 1,
+      "meaning": "the disposable bootstrap plan creates four distinct principals, executes migrations as the future locked DEFINER, removes migration privileges, grants the exact routine and table set, and defines real-engine assertions for SHOW GRANTS, CURRENT_USER, Registrar persisted return-row registration, base-table SELECT/DML denial and cross-role procedure denial. The runtime readiness Module now inspects the configured Registrar, Worker and Inspector pools, exact grants and DEFINER routine security; /ready and Candidate canary expose only aggregate counts and fail closed on drift. The real MySQL branch did not execute"
+    },
+    "post057MysqlIntegrationPreparation": {
+      "status": "PASS_GUARDS_REAL_ENGINE_NOT_EXECUTED",
+      "command": "npm run v1:mysql-001-065-authorized:check",
+      "tests": 12,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 6,
+      "authorizationPacket": "docs/evidence/v1.0.0/mysql_001_065_local_authorization_packet_2026-07-19.json",
+      "authorizationPacketSha256": "85a3fe25b73799be52bb5ccf983cb122acc218bfa3d174094a580c9e1428bd6e",
+      "testFileSha256": {
+        "backend/tests/mysql_identity_notification_binding_migrations.integration.test.js": "34d0738e46a2c7b4105f58e9617582a03bfd78beea49e0461c75fdb35481f128",
+        "backend/tests/mysql_notification_provider_call_fence.integration.test.js": "fe012ba8281fcbe6e232cc83da7d75dd6782dccfc8d2d57257967a662b704f31",
+        "backend/tests/mysql_v1_runtime_alert_delivery.integration.test.js": "f930bd09fef56ad6f20b310d937690339e3e148ee33ff587d719aab71be6ab93",
+        "backend/tests/mysql_settlement_source_authority.integration.test.js": "7a1a3186df82f5a6d323191ed44e72ffbffcca1e05d97c3badd1b9e04476dedb",
+        "backend/tests/mysql_v1_runtime_control_ledger.integration.test.js": "92a20ba421508561dbaab5b79c2d3a657685e4ce5b15c3183ac9032676132460",
+        "backend/tests/mysql_runtime_principal_bootstrap.integration.test.js": "72f4cfee72b8db2703db5cebad31a347af8888ca6c6fe0edd97a4396cc33fc0b",
+        "backend/tests/mysql_runtime_authority_procedure_contract.test.js": "733f65b896392c0f2651d18646add8d1e831d435f1814c184735dd01dc2431a8"
+      },
+      "meaning": "localhost guards and disabled-mode wiring ran; the prepared real-engine paths now target migrations through 065, notification concurrency and ACK readback, alert and Control Ledger procedure execution, settlement pagination and authority locks, and four-role least-privilege proof. The migration creator is deliberately retained as the locked least-privilege DEFINER because MySQL ALTER PROCEDURE cannot change DEFINER; none of the real MySQL assertions executed."
+    },
+    "foundationChain": {
+      "status": "PASS",
+      "command": "npm run v1:foundation:check"
+    },
+    "finalVerification": {
+      "status": "EXPECTED_FAIL_SCHEMA_PROVENANCE",
+      "passed": 17,
+      "failed": 1,
+      "total": 18,
+      "javascriptFilesChecked": 438,
+      "migrationFilesChecked": 65,
+      "soleFailure": "Generated MySQL schema snapshot provenance"
+    }
+  },
+  "schemaProvenance": {
+    "matchesCurrentMigrationSet": false,
+    "committedSnapshotPath": "backend/db/schema.sql",
+    "committedSnapshotSha256": "e84fe654b674981917c472cc73593657dd6a9189dd32b736ff1bae895be7a7c3",
+    "committedMigrationSetThrough": "057_notification_recipient_binding_v1_enforce.sql",
+    "committedMigrationSetDigest": "fa98e2432fc7210615d5508597d93c4203dc414a2636d633eb5e12c63a053b27",
+    "currentMigrationSetThrough": "065_v1_runtime_alert_registration_return_row.sql",
+    "currentExpectedMigrationSetDigest": "68eccf21a90de28059e0b553799a8d4200feee64bbbd67746ade174cfb70467e",
+    "committedTableCount": 52,
+    "realMysqlProofThrough": "057_notification_recipient_binding_v1_enforce.sql",
+    "missingRealMysqlProof": [
+      "058_notification_provider_call_fence_stage.sql",
+      "059_notification_provider_call_fence_backfill.sql",
+      "060_notification_provider_call_fence_enforce.sql",
+      "061_v1_runtime_alert_delivery.sql",
+      "062_settlement_source_authority.sql",
+      "063_v1_runtime_alert_database_authority_stage.sql",
+      "064_v1_runtime_control_ledger_database_authority.sql",
+      "065_v1_runtime_alert_registration_return_row.sql"
+    ],
+    "requiredNextEvidence": "fresh explicitly authorized disposable MySQL 8.0 execution and snapshot verification through 065, including dedicated principal grants, procedure execution, direct-DML denial and dedicated locked definer evidence"
+  },
+  "externalEvidence": {
+    "githubReadonlyInventory": {
+      "path": "docs/evidence/v1.0.0/github_remote_readonly_inventory_2026-07-18.json",
+      "sha256": "bd72715c72183e5ff22a7c705c1e93d9710756cdc70f3601ba5ccd9c775ea6dc",
+      "gateStatus": "OPEN_CONTROLS_CONFIRMED_ABSENT_AT_CAPTURE"
+    },
+    "ardotReadonlyScreenIndex": {
+      "path": "docs/evidence/v1.0.0/ardot_current_screen_index_readonly_2026-07-18.json",
+      "sha256": "f4c9776af042487dcb9960468888def00b42f75fc026995c446a687206b3319c",
+      "gateStatus": "OPEN_STRUCTURE_CAPTURED_ACCEPTANCE_MISSING"
+    }
+  },
+  "gateDecision": {
+    "formalLaunchAuthorized": false,
+    "closedGateCount": 0,
+    "externalGatesRemainOpen": true,
+    "reason": "local Implementation and tests do not replace named signoff, current MySQL engine proof, Candidate or production evidence, real receiver delivery, WeChat device delivery, content approval, UED acceptance, privacy acceptance, activity operations acceptance, or photography rights"
+  },
+  "excludedInvalidRun": {
+    "reason": "sandbox denied localhost listen with EPERM before the authorized local-only rerun",
+    "treatedAsProductFailure": false
+  }
+}

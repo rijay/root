@@ -15,6 +15,9 @@ const requiredFiles = [
   "src/App.vue",
   "src/api/client.js",
   "src/modules/access.js",
+  "src/modules/activities/adminActivityApi.js",
+  "src/modules/activities/ActivityWorkbench.vue",
+  "src/modules/activities/pendingActivityCommands.js",
   "src/modules/adapters/adminAdapterApi.js",
   "src/modules/adapters/AdapterRunPage.vue",
   "src/modules/analytics/adminAnalyticsApi.js",
@@ -54,6 +57,9 @@ function validateSourceContracts() {
   const page = read("src/modules/config/ConfigWorkbench.vue");
   const app = read("src/App.vue");
   const adapterApi = read("src/modules/adapters/adminAdapterApi.js");
+  const activityApi = read("src/modules/activities/adminActivityApi.js");
+  const activityPage = read("src/modules/activities/ActivityWorkbench.vue");
+  const activityRecovery = read("src/modules/activities/pendingActivityCommands.js");
   const adapterPage = read("src/modules/adapters/AdapterRunPage.vue");
   const analyticsApi = read("src/modules/analytics/adminAnalyticsApi.js");
   const analyticsPage = read("src/modules/analytics/OperationalAnalytics.vue");
@@ -64,10 +70,12 @@ function validateSourceContracts() {
   const lifecycleApi = read("src/modules/users/adminLifecycleApi.js");
   const lifecyclePage = read("src/modules/users/UserLifecycle.vue");
 
-  assert(client.includes("X-Admin-Token") && client.includes("X-ROOT-ADMIN-TOKEN"), "admin client must send admin token headers");
+  assert(client.includes("X-Admin-Token") && !client.includes("X-ROOT-ADMIN-TOKEN"), "admin client must send only the canonical admin token header");
+  assert(client.includes("window.sessionStorage") && !client.includes("window.localStorage"), "admin token must be scoped to the browser tab session");
   assert(client.includes("/api/v1/admin/me") && client.includes("fetchAdminProfile"), "admin client must read the admin profile Interface");
+  assert(client.includes("outcomeUnknown") && client.includes("ADMIN_NETWORK_ERROR") && client.includes("ADMIN_RESPONSE_INVALID"), "admin client must distinguish unknown write outcomes from definitive failures");
   assert(access.includes("ADMIN_CAPABILITIES") && access.includes("createAdminAccess") && access.includes("useAdminAccess"), "admin access Module must expose capability helpers");
-  assert(access.includes("CONFIG_WRITE") && access.includes("REVIEW_RESOLVE") && access.includes("REWARD_DELIVERY_WRITE") && access.includes("SETTLEMENT_EXECUTE") && access.includes("DATA_EXPORT_APPROVE"), "admin access Module must mirror backend capabilities");
+  assert(access.includes("CONFIG_WRITE") && access.includes("REVIEW_RESOLVE") && access.includes("REWARD_DELIVERY_WRITE") && access.includes("SETTLEMENT_EXECUTE") && access.includes("DATA_EXPORT_APPROVE") && access.includes("ACTIVITY_CONTENT_WRITE") && access.includes("ACTIVITY_PUBLISH") && access.includes("ACTIVITY_SESSION_CONTROL") && access.includes("ACTIVITY_ENROLLMENT_REVIEW"), "admin access Module must mirror backend capabilities");
   assert(api.includes("/api/v1/admin/config-workbench"), "config Module must read the backend config workbench Interface");
   assert(api.includes("/api/v1/admin/campaign-rules/publish"), "config Module must publish rule versions through backend Interface");
   assert(api.includes("/api/v1/admin/manual-reviews/"), "config Module must resolve manual reviews through backend Interface");
@@ -108,7 +116,7 @@ function validateSourceContracts() {
     && page.includes("WEWORK_TAG"),
     "config page must expose WeWork tag delivery controls",
   );
-  assert(app.includes("activeModule") && app.includes("UserLifecycle") && app.includes("AuditLogPage") && app.includes("AdapterRunPage") && app.includes("OperationalAnalytics") && app.includes("ReleaseWorkbench"), "admin shell must expose a module routing seam");
+  assert(app.includes("activeModule") && app.includes("UserLifecycle") && app.includes("AuditLogPage") && app.includes("AdapterRunPage") && app.includes("OperationalAnalytics") && app.includes("ActivityWorkbench") && app.includes("ReleaseWorkbench"), "admin shell must expose a module routing seam");
   assert(app.includes("ADMIN_MODULES") && app.includes("visibleModules") && app.includes("capabilities") && app.includes("principal-tags"), "admin shell must hide modules by admin capabilities and show the current principal");
   assert(app.includes("createAdminAccess") && app.includes("ADMIN_ACCESS_KEY") && app.includes("provide("), "admin shell must provide admin access Interface to child modules");
   assert(page.includes("useAdminAccess") && page.includes("requireCapability") && page.includes("canConfigWrite"), "config page must gate write buttons through admin access Interface");
@@ -116,6 +124,18 @@ function validateSourceContracts() {
   assert(!app.includes('index="adapters" disabled'), "admin shell must enable the Adapter run Module");
   assert(!app.includes('index="analytics" disabled'), "admin shell must enable the analytics Module");
   assert(!app.includes('index="release" disabled'), "admin shell must enable the release Module");
+  assert(activityApi.includes("/api/v1/admin/activities") && activityApi.includes("/api/v1/admin/activity-sessions") && activityApi.includes("/api/v1/admin/activity-enrollments"), "activity Module must read activity, session, and enrollment Interfaces");
+  assert(activityApi.includes("/activities/draft") && activityApi.includes("/activities/submit-review") && activityApi.includes("/activities/request-changes") && activityApi.includes("/activities/publish") && activityApi.includes("/activities/unpublish") && activityApi.includes("/activities/archive"), "activity Module must expose all activity definition write Interfaces");
+  assert(activityApi.includes("/activity-sessions/create") && activityApi.includes("/activity-sessions/state") && activityApi.includes("/activity-sessions/cancel") && activityApi.includes("/activity-enrollments/review") && activityApi.includes("X-Request-Id") && activityApi.includes("X-Idempotency-Key"), "activity Module must expose session and enrollment writes with separated attempt and idempotency identities");
+  assert(activityPage.includes("OPS_BACKEND") && activityPage.includes("UED 占位") && activityPage.includes("containsUedPlaceholder"), "activity page must reject UED placeholders and label OPS_BACKEND content");
+  assert(activityPage.includes("publishGateAcknowledged") && activityPage.includes("controlledApprovalRef") && activityPage.includes("contentAuthorizationDigest") && activityPage.includes("uedAcceptanceDigest") && activityPage.includes("photographyAuthorizationDigest") && activityPage.includes("artifactProvenanceDigest"), "activity page must keep publication Gate closed until controlled evidence is acknowledged");
+  assert(!activityPage.includes("operatorId") && !activityPage.includes("publishOwnerSignerRef") && !activityPage.includes("verifiedAt"), "activity page must not accept trusted publication principal or authorization decision fields from operators");
+  assert(activityPage.includes("expectedAttemptGeneration") && activityPage.includes("attemptGeneration"), "activity enrollment review must carry the expected attempt generation");
+  assert(activityPage.includes("activityPagination") && activityPage.includes("sessionPagination") && activityPage.includes("enrollmentPagination") && activityPage.includes("<el-pagination"), "activity workbench must expose server-backed pagination for every managed collection");
+  assert(activityPage.includes("pendingCommands.claim") && activityPage.includes("pendingCommands.clear") && activityPage.includes("error.outcomeUnknown") && activityPage.includes("commandReachedAdminAuthority"), "activity workbench must retain idempotency intents until a write response or authoritative read proves the outcome");
+  assert(activityPage.includes("retryPendingCommand") && activityPage.includes("voidPendingCommand") && activityPage.includes("审计检索标识"), "activity workbench must expose explicit reuse and void paths with an audit lookup hook");
+  assert(activityRecovery.includes("createPendingActivityCommandRegistry") && activityRecovery.includes("activityCommandKey") && activityRecovery.includes("idempotencyKey") && activityRecovery.includes("tombstones") && activityRecovery.includes("BroadcastChannel") && activityRecovery.includes("lockManager.request"), "activity command recovery Module must synchronize revisioned tombstones and serialize first claims across tabs");
+  assert(activityPage.includes("ACTIVITY_CONTENT_WRITE") && activityPage.includes("ACTIVITY_PUBLISH") && activityPage.includes("ACTIVITY_SESSION_CONTROL") && activityPage.includes("ACTIVITY_ENROLLMENT_REVIEW"), "activity page must gate all writes through the four activity capabilities");
   assert(adapterApi.includes("/api/v1/admin/external-adapters"), "adapter Module must read the backend adapter catalog Interface");
   assert(adapterApi.includes("/api/v1/admin/orders/increment-preview"), "adapter Module must preview order increment sync through backend Interface");
   assert(adapterApi.includes("/api/v1/admin/orders/increment-execute") && adapterApi.includes("X-Request-Id"), "adapter Module must execute order increment sync with request id");

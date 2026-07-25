@@ -35,7 +35,7 @@ export async function exportOperationalAnalyticsCsv(filters = {}) {
   const query = buildQuery(filters);
   const adminToken = getAdminToken();
   const response = await fetch(`/api/v1/admin/operational-analytics/export${query ? `?${query}` : ""}`, {
-    headers: adminToken ? { "X-Admin-Token": adminToken, "X-ROOT-ADMIN-TOKEN": adminToken } : {},
+    headers: adminToken ? { "X-Admin-Token": adminToken } : {},
   });
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {

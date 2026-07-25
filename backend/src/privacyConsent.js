@@ -1,6 +1,7 @@
 const { nowISO } = require("./dates");
 const { isValidPrivacyContact } = require("./privacyConfig");
 const { createId } = require("./seed");
+const { createClientError } = require("./clientError");
 
 const HEALTH_CONSENT_TYPE = "HEALTH_SENSITIVE_INFO";
 const HEALTH_CONSENT_POLICY_VERSION = "health-sensitive-2026-07-11-v1";
@@ -116,10 +117,7 @@ function getHealthConsentStatus(data, rootUserId, context = {}) {
 }
 
 function consentError(code, message, status = 403) {
-  const error = new Error(message);
-  error.code = code;
-  error.status = status;
-  return error;
+  return createClientError(code, message, status);
 }
 
 function recordHealthConsentDecision(data, rootUserId, body = {}, context = {}) {

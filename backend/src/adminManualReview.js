@@ -38,9 +38,20 @@ function rewardReviewStatusFromBody(body = {}) {
   return decision || "RESOLVED";
 }
 
+function assertGenericResolutionAllowed(item) {
+  if (item && item.source_type === "TASK_SOURCE_INVALIDATION") {
+    throw businessError(
+      "SETTLEMENT_SOURCE_INVALIDATION_DEDICATED_RESOLVE_REQUIRED",
+      "该结算来源失效候选必须通过专用审计处理入口完成",
+      409
+    );
+  }
+}
+
 function resolveReviewItem(data, reviewItemId, body = {}) {
   const beforeReviewItem = (data.manualReviewItems || []).find((item) => item.manual_review_item_id === reviewItemId);
   if (!beforeReviewItem) throw businessError(404, "复核项不存在", 404);
+  assertGenericResolutionAllowed(beforeReviewItem);
   const beforeReview = clone(beforeReviewItem);
   const beforeReward = beforeReviewItem.source_type === "REWARD_GRANT"
     ? clone((data.rewardGrants || []).find((item) => item.reward_grant_id === beforeReviewItem.source_id) || null)
@@ -91,6 +102,13 @@ function resolveReviewBatch(data, body = {}) {
   if (!bool(body.confirmRisk || body.confirm_risk || body.confirmed)) {
     throw businessError(8015, "批量复核需要二次确认");
   }
+  const reviews = data.manualReviewItems || [];
+  reviewItemIds.forEach((reviewItemId) => {
+    const item = reviews.find((candidate) => (
+      candidate.manual_review_item_id === reviewItemId
+    ));
+    if (item) assertGenericResolutionAllowed(item);
+  });
   const items = reviewItemIds.map((reviewItemId) => resolveReviewItem(data, reviewItemId, {
     ...body,
     requestId,

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "myroot.local-mysql-execution-result.v1",
+  "observedAt": "2026-07-19T15:51:56+08:00",
+  "releaseTarget": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "authorizationPacket": {
+    "path": "docs/evidence/v1.0.0/mysql_001_065_local_authorization_packet_2026-07-19.json",
+    "sha256": "85a3fe25b73799be52bb5ccf983cb122acc218bfa3d174094a580c9e1428bd6e"
+  },
+  "scope": {
+    "environment": "LOCAL_DISPOSABLE_MYSQL_ONLY",
+    "host": "127.0.0.1",
+    "ephemeralRandomPortUsed": true,
+    "candidateConnected": false,
+    "productionConnected": false,
+    "externalMessageSent": false,
+    "commitCreated": false,
+    "pushPerformed": false,
+    "deploymentPerformed": false
+  },
+  "container": {
+    "imageDigest": "sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10",
+    "loopbackBindVerified": true,
+    "removedAfterFailure": true,
+    "temporaryListenerRemovedWithContainer": true,
+    "temporaryDatabasesAndPrincipalsRemovedWithContainer": true
+  },
+  "execution": {
+    "command": "npm run v1:mysql-001-065-authorized:check",
+    "status": "FAIL_HARNESS_ORCHESTRATION",
+    "tests": 12,
+    "passed": 7,
+    "failed": 5,
+    "skipped": 0,
+    "schemaSnapshotWriteExecuted": false,
+    "finalRepositoryVerifyExecutedAfterAttempt": false
+  },
+  "failures": [
+    {
+      "category": "PARALLEL_DISPOSABLE_SERVER_GUARD_COLLISION",
+      "affectedGroups": 4,
+      "stableCode": "MYSQL_SCHEMA_SNAPSHOT_SERVER_NOT_DISPOSABLE",
+      "meaning": "parallel test files created independent disposable databases on the same server, so each exact-marker guard observed another test database and failed closed"
+    },
+    {
+      "category": "DOCKER_NAT_PRINCIPAL_HOST_MISMATCH",
+      "affectedGroups": 1,
+      "stableCode": "ER_ACCESS_DENIED_ERROR",
+      "meaning": "the harness created a loopback-host principal while Docker Desktop presented the localhost client through its private bridge gateway"
+    }
+  ],
+  "businessAssertionResult": {
+    "migrationOrProcedureDefectProven": false,
+    "harnessDefectProven": true,
+    "localMysqlEngineProofClosed": false,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false
+  },
+  "nextAction": "fix deterministic sequential orchestration and private Docker gateway principal matching locally, freeze a superseding authorization packet, and obtain a new one-time authorization before rerun"
+}

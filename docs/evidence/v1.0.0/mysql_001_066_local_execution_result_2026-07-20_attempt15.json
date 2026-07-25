@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "myroot.local-mysql-execution-result.v1",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "attempt": 15,
+  "authorizationPacketAttempt": 16,
+  "packetSha256": "0616627c22584cbecc035eca01ead5322c8a63e9f14216d9bf0a0e03ee743105",
+  "authorizationNonce": "1220ef8a-5887-44d1-96d1-5efe6fe64ec7",
+  "status": "FAIL_FINAL_BACKEND_TESTS_WITHOUT_TAP_FAILURES_CLEANED",
+  "failureStage": "FINAL_REPOSITORY_VERIFY",
+  "provedBeforeFailure": {
+    "realEngineTestsPassed": 13,
+    "realEngineTestsFailed": 0,
+    "realEngineTestsSkipped": 0,
+    "migrationSetDigest": "c385ef2952d272a961420a5c3df5886cab7a36325cdf7729a13484744d561cb4",
+    "generatedTableCount": 56,
+    "schemaWriteMatches": true,
+    "schemaByteEqualityMatches": true,
+    "schemaProvenanceMatches": true
+  },
+  "observedFailure": {
+    "finalVerificationFailureLabels": ["Backend tests"],
+    "parsedTopLevelTapFailures": [],
+    "cause": "BACKEND_TEST_CHILD_TERMINATION_NOT_RETAINED_BY_R16_REPORT",
+    "code": "MYSQL_LOCAL_RUNNER_COMMAND_FAILED"
+  },
+  "postFailureDiagnostic": {
+    "mysqlStarted": false,
+    "candidateConnectionUsed": false,
+    "productionConnectionUsed": false,
+    "minimalEnvironmentBackendTests": {
+      "tests": 1366,
+      "passed": 1357,
+      "failed": 0,
+      "skipped": 9,
+      "exitCode": 0
+    },
+    "minimalEnvironmentFinalVerification": {
+      "passed": 17,
+      "failed": 1,
+      "backendTestsStatus": "PASS",
+      "onlyFailureReason": "RESTORED_PRE_R16_SCHEMA_PROVENANCE"
+    },
+    "conclusion": "R16_BACKEND_FAILURE_NOT_REPRODUCED; DO_NOT_CLASSIFY_WITHOUT_TERMINATION_METADATA"
+  },
+  "scope": {
+    "host": "127.0.0.1",
+    "port": "EPHEMERAL_RANDOM_HOST_PORT",
+    "mysqlVersion": "8.0.43",
+    "candidateConnectionUsed": false,
+    "productionConnectionUsed": false,
+    "deploymentPerformed": false
+  },
+  "cleanup": {
+    "containerRemoved": true,
+    "ownedContainersObservedAfterRun": 0,
+    "temporaryListenerRemoved": true,
+    "mutableOutputsRestored": true
+  },
+  "formalGateEffect": {
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "formalLaunchAuthorized": false
+  }
+}

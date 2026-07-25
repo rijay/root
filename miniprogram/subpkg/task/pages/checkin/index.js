@@ -5,6 +5,9 @@ const { todayChina } = require("../../../../utils/task-presenter");
 Page({
   data: {
     campaignId: "",
+    taskDefinitionId: "",
+    taskActivityAssignmentId: "",
+    taskDefinitionVersion: "",
     taskDate: "",
     tookProduct: null,
     hadStool: null,
@@ -25,6 +28,9 @@ Page({
   onLoad(options = {}) {
     this.setData({
       campaignId: options.campaignId || options.campaign_id || "",
+      taskDefinitionId: options.taskDefinitionId || options.task_definition_id || "",
+      taskActivityAssignmentId: options.taskActivityAssignmentId || options.task_activity_assignment_id || "",
+      taskDefinitionVersion: options.taskDefinitionVersion || options.task_definition_version || "",
       taskDate: todayChina(),
     });
   },
@@ -73,6 +79,9 @@ Page({
             hadStool: this.data.hadStool,
             stoolType: this.data.hadStool ? this.data.stoolType : "",
             feedback: this.data.feedback,
+            taskDefinitionId: this.data.taskDefinitionId || undefined,
+            taskActivityAssignmentId: this.data.taskActivityAssignmentId || undefined,
+            taskDefinitionVersion: this.data.taskDefinitionVersion || undefined,
           },
           idempotencyKey: `task-checkin:${this.data.campaignId || "default"}:${this.data.taskDate}`,
         },

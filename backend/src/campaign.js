@@ -1,5 +1,6 @@
 const { nowISO, todayISO } = require("./dates");
 const { createId } = require("./seed");
+const { createClientError } = require("./clientError");
 
 const DEFAULT_CAMPAIGN_ID = "ROOT_7D_RESET";
 
@@ -22,10 +23,7 @@ function ensureList(data, key) {
 }
 
 function businessError(code, message, status = 200) {
-  const error = new Error(message);
-  error.code = code;
-  error.status = status;
-  return error;
+  return createClientError(code, message, status);
 }
 
 function normalizeStatus(value) {

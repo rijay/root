@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "myroot.local-mysql-execution-result.v1",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "attempt": 19,
+  "authorizationPacketAttempt": 20,
+  "packetSha256": "c1cf65f6e16d4ab294ee8fd2e2e8bd7caef61cdc21f2ed766b88970a3d4b2370",
+  "authorizationNonce": "973dc694-21e8-46ca-9a26-eecab248ef1d",
+  "status": "FAIL_SINGLE_WALL_CLOCK_YOUZAN_TEST_CLEANED",
+  "failureStage": "FINAL_REPOSITORY_VERIFY",
+  "provedBeforeFailure": {
+    "realEngineTestsPassed": 13,
+    "realEngineTestsFailed": 0,
+    "realEngineTestsSkipped": 0,
+    "migrationSetDigest": "c385ef2952d272a961420a5c3df5886cab7a36325cdf7729a13484744d561cb4",
+    "generatedTableCount": 56,
+    "schemaWriteMatches": true,
+    "keyInventoryCheckConstraintCount": 9,
+    "keyInventoryCheckMatchingConstraintCount": 9,
+    "schemaByteEqualityMatches": true,
+    "schemaProvenanceMatches": true,
+    "schemaSnapshotSha256": "895aad618b6b0c34d06ae19684ffb3d4a4beda8bf994e212380727cd6d44819d"
+  },
+  "observedFailure": {
+    "finalVerificationFailureLabels": [
+      "Backend tests"
+    ],
+    "termination": {
+      "kind": "EXIT",
+      "exitCode": 1,
+      "signal": null,
+      "errorCode": null
+    },
+    "testSummary": {
+      "tests": 1368,
+      "passed": 1358,
+      "failed": 1,
+      "cancelled": 0,
+      "skipped": 9,
+      "todo": 0
+    },
+    "failingTests": [
+      "Youzan customer Adapter ignores stale scope expiry when using the global token"
+    ],
+    "primaryStableErrorCode": "UNKNOWN",
+    "failureType": "testCodeFailure",
+    "rootCause": "TEST_FIXTURE_GLOBAL_TOKEN_EXPIRY_CROSSED_WALL_CLOCK"
+  },
+  "postRunDiagnosis": {
+    "reproducedWithoutMysql": true,
+    "fixtureExpiryBeforeCorrection": "2026-07-20T12:00:00+08:00",
+    "policyFallbackClock": "Date.now()",
+    "productImplementationRegressionObserved": false
+  },
+  "cleanup": {
+    "containerRemoved": true,
+    "ownedContainersObservedAfterRun": 0,
+    "temporaryListenerRemoved": true,
+    "mutableOutputsRestored": true,
+    "nonceConsumed": true
+  },
+  "scope": {
+    "candidateConnectionUsed": false,
+    "productionConnectionUsed": false,
+    "deploymentPerformed": false
+  },
+  "formalGateEffect": {
+    "localMysqlClosureComplete": false,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "formalLaunchAuthorized": false
+  }
+}

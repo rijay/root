@@ -39,7 +39,7 @@
     </view>
 
     <view class="detail-list">
-      <view wx:for="{{tasks}}" wx:key="taskDefinitionId" class="root-card detail-task-card {{item.statusClass}}">
+      <view wx:for="{{tasks}}" wx:key="taskKey" class="root-card detail-task-card {{item.statusClass}}">
         <view class="detail-task-top">
           <view>
             <view class="task-type">{{item.typeLabel}}</view>
@@ -49,6 +49,7 @@
         </view>
         <view class="task-desc">{{item.description}}</view>
         <view class="task-count">完成 {{item.completedCount || 0}} 次 / 目标 {{item.targetCount || 1}} 次</view>
+        <view wx:if="{{item.sourceInvalidated}}" class="root-helper-text">来源活动已取消；已完成记录仍保留。</view>
       </view>
     </view>
   </view>

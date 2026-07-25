@@ -49,11 +49,11 @@
       <view class="eyebrow">下一步</view>
       <view class="primary-title">{{primaryTask.title}}</view>
       <view class="root-helper-text">{{primaryTask.description}}</view>
-      <button class="root-button primary-btn" data-task-id="{{primaryTask.taskDefinitionId}}" bindtap="openTask" loading="{{actionTaskId === primaryTask.taskDefinitionId}}" disabled="{{primaryTask.actionDisabled}}">{{primaryTask.actionLabel}}</button>
+      <button class="root-button primary-btn" data-task-key="{{primaryTask.taskKey}}" bindtap="openTask" loading="{{actionTaskId === primaryTask.taskKey}}" disabled="{{primaryTask.actionDisabled}}">{{primaryTask.actionLabel}}</button>
     </view>
 
     <view class="task-list">
-      <view wx:for="{{tasks}}" wx:key="taskDefinitionId" class="task-card {{item.statusClass}}">
+      <view wx:for="{{tasks}}" wx:key="taskKey" class="task-card {{item.statusClass}}">
         <view class="task-main">
           <view class="task-type">{{item.typeLabel}}</view>
           <view class="task-title">{{item.title}}</view>
@@ -62,7 +62,7 @@
         <view class="task-side">
           <view class="task-progress">{{item.progressText}}</view>
           <view class="task-status">{{item.statusLabel}}</view>
-          <button class="task-action" data-task-id="{{item.taskDefinitionId}}" bindtap="openTask" loading="{{actionTaskId === item.taskDefinitionId}}" disabled="{{item.actionDisabled}}">{{item.actionLabel}}</button>
+          <button class="task-action" data-task-key="{{item.taskKey}}" bindtap="openTask" loading="{{actionTaskId === item.taskKey}}" disabled="{{item.actionDisabled}}">{{item.actionLabel}}</button>
         </view>
       </view>
     </view>

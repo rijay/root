@@ -1,0 +1,112 @@
+<view class="root-page enrollments-page">
+  <view class="enrollments-head">
+    <view class="enrollments-kicker">MY ROOT ACTIVITIES</view>
+    <view class="enrollments-title">我的报名</view>
+    <view class="root-helper-text enrollments-copy">这里只展示运营后台返回的本人报名记录，不从任务或本地缓存推断。</view>
+  </view>
+
+  <view wx:if="{{result}}" class="root-card result-card result-card--{{result.kind}}">
+    <view class="state-label">取消结果</view>
+    <view class="root-section-title state-title">{{result.title}}</view>
+    <view class="root-helper-text state-copy">{{result.body}}</view>
+    <view wx:if="{{result.auditRef}}" class="root-helper-text state-copy">如需协助，可向 ROOT 顾问提供本次操作的审计检索标识：{{result.auditRef}}</view>
+    <button wx:if="{{result.retryAvailable}}" class="root-button state-action" bindtap="retryPendingCancel">复用原取消重试</button>
+    <button wx:if="{{result.voidAvailable}}" class="root-button root-button--secondary state-action" bindtap="voidPendingCancel">作废原取消，允许新意图</button>
+    <button wx:if="{{result.support}}" class="root-button root-button--secondary state-action" bindtap="openSupport">联系 ROOT 顾问</button>
+    <button class="text-action" bindtap="closeResult">知道了</button>
+  </view>
+
+  <view wx:if="{{viewState === 'loading'}}" class="root-card state-card">
+    <view class="root-helper-text">正在读取报名记录...</view>
+  </view>
+
+  <view wx:elif="{{viewState === 'guest'}}" class="root-card state-card">
+    <view class="state-label">需要登录</view>
+    <view class="root-section-title state-title">登录后查看报名记录</view>
+    <view class="root-helper-text state-copy">登录不会自动报名，也不会恢复或重放此前未确认的报名动作。</view>
+    <button class="root-button state-action" bindtap="goLogin">微信身份进入</button>
+  </view>
+
+  <view wx:elif="{{viewState === 'error'}}" class="root-card state-card">
+    <view class="state-label">数据源不可用</view>
+    <view class="root-section-title state-title">报名记录暂未加载</view>
+    <view class="root-helper-text state-copy">{{errorText}}</view>
+    <button class="root-button root-button--secondary state-action" bindtap="loadEnrollments">重新加载</button>
+    <button class="text-action" bindtap="openSupport">联系人工协助</button>
+  </view>
+
+  <view wx:elif="{{viewState === 'empty'}}" class="root-card state-card">
+    <view class="state-label">权威查询已返回</view>
+    <view class="root-section-title state-title">当前没有报名记录</view>
+    <view class="root-helper-text state-copy">报名成功、审核中、未通过与已取消都会保留在这里。现在可以先查看近期活动。</view>
+    <button class="root-button root-button--secondary state-action" bindtap="backToList">查看近期活动</button>
+  </view>
+
+  <view wx:else class="enrollment-groups">
+    <view wx:for="{{enrollmentGroups}}" wx:key="key" wx:for-item="group" class="enrollment-group">
+      <view class="enrollment-group__head">
+        <view class="enrollment-group__title">{{group.label}}</view>
+        <view class="root-helper-text enrollment-group__copy">{{group.copy}} · {{group.items.length}}</view>
+      </view>
+      <view class="enrollment-list">
+        <view wx:for="{{group.items}}" wx:key="enrollmentId" wx:for-item="item" class="enrollment-card" data-session-id="{{item.sessionId}}" bindtap="openDetail">
+          <view class="enrollment-card__top">
+            <view class="enrollment-status enrollment-status--{{item.enrollmentStatusTone}}">{{item.enrollmentStatusLabel}}</view>
+            <view class="enrollment-city">{{item.city}}</view>
+          </view>
+          <view class="enrollment-title">{{item.title}}</view>
+          <view class="enrollment-meta">{{item.startText}}</view>
+          <view class="enrollment-meta">{{item.venueSummary}}</view>
+          <view wx:if="{{item.canCancel}}" class="enrollment-meta enrollment-meta--cutoff">自助取消截止：{{item.cancelCloseText}}</view>
+          <button
+            wx:if="{{item.canCancel}}"
+            class="cancel-action"
+            data-enrollment-id="{{item.enrollmentId}}"
+            loading="{{cancelingId === item.enrollmentId}}"
+            disabled="{{cancelingId !== ''}}"
+            catchtap="confirmCancel"
+          >取消报名</button>
+          <view class="enrollment-arrow">{{item.detailAvailable ? '查看活动详情 →' : '活动已下架 · 记录保留'}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="pagination-state">
+      <button wx:if="{{hasMore && !isLoadingMore && !loadMoreError}}" class="load-more" bindtap="loadMore">加载更多报名记录</button>
+      <view wx:elif="{{isLoadingMore}}" class="root-helper-text">正在加载更多...</view>
+      <view wx:elif="{{loadMoreError}}">
+        <view class="root-helper-text">{{loadMoreError}}</view>
+        <button class="load-more load-more--retry" bindtap="loadMore">重新加载</button>
+      </view>
+      <view wx:elif="{{total !== null && enrollments.length >= total}}" class="root-helper-text">已显示全部 {{total}} 条报名记录</view>
+    </view>
+  </view>
+
+  <view wx:if="{{cancelSheetVisible && pendingCancel}}" class="sheet-mask" catchtouchmove="stopSheetTap" catchtap="closeCancelSheet">
+    <view class="confirmation-sheet" catchtap="stopSheetTap">
+      <view class="sheet-handle"></view>
+      <view class="state-label">ACT-V-02 · 请确认</view>
+      <view class="root-section-title sheet-title">确认取消报名？</view>
+      <view class="root-helper-text sheet-copy">取消结果以运营后台返回的报名记录为准，不会在本地提前改写。</view>
+      <view class="sheet-fact">{{pendingCancel.title}}</view>
+      <view class="sheet-fact">{{pendingCancel.startText}} · {{pendingCancel.venueSummary}}</view>
+      <view class="sheet-warning">
+        <view>自助取消截止：{{pendingCancel.cancelCloseText}}</view>
+        <view>{{pendingCancel.cancelPolicy}}</view>
+      </view>
+      <button class="root-button sheet-primary" loading="{{cancelingId !== ''}}" disabled="{{cancelingId !== ''}}" bindtap="confirmCancelFromSheet">确认取消</button>
+      <button class="root-button root-button--secondary sheet-secondary" disabled="{{cancelingId !== ''}}" bindtap="closeCancelSheet">暂不操作</button>
+    </view>
+  </view>
+
+  <view wx:if="{{voidSheetVisible}}" class="sheet-mask" catchtouchmove="stopSheetTap" catchtap="closeVoidSheet">
+    <view class="confirmation-sheet" catchtap="stopSheetTap">
+      <view class="sheet-handle"></view>
+      <view class="state-label">高风险操作</view>
+      <view class="root-section-title sheet-title">作废本机恢复记录？</view>
+      <view class="root-helper-text sheet-copy">作废不会撤销后台可能已经完成的取消。请先确认当前权威报名状态；作废后再次操作会创建新的幂等意图。</view>
+      <button class="root-button sheet-primary" bindtap="confirmVoidPendingCancel">确认作废</button>
+      <button class="root-button root-button--secondary sheet-secondary" bindtap="closeVoidSheet">保留原取消</button>
+    </view>
+  </view>
+</view>

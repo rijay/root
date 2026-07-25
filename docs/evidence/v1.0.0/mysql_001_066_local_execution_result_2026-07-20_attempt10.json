@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "myroot.local-mysql-execution-result.v10",
+  "observedAt": "2026-07-20T09:59:34+08:00",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "attempt": 10,
+  "authorizationPacket": {
+    "path": "docs/evidence/v1.0.0/mysql_001_066_local_authorization_packet_2026-07-20_r11.json",
+    "sha256": "d0369e06f7fb57a2085cd5a567bf775370fe0ae2a43178179465a435e7aa3016",
+    "singleUseNonce": "dd1a2ef2-8687-4509-a799-0960748cb6fd",
+    "singleUseNonceConsumed": true
+  },
+  "scope": {
+    "host": "127.0.0.1",
+    "port": "NOT_ALLOCATED",
+    "candidateConnected": false,
+    "productionConnected": false,
+    "deploymentPerformed": false,
+    "commitPerformed": false,
+    "pushPerformed": false
+  },
+  "container": {
+    "image": "mysql:8.0.43@sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10",
+    "imageId": "sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10",
+    "imageSizeBytes": 231488865,
+    "bindAddress": "127.0.0.1",
+    "randomHostPortAllocated": false,
+    "containerStarted": false,
+    "residualOwnedContainerCount": 0
+  },
+  "result": {
+    "status": "FAIL_PRE_DOCKER_DAEMON_UNAVAILABLE_NONCE_CONSUMED",
+    "exitCode": 1,
+    "failedStage": "PINNED_IMAGE_PRECHECK",
+    "runnerError": "MYSQL_LOCAL_RUNNER_PINNED_IMAGE_MISSING",
+    "actualCause": "DOCKER_DAEMON_UNAVAILABLE",
+    "authenticatedReadinessPassed": false,
+    "frozenCommandStarted": false,
+    "integrationTestsStarted": false,
+    "schemaSnapshotRun": false,
+    "finalRepositoryVerifyRun": false,
+    "schemaSnapshotSha256AfterFailure": "e84fe654b674981917c472cc73593657dd6a9189dd32b736ff1bae895be7a7c3"
+  },
+  "rootCauseAudit": {
+    "classification": "RUNNER_PRECHECK_ORDER_AND_ERROR_CLASSIFICATION_DEFECT",
+    "facts": [
+      "The Runner consumed the single-use nonce before checking Docker daemon and image availability.",
+      "ensureImagePresent mapped every docker image inspect failure, including daemon unavailable, to MYSQL_LOCAL_RUNNER_PINNED_IMAGE_MISSING.",
+      "After Docker Desktop became ready, exact digest inspection succeeded and docker pull reported Image is up to date."
+    ],
+    "requiredCorrection": [
+      "Check docker daemon availability and classify its failure before nonce consumption.",
+      "Check the exact pinned image before nonce consumption and distinguish image missing from daemon unavailable.",
+      "Repeat daemon and exact-image validation after nonce consumption immediately before docker run."
+    ]
+  },
+  "stopPolicy": {
+    "stoppedImmediately": true,
+    "automaticRetryPerformed": false,
+    "newAuthorizationRequiredForRetry": true
+  },
+  "cleanupVerification": {
+    "containerCleanupRequired": false,
+    "ownedContainerListEmptyAfterDockerReady": true,
+    "temporaryListenerCreated": false,
+    "temporaryDatabaseCreated": false,
+    "temporaryPrincipalCreated": false,
+    "mutableOutputsChanged": false
+  },
+  "formalGateEffect": {
+    "localMysqlEngineProofClosed": false,
+    "localSchemaSnapshotProvenanceClosed": false,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "liveDeliveryGateClosed": false
+  }
+}

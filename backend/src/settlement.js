@@ -5,6 +5,18 @@ const rewardGrant = require("./rewardGrant");
 const taskProgress = require("./taskProgress");
 const manualReview = require("./manualReview");
 
+const SOURCE_INVALIDATION_SOURCE_TYPE = "TASK_SOURCE_INVALIDATION";
+const SOURCE_INVALIDATION_HANDLER_VERSION = "settlement-source-invalidation-v1";
+const SOURCE_INVALIDATION_STOP_REVIEW_TYPE = "SETTLEMENT_STOP_CANDIDATE";
+const SOURCE_INVALIDATION_RECALC_REVIEW_TYPE = "SETTLEMENT_RECALC_CANDIDATE";
+const SOURCE_INVALIDATION_SETTLED_STATUSES = Object.freeze([
+  "QUALIFIED",
+  "UNQUALIFIED",
+  "NOT_QUALIFIED",
+  "ADJUSTED",
+  "REVIEW_REQUIRED",
+]);
+
 const DEFAULT_RULE_VERSION = {
   campaign_id: campaign.DEFAULT_CAMPAIGN_ID,
   version: 1,
@@ -68,6 +80,151 @@ function arrayValue(value) {
 
 function isPlainObject(value) {
   return value && typeof value === "object" && !Array.isArray(value);
+}
+
+function sourceInvalidationMetadata(value) {
+  if (isPlainObject(value)) return value;
+  if (typeof value !== "string") return null;
+  try {
+    const parsed = JSON.parse(value);
+    return isPlainObject(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function sourceInvalidationStateError() {
+  return businessError(
+    "SETTLEMENT_SOURCE_INVALIDATION_STATE_INVALID",
+    "任务来源失效后的结算状态不可验证",
+    503
+  );
+}
+
+function sourceInvalidationInstant(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const normalized = value.trim();
+  const mysql = normalized.match(
+    /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})(?:\.(\d{1,3}))?$/
+  );
+  const parsed = Date.parse(mysql
+    ? `${mysql[1]}T${mysql[2]}.${String(mysql[3] || "0").padEnd(3, "0")}+08:00`
+    : normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function sameSourceInvalidationInstant(left, right) {
+  const leftInstant = sourceInvalidationInstant(left);
+  return leftInstant !== null && leftInstant === sourceInvalidationInstant(right);
+}
+
+function validateSourceInvalidationCandidate(data, row, rootUserId, campaignId) {
+  const metadata = sourceInvalidationMetadata(row.metadata);
+  if (!isPlainObject(row)
+    || row.root_user_id !== rootUserId
+    || row.campaign_id !== campaignId
+    || ![SOURCE_INVALIDATION_STOP_REVIEW_TYPE, SOURCE_INVALIDATION_RECALC_REVIEW_TYPE]
+      .includes(row.review_type)
+    || row.source_type !== SOURCE_INVALIDATION_SOURCE_TYPE
+    || !text(row.source_id)
+    || row.reason !== "TASK_SOURCE_INVALIDATED"
+    || !["OPEN", "RESOLVED"].includes(row.status)
+    || row.priority !== "HIGH"
+    || !metadata
+    || metadata.contractVersion !== 1
+    || metadata.handlerVersion !== SOURCE_INVALIDATION_HANDLER_VERSION
+    || metadata.appendOnly !== true
+    || metadata.taskSourceInvalidationEventId !== row.source_id
+    || metadata.rootUserId !== rootUserId
+    || metadata.campaignId !== campaignId
+    || !text(metadata.campaignRuleVersionId)
+    || !Number.isSafeInteger(metadata.ruleVersion)
+    || metadata.ruleVersion < 1) throw sourceInvalidationStateError();
+
+  const idempotencyKey = [
+    "task-source-invalidation",
+    metadata.taskSourceInvalidationEventId,
+    "rule",
+    metadata.campaignRuleVersionId,
+    metadata.ruleVersion,
+  ].join(":");
+  const rule = ensureList(data, "campaignRuleVersions").find((candidate) => (
+    candidate.campaign_rule_version_id === metadata.campaignRuleVersionId
+      && candidate.campaign_id === campaignId
+      && Number(candidate.version) === metadata.ruleVersion
+  ));
+  if (row.idempotency_key !== idempotencyKey || !rule || rule.status !== "PUBLISHED") {
+    throw sourceInvalidationStateError();
+  }
+
+  const originalId = metadata.originalSettlementRecordId;
+  const originalStatus = metadata.originalSettlementStatus;
+  const originalEvaluatedAt = metadata.originalSettlementEvaluatedAt;
+  const original = originalId === null
+    ? null
+    : ensureList(data, "settlementRecords").find((candidate) => (
+      candidate.settlement_record_id === originalId
+    ));
+  if (originalId === null) {
+    if (originalStatus !== null || originalEvaluatedAt !== null) {
+      throw sourceInvalidationStateError();
+    }
+  } else if (!original
+    || original.root_user_id !== rootUserId
+    || original.campaign_id !== campaignId
+    || original.campaign_rule_version_id !== metadata.campaignRuleVersionId
+    || Number(original.rule_version) !== metadata.ruleVersion
+    || original.status !== originalStatus
+    || !sameSourceInvalidationInstant(
+      original.evaluated_at || original.created_at,
+      originalEvaluatedAt
+    )) {
+    throw sourceInvalidationStateError();
+  }
+
+  const stop = row.review_type === SOURCE_INVALIDATION_STOP_REVIEW_TYPE;
+  if (stop) {
+    if (metadata.candidateKind !== "STOP_OR_CANCEL"
+      || metadata.decision !== "STOP_AUTOMATIC_SETTLEMENT"
+      || ![null, "PENDING"].includes(originalStatus)) throw sourceInvalidationStateError();
+  } else if (metadata.candidateKind !== "ADJUSTMENT_OR_RECALCULATION"
+    || metadata.decision !== "RECALCULATION_REQUIRED"
+    || !SOURCE_INVALIDATION_SETTLED_STATUSES.includes(originalStatus)) {
+    throw sourceInvalidationStateError();
+  }
+  return { stop, row, metadata };
+}
+
+function sourceInvalidationCandidates(data, rootUserId, campaignId) {
+  return ensureList(data, "manualReviewItems")
+    .filter((item) => item && item.source_type === SOURCE_INVALIDATION_SOURCE_TYPE)
+    .filter((item) => item.root_user_id === rootUserId && item.campaign_id === campaignId)
+    .map((item) => validateSourceInvalidationCandidate(
+      data,
+      item,
+      rootUserId,
+      campaignId
+    ));
+}
+
+function assertSettlementSourceAvailable(data, rootUserId, campaignId, options = {}) {
+  const candidates = sourceInvalidationCandidates(data, rootUserId, campaignId);
+  const stop = candidates.find((candidate) => candidate.stop);
+  if (stop) {
+    throw businessError(
+      "SETTLEMENT_SOURCE_INVALIDATED",
+      "活动任务来源已取消，本次结算已停止",
+      409
+    );
+  }
+  if (options.forWrite === true && candidates.length > 0) {
+    throw businessError(
+      "SETTLEMENT_RECALCULATION_REQUIRED",
+      "原结算需通过追加调整流程复核，不能自动重算或覆盖",
+      409
+    );
+  }
+  return true;
 }
 
 function normalizeLogic(value) {
@@ -286,6 +443,7 @@ function latestSettlementRecord(data, rootUserId, campaignId) {
 function previewSettlement(data, rootUserId, campaignId = "", options = {}) {
   const activeCampaign = campaign.getActiveCampaign(data, { ...options, campaignId });
   const ruleVersion = latestPublishedRuleVersion(data, activeCampaign.campaign_id, options.version || null);
+  assertSettlementSourceAvailable(data, rootUserId, activeCampaign.campaign_id);
   const result = buildSettlementResult(data, rootUserId, activeCampaign.campaign_id, ruleVersion);
   return {
     campaign: campaign.toCampaignPayload(activeCampaign, campaign.findParticipant(data, rootUserId, activeCampaign.campaign_id)),
@@ -297,6 +455,9 @@ function previewSettlement(data, rootUserId, campaignId = "", options = {}) {
 function evaluateSettlement(data, rootUserId, campaignId = "", options = {}) {
   const preview = previewSettlement(data, rootUserId, campaignId, options);
   const ruleVersion = latestPublishedRuleVersion(data, preview.campaign.campaignId, options.version || null);
+  assertSettlementSourceAvailable(data, rootUserId, preview.campaign.campaignId, {
+    forWrite: true,
+  });
   const now = nowISO();
   const record = {
     settlement_record_id: createId("str"),

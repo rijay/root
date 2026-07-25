@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "myroot.local-mysql-execution-result.v1",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "attempt": 11,
+  "authorizationPacketAttempt": 12,
+  "packetSha256": "92098c9ba407f060c0298506383c5e6aca11c0d09537792fec5b10d162a71f9a",
+  "authorizationNonce": "7c9c8726-290e-4345-957a-9f04453002aa",
+  "status": "FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED",
+  "failureStage": "REAL_ENGINE_TESTS",
+  "observedFailure": {
+    "enabledTestsPassed": 9,
+    "enabledTestsFailed": 4,
+    "enabledTestsSkipped": 0,
+    "cause": "FOUR_INTEGRATION_TESTS_EXPECTED_MIGRATION_065_AFTER_MIGRATION_066_WAS_FROZEN",
+    "failedTestOrdinals": [7, 9, 11, 13]
+  },
+  "scope": {
+    "host": "127.0.0.1",
+    "port": "EPHEMERAL_RANDOM_HOST_PORT",
+    "mysqlVersion": "8.0.43",
+    "candidateConnectionUsed": false,
+    "productionConnectionUsed": false,
+    "deploymentPerformed": false
+  },
+  "cleanup": {
+    "containerRemoved": true,
+    "temporaryListenerRemoved": true,
+    "mutableOutputsRestored": true
+  },
+  "formalGateEffect": {
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "formalLaunchAuthorized": false
+  }
+}

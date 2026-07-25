@@ -13,7 +13,7 @@ function row(statement) {
 test("MySQL privilege policy accepts only the required schema-scoped grants", () => {
   const status = evaluateMysqlGrantRows([
     row("GRANT USAGE ON *.* TO `myroot_app_v2`@`%`"),
-    row("GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER ON `myroot-prod-d5gl3gzg7115f149a`.* TO `myroot_app_v2`@`%`"),
+    row("GRANT SELECT, INSERT, UPDATE, DELETE ON `myroot-prod-d5gl3gzg7115f149a`.* TO `myroot_app_v2`@`%`"),
   ], { database: "myroot-prod-d5gl3gzg7115f149a" });
 
   assert.equal(status.ready, true);
@@ -24,7 +24,7 @@ test("MySQL privilege policy accepts only the required schema-scoped grants", ()
 
 test("MySQL privilege policy rejects global data grants and grant option", () => {
   const status = evaluateMysqlGrantRows([
-    row("GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER ON *.* TO `myroot_app`@`%` WITH GRANT OPTION"),
+    row("GRANT SELECT, INSERT, UPDATE, DELETE ON *.* TO `myroot_app`@`%` WITH GRANT OPTION"),
   ], { database: "myroot-prod-d5gl3gzg7115f149a" });
 
   assert.equal(status.ready, false);
@@ -40,7 +40,7 @@ test("MySQL privilege policy rejects global data grants and grant option", () =>
 test("MySQL privilege policy rejects grants on any additional schema or object", () => {
   const status = evaluateMysqlGrantRows([
     row("GRANT USAGE ON *.* TO `myroot_app_v2`@`%`"),
-    row("GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER ON `myroot-prod-d5gl3gzg7115f149a`.* TO `myroot_app_v2`@`%`"),
+    row("GRANT SELECT, INSERT, UPDATE, DELETE ON `myroot-prod-d5gl3gzg7115f149a`.* TO `myroot_app_v2`@`%`"),
     row("GRANT SELECT ON `analytics`.* TO `myroot_app_v2`@`%`"),
     row("GRANT UPDATE ON `operations`.`manual_review` TO `myroot_app_v2`@`%`"),
   ], { database: "myroot-prod-d5gl3gzg7115f149a" });
@@ -49,6 +49,15 @@ test("MySQL privilege policy rejects grants on any additional schema or object",
   assert.equal(status.scope, "SCHEMA");
   assert.equal(status.unexpectedScopeCount, 2);
   assert.ok(status.issues.includes("UNEXPECTED_SCHEMA_SCOPES:2"));
+});
+
+test("MySQL runtime privilege policy rejects migration DDL privileges", () => {
+  const status = evaluateMysqlGrantRows([
+    row("GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER ON `myroot-prod-d5gl3gzg7115f149a`.* TO `myroot_app_v2`@`%`"),
+  ], { database: "myroot-prod-d5gl3gzg7115f149a" });
+
+  assert.equal(status.ready, false);
+  assert.deepEqual(status.unexpectedSchemaPrivileges, ["ALTER", "CREATE"]);
 });
 
 test("MySQL privilege policy is mandatory in production", () => {

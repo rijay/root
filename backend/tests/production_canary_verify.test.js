@@ -45,10 +45,17 @@ test("canary verifier attributes candidate health and executes the candidate-onl
       return jsonResponse(200, { code: 0, data: { service: "root-checkin", version: "0.5.5", releaseId: "0.5.5", store: {
         kind: "mysql",
         connected: true,
-        migrationVersion: "005_notification_subscription_grants.sql",
+        migrationVersion: "066_v1_runtime_alert_delivery_severity_slo_authority.sql",
         leastPrivilegeReady: true,
         privilegeScope: "SCHEMA",
         privilegePolicyEnforced: true,
+        runtimeAlertDeliveryEnabled: true,
+        runtimePrincipalReady: true,
+        runtimePrincipalRequiredRoleCount: 3,
+        runtimePrincipalVerifiedRoleCount: 3,
+        runtimePrincipalRequiredRoutineCount: 21,
+        runtimePrincipalVerifiedRoutineCount: 21,
+        runtimePrincipalIssueCount: 0,
       } } });
     }
     if (path === "/api/v1/privacy/notice") return privacyNoticeResponse("0.5.5");
@@ -71,6 +78,7 @@ test("canary verifier attributes candidate health and executes the candidate-onl
   const options = parseArgs([
     "--base-url", "https://root.example.com",
     "--expected-version", "0.5.5",
+    "--expect-runtime-alert-delivery",
     "--attempts", "3",
     "--interval-ms", "0",
     "--execute-object-probe",
@@ -87,6 +95,9 @@ test("canary verifier attributes candidate health and executes the candidate-onl
   assert.equal(report.ready.store.connected, true);
   assert.equal(report.ready.store.leastPrivilegeReady, true);
   assert.equal(report.ready.store.privilegeScope, "SCHEMA");
+  assert.equal(report.ready.store.runtimePrincipalReady, true);
+  assert.equal(report.ready.store.runtimePrincipalVerifiedRoleCount, 3);
+  assert.equal(report.expectedRuntimeAlertDeliveryEnabled, true);
   assert.equal(report.privacyNotice.status, "PASS");
   assert.equal(report.privacyNotice.privacyNotice.contactValid, true);
   assert.equal(report.objectProbe.status, "PASS");
@@ -112,7 +123,7 @@ test("canary verifier is read-only unless the object probe flag is explicit", as
       ...(path === "/ready" ? { store: {
         kind: "mysql",
         connected: true,
-        migrationVersion: "005_notification_subscription_grants.sql",
+        migrationVersion: "066_v1_runtime_alert_delivery_severity_slo_authority.sql",
         leastPrivilegeReady: true,
         privilegeScope: "SCHEMA",
         privilegePolicyEnforced: true,
@@ -154,7 +165,7 @@ test("canary verifier blocks a candidate that has not applied the latest migrati
 
   assert.equal(report.status, "FAIL");
   assert.equal(report.ready.status, "FAIL");
-  assert.match(report.ready.reason, /005_notification_subscription_grants\.sql/);
+  assert.match(report.ready.reason, /066_v1_runtime_alert_delivery_severity_slo_authority\.sql/);
   assert.equal(determineExitCode(report), 3);
 });
 
@@ -174,7 +185,7 @@ test("canary verifier blocks a MySQL candidate without enforced schema-scoped pr
       ...(isReady ? { store: {
         kind: "mysql",
         connected: true,
-        migrationVersion: "005_notification_subscription_grants.sql",
+        migrationVersion: "066_v1_runtime_alert_delivery_severity_slo_authority.sql",
         leastPrivilegeReady: false,
         privilegeScope: "GLOBAL",
         privilegePolicyEnforced: false,
@@ -188,6 +199,52 @@ test("canary verifier blocks a MySQL candidate without enforced schema-scoped pr
   assert.equal(report.ready.status, "FAIL");
   assert.match(report.ready.reason, /least-privilege/);
   assert.equal(determineExitCode(report), 3);
+});
+
+test("canary verifier fails closed when runtime principal authority is expected or incomplete", async () => {
+  const options = parseArgs([
+    "--base-url", "https://root.example.com",
+    "--expected-version", "0.5.6",
+    "--attempts", "1",
+    "--interval-ms", "0",
+    "--expect-runtime-alert-delivery",
+  ], {});
+  for (const storeDrift of [
+    {},
+    {
+      runtimeAlertDeliveryEnabled: true,
+      runtimePrincipalReady: false,
+      runtimePrincipalRequiredRoleCount: 3,
+      runtimePrincipalVerifiedRoleCount: 2,
+      runtimePrincipalRequiredRoutineCount: 21,
+      runtimePrincipalVerifiedRoutineCount: 20,
+      runtimePrincipalIssueCount: 1,
+    },
+  ]) {
+    const fetchImpl = async (url) => {
+      const path = new URL(url).pathname;
+      if (path === "/api/v1/privacy/notice") return privacyNoticeResponse("0.5.6");
+      return jsonResponse(200, { code: 0, data: {
+        service: "root-checkin",
+        version: "0.5.6",
+        releaseId: "0.5.6",
+        ...(path === "/ready" ? { store: {
+          kind: "mysql",
+          connected: true,
+          migrationVersion: "066_v1_runtime_alert_delivery_severity_slo_authority.sql",
+          leastPrivilegeReady: true,
+          privilegeScope: "SCHEMA",
+          privilegePolicyEnforced: true,
+          ...storeDrift,
+        } } : {}),
+      } });
+    };
+    const report = await runCanaryVerification(options, { fetchImpl });
+    assert.equal(report.status, "FAIL");
+    assert.equal(report.ready.status, "FAIL");
+    assert.match(report.ready.reason, /runtime (?:alert delivery|principal authority)/);
+    assert.equal(determineExitCode(report), 3);
+  }
 });
 
 test("canary verifier blocks an incomplete public privacy notice", async () => {
@@ -209,7 +266,7 @@ test("canary verifier blocks an incomplete public privacy notice", async () => {
       ...(path === "/ready" ? { store: {
         kind: "mysql",
         connected: true,
-        migrationVersion: "005_notification_subscription_grants.sql",
+        migrationVersion: "066_v1_runtime_alert_delivery_severity_slo_authority.sql",
         leastPrivilegeReady: true,
         privilegeScope: "SCHEMA",
         privilegePolicyEnforced: true,

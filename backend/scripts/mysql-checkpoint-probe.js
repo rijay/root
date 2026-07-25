@@ -221,7 +221,7 @@ async function runProbe(env = process.env, argv = process.argv.slice(2)) {
     concurrentWriteVisibleAfterResume,
     restartPersistence: persisted,
     pass: baselineMigration === "004_external_evidence_minimization.sql" &&
-      schema.versions.at(-1) === "005_notification_subscription_grants.sql" &&
+      schema.versions.at(-1) === "006_command_event_foundation.sql" &&
       grantColumnCount >= 20 &&
       schema.grantProjectionStatus === "CONSUMED" &&
       expectedColumns.every((column) => schema.columns.includes(column)) &&

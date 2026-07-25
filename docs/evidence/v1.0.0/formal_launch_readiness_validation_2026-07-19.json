@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "myroot.formal-launch-readiness-validation.v1",
+  "observedAt": "2026-07-20T04:50:00+08:00",
+  "releaseTarget": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "status": "PASS_MATRIX_VALID_NOT_READY_NON_AUTHORIZING",
+  "derivedReadiness": {
+    "status": "NOT_READY",
+    "gateCount": 14,
+    "openGateCount": 14,
+    "hardBlockerCount": 3,
+    "closedGateCount": 0,
+    "formalLaunchAuthorized": false,
+    "matrixDigest": "7788123ec1b59b4e46192b46beb8a6695a6e486c31c07adc4c6a024959838293"
+  },
+  "frozenInputs": [
+    {
+      "path": "contracts/formal-launch-readiness/v1.0.0.json",
+      "sha256": "bc78448516a269e0cecdc5ea4bef574c644e63bc20d156c13a9df21d37ed2689"
+    },
+    {
+      "path": "backend/src/formalLaunchReadinessRegistry.js",
+      "sha256": "063a0ede7ccf2becc2fd739ec66133b293ef745fd9f2e8cf80dcf532b6c66fc9"
+    },
+    {
+      "path": "backend/tests/formal_launch_readiness_registry.test.js",
+      "sha256": "8dbfcffb0120f7343f55b29fd1adc26c168a2433b2a779b11c38734bdba4d69b"
+    },
+    {
+      "path": "scripts/validate-formal-launch-readiness.js",
+      "sha256": "69e7a30983856968cf75f10c8cdf73543fd14f1d0bbbeff7a11ddf68c0465a7c"
+    },
+    {
+      "path": "docs/evidence/v1.0.0/formal_launch_gate_readiness_matrix_2026-07-19.json",
+      "sha256": "881c2d6585d39c4950bcc0f3f117d3dd85365c4f948f901294ab5849aa20c411"
+    }
+  ],
+  "checks": {
+    "formalLaunchReadinessRegistry": {
+      "status": "PASS",
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    "artifactProvenance": {
+      "status": "PASS",
+      "tests": 8,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "formalReadinessContractIncludedInGovernanceDigest": true
+    },
+    "backend": {
+      "status": "PASS_WITH_REAL_ENGINE_SKIPS",
+      "tests": 1317,
+      "passed": 1308,
+      "failed": 0,
+      "skipped": 9
+    },
+    "foundation": {
+      "status": "PASS"
+    },
+    "finalVerification": {
+      "status": "FAIL_EXPECTED_SCHEMA_PROVENANCE_OPEN",
+      "passed": 17,
+      "failed": 1,
+      "total": 18,
+      "javascriptFiles": 450,
+      "migrationFiles": 66,
+      "onlyFailure": "Generated MySQL schema snapshot provenance"
+    }
+  },
+  "authority": {
+    "matrixCanAuthorizeLaunch": false,
+    "validatorCanAuthorizeLaunch": false,
+    "allGatesStructurallyClosedWouldOnlyPermitSeparateDecision": true,
+    "candidateConnectionAuthorized": false,
+    "productionConnectionAuthorized": false,
+    "remoteWriteAuthorized": false,
+    "deploymentAuthorized": false,
+    "realSendAuthorized": false,
+    "formalLaunchAuthorized": false
+  }
+}

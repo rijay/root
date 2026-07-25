@@ -148,7 +148,13 @@ function confirmImport(data, batchId, options = {}) {
   if (batch.status === "CONFIRMED") return publicBatch(batch);
   if (batch.status !== "PREVIEWED") throw importError(4104, "当前批次不可确认导入");
 
-  const result = externalAdapterSamples.importExternalSamples(data, batch.source_type, batch.input, options.dateText);
+  const result = externalAdapterSamples.importExternalSamples(
+    data,
+    batch.source_type,
+    batch.input,
+    options.dateText,
+    options
+  );
   const review = externalAdapterSamples.recordExternalSampleReview(data, "IMPORT_CONFIRM", result);
   batch.status = "CONFIRMED";
   batch.result = { ...result, review };

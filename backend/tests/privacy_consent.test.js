@@ -85,7 +85,15 @@ test("health consent rejects a non-actionable privacy contact", () => {
 });
 
 test("HTTP sensitive writes require current consent while products remain available", async (t) => {
-  const server = createApp({ env: consentEnv });
+  const server = createApp({
+    env: consentEnv,
+    trustedWechatIdentityAdapter: async ({ request: incomingRequest }) => ({
+      openid: incomingRequest.headers["x-wx-openid"],
+      unionid: incomingRequest.headers["x-wx-unionid"] || "",
+      appCode: "MYROOT",
+      source: "CLOUDBASE",
+    }),
+  });
   const baseUrl = await listen(server);
   t.after(() => server.close());
 

@@ -252,7 +252,7 @@ function autoMatchOrdersForUser(data, user, options = {}) {
   return { status: "MATCHED", matches: [autoMatchOrderByReceiverPhone(data, candidates[0], options)] };
 }
 
-function syncManualOrder(data, body = {}) {
+function syncManualOrder(data, body = {}, context = {}) {
   const receiverPhone = normalizePhone(body.receiverPhone || body.receiver_phone || body.phone);
   const orderNo = body.youzanOrderNo || body.youzan_order_no;
   const youzanYzUid = youzanCustomerMirror.customerYzUid(body);
@@ -312,7 +312,7 @@ function syncManualOrder(data, body = {}) {
       ...body,
       youzanYzUid,
       phone: receiverPhone,
-    }, { sourceChannel: "YOUZAN_ORDER" });
+    }, { sourceChannel: "YOUZAN_ORDER", env: context.env });
     if (!order.user_id && customerResult.rootUserId) {
       const user = ensureList(data, "users").find((item) => (item.root_user_id || item.user_id) === customerResult.rootUserId);
       if (user) bindOrderToUser(data, order, user, "AUTO_YOUZAN_CUSTOMER", body.importDate || body.import_date || todayISO());

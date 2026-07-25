@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "myroot.r5-preparation-verification.v1",
+  "observedAt": "2026-07-19T20:49:00+08:00",
+  "releaseTarget": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "status": "R5_PREPARED_NOT_AUTHORIZED_LOCAL_CONTRACTS_PASS_FORMAL_GATES_OPEN",
+  "authorizationPacket": {
+    "path": "docs/evidence/v1.0.0/mysql_001_065_local_authorization_packet_2026-07-19_r5.json",
+    "sha256": "fbebc88c7cae403f7a8a37ecb13ae1961217c527a459b3aad5edeb97140baf9a",
+    "singleUseNonce": "b6424a60-aea0-401d-9688-f1aa21eec614",
+    "authorized": false,
+    "executed": false
+  },
+  "checks": {
+    "runnerAndPacketContracts": {
+      "command": "node --test backend/tests/mysql_local_authorized_runner.test.js backend/tests/mysql_local_authorization_packet_contract.test.js",
+      "status": "PASS",
+      "tests": 26,
+      "passed": 26,
+      "failed": 0,
+      "skipped": 0
+    },
+    "backend": {
+      "command": "npm test --prefix backend",
+      "status": "PASS_WITH_REAL_ENGINE_SKIPS",
+      "tests": 1280,
+      "passed": 1271,
+      "failed": 0,
+      "skipped": 9
+    },
+    "foundation": {
+      "command": "npm run v1:foundation:check",
+      "status": "PASS"
+    },
+    "finalVerification": {
+      "command": "npm run verify -- --json",
+      "status": "FAIL_EXPECTED_SCHEMA_PROVENANCE_OPEN",
+      "total": 18,
+      "passed": 17,
+      "failed": 1,
+      "onlyFailure": "Generated MySQL schema snapshot provenance",
+      "javascriptFiles": 442,
+      "migrationFiles": 65
+    },
+    "unauthorizedGuard": {
+      "status": "PASS",
+      "runnerError": "MYSQL_LOCAL_RUNNER_NOT_AUTHORIZED",
+      "dockerStarted": false,
+      "residualOwnedContainerCount": 0
+    }
+  },
+  "r5Corrections": {
+    "boundedRedactedChildDiagnostic": true,
+    "maximumRetainedUtf8BytesPerChannel": 4096,
+    "stdoutStderrSeparated": true,
+    "fullRedactionBeforeTail": true,
+    "terminationKinds": ["EXIT", "SIGNAL", "SPAWN_ERROR", "BUFFER_LIMIT"],
+    "childEnvironmentAllowlist": true,
+    "explicitTapReporter": true,
+    "rawChildOutputSuppressed": true,
+    "diagnosticEmittedAfterCleanup": true
+  },
+  "scope": {
+    "dockerExecutionPerformedForR5": false,
+    "candidateConnected": false,
+    "productionConnected": false,
+    "deploymentPerformed": false,
+    "commitPerformed": false,
+    "pushPerformed": false
+  },
+  "formalGateEffect": {
+    "localMysqlEngineProofClosed": false,
+    "localSchemaSnapshotProvenanceClosed": false,
+    "remoteCiRequiredCheckClosed": false,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "formalLaunchAuthorized": false
+  }
+}

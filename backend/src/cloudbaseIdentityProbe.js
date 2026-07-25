@@ -1,4 +1,5 @@
 const { normalizeAppCode } = require("./identity");
+const { normalizeVerifiedAssertion } = require("./trustedWechatIdentity");
 
 function readHeader(headers = {}, name) {
   const lowerName = name.toLowerCase();
@@ -20,24 +21,53 @@ function makeCheck(id, label, status, message) {
 
 function buildCloudbaseIdentityProbe(input = {}) {
   const headers = input.headers || {};
-  const appCode = normalizeAppCode(input.appCode || input.app_code || readHeader(headers, "x-root-app-code") || "MYROOT");
-  const openid = String(readHeader(headers, "x-wx-openid") || "").trim();
-  const unionid = String(readHeader(headers, "x-wx-unionid") || "").trim();
+  const requestedAppCodeValue = input.appCode || input.app_code || readHeader(headers, "x-root-app-code");
+  const requestedAppCode = requestedAppCodeValue ? normalizeAppCode(requestedAppCodeValue) : "";
+  const rawOpenidHeaderObserved = Boolean(String(readHeader(headers, "x-wx-openid") || "").trim());
+  const rawUnionidHeaderObserved = Boolean(String(readHeader(headers, "x-wx-unionid") || "").trim());
+  const trustedInput = input.trustedWechatIdentity || input.trusted_wechat_identity || null;
+  const trustedIdentity = trustedInput ? normalizeVerifiedAssertion(trustedInput) : null;
+  const appCode = trustedIdentity ? trustedIdentity.appCode : normalizeAppCode(requestedAppCodeValue || "MYROOT");
+  const appCodeMismatch = Boolean(trustedIdentity && requestedAppCode && requestedAppCode !== trustedIdentity.appCode);
+  const openid = trustedIdentity ? trustedIdentity.openid : "";
+  const unionid = trustedIdentity ? trustedIdentity.unionid : "";
   const appid = String(readHeader(headers, "x-wx-appid") || readHeader(headers, "x-wx-from-appid") || "").trim();
   const openidPresent = Boolean(openid);
   const unionidPresent = Boolean(unionid);
   const checks = [
     makeCheck(
       "openid_header",
-      "CloudBase openid 透传",
-      openidPresent ? "PASS" : "BLOCKER",
-      openidPresent ? "已收到 x-wx-openid，可用作当前小程序登录凭据。" : "未收到 x-wx-openid，CloudBase 到后端的微信身份透传不可用。"
+      "CloudBase openid 原始头观测",
+      "WARNING",
+      rawOpenidHeaderObserved
+        ? "已观测到 x-wx-openid；原始请求头不可作为登录凭据，仍需可信身份 Adapter 验证。"
+        : "未观测到 x-wx-openid，CloudBase 到后端的身份传输路径尚未得到验证。"
     ),
     makeCheck(
       "unionid_header",
-      "CloudBase unionid 透传",
-      unionidPresent ? "PASS" : "WARNING",
-      unionidPresent ? "已收到 x-wx-unionid，可验证两个小程序账号打通。" : "未收到 x-wx-unionid，微信开放平台认证或应用绑定完成后需复测。"
+      "CloudBase unionid 原始头观测",
+      "WARNING",
+      rawUnionidHeaderObserved
+        ? "已观测到 x-wx-unionid；原始请求头不能证明两个小程序账号已可信打通。"
+        : "未观测到 x-wx-unionid，微信开放平台认证或应用绑定完成后需复测。"
+    ),
+    makeCheck(
+      "trusted_identity",
+      "可信微信身份断言",
+      openidPresent ? "PASS" : "BLOCKER",
+      openidPresent
+        ? `可信身份 Adapter 已验证 ${trustedIdentity.source} 身份断言。`
+        : "未取得可信微信身份 Adapter 的断言；不得用原始 X-WX-* 请求头登录或关闭身份 Gate。"
+    ),
+    makeCheck(
+      "trusted_app_code",
+      "可信微信应用归属",
+      appCodeMismatch ? "BLOCKER" : trustedIdentity ? "PASS" : "BLOCKER",
+      appCodeMismatch
+        ? "请求应用与可信身份 Adapter 断言的 appCode 不一致，禁止绑定。"
+        : trustedIdentity
+          ? `应用归属由可信身份 Adapter 断言为 ${trustedIdentity.appCode}。`
+          : "未取得可信 appCode，客户端 body/header 不能决定微信身份所属应用。"
     ),
     makeCheck(
       "privacy_guard",
@@ -46,10 +76,10 @@ function buildCloudbaseIdentityProbe(input = {}) {
       "探针只返回脱敏预览，不返回原始 openid / unionid。"
     ),
   ];
-  const status = !openidPresent ? "BLOCKED" : unionidPresent ? "READY" : "UNIONID_PENDING";
+  const status = !openidPresent || appCodeMismatch ? "BLOCKED" : unionidPresent ? "READY" : "UNIONID_PENDING";
   const nextActions = [];
   if (!openidPresent) {
-    nextActions.push("确认请求经过 CloudBase 微信小程序运行环境，并检查后端是否接收到 x-wx-openid。");
+    nextActions.push("接入并验证 CloudBase 或微信网关可信身份 Adapter，再用同一路径复测；原始请求头观测不能替代该证明。");
   }
   if (!unionidPresent) {
     nextActions.push("微信开放平台认证通过并绑定两个小程序后，使用同一路径复测 x-wx-unionid。");
@@ -61,10 +91,13 @@ function buildCloudbaseIdentityProbe(input = {}) {
   return {
     status,
     appCode,
-    source: "cloudbase_headers",
+    source: trustedIdentity ? trustedIdentity.source : "UNVERIFIED_TRANSPORT",
+    appCodeMismatch,
     readyForUnionPrimaryKey: openidPresent && unionidPresent,
     openidPresent,
     unionidPresent,
+    rawOpenidHeaderObserved,
+    rawUnionidHeaderObserved,
     openidPreview: maskIdentity(openid),
     unionidPreview: maskIdentity(unionid),
     appidPreview: maskIdentity(appid),

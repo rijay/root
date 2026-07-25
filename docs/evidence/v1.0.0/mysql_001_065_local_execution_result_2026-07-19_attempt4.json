@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "myroot.local-mysql-execution-result.v4",
+  "observedAt": "2026-07-19T20:23:05+08:00",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "attempt": 4,
+  "authorizationPacket": {
+    "path": "docs/evidence/v1.0.0/mysql_001_065_local_authorization_packet_2026-07-19_r4.json",
+    "sha256": "33eee9694f17fbae7a699671e4a72b5a61d80c3a9d8ea2d8f6f2160ce58dd24e",
+    "singleUseNonceConsumed": true
+  },
+  "scope": {
+    "host": "127.0.0.1",
+    "port": "EPHEMERAL_RANDOM_HOST_PORT",
+    "candidateConnected": false,
+    "productionConnected": false,
+    "deploymentPerformed": false,
+    "commitPerformed": false,
+    "pushPerformed": false
+  },
+  "container": {
+    "image": "mysql:8.0.43@sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10",
+    "bindAddress": "127.0.0.1",
+    "randomHostPort": true,
+    "removed": true,
+    "residualOwnedContainerCount": 0
+  },
+  "result": {
+    "status": "FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED",
+    "exitCode": 1,
+    "failedStage": "FROZEN_V1_MYSQL_001_065_AUTHORIZED_CHECK",
+    "runnerError": "MYSQL_LOCAL_RUNNER_COMMAND_FAILED:npm run v1:mysql-001-065-authorized:check:EXIT_1",
+    "authenticatedReadinessPassed": true,
+    "frozenCommandStarted": true,
+    "integrationTestsStarted": true,
+    "integrationTestsExpected": 13,
+    "integrationTestOutcomeAvailable": false,
+    "integrationTestOutcomeUnavailableReason": "The current runner buffers the child test process and emits its stdout/stderr only after a successful exit; on EXIT_1 it returned only the stable runner error.",
+    "schemaSnapshotRun": false,
+    "finalRepositoryVerifyRun": false,
+    "schemaSnapshotSha256AfterFailure": "e84fe654b674981917c472cc73593657dd6a9189dd32b736ff1bae895be7a7c3",
+    "schemaSnapshotMtimeAfterFailure": "2026-07-18T19:30:22+08:00"
+  },
+  "diagnosticBoundary": {
+    "confirmed": "Pinned MySQL 8.0.43 passed host-side authenticated readiness, then the exact frozen v1:mysql-001-065-authorized:check exited 1.",
+    "notProven": "The failing test group and TAP counts are unavailable from this execution because the runner did not emit buffered child output on failure.",
+    "requiredCorrection": "Preserve a bounded and redacted child-test diagnostic on command failure, determine the failing group without reusing this authorization, freeze changed bytes in a new packet, and require a new single-use authorization before any retry."
+  },
+  "stopPolicy": {
+    "stoppedImmediately": true,
+    "automaticRetryPerformed": false,
+    "newAuthorizationRequiredForRetry": true
+  },
+  "cleanupVerification": {
+    "runnerReportedContainerRemoved": true,
+    "ownedContainerNameListEmptyAfterExit": true,
+    "ownedContainerLabelListEmptyAfterExit": true,
+    "temporaryListenerRemovedWithContainer": true,
+    "temporaryDatabasesRemovedWithContainer": true,
+    "temporaryPrincipalsRemovedWithContainer": true
+  },
+  "formalGateEffect": {
+    "localMysqlEngineProofClosed": false,
+    "localSchemaSnapshotProvenanceClosed": false,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "liveDeliveryGateClosed": false
+  }
+}

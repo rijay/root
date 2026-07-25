@@ -1,5 +1,7 @@
 const crypto = require("node:crypto");
 const fs = require("node:fs");
+const { createClientError } = require("./clientError");
+const { resolveWechatOpenApiUrl } = require("./wechatOpenApiEndpoint");
 const { addDays, daysBetween, nowISO, todayISO } = require("./dates");
 const adapterRetryScheduler = require("./adapterRetryScheduler");
 const adapterCalibration = require("./adapterCalibration");
@@ -20,14 +22,22 @@ const adminSettlementBatch = require("./adminSettlementBatch");
 const adminOpsPresenter = require("./adminOpsPresenter");
 const adminUserPresenter = require("./adminUserPresenter");
 const auditLog = require("./auditLog");
+const activityModule = require("./activityModule");
+const { executeActivityTaskWrite } = require("./activityTaskOutboxCoordinator");
 const campaign = require("./campaign");
 const checkinReminder = require("./checkinReminder");
+const protectedCheckinReminderDelivery = require("./protectedCheckinReminderDelivery");
 const consultationAdvisorAssignment = require("./consultationAdvisorAssignment");
 const consultationAdvisorWorkbench = require("./consultationAdvisorWorkbench");
 const consultationFollowup = require("./consultationFollowup");
 const consultationSla = require("./consultationSla");
 const consultationSlaEscalation = require("./consultationSlaEscalation");
 const consultationWeworkWriteback = require("./consultationWeworkWriteback");
+const {
+  VERIFIED_UNIONID_RESOLUTION,
+  listVerifiedWechatUnionIdAuthorities,
+  resolveVerifiedWechatUnionIdOwnership,
+} = require("./wechatUnionIdAuthority");
 const coupon = require("./coupon");
 const cloudbaseIdentityProbe = require("./cloudbaseIdentityProbe");
 const csvImport = require("./csvImport");
@@ -68,6 +78,7 @@ const settlement = require("./settlement");
 const taskProgress = require("./taskProgress");
 const { fetchWechatJson } = require("./wechatHttp");
 const { resolveWechatAccessToken } = require("./wechatAccessToken");
+const { wechatSubscribeMessageAdapter } = require("./wechatSubscribeMessageAdapter");
 const weworkTouch = require("./weworkTouch");
 const youzanCustomerMirror = require("./youzanCustomerMirror");
 const youzanIdentityReconciliation = require("./youzanIdentityReconciliation");
@@ -77,6 +88,11 @@ const {
   validateCloudbaseJobManifest,
 } = require("../scripts/cloudbase-job-manifest");
 const { createId, createSeedData } = require("./seed");
+const { isProtectedRuntime, sessionTokenDigest } = require("./credentialProtection");
+const {
+  normalizeVerifiedAssertion,
+  normalizeWechatSessionIdentity,
+} = require("./trustedWechatIdentity");
 
 const STATES = {
   GUEST: "GUEST",
@@ -197,7 +213,7 @@ function getWechatConfig(env = process.env) {
 }
 
 function isDirectPhoneLoginAllowed(env = process.env) {
-  return String(env.ROOT_ALLOW_DIRECT_PHONE_LOGIN || "").toLowerCase() === "true";
+  return !isProtectedRuntime(env) && String(env.ROOT_ALLOW_DIRECT_PHONE_LOGIN || "").toLowerCase() === "true";
 }
 
 function maskPhone(phone) {
@@ -206,15 +222,31 @@ function maskPhone(phone) {
   return `${text.slice(0, 3)}****${text.slice(-4)}`;
 }
 
-function publicUser(user) {
+function verifiedUnionIdSummary(data, user, context = {}) {
+  if (!data || !user) return { unionidStatus: "PENDING" };
+  const rootUserId = user.root_user_id || user.user_id;
+  const env = context.env || context || process.env;
+  const authorities = listVerifiedWechatUnionIdAuthorities(data.wechatIdentities, { env })
+    .filter((item) => item.rootUserId === rootUserId);
+  const unionids = [...new Set(authorities.map((item) => item.unionid))];
+  if (unionids.length !== 1) return { unionidStatus: "PENDING" };
+  const ownership = resolveVerifiedWechatUnionIdOwnership(data.wechatIdentities, unionids[0], { env });
+  return ownership.status === VERIFIED_UNIONID_RESOLUTION.VERIFIED
+    && ownership.rootUserId === rootUserId
+    ? { unionidStatus: "LINKED" }
+    : { unionidStatus: "PENDING" };
+}
+
+function publicUser(user, data, context = {}) {
   if (!user) return { state: STATES.GUEST };
+  const identity = verifiedUnionIdSummary(data, user, context);
   return {
     userId: user.user_id,
     rootUserId: user.root_user_id || user.user_id,
     phone: maskPhone(user.phone),
     state: user.state,
     lifecycleStatus: user.lifecycle_status || user.state,
-    unionidStatus: user.unionid_status || (user.unionid ? "LINKED" : "PENDING"),
+    unionidStatus: identity.unionidStatus,
     appCode: user.app_code || "MYROOT",
     nickname: user.nickname || "ROOT体验官",
     avatarUrl: user.avatar_url || "",
@@ -226,7 +258,7 @@ function publicUser(user) {
 }
 
 function isOpenidLoginAllowed(env = process.env) {
-  return String(env.ROOT_ALLOW_OPENID_LOGIN || "").toLowerCase() === "true";
+  return !isProtectedRuntime(env) && String(env.ROOT_ALLOW_OPENID_LOGIN || "").toLowerCase() === "true";
 }
 
 function isMyRootRebuildEnabled(env = process.env) {
@@ -284,10 +316,11 @@ function isExpiredAt(value) {
 
 function issueToken(data, userId) {
   const token = `root_${crypto.randomBytes(18).toString("hex")}`;
+  const tokenHash = sessionTokenDigest(token);
   const now = nowISO();
   const session = {
     session_id: createId("ses"),
-    token,
+    token_hash: tokenHash,
     user_id: userId,
     created_at: now,
     last_seen_at: now,
@@ -295,36 +328,52 @@ function issueToken(data, userId) {
     revoked_at: "",
   };
   ensureList(data, "sessions").push(session);
-  data.tokens[token] = userId;
-  return session;
+  data.tokens[tokenHash] = userId;
+  return { ...session, token };
 }
 
 function findUserByToken(data, token) {
   if (!token) return null;
-  const session = ensureList(data, "sessions").find((item) => item.token === token && !item.revoked_at);
+  const tokenHash = sessionTokenDigest(token);
+  let session = ensureList(data, "sessions").find((item) => item.token_hash === tokenHash && !item.revoked_at);
+  if (!session) {
+    session = ensureList(data, "sessions").find((item) => item.token === token && !item.revoked_at);
+    if (session) {
+      session.token_hash = tokenHash;
+      delete session.token;
+      delete data.tokens[token];
+    }
+  }
   if (session) {
     if (isExpiredAt(session.expires_at)) {
       session.revoked_at = nowISO();
-      delete data.tokens[token];
+      delete data.tokens[tokenHash];
       return null;
     }
     session.last_seen_at = nowISO();
-    data.tokens[token] = session.user_id;
+    data.tokens[tokenHash] = session.user_id;
     return data.users.find((user) => user.user_id === session.user_id) || null;
   }
+  return null;
+}
 
-  const userId = data.tokens[token];
-  if (!userId) return null;
-  return data.users.find((user) => user.user_id === userId) || null;
+function stableRootUserIdForToken(data, token) {
+  if (!token) return "";
+  const tokenHash = sessionTokenDigest(token);
+  const sessions = Array.isArray(data && data.sessions) ? data.sessions : [];
+  const session = sessions.find((item) => (
+    (item.token_hash === tokenHash || item.token === token) && !item.revoked_at
+  ));
+  if (!session || isExpiredAt(session.expires_at)) return "";
+  const users = Array.isArray(data && data.users) ? data.users : [];
+  const user = users.find((item) => item.user_id === session.user_id);
+  return user ? user.root_user_id || user.user_id : "";
 }
 
 function requireUser(data, token) {
   const user = findUserByToken(data, token);
   if (!user) {
-    const error = new Error("登录已过期，请重新登录");
-    error.code = 1003;
-    error.status = 401;
-    throw error;
+    throw createClientError(1003, "登录已过期，请重新登录", 401);
   }
   return user;
 }
@@ -372,10 +421,7 @@ function clone(value) {
 }
 
 function businessError(code, message, status = 200) {
-  const error = new Error(message);
-  error.code = code;
-  error.status = status;
-  return error;
+  return createClientError(code, message, status);
 }
 
 function readCloudbaseAccessToken() {
@@ -398,17 +444,18 @@ function normalizeWechatContext(context) {
     return {
       env: context.env,
       headers: context.headers || {},
+      trustedWechatIdentity: context.trustedWechatIdentity || null,
     };
   }
-  return { env: context || process.env, headers: {} };
+  return { env: context || process.env, headers: {}, trustedWechatIdentity: null };
 }
 
-function shouldUseCloudbaseOpenApi(headers = {}) {
-  return Boolean(getHeader(headers, "x-wx-openid"));
+function shouldUseCloudbaseOpenApi(identity) {
+  return Boolean(identity && identity.openid && identity.source === "CLOUDBASE");
 }
 
 async function fetchCloudbaseWechatJson(pathname, options, env = process.env) {
-  const url = new URL(pathname, env.ROOT_WECHAT_OPENAPI_BASE_URL || "http://api.weixin.qq.com");
+  const url = resolveWechatOpenApiUrl(pathname, env);
   const cloudbaseAccessToken = readCloudbaseAccessToken();
   if (cloudbaseAccessToken) url.searchParams.set("cloudbase_access_token", cloudbaseAccessToken);
   return fetchWechatJson(url, options);
@@ -431,33 +478,7 @@ async function sendWechatSubscribeMessage(data, payload, context = {}) {
   if (typeof context.sendSubscribeMessage === "function") return context.sendSubscribeMessage(payload);
   const env = context.env || process.env;
   const config = getWechatConfig(env);
-  if (!config.appid || !config.secret) {
-    const error = new Error("微信订阅消息发送配置缺失");
-    error.code = "WECHAT_SUBSCRIBE_CONFIG_MISSING";
-    error.deliveryOutcome = "NOT_SENT";
-    throw error;
-  }
-  let accessToken;
-  try {
-    accessToken = await resolveWechatAccessToken(config);
-  } catch (error) {
-    error.deliveryOutcome = "NOT_SENT";
-    throw error;
-  }
-  const url = new URL(env.ROOT_WECHAT_SUBSCRIBE_SEND_URL || "https://api.weixin.qq.com/cgi-bin/message/subscribe/send");
-  url.searchParams.set("access_token", accessToken);
-  try {
-    return await fetchWechatJson(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-  } catch (error) {
-    error.deliveryOutcome = error.externalCode === "43101"
-      ? "NO_GRANT"
-      : (error.externalCode ? "NOT_SENT" : "UNKNOWN");
-    throw error;
-  }
+  return wechatSubscribeMessageAdapter.send({ config, env, payload });
 }
 
 async function getCloudbaseWechatPhoneNumber(phoneCode, env) {
@@ -470,9 +491,9 @@ async function getCloudbaseWechatPhoneNumber(phoneCode, env) {
   return normalizePhone(phoneInfo.phoneNumber || phoneInfo.purePhoneNumber);
 }
 
-async function getWechatSession(config, wxCode) {
+async function getWechatSession(config, wxCode, env = process.env) {
   if (!wxCode) return {};
-  const url = new URL("https://api.weixin.qq.com/sns/jscode2session");
+  const url = resolveWechatOpenApiUrl("/sns/jscode2session", env);
   url.searchParams.set("appid", config.appid);
   url.searchParams.set("secret", config.secret);
   url.searchParams.set("js_code", wxCode);
@@ -524,7 +545,7 @@ function toSessionPayload(data, session, dateText = todayISO()) {
   };
 }
 
-function loginByPhone(data, body, phone) {
+function loginByPhone(data, body, phone, identityContext = {}) {
   if (!phone) throw businessError(1002, "手机号必填");
 
   const identityResult = resolveByWechatLogin(data, {
@@ -537,6 +558,9 @@ function loginByPhone(data, body, phone) {
     avatarUrl: normalizeAvatarUrl(body.avatarUrl || body.avatar_url),
   }, {
     sourceChannel: body.sourceChannel || body.source_channel || "LOGIN",
+    env: body.env || process.env,
+    unionidTrusted: identityContext.unionidTrusted === true,
+    identitySource: identityContext.identitySource || "",
   });
   const user = identityResult.user;
   applyUserDisplayProfile(user, body);
@@ -549,7 +573,7 @@ function loginByPhone(data, body, phone) {
       expiresAt: session.expires_at,
     },
     autoMatch,
-    user: publicUser(user),
+    user: publicUser(user, data, { env: body.env || process.env }),
     nextRoute: routeForUser(user, body.env || process.env),
     features: {
       myRootRebuildEnabled: isMyRootRebuildEnabled(body.env || process.env),
@@ -574,18 +598,47 @@ function updateDisplayProfile(data, token, body = {}) {
   if (!nickname && !avatarUrl) throw businessError(2002, "请填写昵称或选择头像");
   if (nickname) user.nickname = nickname;
   if (avatarUrl) user.avatar_url = avatarUrl;
-  return response({ success: true, user: publicUser(user) });
+  return response({ success: true, user: publicUser(user, data) });
 }
 
 async function loginWithWechat(data, body = {}, context = process.env) {
   const runtime = normalizeWechatContext(context);
   const env = runtime.env;
-  const appCode = normalizeAppCode(body.appCode || body.app_code || getHeader(runtime.headers, "x-root-app-code"));
-  const headerOpenid = getHeader(runtime.headers, "x-wx-openid");
-  const headerUnionid = getHeader(runtime.headers, "x-wx-unionid");
+  const requestedAppCodeValue = body.appCode || body.app_code || getHeader(runtime.headers, "x-root-app-code");
+  const requestedAppCode = requestedAppCodeValue ? normalizeAppCode(requestedAppCodeValue) : "";
+  const trustedWechatIdentity = runtime.trustedWechatIdentity
+    ? normalizeVerifiedAssertion(runtime.trustedWechatIdentity)
+    : null;
+  const deploymentAppCode = isProtectedRuntime(env)
+    ? normalizeAppCode(env.ROOT_WECHAT_APP_CODE || "MYROOT")
+    : "";
+  if (trustedWechatIdentity && deploymentAppCode && trustedWechatIdentity.appCode !== deploymentAppCode) {
+    throw businessError(
+      "TRUSTED_WECHAT_DEPLOYMENT_APP_CODE_MISMATCH",
+      "可信微信身份与当前部署应用不一致",
+      401
+    );
+  }
+  if (trustedWechatIdentity && requestedAppCode && requestedAppCode !== trustedWechatIdentity.appCode) {
+    throw businessError(
+      "TRUSTED_WECHAT_APP_CODE_MISMATCH",
+      "请求应用与可信微信身份所属应用不一致",
+      401
+    );
+  }
+  if (!trustedWechatIdentity && deploymentAppCode && requestedAppCode && requestedAppCode !== deploymentAppCode) {
+    throw businessError(
+      "WECHAT_DEPLOYMENT_APP_CODE_MISMATCH",
+      "请求应用与当前微信部署应用不一致",
+      401
+    );
+  }
+  const appCode = trustedWechatIdentity
+    ? trustedWechatIdentity.appCode
+    : deploymentAppCode || normalizeAppCode(requestedAppCodeValue);
   const shouldUseWechatPhone = !body.phone && body.phoneCode;
 
-  function loginByWechatIdentity(input) {
+  function loginByWechatIdentity(input, identityContext = {}) {
     const identityResult = resolveByWechatLogin(data, {
       ...body,
       ...input,
@@ -595,6 +648,9 @@ async function loginWithWechat(data, body = {}, context = process.env) {
     }, {
       sourceChannel: body.sourceChannel || body.source_channel || "WECHAT_LOGIN",
       appCode,
+      env,
+      unionidTrusted: identityContext.unionidTrusted === true,
+      identitySource: identityContext.identitySource || "",
     });
     const user = identityResult.user;
     applyUserDisplayProfile(user, body);
@@ -605,7 +661,7 @@ async function loginWithWechat(data, body = {}, context = process.env) {
         expiresAt: session.expires_at,
       },
       autoMatch: null,
-      user: publicUser(user),
+      user: publicUser(user, data, { env }),
       nextRoute: routeForUser(user, env),
       features: {
         myRootRebuildEnabled: isMyRootRebuildEnabled(env),
@@ -619,8 +675,11 @@ async function loginWithWechat(data, body = {}, context = process.env) {
   }
 
   if (!shouldUseWechatPhone && !body.phone) {
-    if (headerOpenid) {
-      return loginByWechatIdentity({ openid: headerOpenid, unionid: headerUnionid });
+    if (trustedWechatIdentity && trustedWechatIdentity.openid) {
+      return loginByWechatIdentity({
+        openid: trustedWechatIdentity.openid,
+        unionid: trustedWechatIdentity.unionid || "",
+      }, { unionidTrusted: true, identitySource: trustedWechatIdentity.source });
     }
     if (body.openid && isOpenidLoginAllowed(env)) {
       return loginByWechatIdentity({ openid: body.openid, unionid: body.unionid || "" });
@@ -628,8 +687,14 @@ async function loginWithWechat(data, body = {}, context = process.env) {
     if (body.wxCode) {
       const config = getWechatConfig(env);
       if (!config.appid || !config.secret) throw businessError(1006, "服务端未配置微信登录密钥");
-      const session = await getWechatSession(config, body.wxCode);
-      return loginByWechatIdentity({ openid: session.openid, unionid: session.unionid || "" });
+      const session = normalizeWechatSessionIdentity(
+        await getWechatSession(config, body.wxCode, env),
+        appCode
+      );
+      return loginByWechatIdentity(
+        { openid: session.openid, unionid: session.unionid || "" },
+        { unionidTrusted: true, identitySource: session.source }
+      );
     }
   }
 
@@ -638,36 +703,43 @@ async function loginWithWechat(data, body = {}, context = process.env) {
     return login(data, { ...body, env });
   }
 
-  if (shouldUseCloudbaseOpenApi(runtime.headers)) {
+  if (shouldUseCloudbaseOpenApi(trustedWechatIdentity)) {
     const phone = await getCloudbaseWechatPhoneNumber(body.phoneCode, env);
     return loginByPhone(data, {
       ...body,
       env,
       appCode,
-      openid: headerOpenid,
-      unionid: headerUnionid,
-    }, phone);
+      openid: trustedWechatIdentity.openid,
+      unionid: trustedWechatIdentity.unionid || "",
+    }, phone, { unionidTrusted: true, identitySource: trustedWechatIdentity.source });
   }
 
   const config = getWechatConfig(env);
   if (!config.appid || !config.secret) throw businessError(1006, "服务端未配置微信登录密钥");
 
   const [session, phone] = await Promise.all([
-    getWechatSession(config, body.wxCode),
+    getWechatSession(config, body.wxCode, env),
     getWechatPhoneNumber(config, body.phoneCode),
   ]);
-  return loginByPhone(data, { ...body, env, appCode, openid: session.openid, unionid: session.unionid }, phone);
+  const sessionIdentity = normalizeWechatSessionIdentity(session, appCode);
+  return loginByPhone(
+    data,
+    { ...body, env, appCode, openid: sessionIdentity.openid, unionid: sessionIdentity.unionid },
+    phone,
+    { unionidTrusted: true, identitySource: sessionIdentity.source }
+  );
 }
 
 function getUserState(data, token, context = {}) {
   const user = requireUser(data, token);
   const env = context.env || context || process.env;
+  const identitySummary = verifiedUnionIdSummary(data, user, { env });
   const homeView = getHomeViewModel(data, user.user_id, todayISO());
   return response({
-    user: publicUser(user),
+    user: publicUser(user, data, { env }),
     identity: {
       rootUserId: user.root_user_id || user.user_id,
-      unionidStatus: user.unionid_status || (user.unionid ? "LINKED" : "PENDING"),
+      unionidStatus: identitySummary.unionidStatus,
       appCode: user.app_code || "MYROOT",
     },
     flowView: homeView.flowView,
@@ -730,6 +802,227 @@ function joinCampaign(data, token, body = {}, context = {}) {
   });
 }
 
+function listActivities(data, token, query = {}, context = {}) {
+  const rootUserId = stableRootUserIdForToken(data, token);
+  const result = activityModule.listVisiblePage(data, query, context, rootUserId);
+  return response({ activities: result.items, pagination: result.pagination, filters: result.filters });
+}
+
+function listAdminActivityDefinitions(data, query = {}, context = {}) {
+  const result = activityModule.listAdminDefinitions(data, query, context);
+  return response({ activities: result.items, pagination: result.pagination });
+}
+
+function listAdminActivitySessions(data, query = {}, context = {}) {
+  const result = activityModule.listAdminSessions(data, query, context);
+  return response({ sessions: result.items, pagination: result.pagination });
+}
+
+function listAdminActivityEnrollments(data, query = {}, context = {}) {
+  const result = activityModule.listAdminEnrollments(data, query, context);
+  return response({ enrollments: result.items, pagination: result.pagination });
+}
+
+function listAdminActivityReviewQueue(data, query = {}, context = {}) {
+  const result = activityModule.listAdminReviewQueue(data, query, context);
+  return response({ reviewQueue: result.items, pagination: result.pagination });
+}
+
+function getActivityDetail(data, token, query = {}, context = {}) {
+  const rootUserId = stableRootUserIdForToken(data, token);
+  return response({ activity: activityModule.getDetail(data, query, rootUserId, context) });
+}
+
+function getActivityEnrollments(data, token, query = {}, context = {}) {
+  const user = requireUser(data, token);
+  const rootUserId = user.root_user_id || user.user_id;
+  const result = activityModule.getMyEnrollmentsPage(data, rootUserId, query, context);
+  return response({ enrollments: result.items, pagination: result.pagination });
+}
+
+function activityAuditSummary(value = {}) {
+  return {
+    activityVersionId: value.activityVersionId || "",
+    activityId: value.activityId || "",
+    version: value.version || null,
+    status: value.status || "",
+    title: value.title || "",
+    contentApprovalRef: value.contentApprovalRef || "",
+    sessionId: value.sessionId || "",
+    enrollmentId: value.enrollmentId || "",
+    attemptGeneration: value.attemptGeneration || null,
+    reasonCode: value.reasonCode || "",
+  };
+}
+
+function appendActivityAudit(data, action, targetType, targetId, body, after, options = {}) {
+  return auditLog.appendAuditLog(data, {
+    action,
+    targetType,
+    targetId,
+    operatorId: options.operatorId || body.operatorId || body.operator_id || "",
+    reason: options.reason || body.reason || "",
+    before: options.before || null,
+    after: activityAuditSummary(after),
+    metadata: {
+      requestId: body.requestId || body.request_id || "",
+      idempotencyKey: body.idempotencyKey || body.idempotency_key || "",
+      source: options.source || "ACTIVITY_MODULE",
+    },
+  });
+}
+
+function enrollActivity(data, token, body = {}, context = {}) {
+  return executeActivityTaskWrite(data, context, () => {
+    const user = requireUser(data, token);
+    const rootUserId = user.root_user_id || user.user_id;
+    // Member Identity is not yet a production authority in this branch. A
+    // member-only activity therefore fails closed unless the caller supplies a
+    // trusted, server-derived summary through the runtime context.
+    const memberStatus = context.memberIdentitySummary && context.memberIdentitySummary.status;
+    const result = activityModule.enroll(data, rootUserId, body, { ...context, memberStatus });
+    appendActivityAudit(
+      data,
+      "ACTIVITY_ENROLLMENT_ENROLL",
+      "ACTIVITY_ENROLLMENT",
+      result.enrollment.enrollmentId,
+      body,
+      result.enrollment,
+      { operatorId: rootUserId, source: "MINIPROGRAM" }
+    );
+    return response(result);
+  });
+}
+
+function cancelActivityEnrollment(data, token, body = {}, context = {}) {
+  return executeActivityTaskWrite(data, context, () => {
+    const user = requireUser(data, token);
+    const rootUserId = user.root_user_id || user.user_id;
+    const result = activityModule.cancelEnrollment(
+      data,
+      rootUserId,
+      body,
+      context
+    );
+    appendActivityAudit(
+      data,
+      "ACTIVITY_ENROLLMENT_CANCEL",
+      "ACTIVITY_ENROLLMENT",
+      result.enrollment.enrollmentId,
+      body,
+      result.enrollment,
+      { operatorId: rootUserId, reason: result.enrollment.reasonCode, source: "MINIPROGRAM" }
+    );
+    return response(result);
+  });
+}
+
+function upsertActivityDraft(data, body = {}, context = {}) {
+  const activity = activityModule.upsertDraft(data, body, context);
+  const audit = appendActivityAudit(data, "ACTIVITY_DRAFT_UPSERT", "ACTIVITY_DEFINITION", activity.activityVersionId, body, activity);
+  return response({ activity, audit });
+}
+
+function submitActivityForReview(data, body = {}, context = {}) {
+  const activity = activityModule.submitForReview(
+    data,
+    body.activityVersionId || body.activity_version_id,
+    context
+  );
+  const audit = appendActivityAudit(data, "ACTIVITY_SUBMIT_REVIEW", "ACTIVITY_DEFINITION", activity.activityVersionId, body, activity);
+  return response({ activity, audit });
+}
+
+function requestActivityChanges(data, body = {}, context = {}) {
+  const activity = activityModule.requestChanges(
+    data,
+    body.activityVersionId || body.activity_version_id,
+    body,
+    context
+  );
+  const audit = appendActivityAudit(data, "ACTIVITY_REQUEST_CHANGES", "ACTIVITY_DEFINITION", activity.activityVersionId, body, activity);
+  return response({ activity, audit });
+}
+
+function publishActivity(data, body = {}, context = {}) {
+  const activity = activityModule.publish(
+    data,
+    body.activityVersionId || body.activity_version_id,
+    body,
+    context
+  );
+  const audit = appendActivityAudit(data, "ACTIVITY_PUBLISH", "ACTIVITY_DEFINITION", activity.activityVersionId, body, activity);
+  return response({ activity, audit });
+}
+
+function unpublishActivity(data, body = {}, context = {}) {
+  const activity = activityModule.unpublish(
+    data,
+    body.activityVersionId || body.activity_version_id,
+    body,
+    context
+  );
+  const audit = appendActivityAudit(data, "ACTIVITY_UNPUBLISH", "ACTIVITY_DEFINITION", activity.activityVersionId, body, activity);
+  return response({ activity, audit });
+}
+
+function archiveActivity(data, body = {}, context = {}) {
+  const activity = activityModule.archive(
+    data,
+    body.activityVersionId || body.activity_version_id,
+    body,
+    context
+  );
+  const audit = appendActivityAudit(data, "ACTIVITY_ARCHIVE", "ACTIVITY_DEFINITION", activity.activityVersionId, body, activity);
+  return response({ activity, audit });
+}
+
+function createActivitySession(data, body = {}, context = {}) {
+  const session = activityModule.createSession(data, body, context);
+  const audit = appendActivityAudit(data, "ACTIVITY_SESSION_CREATE", "ACTIVITY_SESSION", session.sessionId, body, session);
+  return response({ session, audit });
+}
+
+function updateActivitySessionState(data, body = {}, context = {}) {
+  const session = activityModule.setSessionState(
+    data,
+    body.sessionId || body.activity_session_id,
+    body.nextStatus || body.next_status,
+    context
+  );
+  const audit = appendActivityAudit(data, "ACTIVITY_SESSION_STATE", "ACTIVITY_SESSION", session.sessionId, body, session);
+  return response({ session, audit });
+}
+
+function reviewActivityEnrollment(data, body = {}, context = {}) {
+  return executeActivityTaskWrite(data, context, () => {
+    const result = activityModule.reviewEnrollment(data, body, context);
+    const audit = appendActivityAudit(data, "ACTIVITY_ENROLLMENT_REVIEW", "ACTIVITY_ENROLLMENT", result.enrollment.enrollmentId, body, result.enrollment);
+    return response({ ...result, audit });
+  });
+}
+
+function expireActivityEnrollmentReviews(data, body = {}, context = {}) {
+  const result = activityModule.expirePendingReviews(data, body, context);
+  const audit = appendActivityAudit(data, "ACTIVITY_ENROLLMENT_REVIEW_TIMEOUT", "ACTIVITY_REVIEW_TIMEOUT_JOB", body.requestId || body.request_id, body, {}, {
+    reason: `processed=${result.processedCount}`,
+  });
+  return response({ ...result, audit });
+}
+
+function cancelActivitySession(data, body = {}, context = {}) {
+  return executeActivityTaskWrite(data, context, () => {
+    const session = activityModule.cancelSession(
+      data,
+      body.sessionId || body.activity_session_id,
+      body,
+      context
+    );
+    const audit = appendActivityAudit(data, "ACTIVITY_SESSION_CANCEL", "ACTIVITY_SESSION", session.sessionId, body, session);
+    return response({ session, audit });
+  });
+}
+
 function getTaskProgress(data, token, query = {}, context = {}) {
   const user = requireUser(data, token);
   return response(taskProgress.getProgressView(data, user.root_user_id || user.user_id, query.campaignId || query.campaign_id || "", context));
@@ -759,21 +1052,23 @@ function recordUserTaskEvent(data, token, body = {}, context = {}) {
       sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_TASK",
     })
     : { scheduled: false, reason: result.event.task_type === "CHECKIN" ? "DUPLICATE_TASK_EVENT" : "NOT_CHECKIN_TASK" };
-  recordLifecycleEvent(data, rootUserId, "TASK_EVENT_RECORDED", {
-    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_TASK",
-    appCode: user.app_code || "MYROOT",
-    metadata: {
-      campaignId: result.event.campaign_id,
-      taskType: result.event.task_type,
-      taskEventId: result.event.task_event_id,
-      created: result.created,
-      reminderScheduled: Boolean(reminder && reminder.scheduled),
-    },
-  });
+  if (result.created) {
+    recordLifecycleEvent(data, rootUserId, "TASK_EVENT_RECORDED", {
+      sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_TASK",
+      appCode: user.app_code || "MYROOT",
+      metadata: {
+        campaignId: result.event.campaign_id,
+        taskType: result.event.task_type,
+        taskEventId: result.event.task_event_id,
+        created: true,
+        reminderScheduled: Boolean(reminder && reminder.scheduled),
+      },
+    });
+  }
   let followUp = null;
   if (result.event.task_type === "CONSULTATION") {
     followUp = consultationFollowup.createFollowTaskForEvent(data, user, result.event);
-    if (followUp && followUp.created) {
+    if (result.created && followUp && followUp.created) {
       recordLifecycleEvent(data, rootUserId, "CONSULTATION_FOLLOW_CREATED", {
         sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_TASK",
         appCode: user.app_code || "MYROOT",
@@ -796,29 +1091,41 @@ function getCheckinReminderTemplate(data, token, context = {}) {
 
 function recordCheckinReminderSubscription(data, token, body = {}, context = {}) {
   const user = requireUser(data, token);
-  const result = checkinReminder.recordSubscription(data, user.root_user_id || user.user_id, body, {
+  const rootUserId = user.root_user_id || user.user_id;
+  const operationContext = {
     ...context,
     sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_SUBSCRIBE",
-  });
-  const subscription = result.subscription;
-  recordLifecycleEvent(data, user.root_user_id || user.user_id, "CHECKIN_REMINDER_SUBSCRIPTION_UPDATED", {
-    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_SUBSCRIBE",
-    appCode: user.app_code || "MYROOT",
-    metadata: {
-      templateKey: subscription.template_key,
-      templateVersion: subscription.template_version,
-      status: subscription.status,
-      campaignId: subscription.campaign_id,
-    },
-  });
-  return response(result);
+  };
+  const finalize = (result) => {
+    const subscription = result.subscription;
+    recordLifecycleEvent(data, rootUserId, "CHECKIN_REMINDER_SUBSCRIPTION_UPDATED", {
+      sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_SUBSCRIBE",
+      appCode: user.app_code || "MYROOT",
+      metadata: {
+        templateKey: subscription.template_key,
+        templateVersion: subscription.template_version,
+        status: subscription.status,
+        campaignId: subscription.campaign_id,
+      },
+    });
+    return response(result);
+  };
+  if (protectedCheckinReminderDelivery.protectedRuntime(operationContext)) {
+    return protectedCheckinReminderDelivery
+      .recordSubscriptionAndSchedule(data, rootUserId, body, operationContext)
+      .then(finalize);
+  }
+  return finalize(checkinReminder.recordSubscription(data, rootUserId, body, operationContext));
 }
 
 async function runDueCheckinReminders(data, body = {}, context = {}) {
-  const result = await checkinReminder.runDueCheckinReminders(data, body, {
+  const operationContext = {
     ...context,
     sendSubscribeMessage: (payload) => sendWechatSubscribeMessage(data, payload, context),
-  });
+  };
+  const result = protectedCheckinReminderDelivery.protectedRuntime(operationContext)
+    ? await protectedCheckinReminderDelivery.runDueReminders(data, body, operationContext)
+    : await checkinReminder.runDueCheckinReminders(data, body, operationContext);
   return response(result);
 }
 
@@ -937,8 +1244,8 @@ function getAdminConfigWorkbench(data, context = {}) {
   return response(adminConfigPresenter.buildConfigWorkbench(data, context));
 }
 
-function getAdminLifecycleWorkbench(data, query = {}) {
-  return response(adminLifecyclePresenter.buildLifecycleWorkbench(data, query));
+function getAdminLifecycleWorkbench(data, query = {}, context = {}) {
+  return response(adminLifecyclePresenter.buildLifecycleWorkbench(data, query, context));
 }
 
 function exportAdminLifecycleUsersCsv(data, query = {}, context = {}) {
@@ -1011,7 +1318,7 @@ function lifecycleBatchCampaignId(selection, body = {}, query = {}) {
 
 function previewAdminLifecycleSettlementBatch(data, body = {}, context = {}) {
   const query = lifecycleBatchQuery(body);
-  const selection = adminLifecyclePresenter.buildLifecycleBatchSelection(data, query);
+  const selection = adminLifecyclePresenter.buildLifecycleBatchSelection(data, query, context);
   if (!selection.rootUserIds.length) throw businessError(8010, "筛选结果没有可处理用户");
   const campaignId = lifecycleBatchCampaignId(selection, body, query);
   const preview = adminSettlementBatch.previewBatchSettlement(data, {
@@ -1027,7 +1334,7 @@ function previewAdminLifecycleSettlementBatch(data, body = {}, context = {}) {
 
 function executeAdminLifecycleSettlementBatch(data, body = {}, context = {}) {
   const query = lifecycleBatchQuery(body);
-  const selection = adminLifecyclePresenter.buildLifecycleBatchSelection(data, query);
+  const selection = adminLifecyclePresenter.buildLifecycleBatchSelection(data, query, context);
   if (!selection.rootUserIds.length) throw businessError(8010, "筛选结果没有可处理用户");
   const campaignId = lifecycleBatchCampaignId(selection, body, query);
   const result = adminSettlementBatch.executeBatchSettlement(data, {
@@ -1373,7 +1680,7 @@ function submitProfile(data, token, body, context = {}) {
     user.registered_at = profile.submitted_at;
     syncRootLifecycle(data, user, "PROFILE_SUBMITTED", { sourceChannel: "MINIPROGRAM_PROFILE" });
   }
-  return response({ success: true, user: publicUser(user), profile });
+  return response({ success: true, user: publicUser(user, data), profile });
 }
 
 function ensureCanActivate(user) {
@@ -1446,7 +1753,7 @@ function matchOrder(data, token, body, dateText = todayISO()) {
     nextAction,
     canStartCheckin: deliveryStatus === "DELIVERED",
     session: null,
-    user: publicUser(user),
+    user: publicUser(user, data),
   });
 }
 
@@ -1469,14 +1776,14 @@ function startCheckin(data, token, body, dateText = todayISO()) {
     throw businessError(4005, "物流送达后才能开始打卡");
   }
   const session = createCheckinSession(data, user, order.order_id, "order_delivered", dateText);
-  return response({ success: true, session: toSessionPayload(data, session, dateText), user: publicUser(user) });
+  return response({ success: true, session: toSessionPayload(data, session, dateText), user: publicUser(user, data) });
 }
 
 function getSession(data, token, dateText = todayISO()) {
   const user = requireUser(data, token);
   const session = currentSessionForUser(data, user.user_id);
   if (!session) throw businessError(4001, "暂无打卡周期");
-  return response({ session: toSessionPayload(data, session, dateText), user: publicUser(user) });
+  return response({ session: toSessionPayload(data, session, dateText), user: publicUser(user, data) });
 }
 
 function submitCheckin(data, token, body, dateText = todayISO(), context = {}) {
@@ -1577,7 +1884,7 @@ function submitCheckin(data, token, body, dateText = todayISO(), context = {}) {
     });
   }
 
-  return response({ success: true, record, nextAction, coupon: couponStatus, session: toSessionPayload(data, session, dateText), user: publicUser(user) });
+  return response({ success: true, record, nextAction, coupon: couponStatus, session: toSessionPayload(data, session, dateText), user: publicUser(user, data) });
 }
 
 function continueAsDailyUser(data, token) {
@@ -1795,9 +2102,13 @@ function submitQuestionnaireAnswer(data, token, body = {}, dateText = todayISO()
       questionnaireId: answer.questionnaire_id,
       version: answer.version,
       answerId: answer.questionnaire_answer_id,
+      taskDefinitionId: body.taskDefinitionId || body.task_definition_id || undefined,
+      taskActivityAssignmentId: body.taskActivityAssignmentId || body.task_activity_assignment_id || undefined,
+      taskDefinitionVersion: body.taskDefinitionVersion || body.task_definition_version || undefined,
     },
     idempotencyKey: `questionnaire-answer:${answer.questionnaire_answer_id}`,
   }, {
+    ...context,
     sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_QUESTIONNAIRE",
   });
   recordLifecycleEvent(data, user.root_user_id || user.user_id, "QUESTIONNAIRE_ANSWER_SUBMITTED", {
@@ -1834,7 +2145,7 @@ function submitQuestionnaireAnswer(data, token, body = {}, dateText = todayISO()
     taskEvent: eventResult.event,
     progress: eventResult.progress,
     followUp: followUp ? { task: followUp.task, created: followUp.created } : null,
-    user: publicUser(user),
+    user: publicUser(user, data),
   });
 }
 
@@ -2117,8 +2428,8 @@ function updateOrderFulfillment(data, body, dateText = todayISO()) {
   });
 }
 
-function syncManualOrder(data, body) {
-  const order = orderFulfillment.syncManualOrder(data, body);
+function syncManualOrder(data, body, context = {}) {
+  const order = orderFulfillment.syncManualOrder(data, body, context);
   return response({ success: true, order: orderFulfillment.toOrderPayload(data, order) });
 }
 
@@ -2144,8 +2455,14 @@ function previewExternalSamples(data, body = {}) {
   return response({ ...result, review });
 }
 
-function importExternalSamples(data, body = {}, dateText = todayISO()) {
-  const result = externalAdapterSamples.importExternalSamples(data, body.sourceType, sampleInputFromBody(body) || [], dateText);
+function importExternalSamples(data, body = {}, dateText = todayISO(), context = {}) {
+  const result = externalAdapterSamples.importExternalSamples(
+    data,
+    body.sourceType,
+    sampleInputFromBody(body) || [],
+    dateText,
+    context
+  );
   const review = externalAdapterSamples.recordExternalSampleReview(data, "IMPORT", result);
   return response({ ...result, review });
 }
@@ -2154,10 +2471,11 @@ function previewImport(data, body = {}) {
   return response(csvImport.previewImport(data, body));
 }
 
-function confirmImport(data, batchId, body = {}, dateText = todayISO()) {
+function confirmImport(data, batchId, body = {}, dateText = todayISO(), context = {}) {
   return response(csvImport.confirmImport(data, batchId, {
     dateText,
     operatorId: body.operatorId || body.operator_id || "",
+    env: context.env,
   }));
 }
 
@@ -2415,8 +2733,23 @@ function listOperationTasks(data, query = {}) {
 }
 
 function completeOperationTask(data, taskId, body = {}) {
+  const before = clone(operationTask.listOperationTasks(data).find((item) => item.task_id === taskId) || null);
   const task = operationTask.completeOperationTask(data, taskId, body);
-  return response({ success: true, task: toOperationTaskPayload(data, task) });
+  const audit = auditLog.appendAuditLog(data, {
+    action: "OPERATION_TASK_COMPLETE",
+    targetType: "OPERATION_TASK",
+    targetId: taskId,
+    operatorId: body.operatorId || body.operator_id || "",
+    reason: body.reason || body.note || "",
+    before,
+    after: clone(task),
+    metadata: {
+      requestId: body.requestId || body.request_id || "",
+      status: task.status,
+      result: task.result || "",
+    },
+  });
+  return response({ success: true, task: toOperationTaskPayload(data, task), audit });
 }
 
 function listConsultationWeworkWritebacks(data, query = {}) {
@@ -2572,7 +2905,7 @@ function getAdminUserDetail(data, userId) {
   const tasks = operationTask.listOperationTasks(data, { userId }).map((task) => toOperationTaskPayload(data, task));
 
   return response({
-    user: publicUser(user),
+    user: publicUser(user, data),
     leadProfiles: data.leadProfiles.filter((item) => item.user_id === userId),
     identityLinks: data.identityLinks.filter((item) => item.user_id === userId),
     profile: data.profiles.find((item) => item.user_id === userId) || null,
@@ -2614,6 +2947,7 @@ function resolveManualReview(data, taskId, body = {}, dateText = todayISO()) {
   const tasks = operationTask.listOpenOperationTasks(data, { taskType: "MANUAL_REVIEW_REQUIRED" });
   const task = tasks.find((item) => item.task_id === taskId);
   if (!task) throw businessError(404, "人工确认待办不存在", 404);
+  const before = clone(task);
   const user = data.users.find((item) => item.user_id === task.user_id);
   if (!user) throw businessError(404, "用户不存在", 404);
 
@@ -2639,7 +2973,21 @@ function resolveManualReview(data, taskId, body = {}, dateText = todayISO()) {
   }
 
   const completed = operationTask.completeOperationTask(data, taskId, { result, note: body.note || "" });
-  return response({ success: true, task: completed, session: session ? toSessionPayload(data, session, dateText) : null, user: publicUser(user) });
+  const audit = auditLog.appendAuditLog(data, {
+    action: "OPERATION_TASK_RESOLVE",
+    targetType: "OPERATION_TASK",
+    targetId: taskId,
+    operatorId: body.operatorId || body.operator_id || "",
+    reason: body.reason || body.note || "",
+    before,
+    after: clone(completed),
+    metadata: {
+      requestId: body.requestId || body.request_id || "",
+      action: body.action || "",
+      result,
+    },
+  });
+  return response({ success: true, task: completed, session: session ? toSessionPayload(data, session, dateText) : null, user: publicUser(user, data), audit });
 }
 
 function toOperationTaskPayload(data, task) {
@@ -2657,7 +3005,7 @@ function toOperationTaskPayload(data, task) {
     tone: priority.tone,
     suggestedAction: task.suggested_action || "",
     suggestedScript: task.suggested_script || "",
-    user: user ? publicUser(user) : null,
+    user: user ? publicUser(user, data) : null,
     order: order ? orderFulfillment.toOrderPayload(data, order) : null,
   };
 }
@@ -2666,7 +3014,7 @@ function toCouponAdminPayload(data, couponEvent) {
   const user = data.users.find((item) => item.user_id === couponEvent.user_id);
   return {
     ...coupon.toCouponPayload(couponEvent),
-    user: user ? publicUser(user) : null,
+    user: user ? publicUser(user, data) : null,
     orderId: couponEvent.order_id || "",
     sessionId: couponEvent.session_id || "",
   };
@@ -2763,9 +3111,10 @@ function adminDashboard(data, context = {}) {
   });
 }
 
-function approveRefund(data, refundId) {
+function approveRefund(data, refundId, body = {}) {
   const workItem = data.refundWorkItems.find((item) => item.refund_work_item_id === refundId);
   if (workItem) {
+    const before = clone(workItem);
     const paid = refundWorkItem.markRefundPaid(data, refundId);
     const user = data.users.find((item) => item.user_id === paid.user_id);
     const recovery = rewardRecovery.recoverRewardsForAfterSales(data, {
@@ -2779,10 +3128,21 @@ function approveRefund(data, refundId) {
         youzanOrderNo: paid.youzan_order_no,
       },
     });
-    return response({ success: true, refund: paid, refundWorkItem: paid, rewardRecovery: recovery });
+    const audit = auditLog.appendAuditLog(data, {
+      action: "REFUND_APPROVE",
+      targetType: "REFUND_WORK_ITEM",
+      targetId: refundId,
+      operatorId: body.operatorId || body.operator_id || "",
+      reason: body.reason || "",
+      before,
+      after: clone(paid),
+      metadata: { requestId: body.requestId || body.request_id || "" },
+    });
+    return response({ success: true, refund: paid, refundWorkItem: paid, rewardRecovery: recovery, audit });
   }
   const refund = data.refunds.find((item) => item.refund_id === refundId);
   if (!refund) throw businessError(404, "退款单不存在", 404);
+  const before = clone(refund);
   refund.status = "PAID";
   refund.paid_at = nowISO();
   const session = data.checkinSessions.find((item) => item.session_id === refund.session_id);
@@ -2791,16 +3151,37 @@ function approveRefund(data, refundId) {
     session.refund_status = "PAID";
     const user = data.users.find((item) => item.user_id === session.user_id);
   }
-  return response({ success: true, refund });
+  const audit = auditLog.appendAuditLog(data, {
+    action: "REFUND_APPROVE",
+    targetType: "REFUND",
+    targetId: refundId,
+    operatorId: body.operatorId || body.operator_id || "",
+    reason: body.reason || "",
+    before,
+    after: clone(refund),
+    metadata: { requestId: body.requestId || body.request_id || "" },
+  });
+  return response({ success: true, refund, audit });
 }
 
-function markCouponUsed(data, couponId) {
+function markCouponUsed(data, couponId, body = {}) {
+  const before = clone(data.couponEvents.find((item) => item.coupon_id === couponId) || null);
   const used = coupon.markCouponUsed(data, couponId);
   operationTask.listOpenOperationTasks(data, { userId: used.user_id, taskType: "COUPON_UNUSED" }).forEach((task) => {
     const matchesCoupon = task.metadata && task.metadata.couponId === used.coupon_id;
     if (matchesCoupon) operationTask.completeOperationTask(data, task.task_id, { result: "COUPON_USED" });
   });
-  return response({ success: true, coupon: toCouponAdminPayload(data, used) });
+  const audit = auditLog.appendAuditLog(data, {
+    action: "COUPON_USE",
+    targetType: "COUPON",
+    targetId: couponId,
+    operatorId: body.operatorId || body.operator_id || "",
+    reason: body.reason || "",
+    before,
+    after: clone(used),
+    metadata: { requestId: body.requestId || body.request_id || "" },
+  });
+  return response({ success: true, coupon: toCouponAdminPayload(data, used), audit });
 }
 
 module.exports = {
@@ -2811,14 +3192,18 @@ module.exports = {
   adminDashboard,
   applyCorrection,
   applyRefund,
+  archiveActivity,
   archiveReleaseEvidencePack,
   approveRefund,
   claimCoupon,
   completeOperationTask,
   continueAsDailyUser,
+  cancelActivityEnrollment,
+  cancelActivitySession,
   cancelAdminLifecycleSettlementJob,
   copyAdminLifecycleFilterPreset,
   createAdminLifecycleSettlementJob,
+  createActivitySession,
   createFeedbackFollowTask,
   createStore,
   dailyHistory,
@@ -2829,6 +3214,8 @@ module.exports = {
   executeAdminRewardDelivery,
   executeAdminProductSync,
   executeAdminSettlementBatch,
+  enrollActivity,
+  expireActivityEnrollmentReviews,
   deleteAdminLifecycleFilterPreset,
   createAdminLifecycleUserExport,
   cleanupAdminLifecycleUserExports,
@@ -2850,6 +3237,8 @@ module.exports = {
   runYouzanIdentityReconciliation,
   queryAdminRewardDeliveryStatus,
   getActiveCampaign,
+  getActivityDetail,
+  getActivityEnrollments,
   getActionAdapterCalibration,
   getAdminConfigWorkbench,
   getAdminLifecycleWorkbench,
@@ -2894,6 +3283,11 @@ module.exports = {
   login,
   loginWithWechat,
   joinCampaign,
+  listActivities,
+  listAdminActivityDefinitions,
+  listAdminActivityEnrollments,
+  listAdminActivityReviewQueue,
+  listAdminActivitySessions,
   listConsultationAdvisorAssignments,
   listConsultationWeworkWritebacks,
   listOrderAfterSalesRecords,
@@ -2923,6 +3317,7 @@ module.exports = {
   previewCorrection,
   previewImport,
   publishCampaignRuleVersion,
+  publishActivity,
   confirmAdminOrderMatch,
   confirmImport,
   previewExternalSamples,
@@ -2954,6 +3349,8 @@ module.exports = {
   recordProductJump,
   recordHealthConsentDecision,
   recordUserTaskEvent,
+  requestActivityChanges,
+  reviewActivityEnrollment,
   evaluateUserSettlement,
   rollbackExternalAdapterRun,
   runDueAdminLifecycleSettlementJobs,
@@ -2963,6 +3360,7 @@ module.exports = {
   runDueWeWorkTouches,
   runExternalAdapter,
   signReleaseRecord,
+  stableRootUserIdForToken,
   syncOrderAfterSalesBatch,
   trackEvent,
   toSessionPayload,
@@ -2970,6 +3368,10 @@ module.exports = {
   updateOrderFulfillment,
   upsertOrderAfterSalesRecord,
   upsertCampaign,
+  upsertActivityDraft,
+  submitActivityForReview,
+  unpublishActivity,
+  updateActivitySessionState,
   upsertProduct,
   upsertTaskDefinition,
   uploadImage,

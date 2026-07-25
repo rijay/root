@@ -1,0 +1,30 @@
+{
+  "registryVersion": 1,
+  "scope": "PRODUCTION",
+  "contracts": [
+    {
+      "contractId": "TASK_SHARE_SYNTHETIC_V1",
+      "contractVersion": 1,
+      "factType": "TASK_SHARE",
+      "authoritativeSource": "LEGACY_TASK_EVENT",
+      "sourceType": "LEGACY_TASK_EVENT",
+      "sourceQueryId": "task_share_legacy_succeeded_by_occurred_at_v1",
+      "sourceQueryDigest": "423ef18f3a83869b765b394ecf5cffe26a9b2335e68025a29b1f200bc2315f9d",
+      "sourceAdapterId": "task-share-legacy-source-reader-v1",
+      "sourceAdapterDigest": "816bf3b14d9486b7f0d5c51e17537cdca248ba38deabbbea4c111412df2e5da0",
+      "targetType": "TASK_SHARE_MIGRATION_PROJECTION",
+      "targetSchemaVersion": "TASK_SHARE_MIGRATION_V1",
+      "targetAdapterId": "task-share-migration-target-writer-v1",
+      "targetAdapterDigest": "f035cb484cdff5abe7411c93b2ad8497bcb19941674661a3133ef6d385a0e4a5",
+      "parityAdapterId": "task-share-migration-parity-v1",
+      "parityAdapterDigest": "69ea1903692d29ecc1c477ff32236f1e753229f4b02dd7737281ff65bf503a7d",
+      "cursorType": "OCCURRED_AT_TASK_EVENT_ID_V1",
+      "inclusive": false,
+      "maximumBatchSize": 100,
+      "allowsNetwork": false,
+      "allowsOutbox": false,
+      "contractDigest": "9ccfe32948b5aa5bce2112d97e1a1fa0081b17fd62f5e65033aaec1fde3fdb57"
+    }
+  ],
+  "registryDigest": "ecaa1541b72d38f4943bd878400417481af3e571d19225f1efac336e13f7fd7c"
+}

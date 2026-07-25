@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "myroot.local-mysql-preparation-verification.v10",
+  "observedAt": "2026-07-20T01:33:08+08:00",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "status": "R10_PREPARED_NOT_AUTHORIZED_LOCAL_CONTRACTS_PASS_FORMAL_GATES_OPEN",
+  "authorizationPacket": {
+    "path": "docs/evidence/v1.0.0/mysql_001_066_local_authorization_packet_2026-07-20_r10.json",
+    "sha256": "406d69b069eded1af6f96968ded41679c4d53d2f0baed1d60259f4d1b84f96c4",
+    "companionPath": "docs/evidence/v1.0.0/mysql_001_066_local_authorization_packet_2026-07-20_r10.md",
+    "companionSha256": "5a013cf8a1939c06e066b43a92bf3701eda5ba9f139fdb468e93162bc1fa6eb8",
+    "singleUseNonce": "66d0134b-d70e-497b-a9a3-9bf78530ae0f",
+    "authorized": false,
+    "executed": false,
+    "nonceConsumed": false
+  },
+  "attempt9Evidence": {
+    "jsonPath": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-20_attempt9.json",
+    "jsonSha256": "2e81db50cf69fed4cf9e3ae69b1e8d102a1c9dbe2169e1fe194663f5e55708af",
+    "markdownPath": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-20_attempt9.md",
+    "markdownSha256": "e3f5745e4e34ac049afab53883bffb03a3159e217028630835101a0c3532b915",
+    "result": "12_PASS_1_FAIL_0_SKIP_CLEANED"
+  },
+  "rootCauseAndCorrection": {
+    "classification": "TEST_FIXTURE_SLO_PROFILE_DRIFT",
+    "observedFixture": {"severity":"BLOCKER","sloClass":"BLOCKER","sloTargetSeconds":60},
+    "canonicalProfile": {"severity":"BLOCKER","sloClass":"BLOCKER_IMMEDIATE","sloTargetSeconds":300},
+    "canonicalPolicyModule": "backend/src/v1RuntimeAlertDeliveryPolicy.js",
+    "fixtureCorrectedAtSource": true,
+    "migrations001To065Changed": false,
+    "migration066Added": true,
+    "databaseCrossFactAuthorityAdded": true,
+    "databaseCrossFactMismatchNegativeTestAdded": true,
+    "realMysqlCorrectionExecuted": false
+  },
+  "localVerification": {
+    "targeted": {"tests":64,"passed":64,"failed":0,"skipped":0},
+    "r10Focused": {"tests":53,"passed":53,"failed":0,"skipped":0},
+    "backend": {"tests":1296,"passed":1287,"failed":0,"skipped":9,"status":"PASS_WITH_REAL_ENGINE_SKIPS"},
+    "foundation": {"command":"npm run v1:foundation:check","status":"PASS"},
+    "finalVerification": {
+      "command": "node scripts/final-verification.js --json",
+      "status": "FAIL_EXPECTED_SCHEMA_PROVENANCE_OPEN",
+      "passed": 17,
+      "failed": 1,
+      "total": 18,
+      "javascriptFiles": 447,
+      "migrationFiles": 66,
+      "backendTests": 1296,
+      "onlyFailure": "Generated MySQL schema snapshot provenance",
+      "committedMigrationSetDigest": "fa98e2432fc7210615d5508597d93c4203dc414a2636d633eb5e12c63a053b27",
+      "expectedMigrationSetDigest": "c385ef2952d272a961420a5c3df5886cab7a36325cdf7729a13484744d561cb4",
+      "committedSchemaSha256": "e84fe654b674981917c472cc73593657dd6a9189dd32b736ff1bae895be7a7c3"
+    },
+    "unauthorizedGuard": {
+      "command": "npm run v1:mysql-local-authorized:run -- --packet docs/evidence/v1.0.0/mysql_001_066_local_authorization_packet_2026-07-20_r10.json",
+      "status": "PASS",
+      "observedError": "MYSQL_LOCAL_RUNNER_NOT_AUTHORIZED",
+      "failedBeforeDocker": true,
+      "ownedContainerResidual": 0,
+      "r10NonceConsumed": false
+    }
+  },
+  "formalGateEffect": {
+    "localMysql001To066EngineProofClosed": false,
+    "localSchemaSnapshotProvenanceClosed": false,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "formalLaunchAuthorized": false
+  }
+}

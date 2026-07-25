@@ -130,26 +130,30 @@ Page({
   },
 
   async openTask(event) {
-    const taskId = event.currentTarget.dataset.taskId;
-    const task = this.data.tasks.find((item) => item.taskDefinitionId === taskId);
+    const taskKey = event.currentTarget.dataset.taskKey || event.currentTarget.dataset.taskId;
+    const task = this.data.tasks.find((item) => (item.taskKey || item.taskDefinitionId) === taskKey);
     if (!task) return;
+    if (task.status === "CANCELED") {
+      wx.showToast({ title: "来源活动已取消", icon: "none" });
+      return;
+    }
     if (task.status === "DONE") {
       wx.showToast({ title: "任务已完成", icon: "none" });
       return;
     }
     if (task.taskType !== "PURCHASE" && !(await this.ensureJoined())) return;
     if (task.taskType === "CHECKIN") {
-      wx.navigateTo({ url: `/subpkg/task/pages/checkin/index?campaignId=${this.data.campaign.campaignId}` });
+      wx.navigateTo({ url: `/subpkg/task/pages/checkin/index?campaignId=${this.data.campaign.campaignId}&taskDefinitionId=${encodeURIComponent(task.taskDefinitionId || "")}&taskActivityAssignmentId=${encodeURIComponent(task.taskActivityAssignmentId || "")}&taskDefinitionVersion=${encodeURIComponent(task.taskDefinitionVersion || "")}` });
       return;
     }
     if (task.taskType === "QUESTIONNAIRE") {
       wx.navigateTo({
-        url: `/subpkg/task/pages/questionnaire/index?campaignId=${this.data.campaign.campaignId}&questionnaireType=${questionnaireTypeOf(task)}`,
+        url: `/subpkg/task/pages/questionnaire/index?campaignId=${this.data.campaign.campaignId}&questionnaireType=${questionnaireTypeOf(task)}&taskDefinitionId=${encodeURIComponent(task.taskDefinitionId || "")}&taskActivityAssignmentId=${encodeURIComponent(task.taskActivityAssignmentId || "")}&taskDefinitionVersion=${encodeURIComponent(task.taskDefinitionVersion || "")}`,
       });
       return;
     }
     if (task.taskType === "PURCHASE") {
-      wx.switchTab({ url: "/pages/products/index" });
+      router.open("/pages/products/index?source=task_purchase");
       return;
     }
     if (task.taskType === "CONSULTATION") {
@@ -166,7 +170,7 @@ Page({
 
   async recordSimpleTask(task, taskType) {
     const taskDate = todayChina();
-    this.setData({ actionTaskId: task.taskDefinitionId });
+    this.setData({ actionTaskId: task.taskKey || task.taskDefinitionId });
     try {
       await request({
         url: "/api/v1/tasks/events",
@@ -174,7 +178,12 @@ Page({
         data: {
           taskType,
           taskDate,
-          payload: { taskDate, taskDefinitionId: task.taskDefinitionId },
+          payload: {
+            taskDate,
+            taskDefinitionId: task.taskDefinitionId,
+            taskActivityAssignmentId: task.taskActivityAssignmentId || undefined,
+            taskDefinitionVersion: task.taskDefinitionVersion || undefined,
+          },
           idempotencyKey: `${taskType}:${task.taskDefinitionId}:${taskDate}`,
         },
       });

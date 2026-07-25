@@ -1,4 +1,4 @@
-const { clearToken, request } = require("../../utils/request");
+const { clearToken, getToken, request } = require("../../utils/request");
 const router = require("../../utils/router");
 const { uploadCloudAvatar } = require("../../utils/avatar-upload");
 const { appVersion } = require("../../config/version");
@@ -20,6 +20,8 @@ function isDefaultNickname(value) {
 Page({
   data: {
     appVersion,
+    viewState: "loading",
+    errorText: "",
     user: {
       nickname: "ROOT体验官",
       phone: "",
@@ -48,13 +50,48 @@ Page({
   },
 
   async onShow() {
-    const allowed = await router.routeGuard("/pages/profile/index");
-    if (allowed) this.load();
+    this.resetPrivateView("loading");
+    if (!getToken()) {
+      this.setData({ viewState: "guest" });
+      return;
+    }
+    try {
+      const state = await router.fetchState();
+      if (!state || !state.user || state.user.state === "GUEST") {
+        this.setData({ viewState: "guest" });
+        return;
+      }
+      await this.load(state);
+    } catch (_) {
+      this.setData({
+        viewState: getToken() ? "error" : "guest",
+        errorText: "账号信息暂未完成读取，请稍后重试。",
+      });
+    }
   },
 
-  async load() {
+  resetPrivateView(viewState) {
+    this.setData({
+      viewState,
+      errorText: "",
+      user: { nickname: "ROOT体验官", phone: "", state: "", avatarUrl: "" },
+      avatarSrc: "/static/brand/logo.png",
+      hasCustomAvatar: false,
+      showDisplayProfileCard: false,
+      profile: null,
+      session: emptySession(),
+      orders: [],
+      dailyStats: null,
+      progress: [],
+      checkedDays: 0,
+      statusBadge: "未登录",
+      showRecords: false,
+      showOrders: false,
+    });
+  },
+
+  async load(state) {
     try {
-      const state = await request({ url: "/api/v1/user/state" });
       const userState = state.user.state;
       const [profileResult, ordersResult, sessionResult, refundResult, dailyResult] = await Promise.allSettled([
         request({ url: "/api/v1/user/profile" }),
@@ -78,6 +115,7 @@ Page({
       const nickname = isDefaultNickname(state.user.nickname) ? "" : state.user.nickname;
 
       this.setData({
+        viewState: "ready",
         user: state.user,
         avatarSrc,
         hasCustomAvatar: Boolean(state.user.avatarUrl),
@@ -99,8 +137,25 @@ Page({
         showOrders: ordersResult.status === "fulfilled" && ordersResult.value.orders.length > 0,
       });
     } catch (error) {
-      wx.showToast({ title: error.message || "加载失败", icon: "none" });
+      this.resetPrivateView("error");
+      this.setData({ errorText: "账号信息暂未完成读取，请稍后重试。" });
     }
+  },
+
+  retryLoad() {
+    this.onShow();
+  },
+
+  goLogin() {
+    router.go("/pages/login/index?source=profile");
+  },
+
+  browseProducts() {
+    router.open("/pages/products/index?source=profile_guest");
+  },
+
+  openPrivacy() {
+    router.open("/pages/legal/index?type=privacy&source=profile");
   },
 
   onChooseAvatar(event) {
@@ -181,7 +236,7 @@ Page({
 
   goLink(event) {
     const url = event.currentTarget.dataset.url;
-    if (url) router.go(url);
+    if (url) router.open(url);
   },
 
   logout() {

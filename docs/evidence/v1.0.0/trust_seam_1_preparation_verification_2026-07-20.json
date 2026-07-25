@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "myroot.trust-seam-1-preparation-verification.v1",
+  "observedAt": "2026-07-20T03:47:03+08:00",
+  "releaseTarget": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "status": "PASS_DESIGN_READY_IMPLEMENTATION_NOT_STARTED_NON_AUTHORIZING",
+  "artifacts": [
+    {"path":"docs/evidence/v1.0.0/pre_external_gate_trust_seam_audit_2026-07-20.json","sha256":"9f8c2c27be70c0ad7b003de78eb487bfb19414824d9a7579d3d0cd9adce03f68"},
+    {"path":"docs/evidence/v1.0.0/pre_external_gate_trust_seam_audit_2026-07-20.md","sha256":"08b94c52ae4c45f3f28dfa178b197e63826ca3c51489e6fd6d0a8cf624e29669"},
+    {"path":"docs/evidence/v1.0.0/trust_seam_1_implementation_spec_2026-07-20.json","sha256":"8acda76eb53effe987102a54837f75e79a49386a0cc66f8165b521fd1c775351"},
+    {"path":"docs/evidence/v1.0.0/trust_seam_1_implementation_spec_2026-07-20.md","sha256":"7e6702c0630d7edd88a35b01653fcbdc5c1b6c39941f16b2e02551fed434914d"},
+    {"path":"docs/evidence/v1.0.0/external_gate_evidence_intake_protocol_2026-07-20.md","sha256":"1ed42fdac1c3efd0df2d7cf66f22e3cd9d80d11d425134e192bc394a83b75698"}
+  ],
+  "coverage": {
+    "p0Findings": 6,
+    "p1Findings": 2,
+    "designedModules": 6,
+    "minimumRequiredTests": 84,
+    "externalGateIntakeRows": 14,
+    "formalReadiness": {
+      "status": "NOT_READY",
+      "gateCount": 14,
+      "openGateCount": 14,
+      "hardBlockerCount": 3,
+      "closedGateCount": 0,
+      "formalLaunchAuthorized": false,
+      "matrixDigest": "7788123ec1b59b4e46192b46beb8a6695a6e486c31c07adc4c6a024959838293"
+    }
+  },
+  "checks": {
+    "machineReadableJsonParsed": true,
+    "architectureVocabularyReviewed": true,
+    "structureValiditySeparatedFromExternalTruth": true,
+    "trustedReceiptBindsBytesReleaseEnvironmentSubjectAdapterAndTime": true,
+    "revocationRecheckRequired": true,
+    "formalLaunchAuthorizationFixedFalse": true,
+    "externalActionAuthorizationAbsent": true,
+    "gitDiffCheck": "PASS",
+    "r11PacketSha256": "d0369e06f7fb57a2085cd5a567bf775370fe0ae2a43178179465a435e7aa3016",
+    "r11ExecutionInputCount": 688,
+    "r11ExecutionInputAggregateSha256": "36dd29f585c0192c889ea193de1ce7a4d3e6a554cbae61fee779271e12d0a4ec",
+    "r11ExecutionInputManifestStillMatches": true,
+    "dockerStarted": false,
+    "candidateConnected": false,
+    "productionConnected": false,
+    "externalSystemRead": false,
+    "externalSystemWrite": false
+  },
+  "adversarialReview": {
+    "status": "PASS_WITH_IMPLEMENTATION_GATES_OPEN",
+    "mostLikelyFailureModes": [
+      "A future trusted Adapter merely re-labels caller input without binding raw readback bytes.",
+      "A valid old receipt is replayed after revocation or workflow cancellation.",
+      "Evidence from the wrong release, environment or remote run is mixed into a valid bundle.",
+      "A structure-only fixture is promoted to controlled external evidence.",
+      "Starting implementation before R11 resolution invalidates the pending authorization object."
+    ],
+    "controlsSpecified": true
+  },
+  "nextState": "WAIT_R11_EXACT_AUTHORIZATION_OR_EXPLICIT_SUPERSESSION",
+  "authorization": {
+    "implementationAuthorized": false,
+    "dockerExecutionAuthorized": false,
+    "candidateConnectionAuthorized": false,
+    "productionConnectionAuthorized": false,
+    "remoteReadAuthorized": false,
+    "remoteWriteAuthorized": false,
+    "commitAuthorized": false,
+    "pushAuthorized": false,
+    "deploymentAuthorized": false,
+    "realSendAuthorized": false,
+    "gateClosureAuthorized": false,
+    "formalLaunchAuthorized": false
+  }
+}

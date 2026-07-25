@@ -68,7 +68,117 @@ const JOBS = Object.freeze({
 
 function boolEnv(value, fallback) {
   if (value === undefined || value === null || value === "") return fallback;
-  return ["1", "true", "yes", "on"].includes(String(value).trim().toLowerCase());
+  if (value === "true") return true;
+  if (value === "false") return false;
+  throw new Error("ROOT_JOB_DRY_RUN must be the exact string true or false");
+}
+
+function jobTokens(env = {}) {
+  const tokens = [];
+  if (Object.prototype.hasOwnProperty.call(env, "ROOT_ADMIN_JOB_TOKENS")) {
+    let parsed;
+    try { parsed = JSON.parse(env.ROOT_ADMIN_JOB_TOKENS); } catch {
+      throw new Error("ROOT_ADMIN_JOB_TOKENS must be valid JSON");
+    }
+    const entries = Array.isArray(parsed)
+      ? parsed
+      : parsed && typeof parsed === "object"
+        ? Object.values(parsed)
+        : [];
+    if (!entries.length || entries.length > 16) {
+      throw new Error("ROOT_ADMIN_JOB_TOKENS must contain between 1 and 16 tokens");
+    }
+    for (const item of entries) {
+      const token = typeof item === "string" ? item : item && item.token;
+      if (typeof token !== "string" || !token.trim() || token !== token.trim()) {
+        throw new Error("ROOT_ADMIN_JOB_TOKENS contains an invalid token");
+      }
+      tokens.push(token);
+    }
+  }
+  const singular = Object.prototype.hasOwnProperty.call(env, "ROOT_ADMIN_JOB_TOKEN")
+    ? env.ROOT_ADMIN_JOB_TOKEN
+    : "";
+  if (singular !== "") {
+    if (typeof singular !== "string" || !singular.trim() || singular !== singular.trim()) {
+      throw new Error("ROOT_ADMIN_JOB_TOKEN is invalid");
+    }
+    tokens.push(singular);
+  }
+  return [...new Set(tokens)];
+}
+
+function requireScopedJobTokens(env = {}) {
+  const value = Object.prototype.hasOwnProperty.call(env, "ROOT_REQUIRE_SCOPED_JOB_TOKENS")
+    ? env.ROOT_REQUIRE_SCOPED_JOB_TOKENS
+    : "";
+  if (value === "" || value === undefined || value === null) return false;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  throw new Error("ROOT_REQUIRE_SCOPED_JOB_TOKENS must be the exact string true or false");
+}
+
+function scopedJobRouteTokens(env = {}, route = "") {
+  const raw = Object.prototype.hasOwnProperty.call(env, "ROOT_ADMIN_JOB_ROUTE_TOKENS")
+    ? env.ROOT_ADMIN_JOB_ROUTE_TOKENS
+    : "";
+  if (raw === "" || raw === undefined || raw === null) return [];
+  if (typeof raw !== "string" || Buffer.byteLength(raw, "utf8") > 64 * 1024) {
+    throw new Error("ROOT_ADMIN_JOB_ROUTE_TOKENS is invalid");
+  }
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch {
+    throw new Error("ROOT_ADMIN_JOB_ROUTE_TOKENS must be valid JSON");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("ROOT_ADMIN_JOB_ROUTE_TOKENS must be keyed by exact Job route");
+  }
+  const entries = Object.entries(parsed);
+  if (entries.length < 1 || entries.length > 64) {
+    throw new Error("ROOT_ADMIN_JOB_ROUTE_TOKENS must contain between 1 and 64 routes");
+  }
+  const tokenOwners = new Map();
+  let selected = [];
+  for (const [candidateRoute, rotation] of entries) {
+    if (!/^\/api\/v1\/jobs\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(candidateRoute)) {
+      throw new Error("ROOT_ADMIN_JOB_ROUTE_TOKENS contains an invalid exact Job route");
+    }
+    if (!Array.isArray(rotation) || rotation.length < 1 || rotation.length > 16) {
+      throw new Error("ROOT_ADMIN_JOB_ROUTE_TOKENS route rotations must contain between 1 and 16 tokens");
+    }
+    const tokens = [];
+    for (const item of rotation) {
+      const token = typeof item === "string" ? item : item && typeof item === "object" ? item.token : "";
+      if (typeof token !== "string"
+        || token.length < 16
+        || token.length > 4096
+        || token !== token.trim()
+        || /[\u0000-\u001f\u007f]/.test(token)) {
+        throw new Error("ROOT_ADMIN_JOB_ROUTE_TOKENS contains an invalid token");
+      }
+      const owner = tokenOwners.get(token);
+      if (owner && owner !== candidateRoute) {
+        throw new Error("ROOT_ADMIN_JOB_ROUTE_TOKENS cannot reuse one token across Job routes");
+      }
+      tokenOwners.set(token, candidateRoute);
+      if (!tokens.includes(token)) tokens.push(token);
+    }
+    if (candidateRoute === route) selected = tokens;
+  }
+  return selected;
+}
+
+function currentJobToken(env = {}, route = "") {
+  if (route) {
+    const scoped = scopedJobRouteTokens(env, route);
+    if (scoped.length) return scoped[scoped.length - 1];
+    if (requireScopedJobTokens(env)) {
+      throw new Error(`ROOT_ADMIN_JOB_ROUTE_TOKENS is required for exact route ${route}`);
+    }
+  }
+  const tokens = jobTokens(env);
+  if (!tokens.length) throw new Error("ROOT_ADMIN_JOB_TOKEN or ROOT_ADMIN_JOB_TOKENS is required");
+  return tokens[tokens.length - 1];
 }
 
 function normalizeBaseUrl(value) {
@@ -171,8 +281,7 @@ function postJson(url, body, headers, timeoutMs) {
 
 async function dispatch(event = {}, env = process.env, request = postJson) {
   const job = resolveJob(event);
-  const token = String(env.ROOT_ADMIN_JOB_TOKEN || "").trim();
-  if (!token) throw new Error("ROOT_ADMIN_JOB_TOKEN is required");
+  const token = currentJobToken(env, job.path);
 
   const dryRun = boolEnv(env.ROOT_JOB_DRY_RUN, true);
   const campaignId = String(env.ROOT_JOB_CAMPAIGN_ID || DEFAULT_CAMPAIGN_ID).trim();
@@ -218,6 +327,11 @@ exports.dispatch = dispatch;
 exports.JOBS = JOBS;
 exports.RELEASE_VERSION = RELEASE_VERSION;
 exports.buildJobRequestUrl = buildJobRequestUrl;
+exports.boolEnv = boolEnv;
+exports.currentJobToken = currentJobToken;
+exports.jobTokens = jobTokens;
+exports.requireScopedJobTokens = requireScopedJobTokens;
+exports.scopedJobRouteTokens = scopedJobRouteTokens;
 exports.normalizeBaseUrl = normalizeBaseUrl;
 exports.requestIdFor = requestIdFor;
 exports.resolveJob = resolveJob;

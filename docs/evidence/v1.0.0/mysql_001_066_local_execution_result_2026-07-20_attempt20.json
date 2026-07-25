@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "myroot.local-mysql-execution-result.v1",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "attempt": 20,
+  "authorizationPacketAttempt": 21,
+  "packetSha256": "cb449ac8a50aac3622b3eb069e4c97f7468cc7636c9448298ecc8651d14e8745",
+  "authorizationNonce": "c18ed86a-0cb4-4675-9864-895b22b7b0e1",
+  "status": "PASS_LOCAL_MYSQL_001_066_CLOSURE_CLEANED",
+  "execution": {
+    "exitCode": 0,
+    "realEngineTestsPassed": 13,
+    "realEngineTestsFailed": 0,
+    "realEngineTestsSkipped": 0,
+    "migrationSetDigest": "c385ef2952d272a961420a5c3df5886cab7a36325cdf7729a13484744d561cb4",
+    "generatedTableCount": 56,
+    "schemaWriteMatches": true,
+    "keyInventoryCheckConstraintCount": 9,
+    "keyInventoryCheckMatchingConstraintCount": 9,
+    "schemaByteEqualityMatches": true,
+    "schemaProvenanceMatches": true,
+    "schemaSnapshotSha256": "895aad618b6b0c34d06ae19684ffb3d4a4beda8bf994e212380727cd6d44819d",
+    "schemaBodyDigest": "189d986a904a6e54533b27ac6d7135bec16425b2bbc64e130ec97730bda3f5ec",
+    "finalVerification": {
+      "status": "PASS",
+      "passed": 18,
+      "failed": 0,
+      "total": 18
+    }
+  },
+  "postCleanupVerification": {
+    "authorizationNonceConsumed": true,
+    "ownedContainersObserved": 0,
+    "schemaSnapshotRetained": true,
+    "offlineSchemaProvenanceMatches": true,
+    "offlineSchemaTableCount": 56,
+    "youzanAndSchemaTargetedTestsPassed": 16,
+    "youzanAndSchemaTargetedTestsFailed": 0,
+    "gitDiffCheckPassed": true,
+    "databaseDependentSnapshotVerifierUnavailableAfterRequiredCleanup": true
+  },
+  "cleanup": {
+    "containerRemoved": true,
+    "temporaryListenerRemoved": true,
+    "temporaryDatabasesRemovedWithContainer": true,
+    "temporaryPrincipalsRemovedWithContainer": true,
+    "nonceConsumed": true
+  },
+  "retainedOutputs": [
+    "backend/db/schema.sql",
+    "admin/dist",
+    "backend/public/admin-dist"
+  ],
+  "scope": {
+    "host": "127.0.0.1",
+    "port": "EPHEMERAL_RANDOM_HOST_PORT",
+    "candidateConnectionUsed": false,
+    "productionConnectionUsed": false,
+    "commitPerformed": false,
+    "pushPerformed": false,
+    "deploymentPerformed": false
+  },
+  "formalGateEffect": {
+    "localMysqlEvidenceComplete": true,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "remoteCiGateClosed": false,
+    "formalLaunchAuthorized": false
+  }
+}

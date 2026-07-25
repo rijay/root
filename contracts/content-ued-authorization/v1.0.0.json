@@ -1,0 +1,232 @@
+{
+  "registryVersion": 1,
+  "contractVersion": "1.0.0",
+  "productVersion": "v1.0.0",
+  "scope": "NON_RUNTIME_CONTENT_UED_AUTHORIZATION_STRUCTURE_VALIDATION",
+  "digestAlgorithm": "SHA-256",
+  "canonicalization": {
+    "version": "MYROOT_CANONICAL_JSON_V1",
+    "unicodeNormalization": "NFC_REQUIRED",
+    "objectKeyOrdering": "UTF16_CODE_UNIT_ASCENDING",
+    "numberEncoding": "SAFE_INTEGER_JSON",
+    "arrayOrdering": "SCHEMA_DEFINED_DETERMINISTIC",
+    "undefinedPolicy": "REJECT",
+    "digestDomainSeparation": "CONTENT_UED_AUTHORIZATION_EVIDENCE_V1",
+    "photographyAssetSetProjection": "ASSET_REF_AND_CLEAN_MASTER_DIGEST_ONLY",
+    "photographyAssetSetOrdering": "ASSET_REF_THEN_CLEAN_MASTER_DIGEST_UTF16_CODE_UNIT_ASCENDING",
+    "photographyAssetSetDigestDomain": "myroot-content-ued-photography-asset-set:v1"
+  },
+  "requiredEnvironmentKinds": ["CANDIDATE", "PRODUCTION"],
+  "evidenceKinds": [
+    {
+      "evidenceKind": "HEALTH_CONTENT",
+      "requiredRoles": ["PRODUCT", "PRIVACY", "HEALTH_CONTENT_REVIEW", "OPERATIONS"],
+      "maxValidityDays": 730
+    },
+    {
+      "evidenceKind": "PRIVACY_COMPLIANCE",
+      "requiredRoles": ["PRIVACY", "ENGINEERING", "QA"],
+      "maxValidityDays": 365
+    },
+    {
+      "evidenceKind": "ACTIVITY_OPERATIONS",
+      "requiredRoles": ["PRODUCT", "OPERATIONS", "PRIVACY", "QA"],
+      "maxValidityDays": 180
+    },
+    {
+      "evidenceKind": "UED_HANDOFF",
+      "requiredRoles": ["PRODUCT", "UED_OWNER", "ENGINEERING", "QA"],
+      "maxValidityDays": 180
+    },
+    {
+      "evidenceKind": "PHOTOGRAPHY_RIGHTS",
+      "requiredRoles": ["PRODUCT", "PRIVACY", "UED_OWNER", "RIGHTS_CLEARANCE"],
+      "maxValidityDays": 3660
+    }
+  ],
+  "allowedSignatureMethods": [
+    "CONTROLLED_APPROVAL_RECORD_V1",
+    "DETACHED_DIGITAL_SIGNATURE_V1"
+  ],
+  "recordSchema": {
+    "evidenceExactFields": [
+      "recordType",
+      "evidenceFormatVersion",
+      "digestCanonicalizationVersion",
+      "productVersion",
+      "releaseRef",
+      "environmentKind",
+      "environmentRef",
+      "evidenceKind",
+      "subjectRef",
+      "inputBinding",
+      "payload",
+      "revocationSnapshotDigest",
+      "validFrom",
+      "validUntil",
+      "collectedAt",
+      "signoffs"
+    ],
+    "environmentBundleExactFields": [
+      "recordType",
+      "bundleFormatVersion",
+      "productVersion",
+      "releaseRef",
+      "environmentKind",
+      "environmentRef",
+      "inputBinding",
+      "evidenceDocuments"
+    ],
+    "releaseBundleExactFields": [
+      "recordType",
+      "bundleFormatVersion",
+      "productVersion",
+      "releaseRef",
+      "inputBinding",
+      "environmentBundles"
+    ],
+    "inputBindingExactFields": [
+      "prdDigest",
+      "designDigest",
+      "authorizationPacketDigest",
+      "candidateManifestDigest",
+      "routeRegistryDigest",
+      "artifactProvenanceDigest"
+    ],
+    "signoffExactFields": [
+      "signoffId",
+      "signerRef",
+      "role",
+      "evidenceKind",
+      "releaseRef",
+      "environmentKind",
+      "environmentRef",
+      "evidencePayloadDigest",
+      "decision",
+      "signedAt",
+      "validUntil",
+      "signatureMethod",
+      "signedPayloadDigest",
+      "signatureDigest",
+      "validatorRef",
+      "validationStatus",
+      "validationEvidenceRef",
+      "authorizationChainRef",
+      "revocationStatus",
+      "revocationEvidenceRef"
+    ],
+    "healthContentPayloadExactFields": [
+      "contentBundleRef",
+      "rightsEvidenceRef",
+      "approvedChineseVersionRef",
+      "populationRulesRef",
+      "scoringThresholdInterpretationRef",
+      "redFlagSopRef",
+      "redFlagScenarioDrillEvidenceRef",
+      "humanSupportRouteRef",
+      "sourceArtifactDigest",
+      "configuredContentCount",
+      "commercialOnlineUseAllowed"
+    ],
+    "privacyCompliancePayloadExactFields": [
+      "dpiaEvidenceRef",
+      "dataFlowEvidenceRef",
+      "processorRegisterRef",
+      "retentionDeletionMatrixRef",
+      "consentLifecycleEvidenceRef",
+      "accessAndKeyControlEvidenceRef",
+      "incidentResponseDrillEvidenceRef",
+      "wechatPrivacyParityEvidenceRef",
+      "candidateRuntimeExerciseEvidenceRef",
+      "implementationSnapshotDigest",
+      "healthWritesFailClosedBeforeH04R"
+    ],
+    "activityOperationsPayloadExactFields": [
+      "firstReleaseContentRef",
+      "operationsSopRef",
+      "capacityPolicyRef",
+      "cancellationPolicyRef",
+      "customerSupportScriptRef",
+      "photographyNoticeRef",
+      "privacyNoticeRef",
+      "canonicalScenarioDrillEvidenceRef",
+      "adminPublicationEvidenceRef",
+      "runtimeQueryEvidenceRef",
+      "implementationSnapshotDigest",
+      "publishedActivityCount",
+      "contentSource",
+      "uedPlaceholderExcludedFromRuntime"
+    ],
+    "uedHandoffPayloadExactFields": [
+      "controlledHandoffIndexRef",
+      "controlledArdotEvidenceRef",
+      "prdBindingDigest",
+      "designBindingDigest",
+      "screenIndexDigest",
+      "interactionSpecDigest",
+      "accessibilitySpecDigest",
+      "implementationParityEvidenceRef",
+      "screenCount",
+      "archivedPagesExcluded",
+      "allCanonicalStatesCovered"
+    ],
+    "photographyRightsPayloadExactFields": [
+      "assetRightsIndexRef",
+      "candidateAssetSetDigest",
+      "uedAssetSetDigest",
+      "runtimeAssetSetDigest",
+      "publishedAssetCount",
+      "assets"
+    ],
+    "photographyAssetExactFields": [
+      "assetRef",
+      "cleanMasterDigest",
+      "rightsEvidenceRef",
+      "chainOfTitleRef",
+      "modelReleaseRequirement",
+      "modelReleaseRef",
+      "propertyReleaseRequirement",
+      "propertyReleaseRef",
+      "thirdPartyRightsRequirement",
+      "thirdPartyRightsEvidenceRef",
+      "allowedUsePolicyRef",
+      "territoryPolicyRef",
+      "attributionPolicyRef",
+      "expiryOwnerRef",
+      "validFrom",
+      "validUntil",
+      "rightsStatus",
+      "revokedAt",
+      "revocationEvidenceRef",
+      "wechatMiniProgramUseAllowed",
+      "commercialUseAllowed",
+      "cropResizeAllowed",
+      "retouchCompositeAllowed",
+      "textOverlayAllowed",
+      "cleanMasterConfirmed"
+    ],
+    "opaqueReferencePatterns": {
+      "release": "^release:sha256:[a-f0-9]{64}$",
+      "environment": "^environment:sha256:[a-f0-9]{64}$",
+      "subject": "^subject:sha256:[a-f0-9]{64}$",
+      "actor": "^actor:sha256:[a-f0-9]{64}$",
+      "evidence": "^evidence:sha256:[a-f0-9]{64}$",
+      "artifact": "^artifact:sha256:[a-f0-9]{64}$",
+      "policy": "^policy:sha256:[a-f0-9]{64}$",
+      "signoff": "^signoff:sha256:[a-f0-9]{64}$",
+      "validator": "^validator:sha256:[a-f0-9]{64}$",
+      "asset": "^asset:sha256:[a-f0-9]{64}$"
+    }
+  },
+  "authorization": {
+    "runtimeAuthorized": false,
+    "candidateCreationAuthorized": false,
+    "deploymentAuthorized": false,
+    "contentPublicationAuthorized": false,
+    "healthWriteAuthorized": false,
+    "activityPublicationAuthorized": false,
+    "assetPublicationAuthorized": false,
+    "productionWriteAuthorized": false,
+    "gateClosureAuthorized": false
+  }
+}

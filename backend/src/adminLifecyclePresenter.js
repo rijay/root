@@ -5,6 +5,7 @@ const lifecycleExportPolicy = require("./adminLifecycleExportPolicy");
 const rewardGrant = require("./rewardGrant");
 const settlement = require("./settlement");
 const taskProgress = require("./taskProgress");
+const { listVerifiedWechatUnionIdAuthorities } = require("./wechatUnionIdAuthority");
 
 function ensureList(data, key) {
   if (!Array.isArray(data[key])) data[key] = [];
@@ -42,12 +43,14 @@ function text(value) {
   return String(value || "").trim();
 }
 
-function identitySummary(data, rootUserId) {
+function identitySummary(data, rootUserId, options = {}) {
   const identities = ensureList(data, "wechatIdentities").filter((item) => item.root_user_id === rootUserId);
-  const linkedUnion = identities.find((item) => item.unionid);
+  const authorities = listVerifiedWechatUnionIdAuthorities(identities, { env: options.env || process.env });
+  const verifiedUnionIds = [...new Set(authorities.map((item) => item.unionid))];
+  const linkedUnionid = verifiedUnionIds.length === 1 ? verifiedUnionIds[0] : "";
   return {
-    unionidStatus: linkedUnion ? "LINKED" : "PENDING",
-    unionid: linkedUnion ? linkedUnion.unionid : "",
+    unionidStatus: linkedUnionid ? "LINKED" : "PENDING",
+    unionid: linkedUnionid,
     openidList: identities.map((item) => `${item.app_code || "MYROOT"}:${item.openid}`).filter(Boolean),
     identityCount: identities.length,
   };
@@ -167,7 +170,7 @@ function rootUserForLegacyUser(data, user) {
   return ensureList(data, "rootUsers").find((item) => item.root_user_id === (user.root_user_id || user.user_id)) || null;
 }
 
-function lifecycleRow(data, user) {
+function lifecycleRow(data, user, options = {}) {
   const rootUserId = user.root_user_id || user.user_id;
   const rootUser = rootUserForLegacyUser(data, user);
   const ops = adminUserPresenter.buildAdminUserDetailSummary(data, user.user_id) || {};
@@ -191,7 +194,7 @@ function lifecycleRow(data, user) {
     orderStatusLabel: ops.orderStatusLabel || "暂无订单",
     totalRecords: ops.totalRecords || 0,
     openTaskCount: ops.openTaskCount || 0,
-    ...identitySummary(data, rootUserId),
+    ...identitySummary(data, rootUserId, options),
     ...contactSummary(data, rootUserId),
     ...latestLifecycle(data, rootUserId),
     taskSummary: task,
@@ -268,10 +271,10 @@ function normalizeLifecycleFilters(query = {}) {
   };
 }
 
-function filteredLifecycleRows(data, query = {}) {
+function filteredLifecycleRows(data, query = {}, options = {}) {
   const filters = normalizeLifecycleFilters(query);
   const allRows = ensureList(data, "users")
-    .map((user) => lifecycleRow(data, user))
+    .map((user) => lifecycleRow(data, user, options))
     .filter((row) => matchesKeyword(row, filters.keyword))
     .filter((row) => !filters.state || row.state === filters.state)
     .filter((row) => !filters.unionidStatus || row.unionidStatus === filters.unionidStatus)
@@ -290,8 +293,8 @@ function filteredLifecycleRows(data, query = {}) {
   return { filters, rows: allRows };
 }
 
-function buildLifecycleWorkbench(data, query = {}) {
-  const { filters, rows } = filteredLifecycleRows(data, query);
+function buildLifecycleWorkbench(data, query = {}, options = {}) {
+  const { filters, rows } = filteredLifecycleRows(data, query, options);
   return {
     metrics: metrics(rows),
     users: rows.slice(0, filters.limit),
@@ -315,8 +318,8 @@ function batchSelectionUser(row) {
   };
 }
 
-function buildLifecycleBatchSelection(data, query = {}) {
-  const { filters, rows } = filteredLifecycleRows(data, query);
+function buildLifecycleBatchSelection(data, query = {}, options = {}) {
+  const { filters, rows } = filteredLifecycleRows(data, query, options);
   const selectionLimit = clampNumber(
     query.selectionLimit || query.selection_limit || query.batchLimit || query.batch_limit || 500,
     500,
@@ -337,7 +340,7 @@ function buildLifecycleBatchSelection(data, query = {}) {
 }
 
 function buildLifecycleUsersCsv(data, query = {}, options = {}) {
-  const workbench = buildLifecycleWorkbench(data, query);
+  const workbench = buildLifecycleWorkbench(data, query, options);
   const policy = options.exportPolicy || lifecycleExportPolicy.resolveLifecycleExportPolicy(query, options);
   const lines = [
     csvLine([

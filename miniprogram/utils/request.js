@@ -47,9 +47,24 @@ function safeErrorSummary(value) {
   };
 }
 
-function toError(value, fallback) {
-  const message = stringifyError(value) || fallback;
-  return new Error(message);
+function normalizeErrorCode(value, fallback = "REQUEST_FAILED") {
+  if (Number.isInteger(value)) return value;
+  const code = String(value || "").trim();
+  return /^[A-Za-z0-9._:-]{1,80}$/.test(code) ? code : fallback;
+}
+
+function safeCorrelationId(value) {
+  const correlationId = String(value || "").trim();
+  return /^[A-Za-z0-9._:-]{1,120}$/.test(correlationId) ? correlationId : "";
+}
+
+function createRequestError({ code, message, status = 0, correlationId = "" } = {}) {
+  const error = new Error(sanitizeDiagnosticText(message) || "请求失败");
+  error.name = "RequestError";
+  error.code = normalizeErrorCode(code);
+  error.status = Number.isInteger(status) && status >= 0 ? status : 0;
+  error.correlationId = safeCorrelationId(correlationId);
+  return error;
 }
 
 function requestFailMessage(error, adapter) {
@@ -66,25 +81,46 @@ function requestFailMessage(error, adapter) {
 }
 
 function parseResponse(res) {
-  const payload = res.data || {};
-  if (payload.code === 0) return payload.data;
-  if (payload.code === 1003 || res.statusCode === 401) clearToken();
-  throw toError(payload.message || payload, "请求失败");
+  const response = res && typeof res === "object" ? res : {};
+  const payload = response.data && typeof response.data === "object" ? response.data : {};
+  const status = Number.isInteger(response.statusCode) ? response.statusCode : 0;
+  const successfulTransport = status >= 200 && status < 300;
+  if (successfulTransport && payload.code === 0) return payload.data;
+  if (payload.code === 1003 || status === 401) clearToken();
+  const correlationId = payload.data && typeof payload.data === "object"
+    ? payload.data.correlationId
+    : "";
+  throw createRequestError({
+    code: !successfulTransport && (payload.code === 0 || payload.code === undefined || payload.code === null)
+      ? (status ? `HTTP_${status}` : "REQUEST_FAILED")
+      : (payload.code === undefined || payload.code === null
+      ? (status ? `HTTP_${status}` : "REQUEST_FAILED")
+      : payload.code),
+    message: !successfulTransport
+      ? (payload.message || `请求失败（HTTP ${status || "unknown"}）`)
+      : (payload.message || "请求失败"),
+    status,
+    correlationId,
+  });
 }
 
-function buildHeader(token, requestId, optionsHeader) {
+function buildHeader(token, requestId, idempotencyKey, optionsHeader) {
   return {
     "Content-Type": "application/json",
     "X-Request-Id": requestId,
+    ...(idempotencyKey ? { "X-Idempotency-Key": idempotencyKey } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(optionsHeader || {}),
   };
 }
 
-function requestByWxRequest(options, token, requestId) {
+function requestByWxRequest(options, token, requestId, idempotencyKey) {
   return new Promise((resolve, reject) => {
     if (/example\.com/.test(env.apiBaseUrl)) {
-      reject(new Error("请先在 config/env.js 配置正式环境 API 域名"));
+      reject(createRequestError({
+        code: "REQUEST_ENV_UNCONFIGURED",
+        message: "请先在 config/env.js 配置正式环境接口域名",
+      }));
       return;
     }
     wx.request({
@@ -92,7 +128,7 @@ function requestByWxRequest(options, token, requestId) {
       method: options.method || "GET",
       timeout: options.timeout || DEFAULT_REQUEST_TIMEOUT,
       data: options.data || {},
-      header: buildHeader(token, requestId, options.header),
+      header: buildHeader(token, requestId, idempotencyKey, options.header),
       success(res) {
         try {
           resolve(parseResponse(res));
@@ -101,20 +137,29 @@ function requestByWxRequest(options, token, requestId) {
         }
       },
       fail(error) {
-        reject(new Error(requestFailMessage(error, "wxRequest")));
+        reject(createRequestError({
+          code: "NETWORK_ERROR",
+          message: requestFailMessage(error, "wxRequest"),
+        }));
       },
     });
   });
 }
 
-function requestByCloudContainer(options, token, requestId) {
+function requestByCloudContainer(options, token, requestId, idempotencyKey) {
   return new Promise((resolve, reject) => {
     if (!wx.cloud || !wx.cloud.callContainer) {
-      reject(new Error("当前基础库不支持云托管调用，请升级微信开发者工具基础库"));
+      reject(createRequestError({
+        code: "CLOUD_CONTAINER_UNAVAILABLE",
+        message: "当前基础库不支持云托管调用，请升级微信开发者工具基础库",
+      }));
       return;
     }
     if (!env.cloudEnvId || !env.cloudServiceName) {
-      reject(new Error("请先在 config/env.js 配置云开发环境和云托管服务名"));
+      reject(createRequestError({
+        code: "CLOUD_CONTAINER_UNCONFIGURED",
+        message: "请先在 config/env.js 配置云开发环境和云托管服务名",
+      }));
       return;
     }
 
@@ -128,7 +173,7 @@ function requestByCloudContainer(options, token, requestId) {
       timeout: options.timeout || CLOUD_REQUEST_TIMEOUT,
       data: options.data || {},
       header: {
-        ...buildHeader(token, requestId, options.header),
+        ...buildHeader(token, requestId, idempotencyKey, options.header),
         "X-WX-SERVICE": env.cloudServiceName,
       },
       success(res) {
@@ -145,7 +190,10 @@ function requestByCloudContainer(options, token, requestId) {
           path: String(requestPath || "").split("?")[0],
           error: safeErrorSummary(error),
         });
-        reject(new Error(requestFailMessage(error, "cloudContainer")));
+        reject(createRequestError({
+          code: "CLOUD_CONTAINER_REQUEST_FAILED",
+          message: requestFailMessage(error, "cloudContainer"),
+        }));
       },
     });
   });
@@ -156,13 +204,27 @@ function request(options) {
   const requestId = String(options.requestId || `${Date.now()}-${Math.random().toString(16).slice(2)}`)
     .replace(/[^A-Za-z0-9:._-]/g, "")
     .slice(0, 120);
-  if (env.requestAdapter === "cloudContainer") return requestByCloudContainer(options, token, requestId);
-  return requestByWxRequest(options, token, requestId);
+  const idempotencyKey = String(options.idempotencyKey || "")
+    .replace(/[^A-Za-z0-9:._-]/g, "")
+    .slice(0, 128);
+  if (idempotencyKey && idempotencyKey === requestId) {
+    return Promise.reject(createRequestError({
+      code: "ACTIVITY_COMMAND_IDENTITY_NOT_SEPARATED",
+      message: "幂等意图标识不能与当次请求标识相同",
+    }));
+  }
+  if (env.requestAdapter === "cloudContainer") {
+    return requestByCloudContainer(options, token, requestId, idempotencyKey);
+  }
+  return requestByWxRequest(options, token, requestId, idempotencyKey);
 }
 
 module.exports = {
+  buildHeader,
   clearToken,
+  createRequestError,
   getToken,
+  parseResponse,
   request,
   safeErrorSummary,
   setToken,

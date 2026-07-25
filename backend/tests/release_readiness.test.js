@@ -124,7 +124,13 @@ test("release smoke: canonical mini-program routes point to subpackages", () => 
   assert.ok(taskPackage);
   assert.deepEqual(
     appJson.tabBar.list.map((item) => item.pagePath),
-    ["pages/home/index", "pages/products/index", "pages/tasks/index", "pages/rewards/index"]
+    [
+      "pages/home/index",
+      "pages/health/index",
+      "pages/activities/index",
+      "pages/tasks/index",
+      "pages/profile/index",
+    ]
   );
   assert.deepEqual(
     checkinPackage.pages.sort(),

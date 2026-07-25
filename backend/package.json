@@ -27,7 +27,7 @@
     "store:checkpoint-probe": "node scripts/mysql-checkpoint-probe.js --confirm-isolated-database",
     "db:migrate": "node scripts/mysql-migrate.js",
     "store:verify": "node scripts/store-verify.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test --test-reporter=tap tests/*.test.js"
   },
   "dependencies": {
     "@cloudbase/node-sdk": "^3.18.3",

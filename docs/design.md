@@ -1,18 +1,26 @@
 # myRoot 会员小程序品牌与产品 Design.md
 
-文档版本：v0.7.1 会员定位重构与事实归属校正版
+文档版本：v0.8.3 v1.0.0 结构评审 R1.1 更正版
 
 首次生成：2026-05-29
 
-最近更新：2026-07-13
+最近更新：2026-07-18
 
 目标产品：myRoot 微信小程序
 
-当前代码参考：`f2465fc`；`miniprogram/config/version.js` 当前值为 `0.5.10`，工作区另有未提交改动
+冻结代码基线：仓库 `v0.5.13`，`HEAD=d761ae2`；其 `app.json` 为 `首页 / 商品 / 任务 / 奖励` 四 Tab，仅证明 Legacy 代码基线，不代表生产运行版本
+
+当前本地 Implementation 快照（2026-07-18）：dirty worktree 已将 `app.json` 切换为 `首页 / 健康 / 活动 / 任务 / 我的` 五 Tab，并加入健康、活动及“我的”局部 Shell；该快照未提交、未推送、未形成 Candidate，也不是生产事实，只能标记为 `PARTIAL_LOCAL_IMPLEMENTATION / PRE_BASELINE_SPECULATIVE / NOT_CANDIDATE`
 
 适用范围：微信小程序用户端，不包含运营后台、交易后台或线下执行手册
 
 配套产品决策：[myRoot会员小程序产品定位与信息架构_v1_2026-07-13.md](./myRoot会员小程序产品定位与信息架构_v1_2026-07-13.md)
+
+v1.0.0 产品规范：[v1.0.0_product_requirements.md](./v1.0.0_product_requirements.md)
+
+Gate 与文档效力决策：[v1.0.0_gate_and_document_authority_decision_2026-07-15.md](./v1.0.0_gate_and_document_authority_decision_2026-07-15.md)
+
+结构评审：[v1.0.0_structure_review_2026-07-15.md](./v1.0.0_structure_review_2026-07-15.md)
 
 PANE 参考报告：[PANE小程序对Root的设计与流程参考_2026-07-13.md](./PANE小程序对Root的设计与流程参考_2026-07-13.md)
 
@@ -20,14 +28,15 @@ PANE 参考报告：[PANE小程序对Root的设计与流程参考_2026-07-13.md]
 
 品牌输入：《我们是ROOT》品牌手册（18 页；PDF 文件元数据显示 2026-07-01 修改，不等同于正式版本号）。本文件吸收其中的品牌定位、核心信念、视觉气质、产品与科研叙事，但不会把品牌手册中的科研、认证或功效表述自动视为可上线文案。
 
-本文件是 myRoot 小程序产品与设计的单一事实源。发生冲突时，优先级依次为：
+本文件只规范品牌 Token、内容语气、信息层级、页面交互和视觉状态映射，不再独立定义 v1.0.0 的范围、P0/P1/P2、Canonical 状态、Canonical 路由、事实归属或发布 Gate。发生冲突时：
 
-1. 法律法规、平台规则与已核验产品证据；
-2. 用户隐私、健康信息授权与安全约束；
-3. 本文件的产品定位、信息架构和体验规则；
-4. 已确认的业务状态与运营规则；
-5. 品牌手册的传播表达；
-6. 单页视觉偏好。
+1. 法律法规、平台规则、正式授权、隐私与健康安全审核记录优先；
+2. v1.0.0 的产品目标与验收以 `v1.0.0_product_requirements.md` 为规范；
+3. 本文件在不改变 PRD 的前提下规范设计表达；
+4. Ardot UED 是页面结构与条件展示工件，不产生业务事实、不新增 Canonical 状态、不关闭 Gate；
+5. 品牌手册、PANE 截图、历史材料和单页视觉偏好只作输入。
+
+结构评审不要求健康内容、隐私履约、活动运营和订阅送达 Gate 全部关闭；它只冻结页面结构、条件路径和占位规则。M1 Foundation Build、垂直 Module Build、候选和发布分别遵循 Gate 决策中的进入条件。
 
 ## 0. 使用方式与实现状态
 
@@ -37,8 +46,9 @@ PANE 参考报告：[PANE小程序对Root的设计与流程参考_2026-07-13.md]
 - 现有 7 天试饮、打卡、订单、奖励与分享图能力作为可复用的存量能力保留，但不再定义整个产品。
 - 新页面设计必须先判断归属 Tab，再判断页面主任务，最后决定视觉形式。
 - 同一业务事实只能由一个 Module 拥有；首页和“我的”只消费摘要，不复制主记录。
-- 当前 `app.json` 仍是 `首页 / 商品 / 任务 / 奖励` 四 Tab；目标结构是 `首页 / 健康 / 活动 / 任务 / 我的` 五 Tab。此差异属于待实现项，不得在验收时误报为已完成。
-- 当前窗口标题仍含 `ROOT 7日身体重启`，后续应随会员定位统一调整；本文件不直接修改代码。
+- 冻结的 `v0.5.13 / HEAD=d761ae2` baseline `app.json` 是 `首页 / 商品 / 任务 / 奖励` 四 Tab，窗口标题为 `ROOT 7日身体重启`；冻结 fixture 用于 Legacy 路由与回归证明，不得被当前工作树覆盖。
+- 截至 2026-07-18，dirty worktree 的 `app.json` 已是 `首页 / 健康 / 活动 / 任务 / 我的` 五 Tab，窗口标题为 `myRoot`，并存在健康、活动及“我的”局部 Shell；这只是未提交的部分本地 Implementation，不构成完整页面闭环、baseline、Candidate、研发交付或上线完成事实。
+- 设计验收必须同时标注“冻结四 Tab baseline”和“dirty worktree 五 Tab partial”；不得把前者写成当前工作树，也不得把后者写成已完成或已获发布授权。
 
 ### 0.2 给其他 AI 设计工具
 
@@ -48,7 +58,7 @@ PANE 参考报告：[PANE小程序对Root的设计与流程参考_2026-07-13.md]
 
 ```text
 请基于这份 design.md，为 myRoot 微信会员小程序设计移动端高保真页面。
-设计尺寸以 375 x 812 为主，移动端优先。
+设计母版以 390 x 844 为主，移动端优先；320、375、430px 作为验证断点。
 myRoot 默认服务已经由线下或其他渠道获客的 ROOT 订阅会员，不是公域陌生用户商城。
 底部固定五个带文字标签的 Tab：首页、健康、活动、任务、我的。
 首页参考 PANE 的编辑式信息结构：首次引导最多两屏，可跳过；首页使用全屏产品影像、产品理念和简洁商品橱窗，但不能复制活动列表或任务进度。
@@ -154,63 +164,31 @@ myRoot 不是面向陌生用户的公域商城，也不是单一的 7 天打卡�
 - `让科学成为陪伴，让健康变成习惯` 可作为辅助品牌句，不与主标语争夺首屏层级。
 - ROOT 的声音是温和但坚定、科学但不卖弄、清晰但不命令。
 
-## 3. 用户状态模型
+## 3. 用户状态表达
 
-不要用一个不断膨胀的枚举同时表示账号、会员、健康、活动和任务状态。页面通过以下相互独立的状态轴组合展示。
+Canonical 状态、事实归属和组合规则只由 PRD 第 6 章定义。本文件只把 Canonical 状态映射为用户可理解的页面文案；页面不得用本地文案或时钟创造第二套状态。
 
-### 3.1 账号状态
+不要用一个不断膨胀的枚举同时表示账号、会员、健康、活动、任务和奖励。页面通过相互独立的状态轴组合展示。
 
-| 状态 | 含义 | 主行动 |
+| 状态轴 | PRD Canonical 状态 | 设计展示规则 |
 | --- | --- | --- |
-| `GUEST` | 未登录，可浏览公开内容 | 登录并关联 ROOT 会员 |
-| `SIGNED_IN` | 已完成微信身份进入 | 查看会员匹配状态 |
-| `SESSION_EXPIRED` | 登录状态过期 | 重新登录 |
+| 账号 | `GUEST / AUTHENTICATED / DISABLED` | 展示“浏览公开内容 / 已登录 / 账号不可用”；会话过期是认证失败原因，不新增账号状态 |
+| 会员 | `UNKNOWN / MATCHING / NOT_FOUND / ACTIVE / EXPIRED / SUSPENDED / CONFLICT` | “未关联”是账号与会员查询的页面投影；人工复核是 `MATCHING/CONFLICT + review case`，不新增会员状态 |
+| 健康适用资格 | `UNKNOWN / ELIGIBLE / INELIGIBLE / REVIEW_REQUIRED` | 先于 Health Consent；页面只展示服务端当前政策/证据版本、原因和下一步，不收生日、不接受路由指定版本 |
+| 健康同意 | `NOT_ASKED / DECLINED / GRANTED / WITHDRAWN / RECONSENT_REQUIRED` | 清楚区分未询问、拒绝、同意、撤回和需重新确认；拒绝后不反复索取 |
+| 健康旅程 | P0：`NOT_STARTED / CLASSIFIED / ASSESSMENT_DRAFT / ASSESSMENT_PROCESSING / ASSESSMENT_BLOCKED / RESULT_READY / ADVICE_VIEWED` | P0 展示“开始分类 / 开始或继续评测 / 暂停并求助 / 查看结果 / 已查看建议”；`REASSESSMENT_DUE` 只作 P1 参考态 |
+| 评测会话 | `DRAFT / SUBMITTED / RESULT_PENDING / RESULT_READY / SAFETY_BLOCKED / CONTENT_BLOCKED / RESULT_FAILED / SUPERSEDED / ABANDONED / EXPIRED` | 分开展示草稿、已提交等待、结果可看、安全停止、内容阻断、计算失败、被新会话替代、主动放弃和过期；不得把失败或过期伪装成未开始 |
+| 活动定义 | `DRAFT / IN_REVIEW / PUBLISHED / UNPUBLISHED / ARCHIVED` | 仅运营后台使用；用户端不展示内部审核词 |
+| 活动场次 | `SCHEDULED / OPEN / CLOSED / CANCELED / ENDED`，容量另投影 `AVAILABLE / FULL` | 用户文案由场次、容量和时间组合得到“即将开放 / 可报名 / 已满 / 报名截止 / 已取消 / 已结束” |
+| 活动参与 | P0：`PENDING / CONFIRMED / REJECTED / CANCELED`；P1：`WAITLISTED / CHECKED_IN / COMPLETED / NO_SHOW` | P0 展示“审核中 / 已确认 / 未通过 / 已取消”；候补、签到、出席仅作 P1 参考态 |
+| 任务 | `LOCKED / AVAILABLE / IN_PROGRESS / PENDING_VERIFICATION / COMPLETED / EXPIRED / CANCELED` | “待提交”是可执行动作；“需人工复核”映射为 `PENDING_VERIFICATION + reason`，不新增任务状态 |
+| 结算 | `PENDING / QUALIFIED / UNQUALIFIED / ADJUSTED / REVIEW_REQUIRED` | 任务页只读展示解释；调整是追加事实，不抹掉原任务、原结算或账本 |
+| 次日提醒 | 可申请性、授权决定、授权额度、Job、送达证据五条正交状态轴 | `REQUESTING/ACCEPTED_PENDING_SCHEDULE` 只作页面投影；不得合并成“已开启/已送达” |
+| 奖励 | `PENDING / DELIVERING / DELIVERED / FAILED / REVOKED / DISPUTED` | 只有结算达标并创建奖励承诺后才进入账本；结算前只显示任务定义的非承诺预览；到账事实与有效期分开展示 |
+| 隐私权利请求 | `SUBMITTED / VERIFYING / IN_PROGRESS / PARTIALLY_FULFILLED / COMPLETED / REJECTED / CANCELED`，SLA 另为 `ON_TIME / OVERDUE` | 页面同时说明处理状态、预计时间、部分完成原因和人工申诉路径 |
+| 微信平台隐私交互 | `NOT_REQUIRED / REQUIRED / REQUESTING / GRANTED / DECLINED / PLATFORM_DISABLED / OUTCOME_UNKNOWN` | 只作单次来源动作短期投影；同意后回到原确认上下文一次，不自动重放写动作 |
 
-### 3.2 会员状态
-
-| 状态 | 含义 | 主行动 |
-| --- | --- | --- |
-| `UNLINKED` | 尚未关联既有 ROOT 会员 | 开始关联 |
-| `MATCHING` | 正在匹配会员身份 | 等待或查看说明 |
-| `ACTIVE` | 会员有效 | 查看健康旅程或权益 |
-| `EXPIRED` | 会员已到期 | 查看续订渠道或联系顾问 |
-| `NOT_FOUND` | 未找到匹配会员 | 核对信息或人工协助 |
-| `MANUAL_REVIEW` | 需要人工确认 | 查看处理状态 |
-
-会员有效性不能取决于是否完成健康评测、活动或任务。
-
-### 3.3 健康信息同意状态
-
-同意状态与健康旅程状态分开保存，不能用一个“未同意”值混合尚未询问、明确拒绝和已经撤回。
-
-| 状态 | 含义 | 健康 Tab 主行动 |
-| --- | --- | --- |
-| `CONSENT_NOT_REQUESTED` | 尚未展示当前目的和版本的健康信息说明 | 查看说明并自行决定 |
-| `CONSENT_GRANTED` | 已对明确目的、处理方式、信息范围、保存期限和说明版本作出同意 | 进入健康旅程 |
-| `CONSENT_REFUSED` | 用户已明确拒绝 | 继续使用非个性化能力，不反复索取 |
-| `CONSENT_WITHDRAWN` | 用户撤回此前同意 | 停止新增个性化处理并查看数据处理说明 |
-| `CONSENT_RECONSENT_REQUIRED` | 目的、处理方式、信息范围、保存期限或说明版本发生实质变化，需重新确认 | 查看变更后重新决定 |
-
-每条同意记录至少保存目的、处理方式、信息范围、保存期限、必要性与影响说明、说明版本、状态、`noticePresentedAt`、`grantedAt`、`refusedAt`、`withdrawnAt` 和 `statusChangedAt`；不适用的时间字段为空。拒绝或撤回后，用户仍可浏览首页、商品、公开活动、会员资料和人工协助；仅暂停依赖健康信息的个性化结果与建议。
-
-### 3.4 健康旅程状态
-
-| 状态 | 含义 | 健康 Tab 主行动 |
-| --- | --- | --- |
-| `UNCLASSIFIED` | 尚未完成人群分类 | 开始分类 |
-| `CLASSIFIED` | 已分类，未完成基础评测 | 开始基础评测 |
-| `ASSESSING` | 评测进行中 | 继续评测 |
-| `RESULT_READY` | 结果已生成 | 查看近期状态 |
-| `RECOMMENDATION_READY` | 生活方式建议可用 | 查看建议 |
-| `REASSESSMENT_DUE` | 到达建议复评时间 | 再次评测 |
-
-### 3.5 活动状态
-
-`可报名`、`审核中`、`已报名`、`已满员`、`已取消`、`已签到`、`已结束`。
-
-### 3.6 任务状态
-
-`未开始`、`进行中`、`待提交`、`待核验`、`已完成`、`已过期`、`需人工复核`。
+会员有效性不能取决于是否完成健康评测、活动或任务。每条健康同意记录与数据权利处理字段遵循 PRD 的 Health Consent Module 和 Privacy Rights Module Interface；拒绝或撤回后，首页、商品、公开活动、会员资料、非健康任务与人工协助仍可用。
 
 ## 4. 信息架构
 
@@ -222,7 +200,7 @@ myRoot 不是面向陌生用户的公域商城，也不是单一的 7 天打卡�
 | --- | --- | --- | --- |
 | 首页 | ROOT 是什么，有哪些产品？ | 品牌理念、全屏商品 Hero、精选商品橱窗、一条轻量会员下一步 | 完整评测、活动列表、任务进度、资料编辑 |
 | 健康 | 我当前处于什么状态，可以做什么？ | 人群分类、评测、可选问卷、结果、建议、历史、未来日历入口 | 活动报名、任务奖励、商品交易 |
-| 活动 | 近期有哪些线下活动可参加？ | 活动发现、详情、报名、到场签到和活动运营反馈 | 任务结算、任务问卷答案、健康结果、会员资料 |
+| 活动 | 近期有哪些线下活动可参加？ | P0 活动发现、详情、报名、取消和“我的报名”；P1 到场签到与活动运营反馈 | 任务结算、任务问卷答案、健康结果、会员资料 |
 | 任务 | 我已经参与了什么，现在要做什么？ | 任务打卡、任务问卷待办、进度、凭证与奖励处理状态 | 活动主数据、最终权益明细、健康评分 |
 | 我的 | 我的身份、权益和历史在哪里？ | 会员身份、有效期、权益、资料、各类历史入口、授权和人工协助 | 健康/活动/任务的主要操作 |
 
@@ -247,23 +225,37 @@ myRoot 不是面向陌生用户的公域商城，也不是单一的 7 天打卡�
 | 商品列表 | `/pages/products/index`，改为首页次级页 | 首页 | 查看全部展示商品 |
 | 商品详情 | `/pages/product-detail/index`，需重构 | 首页 | 商品、理念、依据、使用与交易渠道 |
 | 登录 | `/pages/login/index` | 次级页 | 微信身份进入 |
-| 会员关联 | 目标路由待定；可由注册页演进 | 次级页 | 匹配既有 ROOT 会员 |
+| 会员关联 | `/pages/member-link/index` | 次级页 | 匹配既有 ROOT 会员；成功后恢复 allowlist routeIntent 的确认上下文，不自动重放写动作 |
+| 会员关联结果 | `/subpkg/profile/pages/member-link-result/index` | 次级页 | 成功、未找到、冲突、过期及安全 fallback |
+| 成年健康适用资格 | `/subpkg/health/pages/eligibility/index` | 健康 | 只记录是否满足成人旅程适用规则，不保存生日原值 |
 | 健康信息同意 | `/pages/health-consent/index` | 健康 | 单独同意、撤回和拒绝路径 |
-| 健康首页 | 目标 `/pages/health/index`，待新增 | 健康 Tab | 状态摘要、下一步、问卷与建议入口 |
-| 人群分类 | 目标路由待定；不与普通注册混表 | 健康 | 形成后续评测路径 |
-| 基础评测 | 可复用/重构现有 questionnaire 页面 | 健康 | 完成基础健康状态评测 |
-| 主题问卷 | 可复用/重构现有 questionnaire 页面 | 健康 | 按需求参与可选问卷 |
-| 健康结果 | 目标路由待定 | 健康 | 展示近期状态、来源、限制和下一步 |
-| 生活方式建议 | 目标路由待定 | 健康 | 查看建议、原因、频率、注意事项和求助路径 |
-| 活动列表 | `/pages/activity/index`，需重构 | 活动 Tab | 发现和筛选线下活动 |
-| 活动详情 | 目标路由待定 | 活动 | 详情、资格、报名、取消、到场签到和活动运营反馈；任务问卷只跳转 |
+| 健康首页 | `/pages/health/index` | 健康 Tab | 读取 Health Journey 只读投影，展示唯一下一步、问卷与历史入口 |
+| 人群分类 | `/subpkg/health/pages/classification/index` | 健康 | 形成后续评测路径；不与普通注册混表 |
+| 基础评测 | `/subpkg/health/pages/assessment/index` | 健康 | 完成基础健康状态评测 |
+| 主题问卷目录 | `/subpkg/health/pages/questionnaires/index` | 健康 | 只列出已批准问卷；无批准内容时入口关闭 |
+| 主题问卷 | `/subpkg/health/pages/questionnaire/index` | 健康 | 完成一套已批准主题问卷 |
+| 健康结果 | `/subpkg/health/pages/result/index` | 健康 | 展示近期状态、来源、限制和下一步 |
+| 生活方式建议 | `/subpkg/health/pages/advice/index` | 健康 | 查看建议、原因、频率、注意事项和求助路径 |
+| 健康历史 | `/subpkg/health/pages/history/index` | 健康 | 只读历史；版本不可比时明确说明 |
+| 活动列表 | 目标 `/pages/activities/index`，待新增；`/pages/activity/index` 仅作 Legacy 兼容分流 | 活动 Tab | 发现和筛选线下活动 |
+| 活动详情 | 目标 `/subpkg/activity/pages/detail/index` | 活动 | P0 详情、资格、报名、取消；P1 到场签到和活动运营反馈；任务问卷只跳转 |
+| 我的报名 | `/subpkg/activity/pages/enrollments/index` | 活动 | 报名状态、场次与取消入口；真实活动内容由运营后台注入 |
 | 任务中心 | `/pages/tasks/index`，需重构 | 任务 Tab | 当前待办、进度、打卡和奖励处理状态 |
-| 任务详情/进度 | `/subpkg/task/pages/progress/index` 等 | 任务 | 规则、事实、凭证和完成状态 |
+| 任务详情 | `/subpkg/task/pages/detail/index` | 任务 | 规则、事实、凭证、完成状态及一次性“明日提醒”入口 |
+| 任务打卡 | `/subpkg/task/pages/checkin/index` | 任务 | 打卡事实提交；未知结果先查后重试 |
+| 任务问卷 | `/subpkg/task/pages/questionnaire/index` | 任务 | 任务答卷；不写健康事实 |
 | 7 天试饮记录 | 现有 checkin 页面 | 任务 | 作为一种阶段任务保留，不再定义全局产品 |
 | 我的 | `/pages/profile/index`，需进入 Tab | 我的 Tab | 会员身份、有效期、权益、资料和历史入口 |
+| 权益明细 | `/subpkg/profile/pages/rewards/index` | 我的 | 只读奖励账本列表；状态与有效期分开 |
+| 权益详情 | `/subpkg/profile/pages/reward-detail/index` | 我的 | `RWD-02` 核心页；`RWD-V-02` 只是在该页展示交付/异议条件态，不是独立路由 |
 | 订单与物流 | `/subpkg/profile/pages/orders/index` | 我的 | 查看交易渠道同步结果或跳转 |
 | 人工协助 | `/subpkg/profile/pages/support/index` | 我的 | 顾问与客服入口 |
 | 关于 ROOT | `/subpkg/profile/pages/about/index` | 我的 | 品牌介绍与证据入口 |
+| 隐私权利 | `/subpkg/profile/pages/privacy/index` | 我的 | 访问、更正、导出、删除与请求状态入口 |
+| 隐私请求 | `/subpkg/profile/pages/privacy-request/index` | 我的 | 影响说明、身份核验和确认 |
+| 隐私请求状态 | `/subpkg/profile/pages/privacy-request-status/index` | 我的 | 处理进度、SLA、依据、回执和申诉路径 |
+
+报名确认、取消确认、次日提醒申请、任务结果、会员状态和奖励状态属于 UED 呈现登记中的 `SHEET / MODAL / VARIANT / PAGE_STATE`，不建立 Canonical 路由。唯一 Route Registry 以 PRD 第 7.5 节为准。
 
 ## 5. 核心流程
 
@@ -296,25 +288,31 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  A["进入健康 Tab"] --> B{"健康信息同意状态"}
-  B -->|未询问/需重新确认| C["说明目的、方式、范围、期限、必要性、影响、版本和拒绝路径"]
-  C -->|同意| D["记录同意后进入人群分类"]
-  C -->|拒绝| E["记录拒绝并保留非个性化路径"]
-  B -->|已同意| D
-  B -->|已拒绝/已撤回| E
-  D --> F["基础健康状态评测"]
-  F --> G["近期状态结果"]
-  G --> H{"是否出现需专业关注的回答"}
-  H -->|是| I["优先展示求助路径"]
-  H -->|否| J["生活方式建议"]
-  J --> K["用户选择行动"]
-  K --> L["后续版本：加入日历"]
+  A["进入健康 Tab"] --> B{"成年健康适用资格"}
+  B -->|UNKNOWN| C["资格说明：不保存生日原值"]
+  C -->|符合成人规则且回执成功| D{"健康信息同意状态"}
+  C -->|不符合/无法确认| E["停止健康收集；保留非健康能力与人工协助"]
+  B -->|ELIGIBLE| D
+  B -->|INELIGIBLE/REVIEW_REQUIRED| E
+  D -->|未询问/需重新确认| F["说明目的、方式、范围、期限、必要性、影响、版本和拒绝路径"]
+  F -->|同意且回执成功| G["进入人群分类"]
+  F -->|拒绝| H["记录拒绝并保留非个性化路径"]
+  D -->|已同意| G
+  D -->|已拒绝/已撤回| H
+  G --> I["基础健康状态评测"]
+  I --> J["处理中：不重复提交"]
+  J --> K["近期状态结果"]
+  K --> L{"是否出现需专业关注的回答"}
+  L -->|是| M["优先展示求助路径"]
+  L -->|否| N["生活方式建议"]
+  N --> O["用户选择行动"]
+  O --> P["后续版本：加入日历"]
 ```
 
 关键规则：
 
 - “注册后先评测”表示个性化健康体验从分类与基础评测开始，不表示评测是进入小程序或确认会员权益的门槛。
-- 已拒绝的用户不在每次进入时重复看到同意弹窗；只有目的、处理方式、信息范围、保存期限或说明版本发生实质变化时才进入重新确认状态。
+- 已拒绝或撤回的用户不在每次进入时重复看到同意弹窗；只有当前为 `GRANTED`，或迁移记录代表既有积极同意，且目的、处理方式、信息范围、保存期限、处理者或说明版本发生实质变化时才进入 `RECONSENT_REQUIRED`。`NOT_ASKED / DECLINED / WITHDRAWN` 保持原态，只在用户主动进入健康起点时展示当前说明。
 - 人群分类、量表结果和生活方式建议分别展示来源、日期和适用范围，不合成确定性健康等级。
 - 红旗或需要专业关注的回答优先展示求助路径，不继续推送普通建议。
 - 当前版本不把空日历作为主入口，也不自动把建议排成类似处方的计划。
@@ -324,32 +322,38 @@ flowchart TD
 ```mermaid
 flowchart TD
   A["活动 Tab 发现活动"] --> B["查看活动详情"]
-  B --> C{"Activity Eligibility Interface 最小判断"}
-  C -->|eligible| D["报名"]
-  C -->|manual_review| E["提交资格申请"]
-  C -->|ineligible/unavailable| F["展示原因、通用规则或人工协助"]
-  D --> G["Activity Module 记录报名/审核/取消/到场签到事实"]
-  E --> G
+  B --> C{"Activity Module 通用行动资格"}
+  C -->|会员/会话/名额/公开规则通过| D["报名或提交审核"]
+  C -->|已满/截止/公开规则不符| F["展示稳定原因与人工协助"]
+  B -. 仅未来 P1 且健康与隐私 Gate 通过 .-> E{"Activity Eligibility Interface 最小判断"}
+  E -->|eligible| D
+  E -->|manual_review| R["提交人工安全确认"]
+  E -->|ineligible/unavailable| F
+  D --> G["Activity Module 记录 P0 报名/审核/取消事实"]
+  R --> G
   G --> H{"是否生成关联任务"}
   H -->|否| I["活动参与完成"]
   H -->|是| J["Task Module 消费活动参与事实并创建待办"]
   J --> K["用户提交任务打卡/任务问卷/任务凭证"]
   K --> L["Task Module 核验任务事实"]
-  L --> M["Reward Ledger Module 受理幂等奖励结算"]
-  M --> N["任务页展示预期/处理中状态"]
-  M --> O["我的只读展示奖励到账/到期/撤销与异议入口"]
+  L --> M["Settlement Module 按冻结规则评估"]
+  M -->|qualified| N["Reward Ledger Module 创建奖励承诺"]
+  M -->|unqualified/review| O["任务页展示解释或人工路径"]
+  N --> P["任务页展示奖励处理中状态"]
+  N --> Q["我的只读展示奖励到账/到期/撤销与异议入口"]
 ```
 
 关键规则：
 
-- Activity Module 拥有活动、报名、审核、取消、到场签到和结束事实；活动页不得替 Task Module 保存任务答案。
+- Activity Module 是活动定义、场次和参与事实的唯一拥有者；P0 写入报名、审核和取消，P1 才新增候补、签到、出席与活动反馈；活动页不得替 Task Module 保存任务答案。
 - Task Module 拥有任务打卡、任务问卷、任务凭证和完成事实，通过 Activity Module Interface 所在的 Module 间 Seam 消费活动参与事实，不回写或复制活动主数据。
-- 活动后的运营反馈如果被定义为任务，活动页只跳转到 Task Module；若只是活动满意度反馈，则由 Activity Module 明确标识并独立保存。
+- 活动后的任务问卷只跳转到 Task Module；纯活动满意度反馈由 Activity Module 在 P1 明确标识并独立保存。
 - Reward Ledger Module 拥有任务奖励的发放、到账、到期、撤销、人工复核和异议事实；“我的”只读取汇总，不拥有奖励事实。
-- 当前版本所有活动奖励必须先生成关联任务，由 Task Module 核验后请求结算；不支持绕过任务直接发放活动奖励。
+- P0 只有在报名为 `CONFIRMED` 且活动发布版本预绑定一个具体任务定义时创建关联任务；Task Module 只产生完成事实，Settlement Module 负责按版本化规则评估，Reward Ledger Module 只消费结算事实创建奖励承诺；不支持 Task 或页面绕过 Settlement。
+- 来源后来失效时，Settlement Module 追加 `ADJUSTED/REVIEW_REQUIRED` 并发出唯一调整事实；Reward Ledger Module 只追加调整候选和人工路径，不覆盖账本、不自动追回已承诺或已发放权益。
 - 报名活动不等于完成任务；重复操作不能重复结算。
 - 奖励只对应真实参与和流程完成，不对应健康结果高低，也不奖励敏感信息授权。
-- 任务页展示奖励预期和处理状态；最终到账、到期、撤销和异议记录由 Reward Ledger Module 提供给“我的—权益明细”。
+- 任务页在结算前只展示任务定义中的“奖励预览（非账本承诺）”，并明确“以结算结果为准”；`settlement.qualified` 创建奖励承诺后才展示处理状态。最终到账、到期、撤销和异议记录由 Reward Ledger Module 提供给“我的—权益明细”。
 
 ### 5.4 商品展示与交易
 
@@ -386,7 +390,7 @@ myRoot 当前负责展示与解释，不重建支付和售后。交易渠道返�
 
 ### 6.2 Color Palette & Roles
 
-设计语言：当前生产 Token 以暖白承载长内容、墨色保证信息清晰、苔绿表达交互状态、新芽绿表达轻提示，陶土色只用于少量运营提醒。深橄榄是待确认的品牌方向，不是当前生产 Token。
+设计语言：当前 v0.5.13 代码运行时 Token 以暖白承载长内容、墨色保证信息清晰、苔绿表达交互状态、新芽绿表达轻提示，陶土色只用于少量运营提醒。深橄榄是待确认的品牌方向，不是当前运行时 Token。
 
 色彩分工遵循“品牌色与功能色分离”。品牌方确认前，Hero 和封面的深底回退到当前运行时 `--color-root-ink`；确认后，深橄榄才可用于品牌 Hero、封面和沉浸式品牌段落。墨色承担主要按钮和高对比文字；状态色只表达状态。
 
@@ -457,7 +461,7 @@ myRoot 当前负责展示与解释，不重建支付和售后。交易渠道返�
 
 ### 6.5 Layout Principles
 
-- 主设计宽度：375px；重点验证 320px、375px、390px、430px。
+- 母版宽高：390 × 844px；重点验证 320、375、390、430px 宽度及对应微信安全区。
 - 品牌首页和新用户引导允许全视口 Hero。
 - 健康、活动、任务和“我的”使用稳定单列内容区。
 - 品牌场景段落间距可以更大；任务表单不为追求“大片感”拉长流程。
@@ -651,8 +655,8 @@ Hero 规则：
 - 保存中间进度；
 - 说明题目来源、适用人群和结果用途；
 - 退出时说明是否保存；
-- 默认只在普通本地存储保存非敏感的题号和进度游标，不保存完整健康答案；如需恢复答案草稿，必须使用经安全与隐私审查的健康草稿实现，临时 TTL 上限为 24 小时；提交成功、主动放弃、撤回同意或 TTL 到期时清除，真实保存期限确认后再替换该临时上限；
-- 退出登录、会话过期、切换账号、会员身份不匹配或进入 `CONSENT_RECONSENT_REQUIRED` 时，清除完整答案草稿和本地进度游标；新身份或新说明版本不得继承旧草稿；
+- 默认只在普通本地存储保存非敏感的题号和进度游标，不保存完整健康答案；如需恢复答案草稿，必须使用经安全与隐私审查的健康草稿 Implementation。24 小时只可作为非生产脱敏测试上限；生产 TTL 必须来自 D-007 逐类别留存矩阵。提交成功、主动放弃、撤回同意或 TTL 到期时进入可审计清理；
+- 退出登录、会话过期、切换账号、会员身份不匹配或进入 `RECONSENT_REQUIRED` 时，清除完整答案草稿和本地进度游标；新身份或新说明版本不得继承旧草稿；
 - 量表名称、题目、授权、中文版本、计分、阈值和红旗规则未确认前，不进入正式上线稿。
 
 ### 7.8 健康结果与生活方式建议
@@ -664,7 +668,7 @@ Hero 规则：
 3. 当前关注方向；
 4. 结果限制与“不是诊断结果”；
 5. 生活方式建议；
-6. 复评或求助路径。
+6. 求助路径；复评行动仅在 P1 复评能力启用后展示。
 
 每条建议至少包含：
 
@@ -678,7 +682,7 @@ Hero 规则：
 
 红旗回答优先展示专业求助路径，不继续推送普通建议或产品购买。
 
-历史与复评至少展示评测名称、评测版本、完成时间、结果生成时间、建议版本、复评到期状态和失效说明；历史列表使用分页，详情只能通过 Health Journey Module 的 Interface 读取，不绕过该 Interface 读取内部实现。
+P0 历史至少展示评测名称、评测版本、完成时间、结果生成时间、建议版本和失效说明；复评到期与前后对比属于 P1。历史列表使用分页，详情只能通过 Health Journey Module 的 Interface 读取，不绕过该 Interface 读取内部实现。
 
 ### 7.9 活动列表
 
@@ -687,7 +691,7 @@ Hero 规则：
 列表信息：
 
 - 活动名称、类型、城市、时间；
-- `可报名 / 审核中 / 已报名 / 已满员 / 已取消 / 已签到 / 已结束`；
+- P0：`可报名 / 审核中 / 已确认 / 未通过 / 已满员 / 报名截止 / 已取消 / 已结束`；候补、签到与出席仅作 P1 参考态；
 - 公开展示通用资格规则；个性化资格只展示最小判断结果，不展示人群分类答案或健康画像；
 - 清楚的详情入口。
 
@@ -701,11 +705,11 @@ Hero 规则：
 2. 时间、地点、名额与适合人群；
 3. 活动内容、参与方式和注意事项；
 4. 资格与报名状态；
-5. 报名、取消或到场签到行动；任务问卷和任务反馈以跳转方式进入任务页。
+5. P0 报名或取消行动；P1 到场签到；任务问卷和任务反馈以跳转方式进入任务页。
 
-普通活动只使用公开通用资格规则，不调用健康信息。仅当特定线下活动存在明确且充分的安全必要性时，个性化资格才通过 Activity Eligibility Interface 获取最小结果，只返回 `eligible / ineligible / manual_review / unavailable`、规则版本、生成时间和失效时间，不返回原始答案、人群分类或完整健康画像。此时应按具体目的另行说明并取得单独同意；未授权、资料过期或规则不可用时返回 `unavailable`，同时提供人工安全确认或不处理健康信息的替代路径，不得静默视为符合资格，也不得把资格设计成诱导授权的筹码。
+普通活动只使用公开通用资格规则，不调用健康信息。Activity Eligibility Interface 属于 P1 候选且 v1.0.0 默认关闭；未来只有特定线下活动存在明确且充分的安全必要性时，个性化资格才可获取最小结果，只返回 `eligible / ineligible / manual_review / unavailable`、规则版本、生成时间和失效时间，不返回原始答案、人群分类或完整健康画像。此时应按具体目的另行说明并取得单独同意；未授权、资料过期或规则不可用时返回 `unavailable`，同时提供人工安全确认或不处理健康信息的替代路径，不得静默视为符合资格，也不得把资格设计成诱导授权的筹码。
 
-活动数据源、报名、取消、审核、签到和核销规则尚待确认。
+D-005 已固定 P0 报名/取消与 P1 签到/反馈范围；运营后台数据源、首发真实内容包、容量、报名审核 SLA、取消、场次取消、发布责任人与客服 SOP 仍待活动运营 Gate 关闭。
 
 ### 7.11 任务中心
 
@@ -716,7 +720,7 @@ Hero 规则：
 - 当前唯一下一任务；
 - 日常、阶段和活动关联任务；
 - 进度、截止时间、完成规则和凭证；
-- 奖励预期、处理中或需复核状态；
+- 结算前的奖励预览（非账本承诺）、创建奖励承诺后的处理中或需复核状态；
 - 已完成和已过期分组。
 
 任务卡必须标明来源，例如活动、会员计划、7 天试饮或主题问卷。
@@ -802,24 +806,40 @@ Interface：
 - 提供既定交易渠道跳转；
 - 商品不可用时返回清楚原因和替代路径。
 
-### 8.3 Health Journey Module
+### 8.3 Health Eligibility Module
+
+Interface：
+
+- 只返回 `UNKNOWN / ELIGIBLE / INELIGIBLE / REVIEW_REQUIRED`、原因码、政策/证据版本、有效期和唯一下一步；
+- 接受“符合成人规则 / 不符合 / 无法确认”的显式决定，不接收生日原值，不输出年龄；
+- 查询由服务端选择当前 `policyVersion/evidenceVersion`；路由和调用方不得指定版本，决定命令只回传刚展示的两个版本作原子并发校验；过期进入 `REVIEW_REQUIRED/STALE_POLICY`；
+- 政策版本变化、证据撤销或冲突时使资格失效并进入 `REVIEW_REQUIRED`；
+- 不把资格用于营销、人群画像、普通活动筛选或 ROOT 会员有效性判断；
+- 决定未取得持久化回执时保持原状态，关闭新健康写入但保留非健康能力。
+
+### 8.3A Health Consent Module
 
 Interface：
 
 - 提供健康信息同意记录：状态、目的、处理方式、信息范围、保存期限、必要性与影响说明、说明版本、`noticePresentedAt`、`grantedAt`、`refusedAt`、`withdrawnAt`、`statusChangedAt` 和需重新确认原因；
-- 接收同意、拒绝和撤回操作；目的、处理方式、信息范围、保存期限或说明版本实质变化时返回 `CONSENT_RECONSENT_REQUIRED`；
-- 提供人群分类状态；
-- 分页列出可参与的评测、主题问卷和历史评测；
-- 保存和清理有 TTL 的健康草稿，接收最终答案并返回可解释结果；
-- 历史详情提供评测版本、完成时间、结果生成时间、建议版本、复评到期状态和失效说明；
-- 提供生活方式建议及其依据、适用范围、审核状态、版本和更新时间；
-- 对红旗回答返回求助路径；
-- 对未同意、已拒绝、已撤回、版本失效、内容不可用和网络失败返回可区分的错误模式；
-- 拒绝或撤回时不阻塞公开内容，并停止新增个性化处理。
+- 接收同意、拒绝和撤回操作；只有当前为 `GRANTED`，或迁移记录代表既有积极同意，且目的、处理方式、信息范围、保存期限、处理者或说明版本实质变化时返回 `RECONSENT_REQUIRED`；`NOT_ASKED / DECLINED / WITHDRAWN` 保持原态并只更新当前待展示说明引用；
+- 对 Classification、Assessment 与 Questionnaire 的写入只暴露版本化同意摘要和 revision Gate；
+- 拒绝或撤回时不阻塞公开内容，并停止新增个性化处理；
+- 微信平台隐私授权和订阅消息授权不写入本 Module。
+
+### 8.3B Health Journey Module
+
+Interface：
+
+- 组合 Health Eligibility、Health Consent、Classification、Assessment、Questionnaire 与 Recommendation 的只读 Interface；
+- 返回健康首页的可重建投影、当前阻断原因和唯一下一步；
+- P0 历史详情提供评测版本、完成时间、结果生成时间、建议版本和失效说明；复评到期与前后对比属于 P1；
+- 不接收同意、资格、分类、答卷、结果或建议的业务写命令，不拥有这些原始事实；
+- 投影漂移时以下层事实为准并重建，不允许页面通过 Health Journey 反向改写事实。
 
 ### 8.4 Activity Eligibility Interface（Module 间 Seam）
 
-这是 Health Journey Module 唯一 Interface 中供 Activity Module 调用的最小视图，不是第二套健康事实源：
+这是 P1 候选且 v1.0.0 默认关闭的 Module 间 Seam；未来启用时，它是 Health Journey Module 唯一供 Activity Module 调用的最小视图，不是第二套健康事实源：
 
 - 普通活动不调用此 Interface；只有存在明确且充分安全必要性的特定活动可以调用；
 - 输入只包含用户引用、活动引用、资格规则版本和已说明的具体目的；
@@ -834,10 +854,10 @@ Interface：
 
 Interface：
 
-- 分页列出可见活动及 `可报名 / 审核中 / 已报名 / 已满员 / 已取消 / 已签到 / 已结束` 状态；
+- 分页列出可见活动，并把场次、容量和 P0 参与状态投影为 `可报名 / 审核中 / 已确认 / 未通过 / 已满员 / 报名截止 / 已取消 / 已结束`；候补、签到与出席属于 P1；
 - 提供活动详情、通用资格规则、时间地点和名额；
-- 仅对具有明确安全必要性的特定活动，通过 Activity Eligibility Interface 获取个性化资格最小结果；
-- 处理报名、审核、取消、到场签到和纯活动运营反馈；
+- v1.0.0 普通活动仅由本 Module 依据会员摘要、场次、容量、截止时间和公开规则判断，不调用 Activity Eligibility Interface；未来 P1 只有在特定活动已证明明确安全必要性、完成健康/隐私评审与目的专属单独同意并启用对应 Adapter 后，才获取个性化资格最小结果；
+- P0 处理报名、审核和取消；P1 才处理候补、到场签到、出席和纯活动运营反馈；
 - 若活动后反馈被定义为任务问卷，只返回 Task Module 的跳转，不保存问卷答案；
 - 对外部承接动作说明跳转与返回结果；
 - 拥有活动和参与主事实。
@@ -849,29 +869,60 @@ Interface：
 - 列出已加入的任务；
 - 提供唯一进度、截止时间、完成规则和下一步；
 - 接收任务打卡、任务问卷、任务凭证和任务反馈，拥有任务完成事实；
-- 通过 Activity Module Interface 所在的 Module 间 Seam 只读消费报名、审核和到场签到事实，不回写或复制活动主数据；
-- 使用任务引用、规则版本和幂等键向 Reward Ledger Module 请求结算，不直接发放奖励；
-- 保证重复提交不会重复完成或重复请求结算；
-- 展示奖励预期以及 Reward Ledger Module 返回的处理状态。
+- 通过 Activity Module Interface 所在的 Module 间 Seam 只读消费 P0 报名确认事实；P1 可再消费签到/出席事实；不得回写或复制活动主数据；
+- 产生并发布版本化任务完成事实，不直接请求 Reward Ledger，也不直接发放奖励；
+- 保证重复提交不会重复完成；
+- 展示 Settlement 与 Reward Ledger 返回的只读处理状态。
+
+### 8.6A Settlement Module
+
+Interface：
+
+- 只消费 Task Module 的完成/来源失效事实，按冻结规则版本产生 `PENDING / QUALIFIED / UNQUALIFIED / ADJUSTED / REVIEW_REQUIRED`；
+- 同一任务事实和规则版本只产生一条结算事实；
+- 解释达标、未达标或重算原因，不覆盖原任务或旧结算；
+- 只有 `settlement.qualified` 能驱动 Reward Ledger 创建奖励承诺。
+- `settlement.adjusted` 只驱动 Reward Ledger 追加调整候选；已承诺/已交付权益进入显式人工裁决，不自动覆盖、撤销或追回。
+
+### 8.6B Check-in Reminder Module
+
+Interface：
+
+- 判断有效打卡任务是否可申请一次次日提醒；任务本身不自动创建提醒 Job；
+- 区分 `授权决定 / 一次性额度 / 排期 / 微信受理 / 真机收件证据`，不使用一个“已开启”状态覆盖；
+- 用户点击“开启明日提醒”后先调用微信原生订阅 Interface，再幂等记录决定与额度并排期；
+- 拒绝、平台禁用或模板不可用不阻断任务；发送结果未知时进入人工核验，不自动重试或复用额度；
+- 微信 `errcode=0` 只表达“微信已受理提醒”，不表达已送达。
+- Store Module 以 `grantRequestId`、`rootUserId+taskId+taskOccurrenceDate+templateVersion`、`grant→job` 与 `job→sendAttempt` 四层持久化唯一约束防止不同幂等键重复排期或发送。
 
 ### 8.7 Reward Ledger Module
 
 Interface：
 
-- 接收来自 Task Module 的奖励结算请求，至少包含任务引用、参与事实引用、规则版本和幂等键；
-- 拥有奖励预期、处理中、已到账、已到期、已撤销、需人工复核、已拒绝和异议中的账本事实；
+- 只接收 Settlement Module 的 `settlement.qualified` 事实，至少包含结算引用、任务事实引用、奖励定义版本和幂等键；
+- 接收 `settlement.adjusted` 时只创建唯一调整候选/争议路径，不改写既有账本，也不自动追回已承诺或已发放权益；
+- 只有消费 `settlement.qualified` 并创建奖励承诺后，才拥有 `PENDING / DELIVERING / DELIVERED / FAILED / REVOKED / DISPUTED` 账本事实；结算前的 `rewardPreview` 只来自已发布任务定义，是非承诺展示元数据，不属于本 Module；有效期作为正交字段展示，不能覆盖到账状态；
 - 同一幂等键只产生一次结算结果，后续重试返回原结果；
 - 分页提供用户奖励明细、规则版本、生成时间、有效期、状态变化原因和异议入口；
 - 保留原始规则版本，规则后续更新不得追溯改写已经生成的奖励事实；
-- 向 Task Module 返回预期与处理状态，向“我的”提供最终只读账本。
+- 向 Task Module 返回奖励承诺后的处理状态，向“我的”提供最终只读账本；不向调用方伪造结算前的账本记录。
 
 “我的”不是该 Module 的实现，只是读取账本的页面。若 ROOT 会员中心将成为奖励权威来源，应作为该 Module 后面的 Adapter 明确接入；来源未确认前不得假定本地记录就是最终到账事实。
+
+### 8.7A Platform Privacy Orchestration Module
+
+Interface：
+
+- 只在用户主动触发且来源动作确需微信平台隐私类别时返回 Presenter；不因冷启动、切 Tab 或进入健康页自动出现；
+- 区分产品说明、微信原生合同、原生授权结果和本地替代路径；平台合同失败回退 `LEGAL?type=privacy`；
+- 保存一次性恢复 token 与来源上下文摘要，`GRANTED` 后只恢复确认上下文一次，不直接重放手机号、选图、保存、报名、提交或购买写命令；
+- `DECLINED / PLATFORM_DISABLED / OUTCOME_UNKNOWN` 返回来源页并保留最小替代路径；不写 Health Consent 或次日提醒授权事实。
 
 ### 8.8 Home Next-step Module
 
 Interface：
 
-- 根据会员和健康旅程状态选择一个轻量下一步；
+- 按“账号安全/会员冲突 → 用户已开始的健康评测 → 24 小时内活动动作 → 即将过期任务 → ACTIVE 会员健康起点 → 未关联会员提示”的冻结优先级选择一个轻量下一步；
 - 只返回一条状态提示和一个行动；
 - 不返回活动列表、任务列表、奖励进度或健康结果详情；
 - 同一时刻只提供一个主行动。
@@ -954,15 +1005,90 @@ Interface：
 
 - 所有网络和提交动作必须有 loading、成功或失败反馈。
 - 网络失败、登录过期、会员未匹配、健康授权拒绝和业务拒绝分别提示。
-- `SESSION_EXPIRED` 清理本地 token、健康答案草稿和进度游标，并引导重新登录；退出登录、切换账号和会员身份不匹配执行相同的身份隔离清理。
+- 认证失败原因 `SESSION_EXPIRED` 会清理本地 token、健康答案草稿和进度游标，并引导重新登录；它不是新的账号 Canonical 状态。退出登录、切换账号和会员身份不匹配执行相同的身份隔离清理。
 - 普通表单失败时保留已完成输入；健康草稿只按第 7.7 节和第 9.5 节的受保护存储、TTL 与清理触发规则保留。
 - 商品下架保留解释和返回路径，不展示可误点购买按钮。
 - 活动满员、取消或审核中必须明确；重复报名不得产生第二条参与记录。
 - 任务重复提交不能重复完成、发券或结算。
 - 红旗健康回答不进入普通建议或产品推荐流程。
 - 图片上传是次级动作，不能比提交按钮更强。
-- 订阅消息只在真实活动或任务提醒场景按需申请，并解释一次性授权含义。
+- P0 订阅消息只在用户已开始/参与现有打卡任务后，由用户在任务页主动点击“开启明日提醒”申请一次，并解释一次性授权含义；活动提醒和多场景编排属于 P1。
 - 保存分享图是明确按钮；不承诺自动发布朋友圈或小红书。
+
+### 10.1 UED R1.1 呈现与交互登记
+
+Ardot 页面必须为每个条目固定：`screenId / frameId / presentationKind / owningRouteId / variantId / entryAction / successTarget / failureTarget / unknownTarget / backBehavior / AC / Gate`。动态 `{{primaryActionLabel}}` 不能代替固定 Variant；写动作结果未知必须回到所属 route 的明确 `PAGE_STATE / VARIANT` 查询权威事实，不得指向一个泛化、未定义的 Recovery，也不得重复提交。
+
+本轮 Ardot 绑定如下；`CURRENT` 唯一性按 `artifactKind` 判断，Conditional Screen Set、Interaction Registry 与 Auth Candidate 各自只能有一个 CURRENT，不把登记表与画面集误判为互相竞争的版本。所有 CURRENT 工件仍为 `REVIEW_REQUIRED`，不代表 UED handoff 或运行 Gate 已通过。
+
+| artifactKind | 稳定 ID | 状态 |
+| --- | --- | --- |
+| Conditional Screen Set | `fileId=684679021092544 / pageId=204:2` | `R1.1 CURRENT / REVIEW_REQUIRED` |
+| Conditional Screen Archive | `pageId=212:2` | `ARCHIVE / DO NOT HANDOFF` |
+| Interaction Registry | `pageId=222:19 / frameId=222:20` | `R1.1 CURRENT / REVIEW_REQUIRED` |
+| Platform Privacy | `frameId=222:24 / 222:29 / 222:32` | `R1.1 CURRENT / REVIEW_REQUIRED` |
+| Auth Candidate | `frameId=204:33` | `CURRENT`；旧 `201:402` 为 `ARCHIVE / DO NOT HANDOFF` |
+
+R1.1 交付限制与修订记录：
+
+- Conditional Screen Set 的前 16 个 Frame 已删除修订前的重复 R1 覆盖层，只保留 `222:* · persisted` 为唯一当前评审层；`ACT-V-01` 同时删除旧动态 CTA 与遮罩，不再通过遮罩掩盖旧行动。
+- persisted 正文统一为整宽技术评审面板，用于核对状态、行动、成功、失败、结果未知和返回路径；它不是最终用户界面，也不能作为视觉还原或研发标注稿直接交付。
+- 任务详情与打卡页的“开启明日提醒”入口已避开奖励/上传区域，并使用至少 `80×44` 的命名行动热区；当前 Ardot MCP 未暴露 prototype reactions，热区存在不等于跳转已经绑定。
+- Interaction Registry `222:20` 是等价流转登记，不替代可点击原型。正式 UED handoff 仍需二选一：取得可读 prototype 连线；或由产品、UED、研发、测试对等价流转表具名签署。
+- `VARIANT_INDEX` 与技术评审面板只证明条件集合有定义；进入正式 handoff 前，需把研发必须逐态还原的 Variant 展开到稳定 Frame，或在具名签署的等价流转表中逐态绑定稳定 `variantId`、文案、行动、返回与 AC。
+
+下表只作为 22 个条件 screen 的人读复审摘要，不是完整扩展追踪表；`frameId / variantId / AC / Gate / unknownTarget` 必须在 `222:20` 的机器可读扩展登记中逐条绑定后，才能关闭 UED handoff。当前 Ardot 登记仍是等价流转文本而非机器可读逐字段记录，因此本轮明确保持 `REVIEW_REQUIRED / NO-GO`，不得用下表替代缺失字段或具名签署。
+
+| screenId | kind / owningRouteId | 主行动 | success | failure / unknown | back |
+| --- | --- | --- | --- | --- | --- |
+| `HLT-C-01` | `PAGE / HEALTH_CLASSIFICATION` | 保存并继续 | `HLT-A-01` | 留页校验 / 同路由查询分类事实 | `HEALTH_HOME` |
+| `HLT-A-01` | `PAGE / HEALTH_ASSESSMENT` | 检查并提交 | `HLT-P-01` | 保留草稿 / `HLT-P-01` 查询提交事实 | `HEALTH_HOME` |
+| `HLT-Q-01` | `PAGE / HEALTH_QUESTIONNAIRES` | 开始或继续问卷 | `HLT-Q-02` | 内容关闭态 | `HEALTH_HOME` |
+| `HLT-Q-02` | `PAGE / HEALTH_QUESTIONNAIRE` | 检查并提交 | `HLT-P-01` | 保留草稿 / `HLT-P-01` 查询提交事实 | `HLT-Q-01` |
+| `HLT-P-01` | `PAGE_STATE / HEALTH_ASSESSMENT` | 查询处理状态 | `HLT-R-01` | 内容/计算阻断；未知仍查询 | `HEALTH_HOME` |
+| `HLT-R-01` | `PAGE / HEALTH_RESULT` | 查看生活方式建议 | `HLT-REC-01` | 历史只读/阻断 | `HEALTH_HOME` |
+| `HLT-REC-01` | `PAGE / HEALTH_ADVICE` | 查看建议说明 | `HLT-ADV-02` | 历史只读/内容撤销 | `HLT-R-01` |
+| `HLT-HIST-01` | `PAGE / HEALTH_HISTORY` | 查看对应结果 | `HLT-R-01` | 权威空/网络失败分开 | `HEALTH_HOME` |
+| `HLT-SAFE-01` | `PAGE_STATE / HEALTH_ASSESSMENT` | 查看求助方式 | 有回执后显示真实状态 | Adapter 失败只展示可用渠道 | `HEALTH_HOME` |
+| `ACT-03` | `PAGE / MY_ENROLLMENTS` | 查看活动详情 | `ACT-D-02` | 权威空/查询失败分开 | `ACTIVITY_LIST` |
+| `ACT-V-01` | `SHEET / ACTIVITY_DETAIL` | 确认报名/提交申请 | `ACT-V-03` | 同路由 `PAGE_STATE` 查询报名事实 | 关闭回详情 |
+| `ACT-V-02` | `SHEET / MY_ENROLLMENTS` | 确认取消 | 取消态 | 规则阻断 / 同路由 `PAGE_STATE` 查询取消事实 | 关闭回报名详情 |
+| `ACT-V-03` | `VARIANT / ACTIVITY_DETAIL` | 按状态查看报名或其他活动 | 对应列表/详情 | 显示稳定原因码 | 来源详情 |
+| `HLT-ELIG-01` | `PAGE / HEALTH_ELIGIBILITY` | 继续查看健康信息说明 | `HEALTH_CONSENT` | `INELIGIBLE / REVIEW_REQUIRED / 同路由查询资格事实` | `HEALTH_HOME` |
+| `NTF-V-01` | `SHEET / TASK_DETAIL` | 继续并申请微信提醒 | 微信原生 Interface → 排期 Variant | 拒绝/平台禁用/模板不可用/未知 | 关闭回任务详情 |
+| `MEM-V-01` | `VARIANT / MEMBER_LINK_RESULT` | 有有效 routeIntent 时“返回原操作”；无意图时由用户选择“开始健康起点”或“返回首页” | 有意图回原确认上下文；无意图到 `HLT-ELIG-01` 或 `HOME` | 意图过期/资源失效回声明 fallback 并解释；不自动导航或重放写动作 | 来源安全页 |
+| `HLT-ADV-02` | `PAGE_STATE / HEALTH_ADVICE` | 无商品行动；只读说明 | — | 历史只读/内容不可用 | `HLT-REC-01` |
+| `TSK-V-04` | `VARIANT / TASK_DETAIL` | 查看任务状态 | 任务详情/中心 | 保留输入 / 同路由查询提交事实 | 来源任务 |
+| `MEM-V-02` | `VARIANT / PROFILE` | 按 `MATCHING/NOT_FOUND/CONFLICT/EXPIRED/SUSPENDED/DISABLED` 固定行动 | 对应恢复路径 | Adapter 失败单独显示 | `PROFILE/HOME` |
+| `HLT-V-07` | `VARIANT_INDEX / HEALTH_HOME` | 每态只有一个最重要行动 | 对应健康路由 | 不把所有阻断合并 | `HEALTH_HOME` |
+| `ACT-V-05` | `VARIANT_INDEX / ACTIVITY_LIST` | 按场次/报名状态固定行动 | 列表/详情/报名 | 数据源失败不伪装为空 | `ACTIVITY_LIST` |
+| `RWD-V-02` | `VARIANT / REWARD_DETAIL` | 查看账本或人工协助 | `REWARD_LIST` | `FAILED / DISPUTED / 同路由查询账本事实` | `REWARD_LIST` |
+
+活动字段均标注 `OPS_CONTENT_PLACEHOLDER · 运营后台注入`；健康题目、结果和建议均标注 `HEALTH_CONTENT_PLACEHOLDER · Evidence Package 注入`。占位不能作为正式运营或健康验收内容。
+
+### 10.2 微信平台隐私授权独立流程
+
+微信平台隐私授权与 Health Consent、次日提醒订阅授权是三个独立流程：
+
+1. `PRIV-WX-01 Platform Privacy Presenter`：覆盖来源页，说明当前需要的手机号识别、选择图片、保存图片或头像昵称能力。
+2. `PRIV-WX-02 Native Platform Dialog`：`NATIVE_REFERENCE`，明确“微信系统绘制，不由 myRoot 复刻”。
+3. 拒绝时保留来源上下文并给最小替代路径；手机号匹配可转会员号/人工协助，打卡图片可按规则无图提交，保存海报失败不写相册。
+4. 平台指引打开失败时回退 `/pages/legal/index?type=privacy`；平台 Interface 失败、用户拒绝和网络失败分别表达。
+5. 授权成功后原操作只恢复一次，防止重复手机号请求、重复选图或重复保存。
+
+### 10.3 次日提醒页面状态
+
+任务详情只在有效打卡任务次日仍有动作时展示“开启明日提醒”。文案固定为“每次开启只用于明日这一次提醒，任务完成状态仍以本页为准”。页面态是 PRD 五条正交事实轴（可申请性、授权决定、授权额度、提醒任务、送达证据）的投影，不新增 Canonical 状态：
+
+`AVAILABLE → REQUESTING → ACCEPTED_PENDING_SCHEDULE → SCHEDULED → PROVIDER_ACCEPTED / OUTCOME_UNKNOWN`
+
+- `AVAILABLE` = 可申请性 `AVAILABLE`，尚无授权决定或 Job。
+- `REQUESTING` = 原生 Interface 正在交互的瞬时 UI，不写业务状态。
+- `ACCEPTED_PENDING_SCHEDULE` = 授权决定 `ACCEPTED` + 额度 `AVAILABLE` + 尚无有效 Job。
+- `SCHEDULED` = 额度已绑定唯一 Job，Job 为 `SCHEDULED`；不代表已发送。
+- `PROVIDER_ACCEPTED / OUTCOME_UNKNOWN` = Job 的权威发送结果；前者不等于真机送达，后者不可自动重试。
+
+旁路状态为 `REJECTED / PLATFORM_DISABLED / TEMPLATE_UNAVAILABLE / SKIPPED`，分别投影授权决定、可申请性或 Job 状态。`DEVICE_RECEIPT_VERIFIED` 仅在发布证据视图展示，不合并成用户侧“已开启/已送达”。
 
 ## 11. 资产与内容管理
 
@@ -1016,11 +1142,15 @@ PANE 截图只用于结构研究，不得作为视觉资产进入 myRoot。
 - 按钮触控高度不低于 `88rpx`。
 - 选中态和状态信息不只依赖颜色。
 - 拒绝健康信息同意后仍可浏览首页、商品、公开活动、会员资料和人工协助。
+- 健康入口必须先取得服务端当前版本的 `ELIGIBLE` 回执，再展示 Health Consent；`INELIGIBLE/REVIEW_REQUIRED/STALE_POLICY` 不进入健康同意或健康写入。
 - 健康信息同意能区分未询问、已同意、已拒绝、已撤回和需重新确认，并记录目的、处理方式、信息范围、保存期限、必要性与影响说明、版本与时间。
 - 已有 ROOT 会员不被要求重新“入会”；匹配失败有人工协助路径。
 - 任何评测结果都不出现诊断、健康排名或确定性功效表达。
 - 同一活动动作和任务只能完成一次，奖励不能重复结算。
-- 活动、任务和奖励事实分别由 Activity Module、Task Module 和 Reward Ledger Module 拥有，“我的”只读展示。
+- 活动、任务、结算和奖励事实分别由 Activity Module、Task Module、Settlement Module 和 Reward Ledger Module 拥有；固定链路为 `Task → Settlement → Reward Ledger`，“我的”只读展示。
+- Settlement 调整只追加调整候选与人工路径，不覆盖原结算或奖励账本，不在 UED 中展示自动追回。
+- 次日提醒的申请、授权、额度、排期、微信受理和真机证据分别展示；不同幂等键也不能绕过唯一 Job/发送 attempt 合同。
+- 微信平台隐私、Health Consent 和次日提醒授权保持三条独立流程；平台授权成功只恢复来源确认上下文一次，不自动重放写动作。
 - 个性化活动资格只返回最小判断结果和规则元数据，不暴露分类、答案或健康画像。
 - 商品详情只使用已核验产品信息，并清楚说明交易渠道。
 - logo 使用正式资产且不变形；品牌正文统一写作 ROOT。
@@ -1034,54 +1164,58 @@ PANE 截图只用于结构研究，不得作为视觉资产进入 myRoot。
 
 1. 新用户引导第 1 屏：品牌身份。
 2. 新用户引导第 2 屏：会员价值。
-3. 首页：访客态。
-4. 首页：已关联会员态。
+3. 首页：访客态、加载骨架、无下一步、账号/会员冲突、活动临期、任务临期、商品源降级。
+4. 首页：已关联会员态；只显示一个按 PRD 第 6.4 节计算的下一步。
 5. 商品详情。
-6. 登录与会员关联：成功、未找到、人工确认。
-7. 健康首页：未询问、已拒绝、已撤回、需重新确认、待分类、待评测、结果可用、复评到期。
+6. 登录与会员关联：匹配中、成功、未找到、冲突、已到期、暂停、账号禁用、Adapter 不可用；成功时恢复有效 routeIntent 的确认上下文，无原意图时提供“开始健康起点/稍后回首页”。
+7. 健康首页与成年资格：需登录、需关联、会员非 ACTIVE、资格未知、不符合、需复核；同意未询问、已拒绝、已撤回、需重新确认；待分类、评测草稿、处理中、安全阻断、内容阻断、结果失败、结果可用、建议已查看、历史权威空、网络失败和数据过期。复评到期仅作 P1 参考态。
 8. 人群分类。
 9. 基础健康状态评测。
 10. 主题问卷列表与问卷详情。
-11. 健康结果、生活方式建议、历史详情与复评到期。
-12. 活动列表与“我的参与”：可报名、审核中、已报名、已满员、已取消、已签到、已结束。
-13. 活动详情：可报名、审核中、已报名、已满员、已取消、已签到、已结束，以及资格不可用/需人工确认。
-14. 任务中心。
-15. 打卡任务与完成结果。
-16. 我的：会员有效、匹配中、已到期。
-17. 权益明细：处理中、已到账、已到期、已撤销、需人工复核、已拒绝和异议中。
-18. 隐私与健康信息授权管理。
+11. 健康结果、生活方式建议与基础历史详情；前后对比和复评到期仅作 P1 参考态。
+12. 活动列表与“我的报名”：加载、权威业务空、数据源不可用、筛选无结果、可报名、审核中、已确认、未通过、已满员、报名截止、已取消、已结束；候补、签到和出席仅作 P1 参考态。所有活动内容标注运营后台占位。
+13. 活动详情：P0 覆盖可报名、审核中、已确认、未通过、已满员、报名截止、已取消、已结束和数据源不可用；“健康资格不可用/人工安全确认”只属于未来 P1 Activity Eligibility，v1.0.0 默认关闭且不渲染；签到与反馈也仅作 P1 参考态。
+14. 任务中心：需登录/关联、权威业务空、`LOCKED`、`CANCELED`、`EXPIRED`、网络/Adapter 失败、提醒已排期 Inline 状态。
+15. 打卡任务、提交结果和次日提醒：完成、待核验、幂等重放、结果未知、拒绝、平台关闭、模板不可用、已排期、微信已受理；不以“已开启”混合展示。
+16. 我的：访客、会员有效、匹配中、未找到、冲突、已到期、暂停、账号禁用、数据过期/网络失败。
+17. 权益明细：`PENDING / DELIVERING / DELIVERED / FAILED / REVOKED / DISPUTED` 分别映射为等待处理、发放中、已到账、发放失败、已撤销和异议处理中；有效、即将到期、已到期作为正交有效期展示，不新增“已拒绝/需人工复核”奖励状态。
+18. 隐私权利、Health Consent 与微信平台隐私授权三条独立流程；平台原生弹窗只作 `NATIVE_REFERENCE`，并覆盖拒绝、合同打开失败、平台 Interface 失败和授权后仅恢复一次。
 19. 人工协助。
 20. 关于 ROOT。
 
-每页需要同时说明：主任务、入口、返回路径、加载态、空态、失败态、权限/授权态和埋点位置。
+每页需要同时说明：稳定 `screenId`、归属 routeId、呈现形态、前置 Canonical 状态、主任务、入口、成功目标、失败目标、结果未知目标、返回路径、加载态、权威业务空、网络失败、权限/授权态、恢复动作、AC 和埋点位置。
 
 ## 14. 实施优先级
 
-### P0
+本文件不再独立维护产品优先级；规范范围以 PRD 第 4.2～4.5 节为准。设计输出按以下摘要组织：
 
-1. 将 `app.json`、窗口标题、Tab 图标和页面入口统一到五 Tab 目标结构。
-2. 重构首页为品牌理念、全屏商品 Hero、商品橱窗和轻量会员下一步。
-3. 建立登录后关联既有 ROOT 会员的流程与状态。
-4. 新增健康 Tab，并分开健康信息同意、人群分类、基础评测、结果和建议。
-5. 重构 Activity、Task 与 Reward Ledger Module 的事实归属、幂等结算和只读汇总，避免重复记录和结算。
-6. 将“我的”加入 Tab，并展示会员状态、有效期、权益、历史与隐私管理。
-7. 建立评测、建议、科研、认证和功效内容审查表。
+### P0 Core
+
+1. 五 Tab Shell、Canonical Route Registry 与 Legacy 路由兼容。
+2. 两屏可跳过引导、品牌首页、商品橱窗、简洁商品详情和最小 Hero 草稿/预览/发布/回退。
+3. 微信账号与 ROOT 会员关联流程，以及“我的”、任务/Legacy 和 Reward Ledger 只读事实。
+4. 各页面加载、业务空、数据源失败、权限、恢复、人工协助与隐私权利状态。
+
+### 条件性 P0
+
+1. 健康：一套基础评测、一套已批准主题问卷、结果、固定建议和基础历史；垂直 Module Build 前需 D-003/D-004/D-007/D-009 + H-01～H-03 + H-04P，真实健康写入与 D1 健康 UAT 需在 D0 后关闭 H-04R。
+2. 活动：真实列表、详情、场次名额、报名、取消和“我的报名”；D-005 范围已定，真实内容由运营后台上传，活动运营 Gate 仍开放。
+3. 提醒：用户已开始/参与现有打卡任务后主动申请一次次日打卡提醒；D-010 场景已定，真实送达 Gate 仍开放。
+4. 活动创建任务：只在 `CONFIRMED` 且发布版本预绑定一个具体任务定义时创建。
 
 ### P1
 
-1. 建立主题健康问卷库。
-2. 完成活动报名、到场签到和活动后反馈闭环，并区分活动运营反馈与任务问卷。
-3. 场景化申请活动与任务订阅提醒。
-4. 建立评测和建议历史。
-5. 建立首页 Hero 与商品内容运营能力。
-6. 建立 ROOT 影像与授权资产库。
+1. 多套主题问卷、评测对比和复评到期提醒。
+2. 候补、签到、出席、活动后反馈和动态活动任务。
+3. 多场景订阅提醒编排、偏好、频控与效果优化。
+4. 完整健康、活动、Reward Ledger 与首页内容运营工作台。
+5. ROOT 影像与授权资产库的增强治理。
 
 ### P2
 
-1. 生活方式日历。
-2. 长期趋势与阶段复评。
-3. 更细的会员权益编排。
-4. 线下活动与任务的自动关联。
+1. 生活方式日历、长期趋势和自动干预。
+2. 高级会员与复杂权益编排。
+3. 跨活动、任务和奖励的自动组合。
 
 ## 15. 待确认问题
 
@@ -1092,13 +1226,14 @@ PANE 截图只用于结构研究，不得作为视觉资产进入 myRoot。
 5. 基础评测及主题问卷的医学、版权和合规清单。
 6. 生活方式建议的内容负责人、审核机制和版本管理。
 7. 红旗回答的人工或专业求助路径。
-8. 线下活动的数据来源、报名、取消、审核、签到和核销规则。
+8. 线下活动的 P0 产品范围已由 D-005 固定；仍待确认运营后台数据来源、首发内容包、容量、报名审核 SLA、取消、场次取消、发布责任人与客服 SOP。签到、核销和反馈属于 P1。
 9. 任务和奖励的首批类型、有效期、凭证、规则版本、幂等键和人工复核规则。
 10. “我的”中订单、订阅续费和权益明细的权威来源，以及 Reward Ledger Module 的实际 Adapter。
 11. 首页首批产品、影像资产、Hero 数量和更新频率。
 12. 深橄榄候选值 `#242A0E` 是否成为正式品牌色；确认前生产继续回退到 `--color-root-ink`。
-13. 健康信息说明的目的、范围、版本更新、正式数据保存期限与撤回后处理规则。
-14. 个性化活动资格规则、规则版本、有效期、人工确认路径和目的专属同意文案。
+13. D-009 成年资格已固定；健康信息说明的目的、范围、版本更新、逐类别保存期限、撤回/导出/更正/删除与备份处理规则在垂直 Build 前仍待 D-007/H-04P，真实健康写入与 D1 健康 UAT 仍待 D0 后 H-04R。
+14. P1 后续若确有安全必要性：个性化活动资格规则、规则版本、有效期、人工确认路径和目的专属同意文案；v1.0.0 不启用。
+15. D-010 已固定为任务页的次日打卡提醒；同源候选的模板字段、目标环境配置与真实送达仍待 C0/C1/D1 证据关闭。
 
 ## 16. 对抗式审查
 
@@ -1130,7 +1265,7 @@ PANE 截图只用于结构研究，不得作为视觉资产进入 myRoot。
 
 活动页、任务页和“我的”如果都保存同一参与或奖励事实，会产生状态冲突和重复结算。
 
-修正：Activity Module 拥有报名与到场事实；Task Module 只读消费活动事实并拥有任务完成事实；Reward Ledger Module 用幂等键拥有奖励账本；“我的”只读展示。
+修正：Activity Module 拥有报名事实并在 P1 扩展到场事实；Task Module 只读消费活动事实并拥有任务完成事实；Settlement Module 拥有达标、未达标和重算事实；Reward Ledger Module 只消费结算事实并用幂等键拥有奖励账本；“我的”只读展示。
 
 ## 17. Design Dimensions Resolution
 
@@ -1142,7 +1277,7 @@ PANE 截图只用于结构研究，不得作为视觉资产进入 myRoot。
 - mood：`editorial`；仅用于新用户引导、首页和商品详情。
 - density：品牌场景 `spacious`，任务场景保持平衡密度。
 - exclude：`gradients, stock_photos`；同时禁止无来源科研图、医疗化符号和竞品资产。
-- responsive：`mobile_first`；375 x 812 为主，覆盖 320–430px。
+- responsive：`mobile_first`；390 x 844 为母版，覆盖 320、375、390、430px 验证断点。
 
 ## 18. Agent Prompt Guide
 

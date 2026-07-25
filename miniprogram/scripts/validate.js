@@ -46,6 +46,8 @@ for (let index = 1; index <= 7; index += 1) {
 require("../utils/options.js");
 const routerModule = require("../utils/router.js");
 const requestModule = require("../utils/request.js");
+const activityActions = require("../utils/activity-actions.js");
+const activityCommandRecovery = require("../utils/activity-command-recovery.js");
 const cloudRoute = require("../utils/cloud-route.js");
 const transientHealthState = require("../utils/transient-health-state.js");
 require("../utils/legal.js");
@@ -106,6 +108,45 @@ const nativeControlProblems = [];
 const networkProblems = [];
 const routeContractProblems = [];
 
+const expectedV1Tabs = [
+  ["pages/home/index", "首页"],
+  ["pages/health/index", "健康"],
+  ["pages/activities/index", "活动"],
+  ["pages/tasks/index", "任务"],
+  ["pages/profile/index", "我的"],
+];
+const actualTabs = (((app.tabBar || {}).list) || []).map((item) => [item.pagePath, item.text]);
+if (JSON.stringify(actualTabs) !== JSON.stringify(expectedV1Tabs)) {
+  routeContractProblems.push("app.json: tabBar must be 首页 / 健康 / 活动 / 任务 / 我的 in canonical order");
+}
+if (!app.window || app.window.navigationBarTitleText !== "myRoot") {
+  routeContractProblems.push("app.json: global navigation title must be myRoot");
+}
+[
+  "pages/health/index",
+  "pages/activities/index",
+  "subpkg/activity/pages/detail/index",
+  "subpkg/activity/pages/enrollments/index",
+].forEach((requiredRoute) => {
+  if (!scannedPages.includes(requiredRoute)) {
+    routeContractProblems.push(`app.json: missing v1 shell route ${requiredRoute}`);
+  }
+});
+const tabPathSet = new Set(expectedV1Tabs.map(([pagePath]) => `/${pagePath}`));
+scannedPages.forEach((pagePath) => {
+  const file = path.join(root, `${pagePath}.js`);
+  const script = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+  const switchTabPattern = /wx\.switchTab\(\{\s*url:\s*["']([^"']+)["']/g;
+  let match = switchTabPattern.exec(script);
+  while (match) {
+    const target = match[1].split("?")[0];
+    if (!tabPathSet.has(target)) {
+      routeContractProblems.push(`${pagePath}.js: non-Tab route ${target} must not use wx.switchTab`);
+    }
+    match = switchTabPattern.exec(script);
+  }
+});
+
 const packageVersion = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
 if (appVersion !== packageVersion) {
   routeContractProblems.push(`version mismatch: config=${appVersion}, package=${packageVersion}`);
@@ -152,6 +193,7 @@ Object.entries(requiredUploadSettings).forEach(([setting, expected]) => {
 const requiredPackIgnores = [
   ["folder", ".git"],
   ["folder", "scripts"],
+  ["folder", "fixtures"],
   ["folder", "pages/dev-identity-probe"],
   ["file", "package.json"],
   ["file", "README.md"],
@@ -357,6 +399,14 @@ const requestScript = fs.readFileSync(path.join(root, "utils/request.js"), "utf8
 const cloudRouteScript = fs.readFileSync(path.join(root, "utils/cloud-route.js"), "utf8");
 const campaignJoinScript = fs.readFileSync(path.join(root, "utils/campaign-join.js"), "utf8");
 const reminderSubscribeScript = fs.readFileSync(path.join(root, "utils/checkin-reminder-subscribe.js"), "utf8");
+const activityDetailScript = fs.readFileSync(path.join(root, "subpkg/activity/pages/detail/index.js"), "utf8");
+const activityDetailPage = fs.readFileSync(path.join(root, "subpkg/activity/pages/detail/index.wxml"), "utf8");
+const activitiesScript = fs.readFileSync(path.join(root, "pages/activities/index.js"), "utf8");
+const activityEnrollmentsScript = fs.readFileSync(path.join(root, "subpkg/activity/pages/enrollments/index.js"), "utf8");
+const activityEnrollmentsPage = fs.readFileSync(path.join(root, "subpkg/activity/pages/enrollments/index.wxml"), "utf8");
+const activityCommandRecoveryScript = fs.readFileSync(path.join(root, "utils/activity-command-recovery.js"), "utf8");
+const loginScript = fs.readFileSync(path.join(root, "pages/login/index.js"), "utf8");
+const registerScript = fs.readFileSync(path.join(root, "pages/register/index.js"), "utf8");
 
 [
   "components/privacy-consent/index.js",
@@ -369,6 +419,13 @@ const reminderSubscribeScript = fs.readFileSync(path.join(root, "utils/checkin-r
   "utils/campaign-join.js",
   "utils/health-consent.js",
   "utils/transient-health-state.js",
+  "utils/activity-actions.js",
+  "utils/activity-command-recovery.js",
+  "scripts/request.test.js",
+  "scripts/activity-actions.test.js",
+  "scripts/activity-command-recovery.test.js",
+  "scripts/activity-enrollments-model.test.js",
+  "subpkg/activity/pages/enrollments/model.js",
 ].forEach((file) => {
   if (!fs.existsSync(path.join(root, file))) missing.push(path.join(root, file));
 });
@@ -430,6 +487,58 @@ if (typeof campaignJoin.joinCampaign !== "function" ||
   !tasksScript.includes("joinCampaign") ||
   campaignJoinScript.includes("requestCheckinReminderSubscribe")) {
   routeContractProblems.push("campaign join Module must keep the join Interface separate from user-gesture reminder authorization");
+}
+if (typeof requestModule.parseResponse !== "function" ||
+  typeof requestModule.createRequestError !== "function") {
+  routeContractProblems.push("utils/request.js: structured request error Interface is unavailable");
+}
+if (typeof activityActions.deriveActivityAction !== "function" ||
+  typeof activityActions.createMemberSupportRouteIntent !== "function" ||
+  !activityDetailScript.includes('"/api/v1/activities/enroll"') ||
+  !activityDetailScript.includes('"/api/v1/activities/cancel"') ||
+  !activityDetailScript.includes("fetchAuthoritativeDetail") ||
+  !activityDetailPage.includes('bindtap="confirmActivityAction"') ||
+  activityDetailPage.includes("报名暂不可操作")) {
+  routeContractProblems.push("Activity write Module must confirm, submit and reconcile against authoritative detail");
+}
+if (typeof activityCommandRecovery.createActivityPendingCommandRegistry !== "function" ||
+  !activityCommandRecoveryScript.includes("payloadDigest") ||
+  !activityCommandRecoveryScript.includes("idempotencyKey") ||
+  !activityDetailScript.includes("pendingCommands.claim") ||
+  !activityDetailScript.includes("retryPendingAction") ||
+  !activityDetailScript.includes("confirmVoidPendingAction") ||
+  !activityDetailPage.includes("审计检索标识")) {
+  routeContractProblems.push("activity detail must persist payload-scoped unresolved commands and expose explicit reuse/void recovery");
+}
+if (!activityDetailScript.includes("createActivityLoginRouteIntent") ||
+  !loginScript.includes("activityLoginRecoveryUrl") ||
+  !registerScript.includes("activityLoginRecoveryUrl") ||
+  !loginScript.includes("requiresRegistration") ||
+  !activityDetailScript.includes("resumeConfirmation")) {
+  routeContractProblems.push("Activity login recovery must use a typed, expiring route intent and preserve registration");
+}
+if (!activityEnrollmentsScript.includes('"/api/v1/activities/cancel"') ||
+  !activityEnrollmentsScript.includes("commandReachedAuthorityState") ||
+  !activityEnrollmentsScript.includes("fetchAuthoritativeActivity") ||
+  !activityEnrollmentsScript.includes("buildEnrollmentsUrl") ||
+  !activityEnrollmentsScript.includes("groupEnrollments") ||
+  !activityEnrollmentsPage.includes('catchtap="confirmCancel"') ||
+  !activityEnrollmentsPage.includes('bindtap="confirmCancelFromSheet"') ||
+  activityEnrollmentsScript.includes("wx.showModal")) {
+  routeContractProblems.push("My Enrollments must confirm cancellation and reconcile the authoritative enrollment fact");
+}
+if (!activityEnrollmentsScript.includes("pendingCommands.claim") ||
+  !activityEnrollmentsScript.includes("retryPendingCancel") ||
+  !activityEnrollmentsScript.includes("confirmVoidPendingCancel") ||
+  !activityEnrollmentsPage.includes("审计检索标识")) {
+  routeContractProblems.push("my enrollments must persist unresolved cancellations and expose explicit reuse/void recovery");
+}
+if (typeof activityActions.createMyEnrollmentsLoginRouteIntent !== "function" ||
+  !activitiesScript.includes("createMyEnrollmentsLoginRouteIntent") ||
+  !activityEnrollmentsScript.includes("createMyEnrollmentsLoginRouteIntent") ||
+  !loginScript.includes("activityLoginRecoveryUrl") ||
+  !registerScript.includes("activityLoginRecoveryUrl")) {
+  routeContractProblems.push("My Enrollments login recovery must use a typed, expiring read-only route intent");
 }
 if (typeof reminderSubscribe.preloadCheckinReminderTemplate !== "function" ||
   typeof reminderSubscribe.requestCheckinReminderSubscribe !== "function" ||

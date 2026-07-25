@@ -1,5 +1,7 @@
 # 2026-07-11 CloudBase MySQL P0/P1 证据
 
+> **HISTORICAL_V0_5_ONLY / NOT_V1_EVIDENCE**：本文只证明 2026-07-11 对应 v0.5.x 环境和 releaseId 的历史状态，不得用于关闭 v1.0.0 的 Candidate/生产 MySQL、容量、可信微信身份、timer-only IAM、远端 CI 或部署 provenance Gate。v1 当前状态仅以 [v1 Gate tracker](./v1.0.0_launch_gate_closure_tracker_2026-07-17.md) 为准。
+
 ## 结论
 
 myRoot 已具备团队内测所需的生产同构数据层：小程序通过 `wx.cloud.callContainer` 访问 CloudBase 云托管，后端使用 CloudBase SQL MySQL Store Adapter，并通过迁移、20 并发写、双实例、滚动重启、UnionID、商品镜像、关系表一致性、定时 Job 和隔离恢复验证。

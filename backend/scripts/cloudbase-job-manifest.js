@@ -2,7 +2,8 @@
 
 const DEFAULT_CAMPAIGN_ID = "ROOT_7D_RESET";
 const DEFAULT_BASE_URL = "${ROOT_JOB_BASE_URL}";
-const REQUIRED_ENV = ["ROOT_JOB_BASE_URL", "ROOT_ADMIN_JOB_TOKEN"];
+const REQUIRED_ENV = ["ROOT_JOB_BASE_URL"];
+const JOB_TOKEN_ENV = ["ROOT_ADMIN_JOB_ROUTE_TOKENS", "ROOT_ADMIN_JOB_TOKEN", "ROOT_ADMIN_JOB_TOKENS"];
 
 function normalizeBaseUrl(value) {
   return String(value || "").trim().replace(/\/+$/, "");
@@ -54,7 +55,11 @@ function buildCloudbaseJobManifest(options = {}) {
     environment: {
       baseUrl,
       requiredEnv: REQUIRED_ENV,
+      anyOfEnv: [JOB_TOKEN_ENV],
       optionalEnv: [
+        "ROOT_ADMIN_JOB_ROUTE_TOKENS",
+        "ROOT_ADMIN_JOB_TOKENS",
+        "ROOT_REQUIRE_SCOPED_JOB_TOKENS",
         "ROOT_JOB_ROUTE_QUERY",
         "ROOT_ALERT_CAMPAIGN_ID",
         "ROOT_LIFECYCLE_SETTLEMENT_CAMPAIGN_ID",
@@ -121,8 +126,18 @@ function buildCloudbaseJobManifest(options = {}) {
         "WEWORK_TOUCH_SEND_METHOD",
         "WEWORK_TOUCH_EXTRA_PARAMS",
         "WEWORK_TOUCH_RESULT_FIELD_MAP",
+        "ROOT_V1_RUNTIME_SCHEDULER_DRY_RUN",
+        "ROOT_V1_RUNTIME_BRIDGE_LIMIT",
+        "ROOT_V1_RUNTIME_RECOVERY_LIMIT",
+        "ROOT_V1_RUNTIME_WORKER_LIMIT",
+        "ROOT_V1_RUNTIME_SCHEDULER_TIMEOUT_SECONDS",
       ],
       tokenHeader: "X-Admin-Token",
+      tokenPolicy: {
+        preferred: "ROOT_ADMIN_JOB_ROUTE_TOKENS maps one exact /api/v1/jobs/* pathname to its own rotation list.",
+        strict: "Candidate/production sets ROOT_REQUIRE_SCOPED_JOB_TOKENS=true after every scheduled route is present.",
+        legacy: "ROOT_ADMIN_JOB_TOKEN(S) remains an explicit migration fallback only while strict mode is false.",
+      },
       requestIdPolicy: "execute 模式必须使用稳定 request_id；runner 未显式传入时按分钟生成默认 request_id。",
     },
     jobs: [
@@ -559,6 +574,48 @@ function buildCloudbaseJobManifest(options = {}) {
           "对账记录只保存 UnionID 指纹和聚合计数，Job 输出与审计不保存 UnionID、手机号或 token。",
         ],
       },
+      {
+        id: "v1_runtime_cycle",
+        title: "v1 Runtime Control 持久治理周期",
+        schedule: {
+          cron: "* * * * *",
+          timezone: "Asia/Shanghai",
+          description: "每分钟由独立 CloudBase timer handler 生成稳定 scheduleId/requestId；默认仅 preview。",
+        },
+        http: {
+          method: "POST",
+          path: "/api/v1/jobs/v1-runtime-cycle",
+          body: {
+            bridgeLimit: 20,
+            dryRun: true,
+            recoveryLimit: 10,
+            requestId: "由 canonical event.Time 唯一生成",
+            scheduleId: "与 requestId 完全相同",
+            scheduledAt: "canonical event.Time",
+            workerLimit: 20,
+          },
+        },
+        invocation: {
+          mode: "CLOUDBASE_TIMER_ONLY",
+          functionName: "myroot-v1-runtime-scheduler",
+          triggerName: "v1_runtime_cycle",
+          dryRunEnv: "ROOT_V1_RUNTIME_SCHEDULER_DRY_RUN",
+        },
+        requiredEnv: REQUIRED_ENV,
+        optionalEnv: [
+          "ROOT_V1_RUNTIME_SCHEDULER_DRY_RUN",
+          "ROOT_V1_RUNTIME_BRIDGE_LIMIT",
+          "ROOT_V1_RUNTIME_RECOVERY_LIMIT",
+          "ROOT_V1_RUNTIME_WORKER_LIMIT",
+          "ROOT_V1_RUNTIME_SCHEDULER_TIMEOUT_SECONDS",
+        ],
+        safeguards: [
+          "handler 硬编码唯一 Runtime Control route，不接受 event 选择 Job。",
+          "同一 event.Time 规范化为唯一 scheduleId=requestId，跨实例重试由持久 ledger 收敛。",
+          "默认 preview；execute 还要求专属 RUNTIME_CYCLE_EXECUTE capability、Candidate 运行授权与 timer-only IAM 证据。",
+          "真实部署与启用 timer 不属于本地开发交付，本 manifest 仅描述待发布配置。",
+        ],
+      },
     ],
   };
 }
@@ -573,7 +630,13 @@ function validateCloudbaseJobManifest(manifest, options = {}) {
   if (!manifest || manifest.version !== 1) errors.push("manifest.version must be 1");
   if (!manifest || !manifest.environment) errors.push("manifest.environment is required");
   const jobs = manifest && Array.isArray(manifest.jobs) ? manifest.jobs : [];
-  if (jobs.length < 11) errors.push("manifest.jobs must include adapter retry, operational alerts, checkin reminders, wework touch, lifecycle settlement, lifecycle cleanup, lifecycle export, lifecycle export delivery retry, lifecycle export cleanup, health data retention cleanup, and Youzan identity reconciliation jobs");
+  if (jobs.length !== 12) errors.push("manifest.jobs must contain exactly the twelve approved scheduled jobs");
+  if (!manifest || !manifest.environment || !Array.isArray(manifest.environment.anyOfEnv)
+    || !manifest.environment.anyOfEnv.some((group) => (
+      Array.isArray(group) && JOB_TOKEN_ENV.every((name) => group.includes(name))
+    ))) {
+    errors.push("manifest.environment.anyOfEnv must declare the Job token rotation alternatives");
+  }
   const ids = new Set();
   for (const job of jobs) {
     if (!job.id) errors.push("job.id is required");
@@ -583,13 +646,23 @@ function validateCloudbaseJobManifest(manifest, options = {}) {
     if (!job.http || job.http.method !== "POST" || !String(job.http.path || "").startsWith("/api/v1/jobs/")) {
       errors.push(`${job.id || "job"} http Interface must call POST /api/v1/jobs/*`);
     }
-    if (!job.executeCommand || !job.executeCommand.includes("--execute")) errors.push(`${job.id || "job"} executeCommand must be explicit execute mode`);
-    if (!job.dryRunCommand || !job.dryRunCommand.includes("--dry-run")) errors.push(`${job.id || "job"} dryRunCommand must be explicit dry-run mode`);
+    const timerOnly = job.invocation && job.invocation.mode === "CLOUDBASE_TIMER_ONLY";
+    if (timerOnly) {
+      if (job.id !== "v1_runtime_cycle"
+        || job.invocation.functionName !== "myroot-v1-runtime-scheduler"
+        || job.invocation.triggerName !== "v1_runtime_cycle"
+        || job.invocation.dryRunEnv !== "ROOT_V1_RUNTIME_SCHEDULER_DRY_RUN") {
+        errors.push(`${job.id || "job"} timer-only invocation contract is invalid`);
+      }
+    } else {
+      if (!job.executeCommand || !job.executeCommand.includes("--execute")) errors.push(`${job.id || "job"} executeCommand must be explicit execute mode`);
+      if (!job.dryRunCommand || !job.dryRunCommand.includes("--dry-run")) errors.push(`${job.id || "job"} dryRunCommand must be explicit dry-run mode`);
+    }
     for (const name of REQUIRED_ENV) {
       if (!Array.isArray(job.requiredEnv) || !job.requiredEnv.includes(name)) errors.push(`${job.id || "job"} missing required env ${name}`);
     }
   }
-  for (const expectedId of ["adapter_retry_due", "operational_alerts", "checkin_reminders", "wework_touch_due", "lifecycle_settlement_due", "lifecycle_settlement_cleanup", "lifecycle_users_export", "lifecycle_user_exports_delivery_retry", "lifecycle_user_exports_cleanup", "health_data_retention_cleanup", "youzan_identity_reconcile"]) {
+  for (const expectedId of ["adapter_retry_due", "operational_alerts", "checkin_reminders", "wework_touch_due", "lifecycle_settlement_due", "lifecycle_settlement_cleanup", "lifecycle_users_export", "lifecycle_user_exports_delivery_retry", "lifecycle_user_exports_cleanup", "health_data_retention_cleanup", "youzan_identity_reconcile", "v1_runtime_cycle"]) {
     if (!ids.has(expectedId)) errors.push(`missing job ${expectedId}`);
   }
   const baseUrl = manifest && manifest.environment && manifest.environment.baseUrl;
@@ -617,9 +690,12 @@ function buildCloudbaseJobManifestReport(manifest, validation) {
       `- ${job.id}：${job.schedule.description}`,
       `  - cron：${job.schedule.cron} (${job.schedule.timezone})`,
       `  - Interface：${job.http.method} ${job.http.path}`,
-      `  - dry-run：${job.dryRunCommand}`,
-      `  - execute：${job.executeCommand}`,
     );
+    if (job.invocation && job.invocation.mode === "CLOUDBASE_TIMER_ONLY") {
+      lines.push(`  - invocation：${job.invocation.functionName}/${job.invocation.triggerName}（timer-only；默认 preview）`);
+    } else {
+      lines.push(`  - dry-run：${job.dryRunCommand}`, `  - execute：${job.executeCommand}`);
+    }
   }
   if (validation.warnings.length) {
     lines.push("", "## 提醒", ...validation.warnings.map((item) => `- ${item}`));
