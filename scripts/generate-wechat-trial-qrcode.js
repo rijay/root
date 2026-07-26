@@ -2,6 +2,7 @@
 
 const crypto = require("node:crypto");
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 
 const EXPECTED_APPID = "wx7727a02565aed1c2";
@@ -12,7 +13,7 @@ const STABLE_TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/stable_token";
 const QR_CODE_URL = "https://api.weixin.qq.com/wxa/getwxacode";
 const MAX_QR_PATH_LENGTH = 1024;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const PRIVATE_TMP_ROOT = fs.realpathSync("/private/tmp");
+const PRIVATE_TMP_ROOT = fs.realpathSync(process.platform === "darwin" ? "/private/tmp" : os.tmpdir());
 
 function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
@@ -59,7 +60,7 @@ function assertPrivateRegularFile(filePath, label) {
   const stat = fs.lstatSync(resolved);
   if (!stat.isFile() || stat.isSymbolicLink()) throw new Error(`${label} must be a regular file`);
   const realPath = fs.realpathSync(resolved);
-  if (!isInsidePrivateTmp(realPath)) throw new Error(`${label} must resolve inside /private/tmp`);
+  if (!isInsidePrivateTmp(realPath)) throw new Error(`${label} must resolve inside the private temporary root`);
   if ((stat.mode & 0o077) !== 0) throw new Error(`${label} permissions must be 0600 or stricter`);
   return realPath;
 }
@@ -100,7 +101,7 @@ function validateOutputBase(outputBase) {
     if (fs.existsSync(`${resolved}.${extension}`)) throw new Error("Output image already exists; refusing to overwrite");
   }
   const parent = fs.realpathSync(path.dirname(resolved));
-  if (!isInsidePrivateTmp(parent)) throw new Error("Output parent resolves outside /private/tmp");
+  if (!isInsidePrivateTmp(parent)) throw new Error("Output parent resolves outside the private temporary root");
   fs.accessSync(parent, fs.constants.W_OK);
   return resolved;
 }
@@ -234,6 +235,7 @@ async function main() {
 if (require.main === module) main();
 
 module.exports = {
+  PRIVATE_TMP_ROOT,
   assertPrivateRegularFile,
   buildQrRequest,
   generateTrialQrCode,

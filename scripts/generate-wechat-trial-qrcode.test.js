@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const {
+  PRIVATE_TMP_ROOT,
   assertPrivateRegularFile,
   buildQrRequest,
   getStableAccessToken,
@@ -31,7 +32,7 @@ async function main() {
   assert.equal(request.path, `pages/home/index?myroot_canary=${routeValue}`);
   assert.equal(request.width, 430);
 
-  const plan = summarizePlan(route, request, "/private/tmp/myroot-v0.5.13-trial");
+  const plan = summarizePlan(route, request, path.join(PRIVATE_TMP_ROOT, "myroot-v0.5.13-trial"));
   assert.equal(plan.networkCalled, false);
   assert.equal(plan.secretDisclosed, false);
   assert.equal(plan.tokenDisclosed, false);
@@ -55,18 +56,18 @@ async function main() {
   assert.equal(redact("provider synthetic-secret-value-for-test"), "provider [REDACTED]");
 
   const outsideDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "myroot-qrcode-outside-"));
-  const linkedDirectory = `/private/tmp/myroot-qrcode-link-${process.pid}-${Date.now()}`;
+  const linkedDirectory = path.join(PRIVATE_TMP_ROOT, `myroot-qrcode-link-${process.pid}-${Date.now()}`);
   const outsideRoute = path.join(outsideDirectory, "route.json");
   fs.writeFileSync(outsideRoute, "{}\n", { mode: 0o600 });
   fs.symlinkSync(outsideDirectory, linkedDirectory, "dir");
   try {
     assert.throws(
       () => assertPrivateRegularFile(path.join(linkedDirectory, "route.json"), "Route file"),
-      /must resolve inside \/private\/tmp/
+      /must resolve inside the private temporary root/
     );
     assert.throws(
       () => validateOutputBase(path.join(linkedDirectory, "trial-output")),
-      /resolves outside \/private\/tmp/
+      /resolves outside the private temporary root/
     );
   } finally {
     fs.unlinkSync(linkedDirectory);

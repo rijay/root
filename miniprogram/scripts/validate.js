@@ -185,7 +185,7 @@ Object.entries(requiredUploadSettings).forEach(([setting, expected]) => {
     networkProblems.push(`project.config.json: setting.${setting} must be ${expected} before upload`);
   }
   const privateValue = privateConfig && privateConfig.setting && privateConfig.setting[setting];
-  if (privateValue !== undefined && privateValue !== expected) {
+  if (privateConfig && privateValue !== undefined && privateValue !== expected) {
     networkProblems.push(`project.private.config.json: setting.${setting} must remain ${expected} before upload`);
   }
 });
