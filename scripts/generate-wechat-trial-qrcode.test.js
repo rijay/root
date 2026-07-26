@@ -2,7 +2,6 @@
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
-const os = require("node:os");
 const path = require("node:path");
 const {
   PRIVATE_TMP_ROOT,
@@ -55,7 +54,7 @@ async function main() {
   assert.equal(redact('{"secret":"synthetic-secret-value-for-test"}'), '{"secret":"[REDACTED]"}');
   assert.equal(redact("provider synthetic-secret-value-for-test"), "provider [REDACTED]");
 
-  const outsideDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "myroot-qrcode-outside-"));
+  const outsideDirectory = fs.mkdtempSync(path.join(process.cwd(), ".myroot-qrcode-outside-"));
   const linkedDirectory = path.join(PRIVATE_TMP_ROOT, `myroot-qrcode-link-${process.pid}-${Date.now()}`);
   const outsideRoute = path.join(outsideDirectory, "route.json");
   fs.writeFileSync(outsideRoute, "{}\n", { mode: 0o600 });
