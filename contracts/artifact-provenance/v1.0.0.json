@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "scope": "NON_RUNTIME_LOCAL_PROVENANCE_FOUNDATION",
+  "digestAlgorithm": "SHA-256",
+  "canonicalization": {
+    "version": "MYROOT_CANONICAL_JSON_V1",
+    "unicodeNormalization": "NFC_REQUIRED",
+    "objectKeyOrdering": "UTF16_CODE_UNIT_ASCENDING",
+    "numberEncoding": "SAFE_INTEGER_JSON",
+    "arrayOrdering": "SCHEMA_DEFINED_DETERMINISTIC",
+    "undefinedPolicy": "REJECT",
+    "digestDomainSeparation": "ARTIFACT_PROVENANCE_V1"
+  },
+  "requiredArtifactModuleIds": [
+    "ADMIN",
+    "BACKEND",
+    "CLOUD_FUNCTION",
+    "CONTENT",
+    "MIGRATION",
+    "MINIPROGRAM",
+    "ROUTE_REGISTRY"
+  ],
+  "moduleSourcePolicies": [
+    {
+      "moduleId": "ADMIN",
+      "includePrefixes": ["admin/"],
+      "includeFiles": []
+    },
+    {
+      "moduleId": "BACKEND",
+      "includePrefixes": ["backend/"],
+      "includeFiles": []
+    },
+    {
+      "moduleId": "CLOUD_FUNCTION",
+      "includePrefixes": ["cloudfunctions/"],
+      "includeFiles": ["cloudbaserc.json"]
+    },
+    {
+      "moduleId": "CONTENT",
+      "includePrefixes": [],
+      "includeFiles": [
+        "docs/design.md",
+        "docs/v1.0.0_gate_and_document_authority_decision_2026-07-15.md",
+        "docs/v1.0.0_product_requirements.md"
+      ]
+    },
+    {
+      "moduleId": "MIGRATION",
+      "includePrefixes": ["backend/db/migrations/"],
+      "includeFiles": ["backend/db/schema.sql"]
+    },
+    {
+      "moduleId": "MINIPROGRAM",
+      "includePrefixes": ["miniprogram/"],
+      "includeFiles": []
+    },
+    {
+      "moduleId": "ROUTE_REGISTRY",
+      "includePrefixes": ["contracts/route-registry/"],
+      "includeFiles": [
+        "scripts/lib/route-registry.js",
+        "scripts/route-registry-v1.test.js",
+        "scripts/validate-v1-route-registry.js"
+      ]
+    }
+  ],
+  "overlapPolicy": "ALLOWED_AND_DOMAIN_SEPARATED",
+  "governanceSourcePaths": [
+    ".github/workflows/ci.yml",
+    "contracts/artifact-provenance/v1.0.0.json",
+    "contracts/baseline-signoff/v1.0.0.json",
+    "contracts/formal-launch-readiness/v1.0.0.json",
+    "contracts/platform-control-evidence/v1.0.0.json",
+    "contracts/required-checks/v1.0.0.json",
+    "contracts/release-evidence/v1.0.0.json",
+    "package.json",
+    "scripts/build-candidate-provenance.js",
+    "scripts/final-verification.js",
+    "scripts/validate-formal-launch-readiness.js"
+  ],
+  "archive": {
+    "format": "USTAR_FIXED_V1",
+    "pathPrefix": "source/",
+    "mtimeSeconds": 0,
+    "uid": 0,
+    "gid": 0,
+    "fileMode": 420,
+    "executableMode": 493,
+    "terminalZeroBlockCount": 2
+  },
+  "limits": {
+    "maximumFileCount": 10000,
+    "maximumFileBytes": 20971520,
+    "maximumArchiveBytes": 262144000
+  },
+  "payloadSchema": {
+    "exactFields": [
+      "schemaVersion",
+      "contractStatus",
+      "digestCanonicalizationVersion",
+      "sourceCommit",
+      "sourceSet",
+      "artifactDigestByModule",
+      "sourceArchive",
+      "governanceDigestSet"
+    ],
+    "sourceSetExactFields": ["fileCount", "totalBytes", "manifestSha256"],
+    "moduleExactFields": [
+      "moduleId",
+      "artifactKind",
+      "fileCount",
+      "totalBytes",
+      "artifactDigest"
+    ],
+    "archiveExactFields": ["format", "fileName", "bytes", "entryCount", "sha256"],
+    "governanceRefExactFields": ["refId", "path", "sha256"]
+  },
+  "builderEnvelopeSchema": {
+    "exactFields": [
+      "schemaVersion",
+      "contractStatus",
+      "payloadFile",
+      "payloadDigest",
+      "sourceArchiveFile",
+      "sourceArchiveSha256",
+      "builder",
+      "governance",
+      "authorization"
+    ],
+    "builderExactFields": [
+      "provider",
+      "repositoryRef",
+      "workflowRef",
+      "runRef",
+      "eventName"
+    ],
+    "governanceExactFields": [
+      "expectedRequiredCheckName",
+      "requiredCheckStatus",
+      "actionPinningStatus",
+      "mutableActionRefs",
+      "oidcAttestationStatus",
+      "attestationPermissionsGranted",
+      "remoteArtifactReadbackStatus"
+    ]
+  },
+  "actionPolicy": {
+    "immutableShaRequiredForClosure": true,
+    "status": "IMMUTABLE_ACTION_SHAS_VERIFIED_FROM_OFFICIAL_GITHUB_TAG_REFS_2026_07_17",
+    "locallyVerifiedImmutableActionRefs": [
+      "actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5",
+      "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+    ],
+    "mutableActionRefs": []
+  },
+  "remoteClosureRequirements": {
+    "evidenceClass": "SOURCE_PROVENANCE_ONLY",
+    "expectedRequiredCheckName": "Source provenance only",
+    "requiredCheckProtectionProofRequired": true,
+    "remoteArtifactReadbackRequired": true,
+    "oidcAttestationRequiresExplicitAuthorization": true,
+    "requiredAttestationPermissions": ["attestations:write", "id-token:write"]
+  },
+  "authorization": {
+    "runtimeAuthorized": false,
+    "candidateCreationAuthorized": false,
+    "deploymentAuthorized": false,
+    "attestationAuthorized": false,
+    "gateClosureAuthorized": false
+  }
+}

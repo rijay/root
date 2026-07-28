@@ -1,0 +1,172 @@
+{
+  "registryVersion": 1,
+  "contractVersion": "1.0.0",
+  "productVersion": "v1.0.0",
+  "scope": "NON_RUNTIME_CONTRACT",
+  "digestAlgorithm": "SHA-256",
+  "canonicalization": {
+    "version": "MYROOT_CANONICAL_JSON_V1",
+    "unicodeNormalization": "NFC_REQUIRED",
+    "objectKeyOrdering": "UTF16_CODE_UNIT_ASCENDING",
+    "numberEncoding": "SAFE_INTEGER_JSON",
+    "arrayOrdering": "SCHEMA_DEFINED_DETERMINISTIC",
+    "undefinedPolicy": "REJECT",
+    "digestDomainSeparation": "BASELINE_SIGNOFF_V1"
+  },
+  "inputBinding": {
+    "productVersion": "v1.0.0",
+    "prdSha256": "c7973c271bd60666196644b84655c9c56eda73835d7239072085c80290b39f81",
+    "designSha256": "5a2f774adb5db2f385985add6efd5c00df7a95fd6d05f0cf78b8a49af1bc5a44",
+    "gateDecisionSha256": "abc86917520c533942588991907e4b81622f30e9fba37b56af1074e6c0c59109"
+  },
+  "requiredRoles": [
+    "PRODUCT",
+    "OPERATIONS",
+    "ENGINEERING",
+    "QA",
+    "PRIVACY",
+    "HEALTH_CONTENT_REVIEW"
+  ],
+  "decisions": [
+    {
+      "decisionId": "D-001",
+      "requiredRoles": ["PRODUCT", "OPERATIONS", "ENGINEERING"]
+    },
+    {
+      "decisionId": "D-002",
+      "requiredRoles": ["PRODUCT", "PRIVACY", "ENGINEERING"]
+    },
+    {
+      "decisionId": "D-003",
+      "requiredRoles": ["PRODUCT", "HEALTH_CONTENT_REVIEW", "PRIVACY"]
+    },
+    {
+      "decisionId": "D-004",
+      "requiredRoles": ["PRODUCT", "HEALTH_CONTENT_REVIEW", "OPERATIONS"]
+    },
+    {
+      "decisionId": "D-005",
+      "requiredRoles": ["PRODUCT", "OPERATIONS", "QA"]
+    },
+    {
+      "decisionId": "D-006",
+      "requiredRoles": ["PRODUCT", "OPERATIONS", "ENGINEERING", "QA"]
+    },
+    {
+      "decisionId": "D-007",
+      "requiredRoles": ["PRODUCT", "PRIVACY", "ENGINEERING"]
+    },
+    {
+      "decisionId": "D-008",
+      "requiredRoles": ["PRODUCT", "OPERATIONS", "ENGINEERING", "QA"]
+    },
+    {
+      "decisionId": "D-009",
+      "requiredRoles": ["PRODUCT", "HEALTH_CONTENT_REVIEW", "PRIVACY"]
+    },
+    {
+      "decisionId": "D-010",
+      "requiredRoles": ["PRODUCT", "OPERATIONS", "PRIVACY", "ENGINEERING", "QA"]
+    }
+  ],
+  "allowedDecisions": [
+    "APPROVED",
+    "REJECTED",
+    "APPROVED_WITH_CONDITIONS"
+  ],
+  "allowedSignatureMethods": [
+    "CONTROLLED_APPROVAL_RECORD_V1",
+    "DETACHED_DIGITAL_SIGNATURE_V1"
+  ],
+  "validationStatuses": [
+    "VALIDATED",
+    "INVALID"
+  ],
+  "revocationStatuses": [
+    "ACTIVE",
+    "REVOKED"
+  ],
+  "conditionStatuses": [
+    "OPEN",
+    "CLOSED"
+  ],
+  "separationOfDuties": [
+    {
+      "role": "PRODUCT",
+      "mustUseDifferentSignerFrom": ["PRIVACY", "HEALTH_CONTENT_REVIEW"]
+    },
+    {
+      "role": "ENGINEERING",
+      "mustUseDifferentSignerFrom": ["QA"]
+    }
+  ],
+  "documentSchema": {
+    "digestFieldName": "baselineDigest",
+    "baselineExactFields": [
+      "baselineFormatVersion",
+      "digestCanonicalizationVersion",
+      "productVersion",
+      "baselineId",
+      "inputBinding",
+      "signoffs",
+      "createdAt"
+    ],
+    "signoffExactFields": [
+      "signoffId",
+      "signerRef",
+      "role",
+      "decisionId",
+      "decision",
+      "conditions",
+      "inputBindingDigest",
+      "evidenceRef",
+      "signedAt",
+      "signatureMethod",
+      "signedPayloadDigest",
+      "signatureDigest",
+      "validatorRef",
+      "validationStatus",
+      "validationEvidenceRef",
+      "validatedAt",
+      "revocationStatus",
+      "revocationEvidenceRef"
+    ],
+    "conditionExactFields": [
+      "conditionId",
+      "ownerRef",
+      "deadline",
+      "status",
+      "closureEvidenceRef"
+    ],
+    "signedPayloadExactFields": [
+      "signoffId",
+      "signerRef",
+      "role",
+      "decisionId",
+      "decision",
+      "conditions",
+      "inputBindingDigest",
+      "evidenceRef",
+      "signedAt",
+      "signatureMethod"
+    ],
+    "signedConditionExactFields": [
+      "conditionId",
+      "ownerRef",
+      "deadline"
+    ],
+    "opaqueReferencePatterns": {
+      "baseline": "^baseline:sha256:[a-f0-9]{64}$",
+      "signoff": "^signoff:sha256:[a-f0-9]{64}$",
+      "actor": "^actor:sha256:[a-f0-9]{64}$",
+      "evidence": "^evidence:sha256:[a-f0-9]{64}$",
+      "condition": "^condition:sha256:[a-f0-9]{64}$",
+      "validator": "^validator:sha256:[a-f0-9]{64}$"
+    }
+  },
+  "authorization": {
+    "runtimeAuthorized": false,
+    "candidateCreationAuthorized": false,
+    "deploymentAuthorized": false
+  }
+}

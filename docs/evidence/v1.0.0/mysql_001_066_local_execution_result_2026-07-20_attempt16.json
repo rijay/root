@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "myroot.local-mysql-execution-result.v1",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "attempt": 16,
+  "authorizationPacketAttempt": 17,
+  "packetSha256": "ed47ca151054fee48a23cf3b15a7bb10f328315b714b4a5a38ad826a32287291",
+  "authorizationNonce": "3cb2af5e-fc25-4790-a869-5c0d6d8c9025",
+  "status": "FAIL_FINAL_BACKEND_TESTS_32_FAILURES_CLEANED",
+  "failureStage": "FINAL_REPOSITORY_VERIFY",
+  "provedBeforeFailure": {
+    "realEngineTestsPassed": 13,
+    "realEngineTestsFailed": 0,
+    "realEngineTestsSkipped": 0,
+    "migrationSetDigest": "c385ef2952d272a961420a5c3df5886cab7a36325cdf7729a13484744d561cb4",
+    "generatedTableCount": 56,
+    "schemaWriteMatches": true,
+    "schemaByteEqualityMatches": true,
+    "schemaProvenanceMatches": true,
+    "schemaSnapshotSha256": "895aad618b6b0c34d06ae19684ffb3d4a4beda8bf994e212380727cd6d44819d"
+  },
+  "observedFailure": {
+    "finalVerificationFailureLabels": ["Backend tests"],
+    "termination": {
+      "kind": "EXIT",
+      "exitCode": 1,
+      "signal": null,
+      "errorCode": null
+    },
+    "testSummary": {
+      "tests": 1366,
+      "passed": 1325,
+      "failed": 32,
+      "cancelled": 0,
+      "skipped": 9,
+      "todo": 0
+    },
+    "parsedTopLevelTapFailures": [],
+    "cause": "BACKEND_DEFAULT_SPEC_REPORTER_NOT_PARSED_BY_TAP_FAILURE_EXTRACTOR",
+    "stdoutUtf8Bytes": 152726,
+    "stdoutSha256": "3ee8ebbeb287994a597f5b251ef1c5e7deb9151abfc537bfaa7487b192e058c1"
+  },
+  "scope": {
+    "host": "127.0.0.1",
+    "port": "EPHEMERAL_RANDOM_HOST_PORT",
+    "mysqlVersion": "8.0.43",
+    "candidateConnectionUsed": false,
+    "productionConnectionUsed": false,
+    "deploymentPerformed": false
+  },
+  "cleanup": {
+    "containerRemoved": true,
+    "ownedContainersObservedAfterRun": 0,
+    "temporaryListenerRemoved": true,
+    "mutableOutputsRestored": true,
+    "nonceConsumed": true
+  },
+  "formalGateEffect": {
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "formalLaunchAuthorized": false
+  }
+}

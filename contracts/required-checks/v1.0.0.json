@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "productVersion": "v1.0.0",
+  "scope": "NON_RUNTIME_REQUIRED_CHECK_GOVERNANCE",
+  "repository": "rijay/root",
+  "workflowPath": ".github/workflows/ci.yml",
+  "targetRef": "refs/heads/main",
+  "requiredChecks": [
+    {
+      "jobId": "candidate-provenance",
+      "expectedName": "Source provenance only",
+      "allowedConclusions": ["success"],
+      "requiredArtifactClass": "SOURCE_PROVENANCE_ONLY",
+      "zeroSkipRequired": false
+    },
+    {
+      "jobId": "verify",
+      "expectedName": "Full verification",
+      "allowedConclusions": ["success"],
+      "requiredArtifactClass": "VERIFICATION_LOG",
+      "zeroSkipRequired": true
+    },
+    {
+      "jobId": "cloudfunctions-node18",
+      "expectedName": "Cloud Functions Node.js 18 compatibility",
+      "allowedConclusions": ["success"],
+      "requiredArtifactClass": "CHECK_RUN_RESULT",
+      "zeroSkipRequired": true
+    }
+  ],
+  "protectionRequirements": {
+    "active": true,
+    "pullRequestRequired": true,
+    "strictHeadShaBinding": true,
+    "forcePushAllowed": false,
+    "branchDeletionAllowed": false,
+    "administratorBypassAllowed": false,
+    "postMergeMainRunRequired": true,
+    "actualContextReadbackBeforeProtectionWriteRequired": true
+  },
+  "remoteEvidenceRequirements": {
+    "workflowPresentOnTargetRef": true,
+    "pullRequestHeadSha": true,
+    "checkRunIdsAndConclusions": true,
+    "workflowRunIdAndAttempt": true,
+    "artifactIdNameSizeAndDigest": true,
+    "downloadedArtifactFileDigests": true,
+    "protectionOrRulesetReadback": true,
+    "ruleChangeAuditRef": true
+  },
+  "currentRemoteClosure": {
+    "status": "OPEN",
+    "expectedNamesAreLocalUntilFirstRealRun": true,
+    "workflowOnMainObserved": false,
+    "successfulChecksObserved": false,
+    "protectionReadbackObserved": false,
+    "artifactReadbackObserved": false
+  },
+  "authorization": {
+    "runtimeAuthorized": false,
+    "commitAuthorized": false,
+    "pushAuthorized": false,
+    "pullRequestAuthorized": false,
+    "workflowExecutionAuthorized": false,
+    "protectionMutationAuthorized": false,
+    "attestationAuthorized": false,
+    "gateClosureAuthorized": false
+  }
+}

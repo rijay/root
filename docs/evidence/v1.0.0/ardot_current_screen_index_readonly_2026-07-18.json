@@ -1,0 +1,467 @@
+{
+  "evidenceFormatVersion": 1,
+  "evidenceClass": "ARDOT_READ_ONLY_STRUCTURE_INDEX",
+  "capturedAt": "2026-07-18T13:31:13.911Z",
+  "controlledFileIdentity": "myRoot",
+  "captureMode": "READ_ONLY_TOP_LEVEL_STRUCTURE",
+  "persistedOperationalIdentifiers": false,
+  "sourceNotes": [
+    "Captured from the currently open Ardot file using read-only file/editor/batch-read operations.",
+    "fileId, fileUrl, page IDs and node IDs are deliberately excluded from this evidence.",
+    "This index proves only that named pages and top-level nodes were observable at capture time; it does not prove interaction correctness, pixel fidelity, rights clearance, named acceptance or deployment."
+  ],
+  "currentPages": [
+    {
+      "pageName": "myRoot v1.0.0 UED · Foundation & Core",
+      "topLevelNodeCount": 10,
+      "topLevelNodes": [
+        {
+          "name": "00 Foundation · ROOT v1.0.0",
+          "type": "FRAME"
+        },
+        {
+          "name": "01 ONB-01 · Brand Belief",
+          "type": "FRAME"
+        },
+        {
+          "name": "02 ONB-02 · Member Value",
+          "type": "FRAME"
+        },
+        {
+          "name": "03 HOME-01 · Guest",
+          "type": "FRAME"
+        },
+        {
+          "name": "04 HOME-02 · Member Next Step",
+          "type": "FRAME"
+        },
+        {
+          "name": "05 HLT-01 · Health Home · STRUCTURE ONLY",
+          "type": "FRAME"
+        },
+        {
+          "name": "06 ACT-01 · Activity List",
+          "type": "FRAME"
+        },
+        {
+          "name": "07 TSK-01 · Task Center",
+          "type": "FRAME"
+        },
+        {
+          "name": "08 PROF-01 · Profile Home",
+          "type": "FRAME"
+        },
+        {
+          "name": "Module · WeChat Tab Header · No Back",
+          "type": "COMPONENT"
+        }
+      ]
+    },
+    {
+      "pageName": "myRoot v1.0.0 UED · Flows & Assets",
+      "topLevelNodeCount": 8,
+      "topLevelNodes": [
+        {
+          "name": "00 Photography Selection · User & Brand Manual",
+          "type": "FRAME"
+        },
+        {
+          "name": "01 BRAND-01 · About ROOT · Reference",
+          "type": "FRAME"
+        },
+        {
+          "name": "02 PDP-01 · Product Detail · HF",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · AUTH-01 · DO NOT HANDOFF",
+          "type": "FRAME"
+        },
+        {
+          "name": "04 MEM-01 · Member Link · HF-P",
+          "type": "FRAME"
+        },
+        {
+          "name": "05 ACT-D-02 · Activity Detail · Admin Placeholder",
+          "type": "FRAME"
+        },
+        {
+          "name": "06 HLT-02 · Health Consent · Structure Only",
+          "type": "FRAME"
+        },
+        {
+          "name": "07 REC-01 · Global Recovery · HF",
+          "type": "FRAME"
+        }
+      ]
+    },
+    {
+      "pageName": "myRoot v1.0.0 UED · P0 Core Pages",
+      "topLevelNodeCount": 12,
+      "topLevelNodes": [
+        {
+          "name": "00 P0 Core · Coverage & Handoff",
+          "type": "FRAME"
+        },
+        {
+          "name": "01 PLP-01 · Product List · HF-P",
+          "type": "FRAME"
+        },
+        {
+          "name": "AUTH-02 · LOGIN + REGISTER · CURRENT",
+          "type": "FRAME"
+        },
+        {
+          "name": "03 MEM-06 · Link Success Route Intent",
+          "type": "FRAME"
+        },
+        {
+          "name": "04 TSK-02 · Task Detail",
+          "type": "FRAME"
+        },
+        {
+          "name": "05 TSK-03 · Checkin",
+          "type": "FRAME"
+        },
+        {
+          "name": "06 TSK-04 · Task Questionnaire",
+          "type": "FRAME"
+        },
+        {
+          "name": "07 RWD-01 · Reward Ledger",
+          "type": "FRAME"
+        },
+        {
+          "name": "08 RWD-02 · Reward Detail",
+          "type": "FRAME"
+        },
+        {
+          "name": "09 PRIV-01 · Privacy Account",
+          "type": "FRAME"
+        },
+        {
+          "name": "10 PRIV-02 · Data Rights Request",
+          "type": "FRAME"
+        },
+        {
+          "name": "11 PRIV-03 · Request Status",
+          "type": "FRAME"
+        }
+      ]
+    },
+    {
+      "pageName": "myRoot v1.0.0 · Conditional P0 · R1.1 CURRENT",
+      "topLevelNodeCount": 32,
+      "topLevelNodes": [
+        {
+          "name": "00 Conditional P0 · Scope & Gates",
+          "type": "FRAME"
+        },
+        {
+          "name": "Module · Conditional Gate Banner",
+          "type": "COMPONENT"
+        },
+        {
+          "name": "01 HLT-C-01 · Classification",
+          "type": "FRAME"
+        },
+        {
+          "name": "02 HLT-A-01 · Assessment",
+          "type": "FRAME"
+        },
+        {
+          "name": "03 HLT-Q-01 · Topic Questionnaire Directory",
+          "type": "FRAME"
+        },
+        {
+          "name": "04 HLT-Q-02 · Topic Questionnaire Question",
+          "type": "FRAME"
+        },
+        {
+          "name": "05 HLT-P-01 · Submission Processing",
+          "type": "FRAME"
+        },
+        {
+          "name": "06 HLT-R-01 · Result",
+          "type": "FRAME"
+        },
+        {
+          "name": "07 HLT-REC-01 · Lifestyle Advice",
+          "type": "FRAME"
+        },
+        {
+          "name": "08 HLT-HIST-01 · History",
+          "type": "FRAME"
+        },
+        {
+          "name": "09 HLT-SAFE-01 · Safety Blocked",
+          "type": "FRAME"
+        },
+        {
+          "name": "10 ACT-03 · My Enrollments",
+          "type": "FRAME"
+        },
+        {
+          "name": "11 ACT-V-01 · Enrollment Confirm Sheet · Long Content Ready",
+          "type": "FRAME"
+        },
+        {
+          "name": "12 ACT-V-02 · Cancel Confirm Sheet",
+          "type": "FRAME"
+        },
+        {
+          "name": "13 ACT-V-03 · Enrollment Result States",
+          "type": "FRAME"
+        },
+        {
+          "name": "14 ACT-M-01 · Activity State Matrix",
+          "type": "FRAME"
+        },
+        {
+          "name": "15 SYS-M-01 · Global State Matrix",
+          "type": "FRAME"
+        },
+        {
+          "name": "16 MEM-M-01 · Member State Matrix",
+          "type": "FRAME"
+        },
+        {
+          "name": "17 HLT-M-01 · Health Consent State Matrix",
+          "type": "FRAME"
+        },
+        {
+          "name": "18 ADMIN-M-01 · Activity Field Contract",
+          "type": "FRAME"
+        },
+        {
+          "name": "19 GATE-M-01 · Handoff Gate Register",
+          "type": "FRAME"
+        },
+        {
+          "name": "20 HLT-ELIG-01 · Adult Eligibility · D-009",
+          "type": "FRAME"
+        },
+        {
+          "name": "21 NTF-V-01 · Next-day Check-in Reminder · D-010",
+          "type": "FRAME"
+        },
+        {
+          "name": "22 MEM-V-01 · Link Success · No routeIntent",
+          "type": "FRAME"
+        },
+        {
+          "name": "23 HLT-ADV-02 · Lifestyle Advice Detail · Gated",
+          "type": "FRAME"
+        },
+        {
+          "name": "24 TSK-V-04 · Task Submission Result",
+          "type": "FRAME"
+        },
+        {
+          "name": "25 MEM-V-02 · Non-active Member States",
+          "type": "FRAME"
+        },
+        {
+          "name": "26 HLT-V-07 · Health State & Recovery",
+          "type": "FRAME"
+        },
+        {
+          "name": "27 ACT-V-05 · Activity Availability & Recovery",
+          "type": "FRAME"
+        },
+        {
+          "name": "28 RWD-V-02 · Reward Delivery State",
+          "type": "FRAME"
+        },
+        {
+          "name": "29 QA-M-01 · Handoff Evidence & Stress Tests",
+          "type": "FRAME"
+        },
+        {
+          "name": "30 NTF-M-01 · Subscription Reminder Matrix",
+          "type": "FRAME"
+        }
+      ]
+    },
+    {
+      "pageName": "myRoot v1.0.0 UED · R1.1 Interaction Registry · CURRENT",
+      "topLevelNodeCount": 15,
+      "topLevelNodes": [
+        {
+          "name": "myRoot v1.0.0 · UED R1.1 Interaction Registry · CURRENT",
+          "type": "FRAME"
+        },
+        {
+          "name": "Registry Title",
+          "type": "TEXT"
+        },
+        {
+          "name": "Registry Status",
+          "type": "TEXT"
+        },
+        {
+          "name": "Registry Body",
+          "type": "TEXT"
+        },
+        {
+          "name": "PRIV-WX-01 · Platform Privacy Presenter",
+          "type": "FRAME"
+        },
+        {
+          "name": "Privacy Presenter Title",
+          "type": "TEXT"
+        },
+        {
+          "name": "Privacy Presenter Body",
+          "type": "TEXT"
+        },
+        {
+          "name": "Privacy Presenter Primary",
+          "type": "FRAME"
+        },
+        {
+          "name": "PRIV-WX-02 · Native Platform Dialog Reference",
+          "type": "FRAME"
+        },
+        {
+          "name": "Native Reference Title",
+          "type": "TEXT"
+        },
+        {
+          "name": "Native Reference Body",
+          "type": "TEXT"
+        },
+        {
+          "name": "PRIV-WX-V01–V04 · Platform Privacy States",
+          "type": "FRAME"
+        },
+        {
+          "name": "Privacy Variants Title",
+          "type": "TEXT"
+        },
+        {
+          "name": "Privacy Variants Body",
+          "type": "TEXT"
+        },
+        {
+          "name": "Privacy Variants Primary",
+          "type": "FRAME"
+        }
+      ]
+    }
+  ],
+  "archivePages": [
+    {
+      "pageName": "ARCHIVE · myRoot v1.0.0 Conditional P0 · pre-R1 · 2026-07-15",
+      "topLevelNodeCount": 22,
+      "topLevelNodes": [
+        {
+          "name": "ARCHIVE · HLT-C-01",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · HLT-A-01",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · HLT-Q-01",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · HLT-Q-02",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · HLT-P-01",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · HLT-R-01",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · HLT-REC-01",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · HLT-HIST-01",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · HLT-SAFE-01",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · ACT-03",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · ACT-V-01",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · ACT-V-02",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · ACT-V-03",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · HLT-ELIG-01",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · NTF-V-01",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · MEM-V-01",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · HLT-ADV-02",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · TSK-V-04",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · MEM-V-02",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · HLT-V-07",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · ACT-V-05",
+          "type": "FRAME"
+        },
+        {
+          "name": "ARCHIVE · RWD-V-02",
+          "type": "FRAME"
+        }
+      ]
+    }
+  ],
+  "priorReferencePages": [
+    "Page 1",
+    "健康记录 MVP 核心流程",
+    "XKONG App Home - Constitution Events 0604",
+    "Root小程序页面",
+    "myRoot 小程序页面设计 v1"
+  ],
+  "toolIssues": [
+    "The read tool reported that nodes missing requested properties were omitted; this does not affect the captured name/type inventory."
+  ],
+  "conclusion": {
+    "structureInventory": "CAPTURED",
+    "uedAcceptance": "OPEN",
+    "handoffAuthorization": false,
+    "candidateAuthorization": false,
+    "deploymentAuthorization": false,
+    "gateClosed": false
+  }
+}

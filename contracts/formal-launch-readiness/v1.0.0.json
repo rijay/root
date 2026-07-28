@@ -1,0 +1,125 @@
+{
+  "schemaVersion": "myroot.formal-launch-readiness-contract.v1",
+  "releaseTarget": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "classification": "READINESS_ONLY_NON_AUTHORIZING",
+  "modulePath": "backend/src/formalLaunchReadinessRegistry.js",
+  "evidenceByteResolverPath": "backend/src/formalEvidenceByteResolver.js",
+  "gateEvidenceResolverPath": "backend/src/formalGateEvidenceResolver.js",
+  "validatorPath": "scripts/validate-formal-launch-readiness.js",
+  "testPath": "backend/tests/formal_launch_readiness_registry.test.js",
+  "matrixPath": "docs/evidence/v1.0.0/formal_launch_gate_readiness_matrix_2026-07-19.json",
+  "matrixSchemaVersion": "myroot.formal-launch-gate-readiness-matrix.v1",
+  "matrixScope": "READ_ONLY_EXTERNAL_STATE_AND_LOCAL_IMPLEMENTATION_EVIDENCE",
+  "openOverallStatus": "NOT_READY_FORMAL_LAUNCH_GATES_OPEN",
+  "readyOverallStatus": "READY_FOR_SEPARATE_FORMAL_LAUNCH_DECISION",
+  "closedGateStatus": "CLOSED_BY_SEALED_EVIDENCE",
+  "authorizationExact": {
+    "candidateConnectionAuthorized": false,
+    "productionConnectionAuthorized": false,
+    "remoteWriteAuthorized": false,
+    "deploymentAuthorized": false,
+    "realSendAuthorized": false,
+    "formalLaunchAuthorized": false
+  },
+  "gates": [
+    {
+      "gateId": "PRD_NAMED_SIGNOFF",
+      "openStatus": "OPEN",
+      "externalWriteRequiredWhileOpen": true,
+      "closureEvidenceKind": "BASELINE_ACCEPTANCE_ENVELOPE",
+      "requiredEnvironmentKinds": ["RELEASE"]
+    },
+    {
+      "gateId": "REMOTE_CI_REQUIRED_CHECK",
+      "openStatus": "OPEN",
+      "externalWriteRequiredWhileOpen": true,
+      "closureEvidenceKind": "REMOTE_REQUIRED_CHECK_AND_PROTECTION_READBACK",
+      "requiredEnvironmentKinds": ["REMOTE_REPOSITORY"]
+    },
+    {
+      "gateId": "CANDIDATE_PRODUCTION_MYSQL",
+      "openStatus": "OPEN_HARD_BLOCKER",
+      "externalWriteRequiredWhileOpen": false,
+      "closureEvidenceKind": "MYSQL_ENGINE_SCHEMA_PRINCIPAL_PARITY_BUNDLE",
+      "requiredEnvironmentKinds": ["CANDIDATE", "PRODUCTION"]
+    },
+    {
+      "gateId": "MYSQL_CLOUDRUN_CAPACITY",
+      "openStatus": "OPEN_HARD_BLOCKER",
+      "externalWriteRequiredWhileOpen": false,
+      "closureEvidenceKind": "CAPACITY_LOAD_AND_FAILURE_BUNDLE",
+      "requiredEnvironmentKinds": ["CANDIDATE", "PRODUCTION"]
+    },
+    {
+      "gateId": "ARTIFACT_PROVENANCE",
+      "openStatus": "OPEN",
+      "externalWriteRequiredWhileOpen": true,
+      "closureEvidenceKind": "SOURCE_ATTESTATION_AND_DEPLOYED_BYTE_BINDING",
+      "requiredEnvironmentKinds": ["REMOTE_REPOSITORY", "CANDIDATE", "PRODUCTION"]
+    },
+    {
+      "gateId": "TIMER_ONLY_IAM",
+      "openStatus": "OPEN",
+      "externalWriteRequiredWhileOpen": true,
+      "closureEvidenceKind": "IAM_POSITIVE_NEGATIVE_CALL_BUNDLE",
+      "requiredEnvironmentKinds": ["CANDIDATE", "PRODUCTION"]
+    },
+    {
+      "gateId": "ALERT_RECEIVER",
+      "openStatus": "OPEN",
+      "externalWriteRequiredWhileOpen": true,
+      "closureEvidenceKind": "RECEIVER_ACK_RETRY_DEAD_LETTER_BUNDLE",
+      "requiredEnvironmentKinds": ["CANDIDATE", "PRODUCTION"]
+    },
+    {
+      "gateId": "KEY_ROTATION_RETENTION",
+      "openStatus": "OPEN",
+      "externalWriteRequiredWhileOpen": true,
+      "closureEvidenceKind": "KEY_INVENTORY_ROTATION_REKEY_RETENTION_BUNDLE",
+      "requiredEnvironmentKinds": ["CANDIDATE", "PRODUCTION"]
+    },
+    {
+      "gateId": "REAL_WECHAT_IDENTITY_AND_DELIVERY",
+      "openStatus": "OPEN_HARD_BLOCKER",
+      "externalWriteRequiredWhileOpen": true,
+      "closureEvidenceKind": "TRUSTED_LOGIN_PROVIDER_ACK_DEVICE_RECEIPT_BUNDLE",
+      "requiredEnvironmentKinds": ["CANDIDATE"]
+    },
+    {
+      "gateId": "HEALTH_CONTENT",
+      "openStatus": "OPEN",
+      "externalWriteRequiredWhileOpen": true,
+      "closureEvidenceKind": "LICENSED_CONTENT_AND_CONTROLLED_SIGNOFF_BUNDLE",
+      "requiredEnvironmentKinds": ["RELEASE"]
+    },
+    {
+      "gateId": "PRIVACY_FULFILLMENT",
+      "openStatus": "OPEN",
+      "externalWriteRequiredWhileOpen": true,
+      "closureEvidenceKind": "PRIVACY_APPROVAL_AND_CANDIDATE_DRILL_BUNDLE",
+      "requiredEnvironmentKinds": ["RELEASE", "CANDIDATE"]
+    },
+    {
+      "gateId": "ACTIVITY_OPERATIONS",
+      "openStatus": "OPEN",
+      "externalWriteRequiredWhileOpen": true,
+      "closureEvidenceKind": "OPERATIONS_CONTENT_SOP_AND_CANDIDATE_UAT_BUNDLE",
+      "requiredEnvironmentKinds": ["RELEASE", "CANDIDATE"]
+    },
+    {
+      "gateId": "UED_HANDOFF",
+      "openStatus": "OPEN",
+      "externalWriteRequiredWhileOpen": true,
+      "closureEvidenceKind": "CONTROLLED_NODE_PARITY_ACCESSIBILITY_SIGNOFF_BUNDLE",
+      "requiredEnvironmentKinds": ["RELEASE", "CANDIDATE"]
+    },
+    {
+      "gateId": "PHOTO_BRAND_RIGHTS",
+      "openStatus": "OPEN",
+      "externalWriteRequiredWhileOpen": true,
+      "closureEvidenceKind": "PER_ASSET_RIGHTS_CHAIN_AND_SIGNOFF_BUNDLE",
+      "requiredEnvironmentKinds": ["RELEASE"]
+    }
+  ]
+}

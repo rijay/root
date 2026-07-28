@@ -123,7 +123,7 @@
         <view class="section-link" bindtap="goTasks">全部任务</view>
       </view>
       <view class="home-task-list">
-        <view wx:for="{{activityHome.tasks}}" wx:key="taskDefinitionId" class="home-task-row" data-task-id="{{item.taskDefinitionId}}" bindtap="openHomeTask">
+        <view wx:for="{{activityHome.tasks}}" wx:key="taskKey" class="home-task-row" data-task-key="{{item.taskKey}}" bindtap="openHomeTask">
           <view class="task-dot {{item.statusClass}}"></view>
           <view class="home-task-main">
             <view class="row-title">{{item.title}}</view>

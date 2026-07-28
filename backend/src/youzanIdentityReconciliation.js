@@ -5,6 +5,7 @@ const orderFulfillment = require("./orderFulfillment");
 const operationTask = require("./operationTask");
 const youzanCustomerMirror = require("./youzanCustomerMirror");
 const { createYouzanIdentityImplementation } = require("./youzanIdentityResolver");
+const { listVerifiedWechatUnionIdAuthorities } = require("./wechatUnionIdAuthority");
 
 const DEFAULT_BATCH_SIZE = 5;
 const MAX_BATCH_SIZE = 20;
@@ -63,21 +64,21 @@ function latestRecord(data, rootUserId, unionidFingerprint) {
 
 function candidateIdentities(data, options = {}) {
   const now = text(options.now, nowISO());
+  const authorities = listVerifiedWechatUnionIdAuthorities(
+    ensureList(data, "wechatIdentities"),
+    { env: options.env || process.env }
+  );
   const rootUsersByFingerprint = new Map();
-  for (const identity of ensureList(data, "wechatIdentities")) {
-    const rootUserId = text(identity.root_user_id || identity.rootUserId);
-    const unionid = text(identity.unionid || identity.unionId || identity.union_id);
-    if (!rootUserId || !unionid) continue;
+  for (const authority of authorities) {
+    const { rootUserId, unionid } = authority;
     const unionidFingerprint = fingerprint(unionid);
     if (!rootUsersByFingerprint.has(unionidFingerprint)) rootUsersByFingerprint.set(unionidFingerprint, new Set());
     rootUsersByFingerprint.get(unionidFingerprint).add(rootUserId);
   }
   const seen = new Set();
   const candidates = [];
-  for (const identity of ensureList(data, "wechatIdentities")) {
-    const rootUserId = text(identity.root_user_id || identity.rootUserId);
-    const unionid = text(identity.unionid || identity.unionId || identity.union_id);
-    if (!rootUserId || !unionid) continue;
+  for (const authority of authorities) {
+    const { rootUserId, unionid } = authority;
     const unionidFingerprint = fingerprint(unionid);
     const key = `${rootUserId}:${unionidFingerprint}`;
     if (seen.has(key)) continue;
@@ -216,7 +217,7 @@ async function reconcileYouzanIdentities(data, body = {}, context = {}) {
     720
   );
   const config = configStatus(env);
-  const candidates = candidateIdentities(data, { now }).slice(0, batchSize);
+  const candidates = candidateIdentities(data, { now, env }).slice(0, batchSize);
   const plan = {
     dryRun,
     batchSize,
@@ -317,7 +318,7 @@ async function reconcileYouzanIdentities(data, body = {}, context = {}) {
             phone: identity.phone,
             nickname: identity.nickname,
             matchSource: "UNIONID",
-          }, { sourceChannel: "YOUZAN_UNIONID_RECONCILE" });
+          }, { sourceChannel: "YOUZAN_UNIONID_RECONCILE", env });
           const binding = orderFulfillment.bindOrdersByYouzanIdentity(data, {
             youzanYzUid: identity.youzanYzUid,
             rootUserId: candidate.rootUserId,

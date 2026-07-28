@@ -53,7 +53,7 @@ test("official WeWork contact Adapter refreshes token, caches it, and maps neste
   assert.deepEqual(JSON.parse(calls[1].init.body).userid_list, ["advisor-a"]);
   assert.equal(JSON.parse(calls[1].init.body).limit, 50);
   assert.equal(first.samples[0].externalContactId, "wo_root_1");
-  assert.equal(first.samples[0].userId, "union_root_1");
+  assert.equal(first.samples[0].userId, "");
   assert.equal(first.samples[0].receiverPhone, "13800000000");
   assert.equal(first.samples[0].offlineEventName, "ROADSHOW_SHANGHAI");
   assert.equal(first.nextCursor, "cursor-2");

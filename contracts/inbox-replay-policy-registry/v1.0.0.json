@@ -1,0 +1,98 @@
+{
+  "registryVersion": 1,
+  "scope": "PRODUCTION",
+  "policies": [
+    {
+      "policyId": "TASK_SHARE_SHADOW_REBUILD_V1",
+      "policyVersion": 1,
+      "mode": "SHADOW_REBUILD",
+      "reasonCodes": [
+        "HANDLER_UPGRADE_VALIDATION",
+        "MIGRATION_PARITY_REVIEW"
+      ],
+      "maximumAuthorizationTtlSeconds": 3600,
+      "maximumSelectedCount": 10000,
+      "selectionCursorType": "FIRST_RECEIVED_AT_RECEIPT_ID_V1",
+      "selectionQueryId": "task_share_succeeded_receipts_by_received_at_v1",
+      "selectionQueryDigest": "168c004f4db9919ca667f64c53507e16ee0dcb87f2346928099196401e54384c",
+      "requiredCapabilities": [
+        "inbox.replay.authorize",
+        "inbox.replay.execute"
+      ],
+      "sourceScope": {
+        "consumerName": "task-share-completion-projection",
+        "sourceName": "myroot-api",
+        "eventType": "task.event.recorded.v1",
+        "schemaVersion": "1",
+        "aggregateType": "TASK_EVENT",
+        "receiptStatus": "SUCCEEDED",
+        "handlerId": "task-share-completion-projection-v1",
+        "handlerVersion": "task-share-completion-v1",
+        "handlerRegistryVersion": 1,
+        "handlerDescriptorDigest": "bc207af5d102ccef5fd5012be39abb2b238715883f2c860a56393de826a98fbc",
+        "handlerSourceDigest": "be7160f3dd61ef5b8b6d4a0c167e423997a9329e04cd3081828c581d133372d0",
+        "handlerRegistrationDigest": "d26caa83642a9978eb8541bd22c5e2e9148b399c9d10f1510884245088dfd45b"
+      },
+      "execution": {
+        "consumerPrefix": "task-share-shadow-rebuild-v1",
+        "handlerId": "task-share-completion-shadow-v1",
+        "handlerVersion": "task-share-shadow-v1",
+        "targetProjectionPolicy": "SHADOW_GENERATION_GE_2",
+        "allowsApplyWrite": true,
+        "allowsOutbox": false,
+        "allowsNetwork": false,
+        "executorRegistryVersion": 1,
+        "executorRegistryDigest": "9e4ebb37cb7cb07c5c51308826ca0ab50647255a9097c78f136868b67788802f",
+        "executorDescriptorDigest": "b6bed52a15aacf6bc75e3ea6fc1aa2ad7b5a2c61ab017f27b11f0b971034e0f3",
+        "executorSourceDigest": "344558609a1315f3b259766002ab777ce1c3bcdcca8d1d37db0f4ca0ef460046",
+        "executorRegistrationDigest": "c73ffac6b513505bf17b88ae073c9ff5c19d5c5ec63dcf9032c0a8b9b4a60cb7"
+      }
+    },
+    {
+      "policyId": "TASK_SHARE_VERIFY_V1",
+      "policyVersion": 1,
+      "mode": "VERIFY_ONLY",
+      "reasonCodes": [
+        "INCIDENT_VERIFICATION",
+        "MIGRATION_PARITY_REVIEW"
+      ],
+      "maximumAuthorizationTtlSeconds": 3600,
+      "maximumSelectedCount": 10000,
+      "selectionCursorType": "FIRST_RECEIVED_AT_RECEIPT_ID_V1",
+      "selectionQueryId": "task_share_succeeded_receipts_by_received_at_v1",
+      "selectionQueryDigest": "168c004f4db9919ca667f64c53507e16ee0dcb87f2346928099196401e54384c",
+      "requiredCapabilities": [
+        "inbox.replay.authorize",
+        "inbox.replay.execute"
+      ],
+      "sourceScope": {
+        "consumerName": "task-share-completion-projection",
+        "sourceName": "myroot-api",
+        "eventType": "task.event.recorded.v1",
+        "schemaVersion": "1",
+        "aggregateType": "TASK_EVENT",
+        "receiptStatus": "SUCCEEDED",
+        "handlerId": "task-share-completion-projection-v1",
+        "handlerVersion": "task-share-completion-v1",
+        "handlerRegistryVersion": 1,
+        "handlerDescriptorDigest": "bc207af5d102ccef5fd5012be39abb2b238715883f2c860a56393de826a98fbc",
+        "handlerSourceDigest": "be7160f3dd61ef5b8b6d4a0c167e423997a9329e04cd3081828c581d133372d0",
+        "handlerRegistrationDigest": "d26caa83642a9978eb8541bd22c5e2e9148b399c9d10f1510884245088dfd45b"
+      },
+      "execution": {
+        "consumerPrefix": "task-share-verify-v1",
+        "handlerId": "task-share-completion-verify-v1",
+        "handlerVersion": "task-share-verify-v1",
+        "targetProjectionPolicy": "PRODUCTION_GENERATION_1_READ_ONLY",
+        "allowsApplyWrite": false,
+        "allowsOutbox": false,
+        "allowsNetwork": false,
+        "executorRegistryVersion": null,
+        "executorRegistryDigest": null,
+        "executorDescriptorDigest": null,
+        "executorSourceDigest": null,
+        "executorRegistrationDigest": null
+      }
+    }
+  ]
+}

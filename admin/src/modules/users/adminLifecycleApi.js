@@ -31,7 +31,7 @@ export async function exportLifecycleUsersCsv(filters = {}) {
   const query = buildQuery(filters);
   const adminToken = getAdminToken();
   const response = await fetch(`/api/v1/admin/lifecycle-users/export${query ? `?${query}` : ""}`, {
-    headers: adminToken ? { "X-Admin-Token": adminToken, "X-ROOT-ADMIN-TOKEN": adminToken } : {},
+    headers: adminToken ? { "X-Admin-Token": adminToken } : {},
   });
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
@@ -90,7 +90,7 @@ export function fetchConsultationAdvisorWorkbench(filters = {}) {
 export async function downloadLifecycleUserExportCsv(exportId) {
   const adminToken = getAdminToken();
   const response = await fetch(`/api/v1/admin/lifecycle-user-exports/${exportId}/download`, {
-    headers: adminToken ? { "X-Admin-Token": adminToken, "X-ROOT-ADMIN-TOKEN": adminToken } : {},
+    headers: adminToken ? { "X-Admin-Token": adminToken } : {},
   });
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {

@@ -1,0 +1,180 @@
+{
+  "schemaVersion": "myroot.trust-seam-1-implementation-spec.v1",
+  "releaseTarget": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "status": "DESIGN_FROZEN_IMPLEMENTATION_DEFERRED_UNTIL_R11_RESOLVED",
+  "classification": "NON_RUNTIME_NON_AUTHORIZING_IMPLEMENTATION_SPEC",
+  "precondition": {
+    "r11PacketSha256": "d0369e06f7fb57a2085cd5a567bf775370fe0ae2a43178179465a435e7aa3016",
+    "r11Nonce": "dd1a2ef2-8687-4509-a799-0960748cb6fd",
+    "r11InputAggregateSha256": "36dd29f585c0192c889ea193de1ce7a4d3e6a554cbae61fee779271e12d0a4ec",
+    "implementationMayStartWhen": [
+      "R11_EXECUTED_AND_RESULT_FROZEN",
+      "R11_EXPLICITLY_CANCELLED_AND_SUPERSEDED"
+    ],
+    "reason": "Implementation changes touch files bound by the pending R11 packet and would invalidate its authorization object."
+  },
+  "principles": [
+    "STRUCTURE_VALIDITY_IS_NOT_EXTERNAL_TRUTH",
+    "RAW_EVIDENCE_PATH_OR_OPAQUE_REFERENCE_NEVER_CLOSES_A_GATE",
+    "EVERY_EXTERNAL_FACT_REQUIRES_A_TRUSTED_ADAPTER_RECEIPT",
+    "EVERY_RECEIPT_BINDS_RELEASE_ENVIRONMENT_SUBJECT_BYTES_AND_OBSERVATION_TIME",
+    "REVOCATION_AND_EXPIRY_ARE_RECHECKED_AT_FORMAL_DECISION_TIME",
+    "NO_MODULE_IN_THIS_SLICE_AUTHORIZES_REMOTE_WRITE_DEPLOYMENT_SEND_OR_LAUNCH"
+  ],
+  "modules": [
+    {
+      "moduleId": "EVIDENCE_BYTE_RESOLVER",
+      "proposedPath": "backend/src/formalEvidenceByteResolver.js",
+      "interface": {
+        "inputs": ["repositoryRoot", "evidencePath", "expectedSha256", "expectedEvidenceKind", "maximumBytes"],
+        "outputs": ["resolvedRelativePath", "byteLength", "sha256", "parsedDocument", "structureOnly"],
+        "errorModes": ["PATH_OUTSIDE_EVIDENCE_ROOT", "SYMLINK_REJECTED", "NON_REGULAR_FILE", "SIZE_LIMIT_EXCEEDED", "DIGEST_MISMATCH", "JSON_INVALID", "EVIDENCE_KIND_MISMATCH"]
+      },
+      "invariants": [
+        "Only docs/evidence/v1.0.0 regular JSON files are readable.",
+        "Every path segment is lstat checked and the final realpath remains inside the fixed evidence root.",
+        "Bytes are read once from an opened descriptor, bounded, hashed and parsed from the same buffer.",
+        "The output remains structureOnly until a kind-specific trusted Adapter verifies it."
+      ]
+    },
+    {
+      "moduleId": "BASELINE_SIGNOFF_EXECUTION_CONTROL",
+      "proposedPath": "backend/src/baselineSignoffExecutionControlRegistry.js",
+      "proposedContractPath": "contracts/baseline-signoff-execution/v1.0.0.json",
+      "interface": {
+        "inputs": ["executionControlDocument", "evaluatedAt", "trustedWorkflowReadbackReceipt"],
+        "outputs": ["executionControlDigest", "collectingAllowed", "reasonCodes", "validUntil"],
+        "errorModes": ["CONTROL_DOCUMENT_INVALID", "SOURCE_BINDING_MISMATCH", "WORKFLOW_NOT_ACTIVE", "OWNER_AUTHORITY_INVALID", "CUSTODIAN_AUTHORITY_INVALID", "DUE_AT_EXPIRED", "REVOCATION_SOURCE_UNREADABLE", "READBACK_STALE"]
+      },
+      "exactFields": [
+        "formatVersion", "approvalSystemRef", "workflowInstanceRef", "workflowOwnerRef", "evidenceCustodianRef", "openedAt", "dueAt", "escalationPolicyRef", "revocationSourceRef", "sourceInputBindingDigest", "authorityEvidenceDigest", "workflowReadbackDigest"
+      ],
+      "invariants": [
+        "Execution control is independent from signoff role coverage.",
+        "Owner and custodian authority are resolved through trusted readback and cannot be caller asserted.",
+        "Cancelled, expired, revoked or unreadable workflow state stops collection and sealing."
+      ]
+    },
+    {
+      "moduleId": "BASELINE_SIGNOFF_EVIDENCE_VERIFIER",
+      "proposedPath": "backend/src/baselineSignoffEvidenceVerifier.js",
+      "interface": {
+        "inputs": ["signoffDocument", "executionControlResolution", "approvalReadbackReceipts", "revocationReadbackReceipt", "evaluatedAt"],
+        "outputs": ["verifiedSignoffs", "decisionCoverage", "acceptanceEnvelopeCandidate", "verificationDigest"],
+        "errorModes": ["SIGNATURE_METHOD_UNSUPPORTED", "SIGNATURE_INVALID", "APPROVAL_EVENT_NOT_FOUND", "APPROVAL_EVENT_PAYLOAD_MISMATCH", "SIGNER_AUTHORITY_INVALID", "ROLE_MISMATCH", "CONDITION_EVIDENCE_INVALID", "REVOCATION_STATE_STALE", "SIGNOFF_REVOKED", "CROSS_WORKFLOW_REPLAY"]
+      },
+      "adapterSeams": [
+        {"adapterRole":"CONTROLLED_APPROVAL_READBACK", "required":true},
+        {"adapterRole":"DETACHED_SIGNATURE_VERIFIER", "required":false, "policy":"Remove DETACHED_DIGITAL_SIGNATURE_V1 from the allowlist until this Adapter exists."},
+        {"adapterRole":"CURRENT_REVOCATION_READBACK", "required":true}
+      ],
+      "invariants": [
+        "A 64-hex signatureDigest is never treated as signature verification.",
+        "validationStatus, revocationStatus and condition status are derived from receipts, not trusted from the input document.",
+        "Every verified signoff binds the same executionControlDigest and source inputBindingDigest.",
+        "Acceptance Envelope binds Registry, Validator, test, execution-control, workflow-readback and evidence-verifier digests."
+      ]
+    },
+    {
+      "moduleId": "REMOTE_CI_EVIDENCE_REGISTRY",
+      "proposedPath": "backend/src/remoteCiEvidenceRegistry.js",
+      "proposedContractPath": "contracts/remote-ci-evidence/v1.0.0.json",
+      "interface": {
+        "inputs": ["normalizedGitHubReadback", "requiredChecksContract", "evaluatedAt"],
+        "outputs": ["structureValid", "sameLineage", "requiredChecksSatisfied", "protectionSatisfied", "artifactReadbackSatisfied", "nonAuthorizingReceipt"],
+        "errorModes": ["REPOSITORY_MISMATCH", "WORKFLOW_BLOB_MISMATCH", "EVENT_NOT_ALLOWED", "SHA_ROLE_MISMATCH", "CHECK_APP_MISMATCH", "CHECK_RUN_SUPERSEDED", "CHECK_CONCLUSION_INVALID", "ZERO_SKIP_EVIDENCE_MISSING", "ARTIFACT_RUN_MISMATCH", "ARTIFACT_DIGEST_MISMATCH", "PROTECTION_NOT_ACTIVE", "PROTECTION_POLICY_WEAKENED", "READBACK_STALE"]
+      },
+      "shaRoles": ["PULL_REQUEST_HEAD", "TESTED_MERGE", "BASE", "POST_MERGE_MAIN"],
+      "requiredBindings": [
+        "repositoryNodeRef", "targetRef", "workflowPath", "workflowBlobSha256", "workflowRunId", "workflowRunAttempt", "workflowEvent", "jobDatabaseId", "checkRunId", "checkSuiteId", "githubAppId", "checkHeadSha", "artifactId", "artifactName", "artifactProviderDigest", "downloadedArtifactSha256", "rulesetOrProtectionReadbackDigest"
+      ],
+      "invariants": [
+        "A matching check name without the expected App, workflow, run and SHA lineage is rejected.",
+        "PR required checks bind both the tested merge and source head without conflating them.",
+        "This Module validates normalized evidence but does not make network calls or mutate protection."
+      ]
+    },
+    {
+      "moduleId": "CONTENT_UED_TRUSTED_EVIDENCE_RESOLVER",
+      "proposedPath": "backend/src/contentUedTrustedEvidenceResolver.js",
+      "interface": {
+        "inputs": ["structureBundle", "evidenceReceiptsByReference", "currentRevocationReceipt", "trustedClockInstant"],
+        "outputs": ["resolvedEvidenceByKind", "unresolvedReferences", "derivedCounts", "currentValidity", "nonAuthorizingReceipt"],
+        "errorModes": ["OPAQUE_REFERENCE_UNRESOLVED", "SOURCE_BYTES_DIGEST_MISMATCH", "SIGNOFF_UNVERIFIED", "REVOCATION_SNAPSHOT_STALE", "RELEASE_BINDING_MISMATCH", "ENVIRONMENT_BINDING_MISMATCH", "DERIVED_COUNT_MISMATCH", "RUNTIME_STATE_MISMATCH", "RIGHTS_SET_MISMATCH"]
+      },
+      "kindPolicies": {
+        "HEALTH_CONTENT": "Resolve each licensed instrument/version, Chinese bytes, population/scoring rules, red-flag route and human-support drill; derive configuredContentCount.",
+        "PRIVACY_COMPLIANCE": "Resolve H-04P approvals and same-release Candidate H-04R runtime drill separately.",
+        "ACTIVITY_OPERATIONS": "Resolve activity/version, publication decision, Admin principal, receipt and current runtime status; derive publishedActivityCount and reject withdrawn content.",
+        "UED_HANDOFF": "Resolve per-screen controlled node, route, AC, canonical states, accessibility and implementation parity; derive screenCount.",
+        "PHOTOGRAPHY_RIGHTS": "Hash clean master bytes and every rights field, including applicability decisions, territory, term, allowed edits and current revocation state."
+      }
+    },
+    {
+      "moduleId": "FORMAL_GATE_EVIDENCE_RESOLVER",
+      "proposedPath": "backend/src/formalGateEvidenceResolver.js",
+      "interface": {
+        "inputs": ["formalReadinessContract", "matrix", "trustedAdapterRegistry", "evaluatedAt"],
+        "outputs": ["resolvedGateEvidence", "derivedReadiness", "formalLaunchAuthorized"],
+        "errorModes": ["EVIDENCE_UNRESOLVED", "EVIDENCE_KIND_UNSUPPORTED", "VERIFIER_RECEIPT_INVALID", "RELEASE_BINDING_MISMATCH", "ENVIRONMENT_SET_MISMATCH", "EVIDENCE_EXPIRED", "EVIDENCE_REVOKED", "VERIFIER_IMPLEMENTATION_DRIFT"]
+      },
+      "invariants": [
+        "Raw closureEvidence fields never reach readiness derivation without a kind-specific trusted receipt.",
+        "All receipts bind verifier Implementation and Contract digests plus evidence byte digest.",
+        "Fourteen verified Gates only derive READY_FOR_SEPARATE_FORMAL_LAUNCH_DECISION; formalLaunchAuthorized always remains false."
+      ]
+    }
+  ],
+  "trustedReceiptExactFields": [
+    "receiptFormatVersion", "evidenceKind", "evidenceSha256", "releaseRef", "environmentKinds", "subjectDigest", "adapterId", "adapterImplementationDigest", "adapterPolicyDigest", "observedAt", "validUntil", "revocationSequence", "revocationReadbackDigest", "verificationStatus", "reasonCodes", "receiptDigest"
+  ],
+  "requiredVerificationSuites": [
+    {
+      "suiteId": "TS1_PATH_AND_BYTES",
+      "minimumTests": 12,
+      "mustCover": ["missing file", "digest mismatch", "path escape", "parent symlink", "non-regular file", "oversize", "parse mismatch", "kind mismatch", "read-once consistency"]
+    },
+    {
+      "suiteId": "TS1_BASELINE_TRUST",
+      "minimumTests": 18,
+      "mustCover": ["random 64-hex signature", "caller-forged VALIDATED", "missing approval event", "wrong role", "wrong payload", "revoked signer", "stale revocation", "cancelled workflow", "expired dueAt", "condition evidence mismatch", "cross-workflow replay", "source drift", "post-seal revocation"]
+    },
+    {
+      "suiteId": "TS1_REMOTE_CI",
+      "minimumTests": 18,
+      "mustCover": ["head versus merge confusion", "wrong event", "same-name wrong App", "wrong workflow", "old run", "mixed attempts", "superseded run", "skip or neutral conclusion", "artifact wrong run", "download digest mismatch", "inactive ruleset", "strict false", "bypass enabled", "force-push enabled", "deletion enabled"]
+    },
+    {
+      "suiteId": "TS1_CONTENT_UED",
+      "minimumTests": 20,
+      "mustCover": ["unresolved opaque ref", "time rollback", "old revocation snapshot", "unlicensed health item", "privacy drill from another release", "withdrawn activity", "self-reported activity count", "missing UED state", "self-reported screen count", "clean master drift", "rights metadata drift", "unproved not-applicable rights"]
+    },
+    {
+      "suiteId": "TS1_FORMAL_CLOSURE",
+      "minimumTests": 16,
+      "mustCover": ["nonexistent evidence", "fabricated digest", "wrong evidence kind", "wrong release", "wrong environment", "expired receipt", "revoked receipt", "verifier drift", "structure-only receipt", "all gates verified remains non-authorizing"]
+    }
+  ],
+  "adversarialReview": [
+    {"risk":"A trusted Adapter becomes a pass-through wrapper around caller input.","control":"Adapter receipts must bind raw readback bytes, Adapter Implementation/policy digests and negative verification outcomes; tests delete or mutate each source byte."},
+    {"risk":"Old valid evidence is replayed after revocation.","control":"Formal decision requires fresh bounded revocation sequence and observedAt/validUntil checks for every revocable kind."},
+    {"risk":"Correct digest is paired with the wrong release or environment.","control":"Release, environment set and subject digest are in both evidence and receipt digest domains and are compared before derivation."},
+    {"risk":"Two individually valid remote records are mixed across runs.","control":"Run ID, attempt, event and SHA lineage form one exact tuple shared by checks, artifacts and protection readback."},
+    {"risk":"A structural fixture is promoted to external proof.","control":"Fixture and structure-only receipts use a distinct classification rejected by Formal Gate Evidence Resolver."
+    }
+  ],
+  "authorization": {
+    "runtimeAuthorized": false,
+    "candidateConnectionAuthorized": false,
+    "productionConnectionAuthorized": false,
+    "remoteReadAuthorized": false,
+    "remoteWriteAuthorized": false,
+    "commitAuthorized": false,
+    "pushAuthorized": false,
+    "deploymentAuthorized": false,
+    "realSendAuthorized": false,
+    "gateClosureAuthorized": false,
+    "formalLaunchAuthorized": false
+  }
+}

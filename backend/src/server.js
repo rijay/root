@@ -1,5 +1,10 @@
 const { createApp } = require("./app");
 const { createJsonFileStore, createMysqlStore, createSqliteStore, mysqlConfigFromEnv } = require("./store");
+const { assertRuntimePersistence } = require("./runtimePersistenceGuard");
+const { createCommandRequestDigestCodec } = require("./commandRequestDigest");
+const { createCommandResultCodec } = require("./commandResultProtection");
+const { assertProtectedJobRouteTokenPolicy } = require("./jobRouteToken");
+const { assertWechatSubscriptionSendConfiguration } = require("./wechatSubscribeMessageAdapter");
 
 const port = Number(process.env.PORT || 8787);
 
@@ -9,20 +14,34 @@ function shouldUseMysql(env = process.env) {
   return Boolean(env.MYSQL_ADDRESS && env.MYSQL_USERNAME && env.MYSQL_PASSWORD);
 }
 
-async function createConfiguredStore(env = process.env) {
-  if (shouldUseMysql(env)) return createMysqlStore(mysqlConfigFromEnv(env), { env });
-  if (env.ROOT_STORE_ADAPTER === "sqlite" || env.ROOT_SQLITE_FILE) {
-    return createSqliteStore(env.ROOT_SQLITE_FILE || "./data/root-checkin.sqlite");
+async function createConfiguredStore(env = process.env, options = {}) {
+  let storeAdapter;
+  if (shouldUseMysql(env)) storeAdapter = await createMysqlStore(mysqlConfigFromEnv(env), {
+    env,
+    commandRequestDigestCodec: options.commandRequestDigestCodec,
+    commandResultCodec: options.commandResultCodec,
+  });
+  else if (env.ROOT_STORE_ADAPTER === "sqlite" || env.ROOT_SQLITE_FILE) {
+    storeAdapter = createSqliteStore(env.ROOT_SQLITE_FILE || "./data/root-checkin.sqlite");
+  } else if (env.ROOT_STORE_ADAPTER === "json-file" || env.ROOT_STORE_FILE) {
+    storeAdapter = createJsonFileStore(env.ROOT_STORE_FILE || "./data/root-checkin.json");
   }
-  if (env.ROOT_STORE_ADAPTER === "json-file" || env.ROOT_STORE_FILE) {
-    return createJsonFileStore(env.ROOT_STORE_FILE || "./data/root-checkin.json");
-  }
-  return undefined;
+  assertRuntimePersistence({ env, storeAdapter });
+  return storeAdapter;
 }
 
 async function main() {
-  const storeAdapter = await createConfiguredStore(process.env);
-  const server = createApp({ storeAdapter });
+  assertProtectedJobRouteTokenPolicy(process.env);
+  assertWechatSubscriptionSendConfiguration(process.env);
+  const commandRequestDigestCodec = createCommandRequestDigestCodec(process.env);
+  const commandResultCodec = createCommandResultCodec(process.env);
+  commandRequestDigestCodec.assertReady();
+  commandResultCodec.assertReady();
+  const storeAdapter = await createConfiguredStore(process.env, {
+    commandRequestDigestCodec,
+    commandResultCodec,
+  });
+  const server = createApp({ storeAdapter, commandRequestDigestCodec, commandResultCodec });
   await server.readyPromise;
   server.listen(port, "0.0.0.0", () => {
     const storeHealth = server.storeAdapter.getStoreHealth ? server.storeAdapter.getStoreHealth() : { kind: server.storeAdapter.kind };

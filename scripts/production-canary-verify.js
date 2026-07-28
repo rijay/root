@@ -24,12 +24,28 @@ function clampNumber(value, fallback, min, max) {
   return Math.max(min, Math.min(max, Math.floor(numeric)));
 }
 
+function optionalBooleanEnv(env, name) {
+  const raw = text(env[name]).toLowerCase();
+  if (!raw) return false;
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  throw new Error(`${name} must be true or false`);
+}
+
+function nonnegativeCount(value) {
+  return Number.isSafeInteger(value) && value >= 0 ? value : 0;
+}
+
 function parseArgs(argv = process.argv.slice(2), env = process.env) {
   const args = {
     baseUrl: text(env.ROOT_PUBLIC_BASE_URL),
     expectedVersion: text(env.ROOT_CANARY_EXPECTED_VERSION),
     expectedStoreKind: text(env.ROOT_CANARY_EXPECTED_STORE_KIND, "mysql").toLowerCase(),
     expectedMigrationVersion: text(env.ROOT_CANARY_EXPECTED_MIGRATION_VERSION, latestMigrationVersion()),
+    expectedRuntimeAlertDeliveryEnabled: optionalBooleanEnv(
+      env,
+      "ROOT_CANARY_EXPECT_RUNTIME_ALERT_DELIVERY_ENABLED"
+    ),
     attempts: 120,
     intervalMs: 100,
     timeoutMs: 5000,
@@ -47,6 +63,9 @@ function parseArgs(argv = process.argv.slice(2), env = process.env) {
     else if (item === "--expected-version") args.expectedVersion = text(next());
     else if (item === "--expected-store-kind") args.expectedStoreKind = text(next()).toLowerCase();
     else if (item === "--expected-migration-version") args.expectedMigrationVersion = text(next());
+    else if (item === "--expect-runtime-alert-delivery") {
+      args.expectedRuntimeAlertDeliveryEnabled = true;
+    }
     else if (item === "--attempts") args.attempts = clampNumber(next(), 120, 1, 1000);
     else if (item === "--interval-ms") args.intervalMs = clampNumber(next(), 100, 0, 10000);
     else if (item === "--timeout-ms") args.timeoutMs = clampNumber(next(), 5000, 500, 30000);
@@ -137,6 +156,23 @@ async function waitForVersion(path, options, fetchImpl) {
             leastPrivilegeReady: data.store.leastPrivilegeReady === true,
             privilegeScope: text(data.store.privilegeScope, "UNKNOWN"),
             privilegePolicyEnforced: data.store.privilegePolicyEnforced === true,
+            runtimeAlertDeliveryEnabled: data.store.runtimeAlertDeliveryEnabled === true,
+            runtimePrincipalReady: data.store.runtimePrincipalReady === true,
+            runtimePrincipalRequiredRoleCount: nonnegativeCount(
+              data.store.runtimePrincipalRequiredRoleCount
+            ),
+            runtimePrincipalVerifiedRoleCount: nonnegativeCount(
+              data.store.runtimePrincipalVerifiedRoleCount
+            ),
+            runtimePrincipalRequiredRoutineCount: nonnegativeCount(
+              data.store.runtimePrincipalRequiredRoutineCount
+            ),
+            runtimePrincipalVerifiedRoutineCount: nonnegativeCount(
+              data.store.runtimePrincipalVerifiedRoutineCount
+            ),
+            runtimePrincipalIssueCount: nonnegativeCount(
+              data.store.runtimePrincipalIssueCount
+            ),
           } : null,
           privacyNotice: path === "/api/v1/privacy/notice" ? {
             configured: data.configured === true,
@@ -267,6 +303,29 @@ async function runCanaryVerification(options, context = {}) {
     ready.status = "FAIL";
     ready.reason = "candidate MySQL privilege policy is not enforced";
   }
+  if (ready.status === "PASS"
+    && options.expectedStoreKind === "mysql"
+    && options.expectedRuntimeAlertDeliveryEnabled
+    && ready.store.runtimeAlertDeliveryEnabled !== true) {
+    ready.status = "FAIL";
+    ready.reason = "candidate runtime alert delivery is not enabled";
+  }
+  if (ready.status === "PASS"
+    && options.expectedStoreKind === "mysql"
+    && ready.store.runtimeAlertDeliveryEnabled === true
+    && (
+      ready.store.runtimePrincipalReady !== true
+      || ready.store.runtimePrincipalRequiredRoleCount < 2
+      || ready.store.runtimePrincipalVerifiedRoleCount
+        !== ready.store.runtimePrincipalRequiredRoleCount
+      || ready.store.runtimePrincipalRequiredRoutineCount < 1
+      || ready.store.runtimePrincipalVerifiedRoutineCount
+        !== ready.store.runtimePrincipalRequiredRoutineCount
+      || ready.store.runtimePrincipalIssueCount !== 0
+    )) {
+    ready.status = "FAIL";
+    ready.reason = "candidate runtime principal authority proof is incomplete";
+  }
   const privacyNotice = ready.status === "PASS"
     ? await waitForVersion("/api/v1/privacy/notice", options, fetchImpl)
     : { status: "SKIPPED", reason: "candidate readiness did not pass" };
@@ -296,6 +355,7 @@ async function runCanaryVerification(options, context = {}) {
     expectedVersion: options.expectedVersion,
     expectedStoreKind: options.expectedStoreKind,
     expectedMigrationVersion: options.expectedMigrationVersion,
+    expectedRuntimeAlertDeliveryEnabled: options.expectedRuntimeAlertDeliveryEnabled,
     trafficChanged: false,
     executeObjectProbe: options.executeObjectProbe,
     routeQueryConfigured: Boolean(options.routeQuery),

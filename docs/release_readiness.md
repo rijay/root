@@ -1,5 +1,7 @@
 # ROOT 7 日打卡上线前验收清单
 
+> **HISTORICAL_V0_5_ONLY / NOT_V1_EVIDENCE**：本文记录 v0.5.x 在对应日期和 releaseId 下的历史证据。文中的“已部署”“已关闭”“已验证”不得用于关闭 v1.0.0 的 Baseline、Candidate、timer-only IAM、真实微信身份、订阅送达、隐私或容量 Gate。v1.0.0 当前状态仅以 [v1 Gate tracker](./v1.0.0_launch_gate_closure_tracker_2026-07-17.md) 为准。
+
 更新日期：2026-07-14
 状态：P0/P1、CloudBase MySQL、20 并发、双实例、滚动重启、数据库恢复、迁移 005、schema 级最小权限、隐私 180 天、独立用户授权账本、`DRY_RUN_READY` 与对象存储精确写删均已验证。生产仍为 `myroot-api-027 / v0.5.12 / 0%`，默认流量由 012 承接；v0.5.13 新增微信 stable token Module 并通过 `16/16` 全量验证，运行候选已提交为 `c3d14f2`，本证据集由随后文档提交收录，但尚未 push、tag、部署或上传。CloudBase CLI 身份已恢复，环境为标准版预付费、Normal、`IsAutoRenew=true`，到期 `2026-07-23 23:59:59`；项目负责人已确认腾讯云及其他项目费用不构成上线风险，计费保障 Gate 已关闭。两个 Cloud Function 仍为线上 v0.5.10 代码包、10+1 个启用触发器与全局 dry-run。ROOT 店铺授权、A 套餐及商品/订单/客户/用户查询/优惠券目标 Interface 已回读通过；有赞 E-02 仍由 secret 轮换、token、隐私字段探针和真实 PREVIEW 阻塞，优惠券真实查询与发放还缺活动参数校准和独立回执。025 的真实提醒仍是 `HTTP 412 / UNKNOWN`。正式发布继续由 v0.5.13 运行与真机证明、提醒送达、外部 Adapter、生产联合回滚、灰度和签字阻塞。
 
@@ -463,7 +465,7 @@ curl -s https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com/ready
 4. 第二轮真机成功加入计划但未出现订阅弹层，已按微信一次性订阅规则移除应用侧模板版本永久缓存，由微信原生设置管理“总是保持以上选择”。
 5. 第三轮真机首次打卡提交成功并进入任务进度页，但仍未出现弹层；SQL 只读回读为 `notification_subscription: UNKNOWN / subscribed=0 / CHECKIN_SUBMIT`，对应次日任务为 `SCHEDULED / 2026-07-14 / attempts=0`，所以订阅 Gate 未通过。
 6. 根因是 `wx.requestSubscribeMessage` 位于加入、提交和模板网络请求之后，已脱离用户点击手势，且 Toast 被后续提示和跳转覆盖。Campaign Join Module 现只负责加入；Check-in Reminder Module 在页面阶段预载模板，由任务页或进度页独立按钮直接触发原生 Interface，结果常驻展示。加入回归 2/2、订阅回归 5/5 `PASS`。
-7. 第四轮定向预览已构建，总包体约 473.4 KB，预览码 SHA-256 `923d03306c82e1ebdc43b1e7a604f67116acbd36129fa8d78240a16f63905497`。真机点击独立按钮后页面显示“已开启”，SQL 只读回读为 `ACCEPTED / subscribed=1 / CAMPAIGN_JOIN`，更新时间 `2026-07-13 13:52:05`；对应任务为 `SCHEDULED / 2026-07-14 09:00 / attempts=0 / last_error=null`。订阅授权 Gate 已关闭。
+7. 第四轮定向预览已构建，总包体约 473.4 KB，预览码 SHA-256 `923d03306c82e1ebdc43b1e7a604f67116acbd36129fa8d78240a16f63905497`。真机点击独立按钮后页面显示“已开启”，SQL 只读回读为 `ACCEPTED / subscribed=1 / CAMPAIGN_JOIN`，更新时间 `2026-07-13 13:52:05`；对应任务为 `SCHEDULED / 2026-07-14 09:00 / attempts=0 / last_error=null`。仅当时 v0.5.x 的订阅授权 Gate 关闭；真实送达仍未关闭，且该证据不得跨 v1 releaseId 复用。
 8. 对抗式回读确认该任务为 `miniprogram_state=formal / lang=zh_CN`。它符合正式发布目标，但不能作为定向预览的 `trial` 跳转证明；实际消息送达与跳转仍保持待验证。体验版默认后端仍未升级，024 仍为 0% 条件候选，正式发布保持 `BLOCKED`。
 9. 024 候选提醒 Job Interface 已完成未来时刻 dry-run：模拟 `2026-07-14 09:01 +08:00` 返回 `HTTP 200 / code=0 / scannedCount=1 / DRY_RUN_READY=1`，脱敏请求形状确认 openid、模板、页面和 `thing1/thing2/thing3` 齐全。Cloud Function 为 `Active`，触发器每 10 分钟启用，但全局 `ROOT_JOB_DRY_RUN=true`，因此不会自动真实发送；真实 execute 仍需单独行动时确认。
 10. 经行动时确认，024 候选执行一次正式目标提醒：`HTTP 200 / code=0 / scannedCount=1`，任务结果为 `FAILED / 1006`。SQL 回读为 `attempts=1 / sent_at=null / delivered_at=null`，未重试，实际送达 Gate 保持阻塞。

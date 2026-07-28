@@ -1,0 +1,231 @@
+{
+  "schemaVersion": "myroot.local-mysql-readiness-ledger.v1",
+  "observedAt": "2026-07-20T04:50:00+08:00",
+  "releaseTarget": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "status": "LOCAL_ENGINE_PROOF_OPEN_R9_FAILED_CLEANED_R10_SUPERSEDED_UNEXECUTED_R11_PREPARED_NOT_AUTHORIZED",
+  "historicalCheckpoint": {
+    "path": "docs/evidence/v1.0.0/local_verification_summary_2026-07-19.json",
+    "classification": "PRE_ATTEMPT_CHECKPOINT_DO_NOT_TREAT_AS_CURRENT"
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "evidence": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt1.json",
+      "sha256": "a6796cbb114c9a9a23a457fb011857fc046dd0dd034d9c94fd94c71fe4f07b44",
+      "status": "FAIL_HARNESS_ORCHESTRATION_CLEANED",
+      "tests": 12,
+      "passed": 7,
+      "failed": 5,
+      "skipped": 0,
+      "containerRemoved": true
+    },
+    {
+      "attempt": 2,
+      "evidence": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt2.json",
+      "sha256": "3e5ed3e853e4cca3e93d89caf0ed5820dba14bef335e38dfd2f136a936ec0dd8",
+      "status": "FAIL_STARTUP_READINESS_FALSE_POSITIVE_CLEANED",
+      "frozenCommandStarted": false,
+      "containerRemoved": true
+    },
+    {
+      "attempt": 3,
+      "evidence": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt3.json",
+      "sha256": "d2a52d9d4987ada7250350327db1c26618c498c17b2b1e6352cffb0d0f288498",
+      "status": "FAIL_AUTHENTICATED_READINESS_QUERY_PARSE_ERROR_CLEANED",
+      "frozenCommandStarted": false,
+      "mysqlErrorCode": "ER_PARSE_ERROR",
+      "authorizationNonceConsumed": true,
+      "containerRemoved": true
+    },
+    {
+      "attempt": 4,
+      "evidence": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt4.json",
+      "sha256": "6b7638168bc3637520bcaa01477ad9bbd07668fdb99c5bbacf00a81f07cf3df0",
+      "status": "FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED",
+      "authenticatedReadinessPassed": true,
+      "frozenCommandStarted": true,
+      "testOutcomeAvailable": false,
+      "authorizationNonceConsumed": true,
+      "containerRemoved": true
+    },
+    {
+      "attempt": 5,
+      "evidence": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt5.json",
+      "sha256": "fc4dbe8a78f23eff75e527721f865226c54230aeb28d39a05dc846c86511f87b",
+      "status": "FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED",
+      "authenticatedReadinessPassed": true,
+      "frozenCommandStarted": true,
+      "tests": 13,
+      "passed": 10,
+      "failed": 3,
+      "skipped": 0,
+      "authorizationNonceConsumed": true,
+      "containerRemoved": true
+    },
+    {
+      "attempt": 6,
+      "evidence": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt6.json",
+      "sha256": "82d6d227e945a77cdd0cfa0448430102f0058c4921143923a19cfb826e848151",
+      "status": "FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED",
+      "authenticatedReadinessPassed": true,
+      "frozenCommandStarted": true,
+      "tests": 13,
+      "passed": 10,
+      "failed": 3,
+      "skipped": 0,
+      "authorizationNonceConsumed": true,
+      "containerRemoved": true
+    },
+    {
+      "attempt": 7,
+      "evidence": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt7.json",
+      "sha256": "bbe809c1b144bdc5dd4407985d01185344718aeec7abe6a45b9fba2072da157d",
+      "status": "FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED",
+      "authenticatedReadinessPassed": true,
+      "frozenCommandStarted": true,
+      "tests": 13,
+      "passed": 11,
+      "failed": 2,
+      "skipped": 0,
+      "authorizationNonceConsumed": true,
+      "containerRemoved": true
+    },
+    {
+      "attempt": 8,
+      "evidence": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-20_attempt8.json",
+      "sha256": "66d952d86a96db218945c93c37749eeae5362714b7fb281e1c210bcb6b3cd75e",
+      "status": "FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED",
+      "authenticatedReadinessPassed": true,
+      "frozenCommandStarted": true,
+      "tests": 13,
+      "passed": 12,
+      "failed": 1,
+      "skipped": 0,
+      "authorizationNonceConsumed": true,
+      "containerRemoved": true
+    },
+    {
+      "attempt": 9,
+      "evidence": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-20_attempt9.json",
+      "sha256": "2e81db50cf69fed4cf9e3ae69b1e8d102a1c9dbe2169e1fe194663f5e55708af",
+      "status": "FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED",
+      "authenticatedReadinessPassed": true,
+      "frozenCommandStarted": true,
+      "tests": 13,
+      "passed": 12,
+      "failed": 1,
+      "skipped": 0,
+      "authorizationNonceConsumed": true,
+      "containerRemoved": true
+    }
+  ],
+  "currentLocalBaseline": {
+    "backend": {
+      "command": "npm test --prefix backend",
+      "status": "PASS_WITH_REAL_ENGINE_SKIPS",
+      "tests": 1317,
+      "passed": 1308,
+      "failed": 0,
+      "skipped": 9
+    },
+    "foundation": {
+      "command": "npm run v1:foundation:check",
+      "status": "PASS"
+    },
+    "finalVerification": {
+      "command": "npm run verify -- --json",
+      "status": "FAIL_EXPECTED_SCHEMA_PROVENANCE_OPEN",
+      "passed": 17,
+      "failed": 1,
+      "total": 18,
+      "javascriptFiles": 450,
+      "migrationFiles": 66,
+      "backendTests": 1317,
+      "onlyFailure": "Generated MySQL schema snapshot provenance",
+      "committedMigrationSetDigest": "fa98e2432fc7210615d5508597d93c4203dc414a2636d633eb5e12c63a053b27",
+      "expectedMigrationSetDigest": "c385ef2952d272a961420a5c3df5886cab7a36325cdf7729a13484744d561cb4"
+    },
+    "runnerContracts": {
+      "command": "node --test backend/tests/mysql_local_authorized_runner.test.js backend/tests/mysql_local_authorization_packet_contract.test.js backend/tests/mysql_schema_snapshot.test.js",
+      "status": "PASS",
+      "tests": 44,
+      "passed": 44,
+      "failed": 0,
+      "skipped": 0
+    },
+    "r5PreparationVerification": {
+      "path": "docs/evidence/v1.0.0/r5_preparation_verification_2026-07-19.json",
+      "sha256": "a224413be73418e919404e93911026a76a683f76adfb4ba15684efc0250bd7a7",
+      "status": "R5_PREPARED_NOT_AUTHORIZED_LOCAL_CONTRACTS_PASS_FORMAL_GATES_OPEN"
+    },
+    "r6PreparationVerification": {
+      "path": "docs/evidence/v1.0.0/r6_preparation_verification_2026-07-19.json",
+      "sha256": "67208ae17bf8b059a881e0a613d5f9318bd5f88cce9a1f01d23385c19e1d68fd",
+      "status": "R6_PREPARED_NOT_AUTHORIZED_LOCAL_CONTRACTS_PASS_FORMAL_GATES_OPEN"
+    },
+    "r7PreparationVerification": {
+      "path": "docs/evidence/v1.0.0/r7_preparation_verification_2026-07-19.json",
+      "sha256": "c2feb04fdeac2a8adc3167c77a0fd9aeae26faaf02879718cf81326f38e75b7b",
+      "status": "R7_PREPARED_NOT_AUTHORIZED_LOCAL_CONTRACTS_PASS_FORMAL_GATES_OPEN"
+    },
+    "r9PreparationVerification": {
+      "path": "docs/evidence/v1.0.0/r9_preparation_verification_2026-07-20.json",
+      "sha256": "3fc19d8b4dc751f34b3fe9b3edd8e640e6620b9040546f7e5331a32705df88ae",
+      "status": "R9_PREPARED_NOT_AUTHORIZED_LOCAL_CONTRACTS_PASS_FORMAL_GATES_OPEN"
+    },
+    "r10PreparationVerification": {
+      "path": "docs/evidence/v1.0.0/r10_preparation_verification_2026-07-20.json",
+      "sha256": "9bd3892807697d0e369195826cf784f8b150e761562d905bcda6364cb8486e43",
+      "status": "HISTORICAL_PREPARATION_SUPERSEDED_UNEXECUTED_BY_R11"
+    },
+    "r11PreparationVerification": {
+      "path": "docs/evidence/v1.0.0/r11_preparation_verification_2026-07-20.json",
+      "sha256": "55a3ca2125ffeb98fc011937dcbc863fbdbca5f8b85567558fdc9bda687016b2",
+      "companionPath": "docs/evidence/v1.0.0/r11_preparation_verification_2026-07-20.md",
+      "companionSha256": "3c86dceaeec0aeee684189623cd9bb88507bbdeac23d140eb2b18848e0061849",
+      "status": "R11_PREPARED_NOT_AUTHORIZED_EXECUTION_CLOSURE_FROZEN_FORMAL_GATES_OPEN"
+    },
+    "wechatSubscriptionEndpointSecurityVerification": {
+      "path": "docs/evidence/v1.0.0/wechat_subscription_endpoint_security_verification_2026-07-20.json",
+      "sha256": "5010b8e647a5964112d027a750b6377389a462cba523f4078be395616f3a578b",
+      "companionPath": "docs/evidence/v1.0.0/wechat_subscription_endpoint_security_verification_2026-07-20.md",
+      "companionSha256": "6e0d842f5f8eba548c5d5458d5ecb37bac663f6c92b4cfe215aaff4602a257e0",
+      "status": "LOCAL_FAIL_CLOSED_IMPLEMENTATION_VERIFIED_LIVE_DELIVERY_GATE_OPEN"
+    }
+  },
+  "lastConsumedPacket": {
+    "path": "docs/evidence/v1.0.0/mysql_001_065_local_authorization_packet_2026-07-20_r9.json",
+    "sha256": "2dc3d74eb33af4e641eb09e935cddf9c6e2035ac1c7b7d84c23c1007c8e797db",
+    "companion": "docs/evidence/v1.0.0/mysql_001_065_local_authorization_packet_2026-07-20_r9.md",
+    "companionSha256": "cac1c30d863b4e791fef921f7d2aa6800f8979af8bef5535ac8213bb3189dc75",
+    "singleUseNonce": "7f2aca54-87ea-4c48-bf8c-096dcbbcdd4a",
+    "status": "AUTHORIZED_ONCE_EXECUTED_FAILED_AND_CLEANED",
+    "requiresNewExplicitAuthorization": true,
+    "nonceReusable": false,
+    "schemaSnapshotWritten": false,
+    "connectsCandidate": false,
+    "connectsProduction": false
+  },
+  "nextPacket": {
+    "path": "docs/evidence/v1.0.0/mysql_001_066_local_authorization_packet_2026-07-20_r11.json",
+    "sha256": "d0369e06f7fb57a2085cd5a567bf775370fe0ae2a43178179465a435e7aa3016",
+    "companion": "docs/evidence/v1.0.0/mysql_001_066_local_authorization_packet_2026-07-20_r11.md",
+    "companionSha256": "edd43d5ab16813de5c67c0d89379a9162fabb6030cbfa9581713d88d02e66d29",
+    "singleUseNonce": "dd1a2ef2-8687-4509-a799-0960748cb6fd",
+    "status": "PREPARED_NOT_AUTHORIZED_NOT_EXECUTED",
+    "requiresNewExplicitAuthorization": true,
+    "nonceConsumed": false,
+    "connectsCandidate": false,
+    "connectsProduction": false
+  },
+  "gateEffect": {
+    "localMysql001To066EngineProofClosed": false,
+    "localSchemaSnapshotProvenanceClosed": false,
+    "candidateMysqlClosed": false,
+    "productionMysqlClosed": false,
+    "capacityClosed": false,
+    "remoteCiRequiredCheckClosed": false,
+    "formalLaunchAuthorized": false
+  }
+}

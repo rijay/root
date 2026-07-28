@@ -1,0 +1,46 @@
+{
+  "evidenceFormatVersion": 1,
+  "evidenceClass": "REMOTE_READ_ONLY_INVENTORY",
+  "capturedAt": "2026-07-18T13:03:21.000Z",
+  "repository": "rijay/root",
+  "sources": [
+    "https://api.github.com/repos/rijay/root/branches/main",
+    "https://api.github.com/repos/rijay/root/rulesets",
+    "https://api.github.com/repos/rijay/root/actions/workflows",
+    "https://api.github.com/repos/rijay/root/actions/runs?per_page=5",
+    "https://api.github.com/repos/rijay/root/commits/d761ae26fd328df703d2f2d3233124b07065e453/check-runs"
+  ],
+  "httpStatusBySource": [200, 200, 200, 200, 200],
+  "main": {
+    "sha": "d761ae26fd328df703d2f2d3233124b07065e453",
+    "protected": false,
+    "protectionEnabled": false,
+    "requiredStatusContexts": []
+  },
+  "rulesetCount": 0,
+  "workflowCount": 0,
+  "workflowRunCount": 0,
+  "headCheckRunCount": 0,
+  "localReviewContext": {
+    "branch": "codex/v1.0.0-foundation-20260715",
+    "head": "d761ae26fd328df703d2f2d3233124b07065e453",
+    "workflowSha256": "958d27e71d4194f21f62bc60ce0c11872f8c4b03452ca66f94cf612842be16a2",
+    "workflowTrackedByHead": false
+  },
+  "decision": {
+    "remoteCiGate": "OPEN",
+    "reasonCodes": [
+      "MAIN_UNPROTECTED",
+      "NO_RULESET",
+      "NO_REMOTE_WORKFLOW",
+      "NO_REMOTE_WORKFLOW_RUN",
+      "NO_HEAD_CHECK_RUN",
+      "LOCAL_WORKFLOW_NOT_IN_HEAD"
+    ],
+    "authorizesMutation": false,
+    "authorizesCommit": false,
+    "authorizesPush": false,
+    "authorizesPullRequest": false,
+    "authorizesBranchProtectionChange": false
+  }
+}

@@ -23,6 +23,8 @@ test("admin CloudBase object storage probe uploads, deletes, audits, and stays i
       ROOT_ADMIN_TOKEN: "probe-admin-token",
       ROOT_CLOUDBASE_ENV_ID: "myroot-prod",
       ROOT_RELEASE_ID: "myroot-api-017",
+      ROOT_COMMAND_RESULT_ENCRYPTION_KEY: "object-probe-command-result-key-at-least-32-characters",
+      ROOT_COMMAND_RESULT_KEY_ID: "object-probe-v1",
     },
     objectStorageAdapter: {
       async putObject(payload) {
@@ -74,6 +76,8 @@ test("admin CloudBase object storage probe cleans an ambiguous upload by its exa
       ROOT_ADMIN_TOKEN: "probe-admin-token",
       ROOT_CLOUDBASE_ENV_ID: "myroot-prod",
       ROOT_RELEASE_ID: "myroot-api-023",
+      ROOT_COMMAND_RESULT_ENCRYPTION_KEY: "object-probe-command-result-key-at-least-32-characters",
+      ROOT_COMMAND_RESULT_KEY_ID: "object-probe-v1",
     },
     objectStorageAdapter: {
       async putObject(payload) {

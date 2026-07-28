@@ -1,0 +1,144 @@
+{
+  "schemaVersion": "myroot.formal-launch-gate-readiness-matrix.v1",
+  "observedAt": "2026-07-20T04:50:00+08:00",
+  "releaseTarget": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "overallStatus": "NOT_READY_FORMAL_LAUNCH_GATES_OPEN",
+  "scope": "READ_ONLY_EXTERNAL_STATE_AND_LOCAL_IMPLEMENTATION_EVIDENCE",
+  "gates": [
+    {
+      "gateId": "PRD_NAMED_SIGNOFF",
+      "status": "OPEN",
+      "localImplementation": "STRUCTURE_CONTRACT_READY_TRUSTED_EVIDENCE_VERIFIER_OPEN",
+      "proved": "The current baseline binding is structurally valid and defines 34 required approvals across six roles; the Registry remains non-runtime and non-authorizing.",
+      "missing": "The current Module accepts caller-asserted validation, revocation and condition states and does not verify real signatures or controlled approval bytes. There is no machine-validated execution-control document, trusted evidence Adapter, real signer approval, workflow instance, owner, custodian, due date, revocation source or valid Acceptance Envelope.",
+      "externalWriteRequired": true,
+      "nextAuthorization": "First implement and freeze trusted approval evidence verification and execution-control validation. Then choose the controlled approval system and real owners before separately authorizing collection of 34 named approvals against the same frozen bytes."
+    },
+    {
+      "gateId": "REMOTE_CI_REQUIRED_CHECK",
+      "status": "OPEN",
+      "localImplementation": "STATIC_WORKFLOW_AND_CONTRACT_READY_REMOTE_EVIDENCE_REGISTRY_OPEN_NOT_IN_HEAD",
+      "proved": "Local workflow defines three expected checks and the 001-066 real-engine group requires 13/13 with zero skips, including Runtime Principal Bootstrap. These are static local declarations only.",
+      "missing": "There is no deep Module that verifies workflow, run attempt, job/check identity, GitHub App, PR head versus tested merge SHA, artifact bytes or protection/ruleset readback. Remote main has no workflow file, status, run or artifact for its current SHA; protection and ruleset current state are unverified.",
+      "externalWriteRequired": true,
+      "nextAuthorization": "First freeze a non-networking Remote CI Evidence Registry and strengthened SHA/App lineage contract. After Baseline acceptance, separately authorize commit, push, PR and first CI; read back actual contexts before any protection rule write."
+    },
+    {
+      "gateId": "CANDIDATE_PRODUCTION_MYSQL",
+      "status": "OPEN_HARD_BLOCKER",
+      "localImplementation": "R9_EXECUTED_12_PASS_1_FAIL_CLEANED_R10_SUPERSEDED_UNEXECUTED_R11_PREPARED_NOT_AUTHORIZED",
+      "proved": "Attempt 9 used pinned MySQL 8.0.43 on a random loopback port, produced 12 PASS, 1 FAIL and 0 SKIP, consumed its nonce and removed the owned container. The only failure was fixture SLO-profile drift; migration 066 now enforces severity-to-SLO authority. R11 freezes 688 execution inputs, Node/npm toolchain, exact four-stage argv, mutable-output rollback and structured outcomes; packet/Runner/schema contracts are 44/44 PASS without starting Docker.",
+      "missing": "No successful 058-066 engine/schema/principal proof, no current schema snapshot provenance, and no Candidate or Production DDL/parity evidence. R11 is prepared but is not authorized or executed.",
+      "externalWriteRequired": false,
+      "nextAuthorization": "If desired, separately authorize R11 packet SHA d0369e06f7fb57a2085cd5a567bf775370fe0ae2a43178179465a435e7aa3016 and nonce dd1a2ef2-8687-4509-a799-0960748cb6fd for loopback-only execution. Candidate and Production actions remain separate."
+    },
+    {
+      "gateId": "MYSQL_CLOUDRUN_CAPACITY",
+      "status": "OPEN_HARD_BLOCKER",
+      "localImplementation": "SIX_POOL_POLICY_AND_COLLECTOR_READY",
+      "proved": "Six-pool capacity invariants and fail-closed calculations exist locally.",
+      "missing": "No live max-connections, actual pool sizes, other consumers, 30-minute Candidate load, burst, lock or failure evidence.",
+      "externalWriteRequired": false,
+      "nextAuthorization": "Authorize Candidate/Production read-only configuration and metric collection; authorize load or parameter changes separately."
+    },
+    {
+      "gateId": "ARTIFACT_PROVENANCE",
+      "status": "OPEN",
+      "localImplementation": "SOURCE_BUILDER_STRUCTURE_READY_DEPLOYED_BYTE_TRUST_OPEN",
+      "proved": "Deterministic commit-tree source archive, governance digest set and immutable action references pass local tests; the result is source-only and non-authorizing.",
+      "missing": "The payload does not yet bind complete release/build inputs, explicit source tree object and worktree policy, or actual deployable bytes. Current worktree is outside HEAD; there is no trusted remote artifact readback, GitHub run identity, OIDC attestation or deployed-byte binding.",
+      "externalWriteRequired": true,
+      "nextAuthorization": "First complete provenance v2 and trusted remote evidence intake. After baseline acceptance, authorize remote CI artifact generation/readback; attestation and deployment binding remain separate."
+    },
+    {
+      "gateId": "TIMER_ONLY_IAM",
+      "status": "OPEN",
+      "localImplementation": "EVIDENCE_CONTRACT_AND_FAIL_CLOSED_ROUTE_TOKEN_READY",
+      "proved": "Local route-scoped token and non-runtime evidence Registry reject broad invocation authority.",
+      "missing": "No live Candidate/Production principal, policy, trigger, revision, timer success, non-timer denial or signoffs.",
+      "externalWriteRequired": true,
+      "nextAuthorization": "Authorize read-only platform inventory first; IAM mutation, trigger enablement and positive/negative calls separately."
+    },
+    {
+      "gateId": "ALERT_RECEIVER",
+      "status": "OPEN",
+      "localImplementation": "DATABASE_AUTHORITY_AND_DELIVERY_FOUNDATION_READY",
+      "proved": "Local alert payload, controlled procedures, keyring, retry/unknown-result behavior and evidence Registry exist.",
+      "missing": "No real receiver, on-call owner, endpoint, ACK, warning/critical synthetic send, retry or dead-letter drill.",
+      "externalWriteRequired": true,
+      "nextAuthorization": "Name the real receiver/on-call owner; authorize channel creation and synthetic sends separately."
+    },
+    {
+      "gateId": "KEY_ROTATION_RETENTION",
+      "status": "OPEN",
+      "localImplementation": "FOUR_DOMAIN_INVENTORY_AND_RETENTION_INVARIANTS_READY",
+      "proved": "Current/previous/retired-key fail-closed behavior and four cryptographic domains are defined locally.",
+      "missing": "No live inventory, real TTL/backup/legal values, old-record verification, rekey, rollback, reference-zero or destruction evidence.",
+      "externalWriteRequired": true,
+      "nextAuthorization": "Authorize read-only inventory first; create, inject, rotate, rekey, retire and delete remain six separate actions."
+    },
+    {
+      "gateId": "REAL_WECHAT_IDENTITY_AND_DELIVERY",
+      "status": "OPEN_HARD_BLOCKER",
+      "localImplementation": "TRUSTED_IDENTITY_RECIPIENT_BINDING_PROVIDER_FENCE_AND_ENDPOINT_EXFILTRATION_GUARD_READY",
+      "proved": "Client-supplied identity headers are rejected; local identity/recipient/provider-call invariants are implemented. Endpoint security evidence 5010b8e647a5964112d027a750b6377389a462cba523f4078be395616f3a578b proves 103/103 focused checks for exact official origin/path, pre-token and network-Seam validation, protected-runtime no-test-bypass, startup/env fail-close and non-following redirects.",
+      "missing": "No Candidate artifact binding, endpoint environment readback, network egress allowlist, real AppID mapping, trusted login context, template/credential/quota, timer IAM, provider errcode=0, device-visible message or audit readback.",
+      "externalWriteRequired": true,
+      "nextAuthorization": "Authorize Candidate trusted-login readback, then trial upload, template/quota, credential injection and real send separately."
+    },
+    {
+      "gateId": "HEALTH_CONTENT",
+      "status": "OPEN",
+      "localImplementation": "STRUCTURE_VALIDATOR_AND_GATED_SHELL_READY",
+      "proved": "Non-diagnostic shell and structural acceptance Registry exist.",
+      "missing": "No licensed Chinese instruments, scoring/version/population rules, red-flag SOP, human route or four-role real signoff.",
+      "externalWriteRequired": true,
+      "nextAuthorization": "Collect licensed source files and controlled signoffs; health write paths remain closed."
+    },
+    {
+      "gateId": "PRIVACY_FULFILLMENT",
+      "status": "OPEN",
+      "localImplementation": "CONSENT_RETENTION_AND_MINIMIZATION_PARTIAL",
+      "proved": "Local consent and health-retention tests exist.",
+      "missing": "No D-007, DPIA, data-flow/subprocessor, retention/export/delete/backup/access/key/incident signoff or Candidate H-04R drill.",
+      "externalWriteRequired": true,
+      "nextAuthorization": "Close H-04P in a controlled approval system, then separately authorize H-04R on the same D0 Candidate."
+    },
+    {
+      "gateId": "ACTIVITY_OPERATIONS",
+      "status": "OPEN",
+      "localImplementation": "VERTICAL_FLOW_AND_SETTLEMENT_SUCCESSOR_READY_PUBLICATION_OFF",
+      "proved": "Local user/Admin activity flow, Outbox/Inbox and settlement invalidation behavior exist.",
+      "missing": "No approved launch activity content, rules/SOP, real authorization/member Adapter, Candidate UAT, EXPLAIN/capacity or operational drill.",
+      "externalWriteRequired": true,
+      "nextAuthorization": "Operations supplies real content in the admin backend; publication and Candidate UAT require separate authorization."
+    },
+    {
+      "gateId": "UED_HANDOFF",
+      "status": "OPEN",
+      "localImplementation": "READ_ONLY_STRUCTURE_INDEX_AVAILABLE",
+      "proved": "The screen families and conditional-state inventory are recorded.",
+      "missing": "No controlled node references, per-screen route/acceptance criteria/states/accessibility/assets/implementation parity or four-role signoff.",
+      "externalWriteRequired": true,
+      "nextAuthorization": "Provide controlled UED node references and complete per-screen review excluding Archive."
+    },
+    {
+      "gateId": "PHOTO_BRAND_RIGHTS",
+      "status": "OPEN",
+      "localImplementation": "ASSET_SELECTION_AND_STRUCTURE_VALIDATOR_READY",
+      "proved": "Candidate assets, file digests and intended uses are inventoried.",
+      "missing": "No clean masters, photographer/model/property/third-party rights chain, channel/territory/term/edit/text-overlay/expiry/revocation evidence or four-role signoff.",
+      "externalWriteRequired": true,
+      "nextAuthorization": "Collect per-asset rights evidence and controlled signoffs; screenshots and handbook composites remain non-publishable."
+    }
+  ],
+  "authorization": {
+    "candidateConnectionAuthorized": false,
+    "productionConnectionAuthorized": false,
+    "remoteWriteAuthorized": false,
+    "deploymentAuthorized": false,
+    "realSendAuthorized": false,
+    "formalLaunchAuthorized": false
+  }
+}

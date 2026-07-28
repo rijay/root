@@ -8,7 +8,7 @@
     "dev": "vite --host 127.0.0.1 --port 5177",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 5178",
-    "check": "node scripts/validate.js"
+    "check": "node scripts/validate.js && node --test scripts/activity-command-recovery.test.js scripts/admin-client-outcome.test.js"
   },
   "dependencies": {
     "element-plus": "^2.10.2",

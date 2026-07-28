@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "myroot.local-mysql-authorization-packet.v1",
+  "generatedAt": "2026-07-19T00:00:00+08:00",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "status": "PREPARED_NOT_AUTHORIZED_NOT_EXECUTED",
+  "scope": {
+    "host": "127.0.0.1",
+    "port": "EPHEMERAL_RANDOM_HOST_PORT",
+    "databaseClass": "DISPOSABLE_RANDOM_TEST_DATABASES_ONLY",
+    "candidateConnectionAuthorized": false,
+    "productionConnectionAuthorized": false,
+    "deploymentAuthorized": false,
+    "commitAuthorized": false,
+    "pushAuthorized": false
+  },
+  "container": {
+    "image": "mysql:8.0.43@sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10",
+    "bindAddress": "127.0.0.1",
+    "sandboxMarkerDatabase": "myroot_schema_snapshot_sandbox_marker",
+    "removeAfterRun": true
+  },
+  "migrationSet": {
+    "first": "001_store_snapshot.sql",
+    "last": "062_settlement_source_authority.sql",
+    "count": 62,
+    "expectedDigest": "e8dbf82b5bc5cf4a3f29efaa98323287079834aebeab80b29f0c47d3231e3c43"
+  },
+  "testGroups": [
+    {
+      "file": "backend/tests/mysql_identity_notification_binding_migrations.integration.test.js",
+      "enableVariable": "IDENTITY_NOTIFICATION_BINDING_MYSQL_INTEGRATION_ENABLED"
+    },
+    {
+      "file": "backend/tests/mysql_notification_provider_call_fence.integration.test.js",
+      "enableVariable": "NOTIFICATION_PROVIDER_FENCE_MYSQL_INTEGRATION_ENABLED"
+    },
+    {
+      "file": "backend/tests/mysql_v1_runtime_alert_delivery.integration.test.js",
+      "enableVariable": "V1_RUNTIME_ALERT_DELIVERY_MYSQL_INTEGRATION_ENABLED"
+    },
+    {
+      "file": "backend/tests/mysql_settlement_source_authority.integration.test.js",
+      "enableVariable": "SETTLEMENT_SOURCE_AUTHORITY_MYSQL_INTEGRATION_ENABLED"
+    }
+  ],
+  "requiredOutcomes": {
+    "allEnabledTestsPass": true,
+    "schemaSnapshotWriteThenIndependentVerifyMatches": true,
+    "finalRepositoryVerifyPassCount": 18,
+    "finalRepositoryVerifyFailCount": 0,
+    "containerRemoved": true,
+    "temporaryListenerRemoved": true,
+    "temporaryDatabasesRemoved": true
+  },
+  "formalGateEffect": {
+    "localMysqlEngineProofMayAdvance": true,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "liveDeliveryGateClosed": false,
+    "runtimeDatabaseWriteAuthorityGateClosed": false,
+    "runtimeDatabaseWriteAuthorityRequiredModel": "SEPARATE_MIGRATOR_REGISTRAR_WORKER_INSPECTOR_PRINCIPALS_WITH_CONTROLLED_WRITES"
+  },
+  "authorization": {
+    "requestedInThisPacket": false,
+    "granted": false,
+    "executed": false
+  }
+}

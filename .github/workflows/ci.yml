@@ -1,0 +1,170 @@
+name: CI Gate
+
+"on":
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Action commits were resolved read-only from each official GitHub tag ref on 2026-07-17.
+  # Remote artifact readback and attestation remain separate open gates.
+  candidate-provenance:
+    name: Source provenance only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the exact workflow source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Node.js for deterministic provenance
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20.19.4"
+
+      - name: Test source provenance foundation
+        run: node --test scripts/build-candidate-provenance.test.js
+
+      - name: Build deterministic Candidate source provenance artifact
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node scripts/build-candidate-provenance.js \
+            --source-commit "$GITHUB_SHA" \
+            --output-dir "$RUNNER_TEMP/myroot-candidate-provenance" \
+            --builder-provider GITHUB_ACTIONS \
+            --builder-repository-ref "$GITHUB_REPOSITORY" \
+            --builder-workflow-ref "$GITHUB_WORKFLOW_REF" \
+            --builder-run-ref "github-actions:run:$GITHUB_RUN_ID:attempt:$GITHUB_RUN_ATTEMPT" \
+            --builder-event-name "$GITHUB_EVENT_NAME"
+
+      - name: Verify generated Candidate source provenance artifact
+        run: >-
+          node scripts/build-candidate-provenance.js
+          --verify
+          --source-commit "$GITHUB_SHA"
+          --output-dir "$RUNNER_TEMP/myroot-candidate-provenance"
+
+      - name: Upload Candidate source provenance foundation
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: candidate-provenance-${{ github.sha }}
+          path: ${{ runner.temp }}/myroot-candidate-provenance
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+  verify:
+    name: Full verification
+    runs-on: ubuntu-24.04
+    # The real-engine matrix applies historical Activity migration subsets plus
+    # the complete 001-066 set. Keep one bounded job, but do not let an old
+    # pre-058 timeout turn valid InnoDB evidence into a flaky infrastructure
+    # failure.
+    timeout-minutes: 40
+    env:
+      CI: "true"
+      SCHEMA_SNAPSHOT_MYSQL_HOST: 127.0.0.1
+      SCHEMA_SNAPSHOT_MYSQL_PORT: "3306"
+      SCHEMA_SNAPSHOT_MYSQL_USER: root
+      SCHEMA_SNAPSHOT_MYSQL_PASSWORD: schema_snapshot_ci_only
+    services:
+      mysql:
+        image: mysql:8.0.43@sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10
+        env:
+          MYSQL_ROOT_PASSWORD: schema_snapshot_ci_only
+          MYSQL_DATABASE: myroot_schema_snapshot_sandbox_marker
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="MYSQL_PWD=schema_snapshot_ci_only mysql -h 127.0.0.1 -uroot -Nse 'SELECT 1'"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          # Full verification exercises the local-only SQLite Adapter, whose
+          # implementation uses the built-in node:sqlite module.
+          node-version: "24.13.1"
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            admin/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci --prefix backend --ignore-scripts
+
+      - name: Install admin dependencies
+        run: npm ci --prefix admin --ignore-scripts
+
+      - name: Verify generated MySQL schema snapshot
+        run: npm run db:schema-snapshot:verify
+
+      - name: Verify Activity generation backfill against real MySQL
+        run: node --test backend/tests/mysql_activity_generation_backfill.integration.test.js
+        env:
+          ACTIVITY_GENERATION_MYSQL_INTEGRATION_ENABLED: "true"
+
+      - name: Verify Activity P0 policy upgrade against real MySQL
+        run: node --test backend/tests/mysql_activity_p0_policy.integration.test.js
+        env:
+          ACTIVITY_P0_POLICY_MYSQL_INTEGRATION_ENABLED: "true"
+
+      - name: Verify complete 001-066 real-engine group with zero skips
+        shell: bash
+        run: |
+          set -o pipefail
+          result="$RUNNER_TEMP/mysql-001-066.tap"
+          npm run v1:mysql-001-066-authorized:check 2>&1 | tee "$result"
+          node -e 'const fs=require("node:fs"); const {parseNodeTestSummary}=require("./backend/src/mysqlLocalAuthorizedRunner"); parseNodeTestSummary(fs.readFileSync(process.argv[1], "utf8"), 13);' "$result"
+        env:
+          MYSQL_LOCAL_READINESS_INTEGRATION_ENABLED: "true"
+          IDENTITY_NOTIFICATION_BINDING_MYSQL_INTEGRATION_ENABLED: "true"
+          NOTIFICATION_PROVIDER_FENCE_MYSQL_INTEGRATION_ENABLED: "true"
+          V1_RUNTIME_ALERT_DELIVERY_MYSQL_INTEGRATION_ENABLED: "true"
+          SETTLEMENT_SOURCE_AUTHORITY_MYSQL_INTEGRATION_ENABLED: "true"
+          V1_RUNTIME_LEDGER_INTEGRATION_ENABLED: "true"
+          MYSQL_RUNTIME_PRINCIPAL_BOOTSTRAP_INTEGRATION_ENABLED: "true"
+
+      - name: Verify v1 local Foundation contracts
+        run: npm run v1:foundation:check
+
+      - name: Run repository verification gate
+        run: npm run verify
+
+  cloudfunctions-node18:
+    name: Cloud Functions Node.js 18 compatibility
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "18.20.8"
+
+      - name: Verify CloudBase dispatcher and dedicated runtime scheduler
+        run: node --test backend/tests/cloudbase_job_dispatcher.test.js

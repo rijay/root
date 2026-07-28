@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "myroot.local-mysql-authorization-packet.v4",
+  "generatedAt": "2026-07-19T15:53:57+08:00",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "status": "PREPARED_NOT_AUTHORIZED_NOT_EXECUTED",
+  "attempt": 2,
+  "supersedesPacketSha256": "85a3fe25b73799be52bb5ccf983cb122acc218bfa3d174094a580c9e1428bd6e",
+  "priorAttemptEvidence": {
+    "path": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt1.json",
+    "sha256": "a6796cbb114c9a9a23a457fb011857fc046dd0dd034d9c94fd94c71fe4f07b44",
+    "status": "FAIL_HARNESS_ORCHESTRATION_CLEANED"
+  },
+  "scope": {
+    "host": "127.0.0.1",
+    "port": "EPHEMERAL_RANDOM_HOST_PORT",
+    "databaseClass": "DISPOSABLE_RANDOM_TEST_DATABASES_ONLY",
+    "candidateConnectionAuthorized": false,
+    "productionConnectionAuthorized": false,
+    "deploymentAuthorized": false,
+    "commitAuthorized": false,
+    "pushAuthorized": false
+  },
+  "container": {
+    "image": "mysql:8.0.43@sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10",
+    "bindAddress": "127.0.0.1",
+    "sandboxMarkerDatabase": "myroot_schema_snapshot_sandbox_marker",
+    "removeAfterRun": true
+  },
+  "migrationSet": {
+    "first": "001_store_snapshot.sql",
+    "last": "065_v1_runtime_alert_registration_return_row.sql",
+    "count": 65,
+    "lastChecksum": "263a4edb996596d9c8868471006ddc636e904dc17e7ce39813495fd3db20f39e",
+    "expectedDigest": "68eccf21a90de28059e0b553799a8d4200feee64bbbd67746ade174cfb70467e"
+  },
+  "executionCommand": "npm run v1:mysql-001-065-authorized:check",
+  "executionPolicy": {
+    "testFileConcurrency": 1,
+    "reason": "each test owns an exact-marker disposable-server guard and must not observe another test database",
+    "packageJsonSha256": "a52ccff0f912a3d17c88aeffd7b9258767f20337a3cff84ce141c5c0fdc13718"
+  },
+  "testGroups": [
+    {
+      "file": "backend/tests/mysql_identity_notification_binding_migrations.integration.test.js",
+      "enableVariable": "IDENTITY_NOTIFICATION_BINDING_MYSQL_INTEGRATION_ENABLED",
+      "sha256": "34d0738e46a2c7b4105f58e9617582a03bfd78beea49e0461c75fdb35481f128"
+    },
+    {
+      "file": "backend/tests/mysql_notification_provider_call_fence.integration.test.js",
+      "enableVariable": "NOTIFICATION_PROVIDER_FENCE_MYSQL_INTEGRATION_ENABLED",
+      "sha256": "fe012ba8281fcbe6e232cc83da7d75dd6782dccfc8d2d57257967a662b704f31"
+    },
+    {
+      "file": "backend/tests/mysql_v1_runtime_alert_delivery.integration.test.js",
+      "enableVariable": "V1_RUNTIME_ALERT_DELIVERY_MYSQL_INTEGRATION_ENABLED",
+      "sha256": "f930bd09fef56ad6f20b310d937690339e3e148ee33ff587d719aab71be6ab93"
+    },
+    {
+      "file": "backend/tests/mysql_settlement_source_authority.integration.test.js",
+      "enableVariable": "SETTLEMENT_SOURCE_AUTHORITY_MYSQL_INTEGRATION_ENABLED",
+      "sha256": "7a1a3186df82f5a6d323191ed44e72ffbffcca1e05d97c3badd1b9e04476dedb"
+    },
+    {
+      "file": "backend/tests/mysql_v1_runtime_control_ledger.integration.test.js",
+      "enableVariable": "V1_RUNTIME_LEDGER_INTEGRATION_ENABLED",
+      "sha256": "92a20ba421508561dbaab5b79c2d3a657685e4ce5b15c3183ac9032676132460"
+    },
+    {
+      "file": "backend/tests/mysql_runtime_principal_bootstrap.integration.test.js",
+      "enableVariable": "MYSQL_RUNTIME_PRINCIPAL_BOOTSTRAP_INTEGRATION_ENABLED",
+      "sha256": "83e693e02d56af892fa11e59796ac3a4f6e8b13e3b9c86dbe938f6a12ad701f1"
+    }
+  ],
+  "supportingInputs": [
+    {
+      "file": "backend/src/mysqlRuntimePrincipalBootstrap.js",
+      "sha256": "146e8ebc419ba8e7d95c73ce9f97907fade6611d4a11c815884b72fc4439dd29"
+    },
+    {
+      "file": "backend/tests/mysql_runtime_principal_bootstrap.test.js",
+      "sha256": "a294a329a5560eebdd0d4a6fb7c0199c12fe7d46d0be980fc3c53ce0f2bd7c97"
+    }
+  ],
+  "orchestrationCorrections": {
+    "sequentialTestFiles": true,
+    "parallelDisposableDatabaseCollisionRemoved": true,
+    "dockerPrivateBridgePrincipalHostDerivedFromMysqlSession": true,
+    "wildcardPrincipalHostAllowed": false,
+    "publicNetworkPrincipalHostAllowed": false
+  },
+  "requiredOutcomes": {
+    "allEnabledTestsPass": true,
+    "schemaSnapshotWriteThenIndependentVerifyMatches": true,
+    "finalRepositoryVerifyPassCount": 18,
+    "finalRepositoryVerifyFailCount": 0,
+    "containerRemoved": true,
+    "temporaryListenerRemoved": true,
+    "temporaryDatabasesRemoved": true,
+    "temporaryPrincipalsRemoved": true
+  },
+  "formalGateEffect": {
+    "localMysqlEngineProofMayAdvance": true,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "liveDeliveryGateClosed": false,
+    "runtimeDatabaseWriteAuthorityGateClosed": false
+  },
+  "authorization": {
+    "requestedInThisPacket": false,
+    "granted": false,
+    "executed": false
+  }
+}

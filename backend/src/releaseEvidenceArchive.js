@@ -49,7 +49,7 @@ function saveReleaseEvidenceArchive(data, input = {}) {
   if (!requestId) throw Object.assign(new Error("release evidence archive request_id 必填"), { code: 400 });
   const existing = ensureArchives(data).find((record) => record.request_id === requestId);
   if (existing) {
-    return { archive: archiveSummary(existing), pack: existing.pack, audit: null, idempotent: true };
+    return { archive: archiveSummary(existing), audit: null, idempotent: true };
   }
   const record = {
     archive_id: createId("rel_evd"),
@@ -82,7 +82,7 @@ function saveReleaseEvidenceArchive(data, input = {}) {
       warningCount: record.summary.warningCount || 0,
     },
   });
-  return { archive: archiveSummary(record), pack: record.pack, audit };
+  return { archive: archiveSummary(record), audit };
 }
 
 module.exports = {

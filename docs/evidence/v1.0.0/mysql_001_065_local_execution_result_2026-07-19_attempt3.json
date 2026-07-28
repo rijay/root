@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "myroot.local-mysql-execution-result.v3",
+  "observedAt": "2026-07-19T19:39:06+08:00",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "attempt": 3,
+  "authorizationPacket": {
+    "path": "docs/evidence/v1.0.0/mysql_001_065_local_authorization_packet_2026-07-19_r3.json",
+    "sha256": "8c46d1b15b8e858bc8b2ea00ddc8d9f4068c93eee4fb63a4efc8c2a0df1004e8",
+    "singleUseNonceConsumed": true
+  },
+  "scope": {
+    "host": "127.0.0.1",
+    "port": "EPHEMERAL_RANDOM_HOST_PORT",
+    "candidateConnected": false,
+    "productionConnected": false,
+    "deploymentPerformed": false,
+    "commitPerformed": false,
+    "pushPerformed": false
+  },
+  "container": {
+    "image": "mysql:8.0.43@sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10",
+    "bindAddress": "127.0.0.1",
+    "randomHostPort": true,
+    "removed": true,
+    "residualOwnedContainerCount": 0
+  },
+  "result": {
+    "status": "FAIL_AUTHENTICATED_READINESS_QUERY_PARSE_ERROR_CLEANED",
+    "exitCode": 1,
+    "failedStage": "HOST_SIDE_AUTHENTICATED_READINESS_QUERY",
+    "mysqlErrorCode": "ER_PARSE_ERROR",
+    "runnerError": "MYSQL_LOCAL_RUNNER_AUTHENTICATED_READINESS_TIMEOUT",
+    "frozenCommandStarted": false,
+    "integrationTestsStarted": false,
+    "integrationTestsPassed": 0,
+    "integrationTestsFailed": 0,
+    "schemaSnapshotRun": false,
+    "finalRepositoryVerifyRun": false,
+    "schemaSnapshotSha256AfterFailure": "e84fe654b674981917c472cc73593657dd6a9189dd32b736ff1bae895be7a7c3",
+    "schemaSnapshotMtimeAfterFailure": "2026-07-18T19:30:22+08:00"
+  },
+  "rootCause": {
+    "classification": "LOCAL_HARNESS_AUTHENTICATED_READINESS_SQL_PARSE_ERROR",
+    "confirmed": "The first host-side authenticated readiness query repeatedly returned ER_PARSE_ERROR until the runner timeout; no frozen integration test was started.",
+    "suspected": "The unquoted alias current_user in CURRENT_USER() AS current_user is the leading static cause, but the runner retained only the MySQL error code, so the exact parser token is not proven by this attempt.",
+    "requiredCorrection": "Make the readiness SQL valid for pinned MySQL 8.0.43, retain a sanitized parser diagnostic, add a real-engine readiness-query regression, freeze new bytes, and require a new single-use authorization before any retry."
+  },
+  "stopPolicy": {
+    "stoppedImmediately": true,
+    "automaticRetryPerformed": false,
+    "newAuthorizationRequiredForRetry": true
+  },
+  "cleanupVerification": {
+    "runnerReportedContainerRemoved": true,
+    "ownedContainerListEmptyAfterExit": true,
+    "temporaryListenerRemovedWithContainer": true,
+    "temporaryDatabasesRemovedWithContainer": true,
+    "temporaryPrincipalsRemovedWithContainer": true
+  },
+  "formalGateEffect": {
+    "localMysqlEngineProofClosed": false,
+    "localSchemaSnapshotProvenanceClosed": false,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "liveDeliveryGateClosed": false
+  }
+}

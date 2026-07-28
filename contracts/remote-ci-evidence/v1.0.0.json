@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "productVersion": "v1.0.0",
+  "scope": "NON_RUNTIME_REMOTE_CI_EVIDENCE_STRUCTURE_AND_BYTES_VALIDATION",
+  "validationLevel": "STRUCTURE_AND_DOWNLOADED_ARTIFACT_BYTES_UNTRUSTED_REMOTE_READBACK",
+  "digestAlgorithm": "SHA-256",
+  "canonicalization": {
+    "version": "MYROOT_CANONICAL_JSON_V1",
+    "unicodeNormalization": "NFC_REQUIRED",
+    "objectKeyOrdering": "UTF16_CODE_UNIT_ASCENDING",
+    "numberEncoding": "SAFE_INTEGER_JSON",
+    "arrayOrdering": "SCHEMA_DEFINED_DETERMINISTIC",
+    "undefinedPolicy": "REJECT",
+    "digestDomainSeparation": "REMOTE_CI_EVIDENCE_V1"
+  },
+  "repositoryPolicy": {
+    "repository": "rijay/root",
+    "targetRef": "refs/heads/main",
+    "workflowPath": ".github/workflows/ci.yml",
+    "workflowName": "CI Gate",
+    "provider": "GITHUB_ACTIONS",
+    "expectedCheckAppIdentityRef": "app:sha256:e67ea24b2a6c1075f14393573a7043b7dffc4d12c37340053fd0639c2e6310ae"
+  },
+  "shaRoles": ["PR_HEAD", "TESTED_MERGE", "BASE", "POST_MERGE_MAIN"],
+  "runPolicies": [
+    {
+      "runRole": "PULL_REQUEST_VERIFICATION",
+      "eventName": "pull_request",
+      "testedShaRole": "TESTED_MERGE"
+    },
+    {
+      "runRole": "POST_MERGE_MAIN_VERIFICATION",
+      "eventName": "push",
+      "testedShaRole": "POST_MERGE_MAIN"
+    }
+  ],
+  "requiredChecks": [
+    {
+      "jobId": "candidate-provenance",
+      "expectedName": "Source provenance only",
+      "artifactClass": "SOURCE_PROVENANCE_ONLY",
+      "artifactRequired": true,
+      "zeroSkipRequired": true
+    },
+    {
+      "jobId": "verify",
+      "expectedName": "Full verification",
+      "artifactClass": "VERIFICATION_LOG",
+      "artifactRequired": false,
+      "zeroSkipRequired": true
+    },
+    {
+      "jobId": "cloudfunctions-node18",
+      "expectedName": "Cloud Functions Node.js 18 compatibility",
+      "artifactClass": "CHECK_RUN_RESULT",
+      "artifactRequired": false,
+      "zeroSkipRequired": true
+    }
+  ],
+  "evidencePolicy": {
+    "maximumAgeSeconds": 604800,
+    "maximumFutureSkewSeconds": 300,
+    "maximumValiditySeconds": 604800,
+    "requiredProtectionMode": "RULESET_OR_BRANCH_PROTECTION",
+    "exactRequiredCheckSet": true,
+    "strictHeadShaBinding": true,
+    "pullRequestRequired": true,
+    "administratorBypassAllowed": false,
+    "forcePushAllowed": false,
+    "branchDeletionAllowed": false,
+    "postMergeMainRunRequired": true,
+    "downloadedArtifactBytesRequired": true
+  },
+  "authorization": {
+    "runtimeAuthorized": false,
+    "remoteReadAuthorized": false,
+    "workflowExecutionAuthorized": false,
+    "protectionMutationAuthorized": false,
+    "artifactAttestationAuthorized": false,
+    "gateClosureAuthorized": false,
+    "deploymentAuthorized": false,
+    "formalLaunchAuthorized": false
+  }
+}

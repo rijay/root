@@ -1,0 +1,94 @@
+{
+  "registryVersion": 1,
+  "contractVersion": "1.0.0",
+  "productVersion": "v1.0.0",
+  "scope": "NON_RUNTIME_BASELINE_SIGNOFF_EXECUTION_CONTROL",
+  "digestAlgorithm": "SHA-256",
+  "canonicalization": {
+    "version": "MYROOT_CANONICAL_JSON_V1",
+    "unicodeNormalization": "NFC_REQUIRED",
+    "objectKeyOrdering": "UTF16_CODE_UNIT_ASCENDING",
+    "numberEncoding": "SAFE_INTEGER_JSON",
+    "arrayOrdering": "SCHEMA_DEFINED_DETERMINISTIC",
+    "undefinedPolicy": "REJECT",
+    "digestDomainSeparation": "BASELINE_SIGNOFF_EXECUTION_V1"
+  },
+  "executionControlSchema": {
+    "exactFields": [
+      "executionFormatVersion",
+      "digestCanonicalizationVersion",
+      "productVersion",
+      "approvalSystemRef",
+      "workflowInstanceRef",
+      "workflowOwnerSignerRef",
+      "evidenceCustodianSignerRef",
+      "openedAt",
+      "dueAt",
+      "escalationPolicyRef",
+      "revocationSourceRef",
+      "sourceInputBindingDigest"
+    ],
+    "workflowReceiptExactFields": [
+      "receiptFormatVersion",
+      "approvalSystemRef",
+      "workflowInstanceRef",
+      "executionControlDigest",
+      "status",
+      "observedAt",
+      "validUntil",
+      "evidenceRef"
+    ],
+    "approvalReceiptExactFields": [
+      "receiptFormatVersion",
+      "approvalSystemRef",
+      "workflowInstanceRef",
+      "signoffId",
+      "signerRef",
+      "role",
+      "decisionId",
+      "decision",
+      "sourceInputBindingDigest",
+      "signedPayloadDigest",
+      "signatureDigest",
+      "signatureVerified",
+      "authorityEvidenceRef",
+      "approvalEvidenceRef",
+      "observedAt",
+      "validUntil"
+    ],
+    "revocationReceiptExactFields": [
+      "receiptFormatVersion",
+      "revocationSourceRef",
+      "workflowInstanceRef",
+      "signoffId",
+      "status",
+      "observedAt",
+      "validUntil",
+      "evidenceRef"
+    ],
+    "opaqueReferencePatterns": {
+      "system": "^system:sha256:[a-f0-9]{64}$",
+      "workflow": "^workflow:sha256:[a-f0-9]{64}$",
+      "actor": "^actor:sha256:[a-f0-9]{64}$",
+      "policy": "^policy:sha256:[a-f0-9]{64}$",
+      "source": "^source:sha256:[a-f0-9]{64}$",
+      "signoff": "^signoff:sha256:[a-f0-9]{64}$",
+      "evidence": "^evidence:sha256:[a-f0-9]{64}$"
+    }
+  },
+  "allowedWorkflowStatuses": ["OPEN", "CANCELLED", "COMPLETED"],
+  "allowedRevocationStatuses": ["ACTIVE", "REVOKED"],
+  "allowedSignatureMethods": [
+    "CONTROLLED_APPROVAL_RECORD_V1",
+    "DETACHED_DIGITAL_SIGNATURE_V1"
+  ],
+  "authorization": {
+    "runtimeAuthorized": false,
+    "candidateCreationAuthorized": false,
+    "approvalCollectionAuthorized": false,
+    "approvalMutationAuthorized": false,
+    "deploymentAuthorized": false,
+    "gateClosureAuthorized": false,
+    "formalLaunchAuthorized": false
+  }
+}

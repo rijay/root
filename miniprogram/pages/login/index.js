@@ -1,6 +1,14 @@
 const { request, setToken, stringifyError } = require("../../utils/request");
+const { activityLoginRecoveryUrl, ROUTE_INTENT_STORAGE_KEY } = require("../../utils/activity-actions");
 const router = require("../../utils/router");
 const { openLegalPage } = require("../../utils/legal");
+
+function consumeActivityLoginRecovery() {
+  const value = wx.getStorageSync(ROUTE_INTENT_STORAGE_KEY);
+  const url = activityLoginRecoveryUrl(value, Date.now());
+  if (value) wx.removeStorageSync(ROUTE_INTENT_STORAGE_KEY);
+  return url;
+}
 
 Page({
   data: {
@@ -44,7 +52,9 @@ Page({
             },
           });
           setToken(data.token);
-          router.go(data.nextRoute);
+          const nextRoute = String(data.nextRoute || "");
+          const requiresRegistration = nextRoute.split("?")[0] === "/pages/register/index";
+          router.go((requiresRegistration ? "" : consumeActivityLoginRecovery()) || nextRoute || "/pages/home/index");
         } catch (error) {
           wx.showToast({ title: (stringifyError(error) || "登录失败，请重试").slice(0, 28), icon: "none" });
         } finally {

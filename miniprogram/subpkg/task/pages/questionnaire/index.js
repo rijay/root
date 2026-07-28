@@ -7,6 +7,9 @@ Page({
   data: {
     campaignId: "",
     questionnaireType: "DAY4_MIDPOINT",
+    taskDefinitionId: "",
+    taskActivityAssignmentId: "",
+    taskDefinitionVersion: "",
     questionnaire: null,
     questionRows: [],
     answers: {},
@@ -20,6 +23,9 @@ Page({
     this.setData({
       campaignId: options.campaignId || options.campaign_id || "",
       questionnaireType: options.questionnaireType || options.questionnaire_type || "DAY4_MIDPOINT",
+      taskDefinitionId: options.taskDefinitionId || options.task_definition_id || "",
+      taskActivityAssignmentId: options.taskActivityAssignmentId || options.task_activity_assignment_id || "",
+      taskDefinitionVersion: options.taskDefinitionVersion || options.task_definition_version || "",
     });
     this.loadQuestionnaire();
   },
@@ -110,6 +116,9 @@ Page({
           taskDate,
           submittedAt: taskDate,
           answers: this.data.answers,
+          taskDefinitionId: this.data.taskDefinitionId || undefined,
+          taskActivityAssignmentId: this.data.taskActivityAssignmentId || undefined,
+          taskDefinitionVersion: this.data.taskDefinitionVersion || undefined,
           idempotencyKey: `questionnaire-answer:${this.data.campaignId || "default"}:${this.data.questionnaireType}`,
         },
       });

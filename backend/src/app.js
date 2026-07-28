@@ -3,19 +3,39 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const { createMemoryStore } = require("./store");
+const { createMemoryActivityTaskReadAdapter } = require("./activityTaskReadAdapter");
 const { runCloudbaseObjectStorageProbe } = require("./cloudbaseObjectStorageProbe");
 const { buildRuntimeMetadata } = require("./runtimeMetadata");
+const { createHttpResponseSecurityPolicy } = require("./httpResponseSecurity");
+const { getRuntimePersistenceStatus, isCloudRuntime } = require("./runtimePersistenceGuard");
+const { resolveTrustedWechatIdentity } = require("./trustedWechatIdentity");
+const { executeIdempotentCommand } = require("./commandIdempotency");
+const { createCommandRequestDigestCodec } = require("./commandRequestDigest");
+const { createCommandResultCodec } = require("./commandResultProtection");
+const { buildTaskEventOutboxEnvelope } = require("./taskEventOutbox");
+const { stageOutboxEnvelope } = require("./eventTransport");
+const campaignModule = require("./campaign");
+const { authenticateJobRouteToken } = require("./jobRouteToken");
+const { atomicWriteFailure, isAtomicWriteError } = require("./atomicWriteError");
+const { clientErrorResponse, createClientError } = require("./clientError");
+
+function safeAggregateCount(value) {
+  return Number.isSafeInteger(value) && value >= 0 ? value : 0;
+}
 const {
+  ADMIN_COMMANDS,
   ADMIN_CAPABILITIES,
   capabilityListForRole,
   normalizeRole,
   requireAdminCapability,
+  requireAdminCommandCapability,
 } = require("./adminAccessControl");
 const {
   adminDashboard,
   adminLaunchReadiness,
   applyCorrection,
   applyRefund,
+  archiveActivity,
   archiveReleaseEvidencePack,
   approveRefund,
   claimCoupon,
@@ -25,9 +45,12 @@ const {
   continueAsDailyUser,
   cleanupAdminLifecycleUserExports,
   cancelAdminLifecycleSettlementJob,
+  cancelActivityEnrollment,
+  cancelActivitySession,
   copyAdminLifecycleFilterPreset,
   createAdminLifecycleUserExport,
   createAdminLifecycleSettlementJob,
+  createActivitySession,
   createFeedbackFollowTask,
   createStore,
   dailyHistory,
@@ -40,6 +63,7 @@ const {
   executeAdminRewardDelivery,
   executeAdminProductSync,
   executeAdminSettlementBatch,
+  expireActivityEnrollmentReviews,
   downloadAdminLifecycleUserExport,
   downloadSignedAdminLifecycleUserExport,
   exportAdminLifecycleUsersCsv,
@@ -49,6 +73,8 @@ const {
   upsertAdminLifecycleFilterPreset,
   runAdminOperationalAlertJob,
   getActiveCampaign,
+  getActivityDetail,
+  getActivityEnrollments,
   getActionAdapterCalibration,
   getAdminConfigWorkbench,
   getAdminLifecycleExportDeliveryHealth,
@@ -87,8 +113,14 @@ const {
   getSettlementStatus,
   getUserState,
   importExternalSamples,
+  enrollActivity,
   loginWithWechat,
   joinCampaign,
+  listActivities,
+  listAdminActivityDefinitions,
+  listAdminActivityEnrollments,
+  listAdminActivityReviewQueue,
+  listAdminActivitySessions,
   listConsultationAdvisorAssignments,
   listExternalSampleReviews,
   listImportBatches,
@@ -118,6 +150,7 @@ const {
   previewExternalSamples,
   previewImport,
   planWeWorkTouches,
+  publishActivity,
   publishCampaignRuleVersion,
   queryAdminRewardDeliveryStatus,
   recordConsultationAdvisorAssignment,
@@ -132,12 +165,14 @@ const {
   recordProductJump,
   recordHealthConsentDecision,
   recordUserTaskEvent,
+  requestActivityChanges,
   retryFailedAdminLifecycleSettlementJob,
   evaluateUserSettlement,
   rollbackExternalAdapterRun,
   resolveManualReview,
   resolveAdminManualReview,
   resolveAdminManualReviewBatch,
+  reviewActivityEnrollment,
   runDueAdminLifecycleExportDeliveries,
   runDueExternalAdapterRetries,
   runAdminLifecycleSettlementJob,
@@ -145,6 +180,7 @@ const {
   runDailyAudit,
   runDueCheckinReminders,
   signReleaseRecord,
+  stableRootUserIdForToken,
   runDueAdminLifecycleSettlementJobs,
   runDueWeWorkTouches,
   runAdminLifecycleUserExportJob,
@@ -166,6 +202,10 @@ const {
   updateDisplayProfile,
   updateOrderFulfillment,
   upsertExternalStatusMapping,
+  submitActivityForReview,
+  unpublishActivity,
+  updateActivitySessionState,
+  upsertActivityDraft,
   upsertCampaign,
   upsertProduct,
   upsertTaskDefinition,
@@ -176,6 +216,368 @@ const publicDir = path.join(__dirname, "..", "public");
 const sourceAdminDistDir = path.join(__dirname, "..", "..", "admin", "dist");
 const bundledAdminDistDir = path.join(publicDir, "admin-dist");
 const defaultAdminDistDirs = [sourceAdminDistDir, bundledAdminDistDir];
+
+const V1_RUNTIME_CYCLE_ROUTE = "/api/v1/jobs/v1-runtime-cycle";
+const V1_RUNTIME_CYCLE_BODY_KEYS = Object.freeze([
+  "bridgeLimit",
+  "dryRun",
+  "execute",
+  "recoveryLimit",
+  "requestId",
+  "scheduleId",
+  "scheduledAt",
+  "workerLimit",
+]);
+const V1_RUNTIME_TERMINAL_STATUSES = Object.freeze([
+  "SUCCEEDED",
+  "SKIPPED_BUSY",
+  "FAILED_PRECONDITION",
+  "REVIEW_REQUIRED",
+]);
+
+function plainRecord(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function exactRuntimeRequiredFlag(env = {}) {
+  const value = Object.prototype.hasOwnProperty.call(env, "ROOT_V1_RUNTIME_READY_REQUIRED")
+    ? env.ROOT_V1_RUNTIME_READY_REQUIRED
+    : "";
+  if (value === undefined || value === null || value === "" || value === "false") return false;
+  if (value === "true") return true;
+  throw createClientError(
+    50051,
+    "v1 runtime readiness configuration invalid",
+    500
+  );
+}
+
+function stableRuntimeCode(value, fallback) {
+  return typeof value === "string" && /^[A-Z][A-Z0-9_]{0,95}$/.test(value)
+    ? value
+    : fallback;
+}
+
+function fallbackV1RuntimeStatus(required, status) {
+  return Object.freeze({
+    contractVersion: "V1_RUNTIME_CONTROL_PLANE:v1",
+    enabled: false,
+    required,
+    ready: !required && status === "V1_RUNTIME_CONTROL_PLANE_NOT_REQUIRED",
+    status,
+    killSwitch: "UNKNOWN",
+    attestation: Object.freeze({
+      state: "MISSING",
+      cycleId: null,
+      completedAt: null,
+      ageSeconds: null,
+      latestTerminalCycleId: null,
+      latestTerminalStatus: null,
+      latestTerminalCompletedAt: null,
+    }),
+    openAlerts: Object.freeze({
+      totalCount: 0,
+      blockerCount: 0,
+      warningCount: 0,
+      latestObservedAt: null,
+    }),
+    reviewRequiredCount: 0,
+  });
+}
+
+function publicV1RuntimeStatus(report, required) {
+  if (!plainRecord(report)
+    || typeof report.ready !== "boolean"
+    || typeof report.enabled !== "boolean"
+    || !plainRecord(report.attestation)
+    || !plainRecord(report.openAlerts)
+    || !Number.isSafeInteger(report.openAlerts.totalCount)
+    || report.openAlerts.totalCount < 0
+    || !Number.isSafeInteger(report.openAlerts.blockerCount)
+    || report.openAlerts.blockerCount < 0
+    || !Number.isSafeInteger(report.openAlerts.warningCount)
+    || report.openAlerts.warningCount < 0
+    || !Number.isSafeInteger(report.reviewRequiredCount)
+    || report.reviewRequiredCount < 0) {
+    return fallbackV1RuntimeStatus(required, "V1_RUNTIME_CONTROL_PLANE_INSPECTION_INVALID");
+  }
+  const sourceAttestation = report.attestation;
+  const sourceAlerts = report.openAlerts;
+  const attestationState = ["BLOCKED", "BUSY", "MISSING", "SAFE", "STALE", "WARNING"]
+    .includes(sourceAttestation.state) ? sourceAttestation.state : "MISSING";
+  const cycleId = typeof sourceAttestation.cycleId === "string"
+    && /^[0-9a-f]{64}$/.test(sourceAttestation.cycleId)
+    ? sourceAttestation.cycleId
+    : null;
+  const completedAt = typeof sourceAttestation.completedAt === "string"
+    && sourceAttestation.completedAt.length <= 32
+    && Number.isFinite(Date.parse(sourceAttestation.completedAt))
+    && new Date(Date.parse(sourceAttestation.completedAt)).toISOString() === sourceAttestation.completedAt
+    ? sourceAttestation.completedAt
+    : null;
+  const ageSeconds = Number.isSafeInteger(sourceAttestation.ageSeconds)
+    && sourceAttestation.ageSeconds >= 0
+    ? sourceAttestation.ageSeconds
+    : null;
+  const latestTerminalCycleId = typeof sourceAttestation.latestTerminalCycleId === "string"
+    && /^[0-9a-f]{64}$/.test(sourceAttestation.latestTerminalCycleId)
+    ? sourceAttestation.latestTerminalCycleId
+    : null;
+  const latestTerminalStatus = V1_RUNTIME_TERMINAL_STATUSES
+    .includes(sourceAttestation.latestTerminalStatus)
+    ? sourceAttestation.latestTerminalStatus
+    : null;
+  const latestTerminalCompletedAt = typeof sourceAttestation.latestTerminalCompletedAt === "string"
+    && sourceAttestation.latestTerminalCompletedAt.length <= 32
+    && Number.isFinite(Date.parse(sourceAttestation.latestTerminalCompletedAt))
+    && new Date(Date.parse(sourceAttestation.latestTerminalCompletedAt)).toISOString()
+      === sourceAttestation.latestTerminalCompletedAt
+    ? sourceAttestation.latestTerminalCompletedAt
+    : null;
+  const status = stableRuntimeCode(
+    report.status,
+    "V1_RUNTIME_CONTROL_PLANE_INSPECTION_INVALID"
+  );
+  const enabled = report.enabled === true;
+  const killSwitch = ["DISENGAGED", "ENGAGED"].includes(report.killSwitch)
+    ? report.killSwitch
+    : "UNKNOWN";
+  const totalCount = sourceAlerts.totalCount;
+  const blockerCount = sourceAlerts.blockerCount;
+  const warningCount = sourceAlerts.warningCount;
+  const reviewRequiredCount = report.reviewRequiredCount;
+  const rawProofFields = [
+    sourceAttestation.cycleId,
+    sourceAttestation.completedAt,
+    sourceAttestation.ageSeconds,
+  ];
+  const hasProof = [cycleId, completedAt, ageSeconds].every((value) => value !== null);
+  const proofShapeValid = hasProof || rawProofFields.every((value) => value === null);
+  const rawTerminalFields = [
+    sourceAttestation.latestTerminalCycleId,
+    sourceAttestation.latestTerminalStatus,
+    sourceAttestation.latestTerminalCompletedAt,
+  ];
+  const terminalFields = [
+    latestTerminalCycleId,
+    latestTerminalStatus,
+    latestTerminalCompletedAt,
+  ];
+  const hasLatestTerminal = terminalFields.every((value) => value !== null);
+  const terminalShapeValid = hasLatestTerminal || rawTerminalFields.every((value) => value === null);
+  const validAttestation = proofShapeValid
+    && terminalShapeValid
+    && (attestationState === "MISSING"
+      ? !hasProof && !hasLatestTerminal
+      : attestationState === "BLOCKED"
+        ? hasProof || hasLatestTerminal
+        : hasProof);
+  const structurallyValid = report.contractVersion === "V1_RUNTIME_CONTROL_PLANE:v1"
+    && status !== "V1_RUNTIME_CONTROL_PLANE_INSPECTION_INVALID"
+    && ["DISENGAGED", "ENGAGED"].includes(report.killSwitch)
+    && validAttestation
+    && totalCount === blockerCount + warningCount
+    && (sourceAlerts.latestObservedAt === null
+      || (typeof sourceAlerts.latestObservedAt === "string"
+        && sourceAlerts.latestObservedAt.length <= 32
+        && Number.isFinite(Date.parse(sourceAlerts.latestObservedAt))
+        && new Date(Date.parse(sourceAlerts.latestObservedAt)).toISOString()
+          === sourceAlerts.latestObservedAt));
+  const readyStatusByState = {
+    SAFE: "V1_RUNTIME_CONTROL_PLANE_READY",
+    WARNING: "V1_RUNTIME_CONTROL_PLANE_READY_WITH_WARNING",
+    BUSY: "V1_RUNTIME_CONTROL_PLANE_READY_BUSY",
+  };
+  const ready = structurallyValid
+    && report.ready === true
+    && enabled
+    && status === readyStatusByState[attestationState]
+    && killSwitch === "DISENGAGED"
+    && blockerCount === 0
+    && reviewRequiredCount === 0;
+  return Object.freeze({
+    contractVersion: "V1_RUNTIME_CONTROL_PLANE:v1",
+    enabled,
+    required,
+    ready,
+    status: structurallyValid ? status : "V1_RUNTIME_CONTROL_PLANE_INSPECTION_INVALID",
+    killSwitch,
+    attestation: Object.freeze({
+      state: attestationState,
+      cycleId,
+      completedAt,
+      ageSeconds,
+      latestTerminalCycleId,
+      latestTerminalStatus,
+      latestTerminalCompletedAt,
+    }),
+    openAlerts: Object.freeze({
+      totalCount,
+      blockerCount,
+      warningCount,
+      latestObservedAt: typeof sourceAlerts.latestObservedAt === "string"
+        && sourceAlerts.latestObservedAt.length <= 32
+        ? sourceAlerts.latestObservedAt
+        : null,
+    }),
+    reviewRequiredCount,
+  });
+}
+
+async function inspectV1RuntimeControlPlane(controlPlane, required) {
+  if (!controlPlane || typeof controlPlane.inspect !== "function") {
+    return fallbackV1RuntimeStatus(
+      required,
+      required
+        ? "V1_RUNTIME_CONTROL_PLANE_REQUIRED_BUT_UNAVAILABLE"
+        : "V1_RUNTIME_CONTROL_PLANE_NOT_REQUIRED"
+    );
+  }
+  try {
+    return publicV1RuntimeStatus(await controlPlane.inspect(), required);
+  } catch {
+    return fallbackV1RuntimeStatus(required, "V1_RUNTIME_CONTROL_PLANE_INSPECTION_FAILED");
+  }
+}
+
+function normalizeV1RuntimeCycleBody(body) {
+  if (!plainRecord(body)
+    || Object.keys(body).some((key) => !V1_RUNTIME_CYCLE_BODY_KEYS.includes(key))) {
+    throw createClientError(40051, "v1 runtime cycle request invalid", 400);
+  }
+  if ((Object.prototype.hasOwnProperty.call(body, "dryRun") && typeof body.dryRun !== "boolean")
+    || (Object.prototype.hasOwnProperty.call(body, "execute") && typeof body.execute !== "boolean")) {
+    throw createClientError(40051, "v1 runtime cycle request invalid", 400);
+  }
+  if ((body.execute === true && body.dryRun === true)
+    || (body.execute === false && body.dryRun === false)) {
+    throw createClientError(40051, "v1 runtime cycle request flags conflict", 400);
+  }
+  if (Object.prototype.hasOwnProperty.call(body, "requestId")
+    && (typeof body.requestId !== "string"
+      || body.requestId.length < 1
+      || body.requestId.length > 128
+      || body.requestId !== body.requestId.trim()
+      || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(body.requestId))) {
+    throw createClientError(40051, "v1 runtime cycle request invalid", 400);
+  }
+  const schedule = {
+    bridgeLimit: body.bridgeLimit,
+    recoveryLimit: body.recoveryLimit,
+    scheduleId: body.scheduleId,
+    scheduledAt: body.scheduledAt,
+    workerLimit: body.workerLimit,
+  };
+  if (!Number.isSafeInteger(schedule.bridgeLimit)
+    || !Number.isSafeInteger(schedule.recoveryLimit)
+    || !Number.isSafeInteger(schedule.workerLimit)
+    || [schedule.bridgeLimit, schedule.recoveryLimit, schedule.workerLimit]
+      .some((value) => value < 1 || value > 100)
+    || typeof schedule.scheduleId !== "string"
+    || schedule.scheduleId.length < 1
+    || schedule.scheduleId.length > 128
+    || schedule.scheduleId !== schedule.scheduleId.trim()
+    || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(schedule.scheduleId)
+    || typeof schedule.scheduledAt !== "string"
+    || schedule.scheduledAt.length > 32
+    || !Number.isFinite(Date.parse(schedule.scheduledAt))
+    || new Date(Date.parse(schedule.scheduledAt)).toISOString() !== schedule.scheduledAt) {
+    throw createClientError(40051, "v1 runtime cycle request invalid", 400);
+  }
+  return Object.freeze({
+    execute: body.execute === true || body.dryRun === false,
+    requestId: body.requestId || "",
+    schedule: Object.freeze(schedule),
+  });
+}
+
+function publicV1RuntimeCycleResult(result, dryRun, expectedScheduleId) {
+  if (!plainRecord(result)
+    || result.contractVersion !== "V1_RUNTIME_CONTROL_PLANE:v1"
+    || result.scheduleId !== expectedScheduleId
+    || typeof result.inputDigest !== "string"
+    || !/^[0-9a-f]{64}$/.test(result.inputDigest)
+    || !stableRuntimeCode(result.status, "")) {
+    throw createClientError(50351, "v1 runtime cycle result invalid", 503);
+  }
+  if (dryRun) {
+    const keyInventory = result.keyInventory;
+    const runtime = result.runtime;
+    if (typeof result.enabled !== "boolean"
+      || typeof result.ready !== "boolean"
+      || !plainRecord(keyInventory)
+      || typeof keyInventory.ready !== "boolean"
+      || !stableRuntimeCode(keyInventory.status, "")
+      || !stableRuntimeCode(keyInventory.schemaStatus, "")
+      || !Number.isSafeInteger(keyInventory.issueCount)
+      || keyInventory.issueCount < 0
+      || !plainRecord(runtime)
+      || typeof runtime.ready !== "boolean"
+      || !Array.isArray(runtime.blockerCodes)
+      || runtime.blockerCodes.length > 64
+      || runtime.blockerCodes.some((code) => !stableRuntimeCode(code, ""))) {
+      throw createClientError(50351, "v1 runtime cycle result invalid", 503);
+    }
+    return Object.freeze({
+      contractVersion: result.contractVersion,
+      dryRun: true,
+      enabled: result.enabled === true,
+      ready: result.ready === true,
+      status: result.status,
+      scheduleId: result.scheduleId,
+      inputDigest: result.inputDigest,
+      keyInventory: Object.freeze({
+        ready: keyInventory.ready === true,
+        status: keyInventory.status,
+        schemaStatus: keyInventory.schemaStatus,
+        issueCount: keyInventory.issueCount,
+      }),
+      runtime: Object.freeze({
+        ready: runtime.ready === true,
+        blockerCodes: Object.freeze([...runtime.blockerCodes]),
+      }),
+    });
+  }
+  if (typeof result.cycleId !== "string"
+    || !/^[0-9a-f]{64}$/.test(result.cycleId)
+    || typeof result.replayed !== "boolean"
+    || !Number.isSafeInteger(result.blockerCount)
+    || result.blockerCount < 0
+    || !["FAILED_PRECONDITION", "REVIEW_REQUIRED", "RUNNING", "SKIPPED_BUSY", "SUCCEEDED"]
+      .includes(result.status)) {
+    throw createClientError(50351, "v1 runtime cycle result invalid", 503);
+  }
+  const resultDigest = typeof result.resultDigest === "string" && /^[0-9a-f]{64}$/.test(result.resultDigest)
+    ? result.resultDigest
+    : null;
+  const errorCode = result.errorCode === null ? null : stableRuntimeCode(result.errorCode, "");
+  const completedAt = typeof result.completedAt === "string" && result.completedAt.length <= 32
+    ? result.completedAt
+    : null;
+  const running = result.status === "RUNNING";
+  const succeeded = result.status === "SUCCEEDED";
+  if ((running && (resultDigest !== null || errorCode !== null || completedAt !== null || result.blockerCount !== 0))
+    || (!running && (resultDigest === null || completedAt === null))
+    || (succeeded && (errorCode !== null || result.blockerCount !== 0))
+    || (!running && !succeeded && errorCode === "")) {
+    throw createClientError(50351, "v1 runtime cycle result invalid", 503);
+  }
+  return Object.freeze({
+    contractVersion: result.contractVersion,
+    dryRun: false,
+    scheduleId: result.scheduleId,
+    cycleId: result.cycleId,
+    status: result.status,
+    replayed: result.replayed,
+    inputDigest: result.inputDigest,
+    resultDigest,
+    blockerCount: result.blockerCount,
+    errorCode,
+    completedAt,
+  });
+}
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -202,11 +604,9 @@ function send(res, status, payload, headers = {}) {
   const body = typeof payload === "string" ? payload : JSON.stringify(payload);
   if (typeof res.recordPayload === "function") res.recordPayload(payload);
   res.writeHead(status, {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Request-Id,X-Admin-Token,X-ROOT-ADMIN-TOKEN,X-WX-OPENID,X-WX-UNIONID,X-ROOT-APP-CODE",
     "Content-Type": typeof payload === "string" ? "text/html; charset=utf-8" : "application/json; charset=utf-8",
     ...headers,
+    ...(res.responseSecurityHeaders || {}),
   });
   res.end(body);
 }
@@ -292,23 +692,15 @@ function textEnv(env, key, fallback = "") {
   return normalized || fallback;
 }
 
-function isCloudRuntime(env = process.env) {
-  return Boolean(
-    env.ROOT_CLOUDBASE_ENV_ID ||
-      env.CLOUDBASE_ENV_ID ||
-      env.TCB_ENV ||
-      env.SCF_NAMESPACE ||
-      env.K_SERVICE ||
-      env.WX_CLOUD_ENV
-  );
-}
-
 function shouldRequireConfiguredAdminToken(env = process.env) {
+  // Local compatibility flags must never downgrade authentication in a
+  // protected runtime. Production/cloud access fails closed first.
+  if (String(env.NODE_ENV || "").trim().toLowerCase() === "production" || isCloudRuntime(env)) return true;
   if (Object.prototype.hasOwnProperty.call(env, "ROOT_REQUIRE_ADMIN_TOKEN")) {
     return boolEnv(env.ROOT_REQUIRE_ADMIN_TOKEN);
   }
   if (boolEnv(env.ROOT_ALLOW_UNCONFIGURED_ADMIN_ACCESS)) return false;
-  return env.NODE_ENV === "production" || isCloudRuntime(env);
+  return false;
 }
 
 function parseAdminTokens(env = process.env) {
@@ -320,21 +712,27 @@ function parseAdminTokens(env = process.env) {
       const parsed = JSON.parse(env.ROOT_ADMIN_TOKENS);
       if (Array.isArray(parsed)) {
         parsed.forEach((item) => {
-          if (item && item.token) entries.push({
-            token: String(item.token),
-            operatorId: String(item.operatorId || item.operator_id || item.name || "operator"),
-            role: String(item.role || "operator"),
-          });
+          if (item && item.token) {
+            const operatorId = String(item.operatorId || item.operator_id || item.name || "operator").trim();
+            if (!operatorId) return;
+            entries.push({
+              token: String(item.token),
+              operatorId,
+              role: String(item.role || "operator"),
+            });
+          }
         });
       } else if (parsed && typeof parsed === "object") {
         Object.entries(parsed).forEach(([operatorId, value]) => {
+          const normalizedOperatorId = String(operatorId || "").trim();
+          if (!normalizedOperatorId) return;
           if (typeof value === "string") {
-            entries.push({ token: value, operatorId, role: "operator" });
+            entries.push({ token: value, operatorId: normalizedOperatorId, role: "operator" });
             return;
           }
           if (value && value.token) entries.push({
             token: String(value.token),
-            operatorId,
+            operatorId: normalizedOperatorId,
             role: String(value.role || "operator"),
           });
         });
@@ -347,30 +745,6 @@ function parseAdminTokens(env = process.env) {
   return { entries, configured };
 }
 
-function parseJobTokens(env = process.env) {
-  const tokens = [];
-  if (env.ROOT_ADMIN_JOB_TOKENS) {
-    try {
-      const parsed = JSON.parse(env.ROOT_ADMIN_JOB_TOKENS);
-      if (Array.isArray(parsed)) {
-        parsed.forEach((item) => {
-          const token = typeof item === "string" ? item : item && item.token;
-          if (token) tokens.push(String(token));
-        });
-      } else if (parsed && typeof parsed === "object") {
-        Object.values(parsed).forEach((item) => {
-          const token = typeof item === "string" ? item : item && item.token;
-          if (token) tokens.push(String(token));
-        });
-      }
-    } catch (_) {
-      // Invalid rotation config fails closed unless the singular token is present.
-    }
-  }
-  if (env.ROOT_ADMIN_JOB_TOKEN) tokens.push(String(env.ROOT_ADMIN_JOB_TOKEN));
-  return Array.from(new Set(tokens.filter((token) => token.trim())));
-}
-
 function secureTokenEqual(candidate, provided) {
   if (!candidate || !provided) return false;
   const left = crypto.createHash("sha256").update(String(candidate)).digest();
@@ -380,9 +754,22 @@ function secureTokenEqual(candidate, provided) {
 
 function getAdminPrincipal(req, env = process.env, pathname = "") {
   const token = getAdminToken(req);
-  const jobTokens = parseJobTokens(env);
-  if (pathname.startsWith("/api/v1/jobs/") && jobTokens.some((candidate) => secureTokenEqual(candidate, token))) {
-    return { operatorId: "cloudbase-job", role: "job", tokenConfigured: true, jobOnly: true };
+  if (pathname.startsWith("/api/v1/jobs/")) {
+    const jobToken = authenticateJobRouteToken(env, pathname, token);
+    if (jobToken.matched) {
+      const operatorRoute = pathname.slice("/api/v1/jobs/".length);
+      return {
+        operatorId: `cloudbase-job:${operatorRoute}`,
+        role: "job",
+        tokenConfigured: true,
+        jobOnly: true,
+        jobRoute: pathname,
+        jobTokenMode: jobToken.mode,
+      };
+    }
+    // Strict scoped mode and malformed scoped configuration must not fall back
+    // to a generic Admin token on a Job route.
+    if (jobToken.failClosed) return null;
   }
   const { entries, configured } = parseAdminTokens(env);
   if (!configured) {
@@ -448,6 +835,71 @@ function adminOperatorId(principal, body = {}) {
   return body.operatorId || body.operator_id || (principal ? principal.operatorId : "");
 }
 
+function activityCommandIdentity(req, body = {}, label = "活动写操作") {
+  const requestId = String(req.headers["x-request-id"] || body.requestId || body.request_id || "").trim();
+  const idempotencyKey = String(
+    req.headers["x-idempotency-key"] || body.idempotencyKey || body.idempotency_key || ""
+  ).trim();
+  const valid = (value) => value.length >= 1
+    && value.length <= 128
+    && /^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(value);
+  if (!valid(requestId)) {
+    throw createClientError("ACTIVITY_REQUEST_ID_REQUIRED", `${label} X-Request-Id 必填且格式有效`, 400);
+  }
+  if (!valid(idempotencyKey)) {
+    throw createClientError(
+      "ACTIVITY_IDEMPOTENCY_KEY_REQUIRED",
+      `${label} X-Idempotency-Key 必填且格式有效`,
+      400
+    );
+  }
+  if (requestId === idempotencyKey) {
+    throw createClientError(
+      "ACTIVITY_COMMAND_IDENTITY_NOT_SEPARATED",
+      `${label} 请求尝试标识与幂等意图标识必须分离`,
+      400
+    );
+  }
+  return Object.freeze({ requestId, idempotencyKey });
+}
+
+function prepareAdminCommandBody(req, principal, body = {}, label = "后台写操作", commandName = "") {
+  const requestId = String(req.headers["x-request-id"] || body.requestId || body.request_id || "").trim();
+  if (!requestId) {
+    throw Object.assign(new Error(`${label} request_id 必填`), { code: 400 });
+  }
+  if (commandName && req.commandIdempotencyContext) req.commandIdempotencyContext.commandName = commandName;
+  const {
+    operator_id: _discardedOperatorId,
+    requestId: _discardedRequestId,
+    request_id: _discardedRequestIdSnake,
+    ...commandBody
+  } = body;
+  return {
+    ...commandBody,
+    operatorId: adminOperatorId(principal, body),
+    requestId,
+  };
+}
+
+function prepareActivityAdminCommandBody(req, principal, body = {}, label = "活动后台写操作", commandName = "") {
+  const identity = activityCommandIdentity(req, body, label);
+  if (commandName && req.commandIdempotencyContext) req.commandIdempotencyContext.commandName = commandName;
+  const {
+    operator_id: _discardedOperatorId,
+    requestId: _discardedRequestId,
+    request_id: _discardedRequestIdSnake,
+    idempotencyKey: _discardedIdempotencyKey,
+    idempotency_key: _discardedIdempotencyKeySnake,
+    ...commandBody
+  } = body;
+  return {
+    ...commandBody,
+    operatorId: adminOperatorId(principal, body),
+    ...identity,
+  };
+}
+
 function adminPrincipalProfile(principal) {
   if (!principal) return null;
   const role = normalizeRole(principal.role);
@@ -459,22 +911,57 @@ function adminPrincipalProfile(principal) {
   };
 }
 
-function withIdempotency(data, req, action, explicitRequestId = "") {
-  const requestId = explicitRequestId || req.headers["x-request-id"];
-  if (!requestId) return action();
-  if (data.idempotency[requestId]) return data.idempotency[requestId];
-  const result = action();
-  if (result && typeof result.then === "function") {
-    return result.then((value) => {
-      data.idempotency[requestId] = value;
-      return value;
-    }, (error) => {
-      delete data.idempotency[requestId];
-      throw error;
-    });
+function commandActorId(data, token, adminPrincipal, runtimeContext = {}) {
+  if (adminPrincipal) return `admin:${String(adminPrincipal.operatorId || adminPrincipal.role || "unknown")}`;
+  if (!token) return "anonymous";
+  const rootUserId = stableRootUserIdForToken(data, token, runtimeContext);
+  if (!rootUserId) throw createClientError(1003, "登录状态无稳定用户主体", 401);
+  return `user:${rootUserId}`;
+}
+
+function withIdempotency(data, req, action, explicitIdempotencyKey = "") {
+  const idempotencyKey = explicitIdempotencyKey || req.headers["x-request-id"];
+  if (!idempotencyKey) {
+    req.commandIdempotencyReplayed = false;
+    return action();
   }
-  data.idempotency[requestId] = result;
-  return result;
+  const context = req.commandIdempotencyContext || {};
+  const descriptor = {
+    commandName: context.commandName || `${String(req.method || "POST").toUpperCase()}:${new URL(req.url, "http://localhost").pathname}`,
+    actorId: context.actorId || "anonymous",
+    actorType: context.actorType || undefined,
+    idempotencyKey,
+    request: context.request || null,
+  };
+  const execution = context.executor && typeof context.executor.execute === "function"
+    ? context.executor.execute(data, descriptor, action)
+    : executeIdempotentCommand(data, descriptor, action, { resultCodec: context.resultCodec });
+  const unwrap = (outcome) => {
+    req.commandIdempotencyReplayed = outcome.replayed === true;
+    return outcome.result;
+  };
+  if (execution && typeof execution.then === "function") return execution.then(unwrap);
+  return unwrap(execution);
+}
+
+function requestCorrelationId(req) {
+  const requestId = String(req && req.headers && req.headers["x-request-id"] || "").trim();
+  if (!requestId) return null;
+  return `request_${crypto.createHash("sha256").update(requestId).digest("hex").slice(0, 32)}`;
+}
+
+function activityTaskWriteContext(req, requestContext, runtimeContext, runtimeMetadata, extra = {}) {
+  return {
+    ...runtimeContext,
+    ...extra,
+    getEventTransport: typeof requestContext.getEventTransport === "function"
+      ? requestContext.getEventTransport
+      : undefined,
+    eventTransport: requestContext.eventTransport || null,
+    correlationId: requestCorrelationId(req),
+    producerVersion: runtimeMetadata.version,
+    releaseId: runtimeMetadata.releaseIdConfigured ? runtimeMetadata.releaseId : null,
+  };
 }
 
 function staticFile(filePath, res, baseDir = publicDir) {
@@ -495,8 +982,8 @@ function staticFile(filePath, res, baseDir = publicDir) {
     ".ico": "image/x-icon",
   };
   res.writeHead(200, {
-    "Access-Control-Allow-Origin": "*",
     "Content-Type": types[ext] || "application/octet-stream",
+    ...(res.responseSecurityHeaders || {}),
   });
   fs.createReadStream(absolute).pipe(res);
   return true;
@@ -516,6 +1003,13 @@ function createApp(options = {}) {
   const storeAdapter = options.storeAdapter || createMemoryStore(options.store || createStore());
   const data = storeAdapter.data;
   const runtimeEnv = options.env || process.env;
+  const v1RuntimeReadyRequired = exactRuntimeRequiredFlag(runtimeEnv);
+  const v1RuntimeControlPlane = options.v1RuntimeControlPlane
+    || storeAdapter.v1RuntimeControlPlane
+    || null;
+  const commandRequestDigestCodec = options.commandRequestDigestCodec || createCommandRequestDigestCodec(runtimeEnv);
+  const commandResultCodec = options.commandResultCodec || createCommandResultCodec(runtimeEnv);
+  const responseSecurityPolicy = createHttpResponseSecurityPolicy(runtimeEnv);
   const runtimeMetadata = buildRuntimeMetadata(runtimeEnv);
   const elementAdminDir = resolveElementAdminDir(options.adminDistDir, runtimeEnv);
   const runtimeContext = {
@@ -525,6 +1019,14 @@ function createApp(options = {}) {
     fetchImpl: options.fetchImpl,
     objectStorageAdapter: options.objectStorageAdapter,
     cloudbaseAppFactory: options.cloudbaseAppFactory,
+    trustedWechatIdentityAdapter: options.trustedWechatIdentityAdapter,
+    activityPublicationAuthorizationAdapter: options.activityPublicationAuthorizationAdapter,
+    activityAssetAdapter: options.activityAssetAdapter,
+    activityTaskReadAdapter: options.activityTaskReadAdapter,
+    notificationDeliveryCore: options.notificationDeliveryCore
+      || storeAdapter.notificationDeliveryCore
+      || null,
+    v1RuntimeControlPlane,
     runtimeMetadata,
     adminTransitionOptions: {
       sourceAdminDistDir,
@@ -539,9 +1041,69 @@ function createApp(options = {}) {
       ? Promise.resolve().then(() => storeAdapter.save())
       : Promise.resolve();
 
+  async function loadSettlementSourceScopes(requestContext, scopes) {
+    const implementation = requestContext.settlementSourceInvalidationRead;
+    if (!implementation) return Object.freeze({ candidateCount: 0, loadedScopeCount: 0 });
+    if (typeof implementation.loadScopes !== "function") {
+      const error = new Error("Settlement source invalidation read Interface is unavailable");
+      error.code = "SETTLEMENT_SOURCE_INVALIDATION_READ_CONFIGURATION_INVALID";
+      error.status = 503;
+      throw error;
+    }
+    return implementation.loadScopes(scopes);
+  }
+
+  function settlementCampaignId(input = {}) {
+    return campaignModule.getActiveCampaign(data, {
+      ...runtimeContext,
+      campaignId: input.campaignId || input.campaign_id || "",
+    }).campaign_id;
+  }
+
+  async function loadUserSettlementSourceScope(
+    requestContext,
+    token,
+    input = {}
+  ) {
+    const rootUserId = stableRootUserIdForToken(data, token, runtimeContext);
+    if (!rootUserId) return;
+    await loadSettlementSourceScopes(requestContext, [{
+      rootUserId,
+      campaignId: settlementCampaignId(input),
+    }]);
+  }
+
+  function settlementRootUserIds(input = {}) {
+    const raw = input.rootUserIds || input.root_user_ids
+      || input.userIds || input.user_ids || input.users || [];
+    const values = typeof raw === "string"
+      ? raw.split(/[\s,，;；]+/)
+      : Array.isArray(raw) ? raw : [];
+    return Array.from(new Set(values.map((item) => (
+      typeof item === "string"
+        ? item
+        : item && (item.rootUserId || item.root_user_id || item.userId || item.user_id)
+    )).map((item) => String(item || "").trim()).filter(Boolean)));
+  }
+
+  async function loadAdminSettlementSourceScopes(requestContext, input = {}) {
+    const campaignId = settlementCampaignId(input);
+    const single = input.rootUserId || input.root_user_id
+      || input.userId || input.user_id || "";
+    const rootUserIds = single
+      ? [String(single).trim()]
+      : settlementRootUserIds(input);
+    if (!rootUserIds.length) return;
+    await loadSettlementSourceScopes(requestContext, rootUserIds.map((rootUserId) => ({
+      rootUserId,
+      campaignId,
+    })));
+  }
+
   async function handleRequest(req, res, requestContext = {}) {
     const url = new URL(req.url, "http://localhost");
     const method = req.method || "GET";
+    res.responseSecurityHeaders = responseSecurityPolicy.headersFor(req);
 
     if (method === "OPTIONS") return send(res, 204, "");
     if (method === "GET" && url.pathname === "/health") {
@@ -551,9 +1113,74 @@ function createApp(options = {}) {
       const health = typeof storeAdapter.checkHealth === "function"
         ? await storeAdapter.checkHealth()
         : { ok: true, ...(storeAdapter.getStoreHealth ? storeAdapter.getStoreHealth() : { kind: storeAdapter.kind }) };
-      return send(res, health.ok === false ? 503 : 200, {
-        code: health.ok === false ? 50301 : 0,
-        message: health.ok === false ? "store unavailable" : "ready",
+      const persistence = getRuntimePersistenceStatus({ env: runtimeEnv, storeAdapter });
+      const commandRequestDigest = commandRequestDigestCodec.getStatus();
+      const commandResultProtection = commandResultCodec.getStatus();
+      // This read crosses only the Control Plane Interface. It does not run the
+      // key inventory scan or any runtime worker from the readiness path.
+      const v1Runtime = await inspectV1RuntimeControlPlane(
+        runtimeContext.v1RuntimeControlPlane,
+        v1RuntimeReadyRequired
+      );
+      const runtimePrincipalRequired = storeAdapter.kind === "mysql"
+        && health.runtimeAlertDeliveryEnabled === true;
+      const runtimePrincipalRequiredRoleCount = safeAggregateCount(
+        health.runtimePrincipalRequiredRoleCount
+      );
+      const runtimePrincipalVerifiedRoleCount = safeAggregateCount(
+        health.runtimePrincipalVerifiedRoleCount
+      );
+      const runtimePrincipalRequiredRoutineCount = safeAggregateCount(
+        health.runtimePrincipalRequiredRoutineCount
+      );
+      const runtimePrincipalVerifiedRoutineCount = safeAggregateCount(
+        health.runtimePrincipalVerifiedRoutineCount
+      );
+      const runtimePrincipalIssueCount = safeAggregateCount(
+        health.runtimePrincipalIssueCount
+      );
+      const runtimePrincipalReady = !runtimePrincipalRequired || (
+        health.runtimePrincipalReady === true
+        && runtimePrincipalRequiredRoleCount > 0
+        && runtimePrincipalVerifiedRoleCount === runtimePrincipalRequiredRoleCount
+        && runtimePrincipalRequiredRoutineCount > 0
+        && runtimePrincipalVerifiedRoutineCount === runtimePrincipalRequiredRoutineCount
+        && runtimePrincipalIssueCount === 0
+      );
+      const ready = health.ok !== false
+        && persistence.ready
+        && commandResultProtection.ready
+        && commandRequestDigest.ready
+        && runtimePrincipalReady
+        && (!v1RuntimeReadyRequired || v1Runtime.ready);
+      const code = health.ok === false
+        ? 50301
+        : !persistence.ready
+          ? 50302
+          : !commandResultProtection.ready
+            ? 50303
+            : !commandRequestDigest.ready
+              ? 50304
+              : v1RuntimeReadyRequired && !v1Runtime.ready
+                ? 50305
+                : !runtimePrincipalReady
+                  ? 50306
+                : 0;
+      return send(res, ready ? 200 : 503, {
+        code,
+        message: health.ok === false
+          ? "store unavailable"
+          : persistence.ready
+            ? commandResultProtection.ready
+              ? commandRequestDigest.ready
+                ? v1RuntimeReadyRequired && !v1Runtime.ready
+                  ? "v1 runtime attestation unavailable"
+                  : !runtimePrincipalReady
+                    ? "runtime principal authority unavailable"
+                  : "ready"
+                : "command request digest unavailable"
+              : "command result protection unavailable"
+            : "transactional multi-instance store required",
         data: {
           service: "root-checkin",
           ...runtimeMetadata,
@@ -562,12 +1189,26 @@ function createApp(options = {}) {
             connected: health.ok !== false,
             migrationVersion: health.migrationVersion || "",
             revision: health.revision ?? null,
+            persistenceStatus: persistence.status,
+            runtimeMode: persistence.runtimeMode,
+            transactional: persistence.transactional,
+            multiInstanceSafe: persistence.multiInstanceSafe,
             ...(storeAdapter.kind === "mysql" ? {
               leastPrivilegeReady: health.leastPrivilegeReady === true,
               privilegeScope: health.privilegeScope || "UNKNOWN",
               privilegePolicyEnforced: health.privilegePolicyEnforced === true,
+              runtimeAlertDeliveryEnabled: runtimePrincipalRequired,
+              runtimePrincipalReady,
+              runtimePrincipalRequiredRoleCount,
+              runtimePrincipalVerifiedRoleCount,
+              runtimePrincipalRequiredRoutineCount,
+              runtimePrincipalVerifiedRoutineCount,
+              runtimePrincipalIssueCount,
             } : {}),
           },
+          commandRequestDigest,
+          commandResultProtection,
+          v1Runtime,
         },
       });
     }
@@ -592,12 +1233,35 @@ function createApp(options = {}) {
       const adminPrincipal = requiresAdminAccess(url.pathname) ? getAdminPrincipal(req, runtimeContext.env, url.pathname) : null;
       const body = ["POST", "PUT", "PATCH"].includes(method) ? await readBody(req) : {};
       const route = `${method} ${url.pathname}`;
+      const commandActor = commandActorId(data, token, adminPrincipal, runtimeContext);
+      req.commandIdempotencyContext = {
+        commandName: `${method}:${url.pathname}`,
+        actorId: commandActor,
+        actorType: commandActor.startsWith("admin:")
+          ? "ADMIN"
+          : commandActor.startsWith("user:")
+            ? "USER"
+            : "ANONYMOUS",
+        request: {
+          method,
+          pathname: url.pathname,
+          query: Array.from(url.searchParams.entries()),
+          body,
+        },
+        resultCodec: commandResultCodec,
+      };
 
       if (route === "POST /api/v1/auth/login") {
-        return ok(res, await withIdempotency(data, req, () => loginWithWechat(data, body, {
+        const trustedWechatIdentity = await resolveTrustedWechatIdentity({
+          adapter: runtimeContext.trustedWechatIdentityAdapter,
+          request: req,
+          env: runtimeContext.env,
+        });
+        return ok(res, await loginWithWechat(data, body, {
           env: runtimeContext.env,
           headers: req.headers,
-        })));
+          trustedWechatIdentity,
+        }));
       }
       if (route === "GET /api/v1/privacy/notice") return ok(res, getPrivacyNotice(runtimeContext));
       if (route === "GET /api/v1/user/state") return ok(res, getUserState(data, token, runtimeContext));
@@ -606,14 +1270,140 @@ function createApp(options = {}) {
       if (route === "GET /api/v1/user/profile") return ok(res, getProfile(data, token));
       if (route === "GET /api/v1/user/orders") return ok(res, getUserOrders(data, token));
       if (route === "GET /api/v1/user/consultations") return ok(res, getUserConsultations(data, token));
+      if (route === "GET /api/v1/activities") {
+        return ok(res, listActivities(data, token, Object.fromEntries(url.searchParams), runtimeContext));
+      }
+      if (route === "GET /api/v1/activities/detail") {
+        return ok(res, getActivityDetail(data, token, Object.fromEntries(url.searchParams), runtimeContext));
+      }
+      if (route === "GET /api/v1/activities/enrollments") {
+        return ok(res, getActivityEnrollments(data, token, Object.fromEntries(url.searchParams), runtimeContext));
+      }
+      if (route === "POST /api/v1/activities/enroll") {
+        const { requestId, idempotencyKey } = activityCommandIdentity(req, body, "活动报名");
+        return ok(res, await withIdempotency(
+          data,
+          req,
+          () => enrollActivity(
+            data,
+            token,
+            { ...body, requestId, idempotencyKey },
+            activityTaskWriteContext(req, requestContext, runtimeContext, runtimeMetadata)
+          ),
+          idempotencyKey
+        ));
+      }
+      if (route === "POST /api/v1/activities/cancel") {
+        const { requestId, idempotencyKey } = activityCommandIdentity(req, body, "取消报名");
+        return ok(res, await withIdempotency(
+          data,
+          req,
+          () => cancelActivityEnrollment(
+            data,
+            token,
+            { ...body, requestId, idempotencyKey },
+            activityTaskWriteContext(req, requestContext, runtimeContext, runtimeMetadata)
+          ),
+          idempotencyKey
+        ));
+      }
       if (route === "GET /api/v1/campaigns/active") return ok(res, getActiveCampaign(data, token, Object.fromEntries(url.searchParams), runtimeContext));
       if (route === "POST /api/v1/campaigns/join") return ok(res, withIdempotency(data, req, () => joinCampaign(data, token, body, runtimeContext)));
-      if (route === "GET /api/v1/tasks/progress") return ok(res, getTaskProgress(data, token, Object.fromEntries(url.searchParams), runtimeContext));
-      if (route === "POST /api/v1/tasks/events") return ok(res, withIdempotency(data, req, () => recordUserTaskEvent(data, token, body, runtimeContext)));
+      if (route === "GET /api/v1/tasks/progress") {
+        const rootUserId = stableRootUserIdForToken(data, token, runtimeContext);
+        const activityTaskReadAdapter = requestContext.activityTaskReadAdapter
+          || runtimeContext.activityTaskReadAdapter
+          || createMemoryActivityTaskReadAdapter(data);
+        const activityTaskSourceFacts = await activityTaskReadAdapter.listByRootUser(rootUserId);
+        return ok(res, getTaskProgress(
+          data,
+          token,
+          Object.fromEntries(url.searchParams),
+          { ...runtimeContext, activityTaskSourceFacts, activityTaskSourceFactsLoaded: true }
+        ));
+      }
+      if (route === "POST /api/v1/tasks/events") {
+        let commandIdempotencyKey = "";
+        if (requestContext.commandRecovery) {
+          if (req.commandIdempotencyContext.actorId === "anonymous") {
+            throw createClientError(1003, "请先登录", 401);
+          }
+          commandIdempotencyKey = String(body.idempotencyKey || body.idempotency_key || "").trim();
+          if (!commandIdempotencyKey) {
+            throw createClientError(40001, "任务提交 idempotencyKey 必填", 400);
+          }
+          req.commandIdempotencyContext.executor = requestContext.commandRecovery;
+        }
+        const taskPayload = body.payload && typeof body.payload === "object" ? body.payload : {};
+        const activityAssignmentRequested = Boolean(
+          taskPayload.taskActivityAssignmentId
+          || taskPayload.task_activity_assignment_id
+          || taskPayload.taskDefinitionVersion
+          || taskPayload.task_definition_version
+        );
+        let activityTaskSourceFacts = [];
+        if (activityAssignmentRequested) {
+          const rootUserId = stableRootUserIdForToken(data, token, runtimeContext);
+          const activityTaskReadAdapter = requestContext.activityTaskReadAdapter
+            || runtimeContext.activityTaskReadAdapter
+            || createMemoryActivityTaskReadAdapter(data);
+          activityTaskSourceFacts = await activityTaskReadAdapter.listByRootUser(rootUserId);
+        }
+        const result = await withIdempotency(
+          data,
+          req,
+          () => recordUserTaskEvent(data, token, body, {
+            ...runtimeContext,
+            activityTaskSourceFacts,
+            activityTaskSourceFactsLoaded: activityAssignmentRequested,
+          }),
+          commandIdempotencyKey
+        );
+        // The outbox row is an obligation of the task fact, not of this HTTP attempt.
+        // Replays and domain duplicates therefore repair a missing historical row.
+        const taskEvent = result && result.data ? result.data.event : null;
+        if (taskEvent) {
+          try {
+            const envelope = buildTaskEventOutboxEnvelope(taskEvent, {
+              correlationId: requestCorrelationId(req),
+              producerVersion: runtimeMetadata.version,
+              releaseId: runtimeMetadata.releaseIdConfigured ? runtimeMetadata.releaseId : null,
+            });
+            const eventTransport = typeof requestContext.getEventTransport === "function"
+              ? requestContext.getEventTransport()
+              : requestContext.eventTransport;
+            if (eventTransport && typeof eventTransport.stageOutbox === "function") {
+              eventTransport.stageOutbox(envelope);
+            } else {
+              stageOutboxEnvelope(data, envelope);
+            }
+          } catch (error) {
+            throw atomicWriteFailure(error);
+          }
+        }
+        return ok(res, result);
+      }
       if (route === "GET /api/v1/notifications/checkin-reminder-template") return ok(res, getCheckinReminderTemplate(data, token, runtimeContext));
-      if (route === "POST /api/v1/notifications/subscriptions") return ok(res, withIdempotency(data, req, () => recordCheckinReminderSubscription(data, token, body, runtimeContext)));
-      if (route === "GET /api/v1/settlement/status") return ok(res, getSettlementStatus(data, token, Object.fromEntries(url.searchParams), runtimeContext));
-      if (route === "POST /api/v1/settlement/evaluate") return ok(res, withIdempotency(data, req, () => evaluateUserSettlement(data, token, body, runtimeContext)));
+      if (route === "POST /api/v1/notifications/subscriptions") {
+        return ok(res, await withIdempotency(
+          data,
+          req,
+          () => recordCheckinReminderSubscription(data, token, body, runtimeContext)
+        ));
+      }
+      if (route === "GET /api/v1/settlement/status") {
+        const query = Object.fromEntries(url.searchParams);
+        await loadUserSettlementSourceScope(requestContext, token, query);
+        return ok(res, getSettlementStatus(data, token, query, runtimeContext));
+      }
+      if (route === "POST /api/v1/settlement/evaluate") {
+        await loadUserSettlementSourceScope(requestContext, token, body);
+        return ok(res, withIdempotency(
+          data,
+          req,
+          () => evaluateUserSettlement(data, token, body, runtimeContext)
+        ));
+      }
       if (route === "GET /api/v1/products") return ok(res, listProducts(data, token, Object.fromEntries(url.searchParams), runtimeContext));
       if (method === "GET" && url.pathname.startsWith("/api/v1/products/") && url.pathname !== "/api/v1/products/jump") {
         return ok(res, getProduct(data, token, url.pathname.split("/").pop(), runtimeContext));
@@ -631,7 +1421,29 @@ function createApp(options = {}) {
       }
       if (route === "GET /api/v1/questionnaire") return ok(res, getQuestionnaire(data, token, url.searchParams.get("type")));
       if (route === "GET /api/v1/questionnaire/answers/status") return ok(res, getQuestionnaireAnswerStatus(data, token, Object.fromEntries(url.searchParams)));
-      if (route === "POST /api/v1/questionnaire/answers") return ok(res, withIdempotency(data, req, () => submitQuestionnaireAnswer(data, token, body, undefined, runtimeContext)));
+      if (route === "POST /api/v1/questionnaire/answers") {
+        const activityAssignmentRequested = Boolean(
+          body.taskActivityAssignmentId
+          || body.task_activity_assignment_id
+          || body.taskDefinitionVersion
+          || body.task_definition_version
+        );
+        let activityTaskSourceFacts = [];
+        if (activityAssignmentRequested) {
+          const rootUserId = stableRootUserIdForToken(data, token, runtimeContext);
+          const activityTaskReadAdapter = requestContext.activityTaskReadAdapter
+            || runtimeContext.activityTaskReadAdapter
+            || createMemoryActivityTaskReadAdapter(data);
+          activityTaskSourceFacts = await activityTaskReadAdapter.listByRootUser(rootUserId);
+        }
+        return ok(res, withIdempotency(data, req, () => submitQuestionnaireAnswer(
+          data,
+          token,
+          body,
+          undefined,
+          { ...runtimeContext, activityTaskSourceFacts, activityTaskSourceFactsLoaded: activityAssignmentRequested }
+        )));
+      }
       if (route === "GET /api/v1/questionnaire/status") return ok(res, getQuestionnaireStatus(data, token));
       if (route === "POST /api/v1/questionnaire/submit") return ok(res, withIdempotency(data, req, () => submitQuestionnaire(data, token, body, undefined, runtimeContext)));
       if (route === "POST /api/v1/refund/apply") return ok(res, withIdempotency(data, req, () => applyRefund(data, token)));
@@ -647,12 +1459,65 @@ function createApp(options = {}) {
       if (route === "POST /api/v1/event/track") return ok(res, trackEvent(data, token, body));
       if (route === "POST /api/v1/upload/image") return ok(res, uploadImage(data, token, body, runtimeContext));
       if (route === "POST /api/v1/jobs/daily-audit") return ok(res, runDailyAudit(data, body.date));
+      if (route === `POST ${V1_RUNTIME_CYCLE_ROUTE}`) {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
+        if (!runtimeContext.v1RuntimeControlPlane) {
+          throw createClientError(50351, "v1 runtime control plane unavailable", 503);
+        }
+        const request = normalizeV1RuntimeCycleBody(body);
+        if (request.execute) {
+          requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.RUNTIME_CYCLE_EXECUTE);
+        }
+        const rawHeaderRequestId = String(req.headers["x-request-id"] || "");
+        const headerRequestId = rawHeaderRequestId.trim();
+        if (headerRequestId && (headerRequestId !== rawHeaderRequestId
+          || headerRequestId.length > 128
+          || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(headerRequestId))) {
+          throw createClientError(40051, "v1 runtime cycle request id invalid", 400);
+        }
+        if (request.requestId && headerRequestId && request.requestId !== headerRequestId) {
+          throw createClientError(40051, "v1 runtime cycle request id mismatch", 400);
+        }
+        const requestId = headerRequestId || request.requestId;
+        if (request.execute && !requestId) {
+          throw createClientError(40051, "v1 runtime cycle request id required", 400);
+        }
+        // scheduleId is the durable cross-instance idempotency identity stored
+        // by the Control Plane. Execute correlation must be the same value so a
+        // caller cannot reuse one request id with multiple durable cycles.
+        if (request.execute && requestId !== request.schedule.scheduleId) {
+          throw createClientError(40051, "v1 runtime cycle request identity mismatch", 400);
+        }
+        let result;
+        try {
+          result = request.execute
+            ? await runtimeContext.v1RuntimeControlPlane.runScheduledCycle(request.schedule)
+            : await runtimeContext.v1RuntimeControlPlane.previewScheduledCycle(request.schedule);
+        } catch {
+          throw createClientError(50351, "v1 runtime cycle unavailable", 503);
+        }
+        return ok(res, {
+          code: 0,
+          message: "ok",
+          data: {
+            ...publicV1RuntimeCycleResult(
+              result,
+              !request.execute,
+              request.schedule.scheduleId
+            ),
+            requestId,
+          },
+        });
+      }
       if (route === "POST /api/v1/jobs/checkin-reminders") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
         const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
         const execute = !(body.dryRun === true || body.dry_run === true);
         if (execute && !requestId) throw Object.assign(new Error("checkin reminder job request_id 必填"), { code: 400 });
-        return ok(res, await withIdempotency(data, req, () => runDueCheckinReminders(data, {
+        // This command owns an external-send checkpoint and has its own durable
+        // grant/job/send-attempt idempotency. It must not be wrapped by the
+        // snapshot command recorder because the checkpoint commits mid-action.
+        return ok(res, await runDueCheckinReminders(data, {
           ...body,
           dryRun: !execute,
           operatorId: adminOperatorId(adminPrincipal, body),
@@ -663,7 +1528,7 @@ function createApp(options = {}) {
           requireTransactionalCheckpoint: execute,
           transactionCheckpoint: requestContext.transactionCheckpoint,
           transactionResume: requestContext.transactionResume,
-        }), requestId));
+        }));
       }
       if (route === "POST /api/v1/jobs/adapter-retry-due") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
@@ -793,10 +1658,32 @@ function createApp(options = {}) {
         data: adminPrincipalProfile(adminPrincipal),
       });
       if (route === "GET /api/v1/admin/dashboard") return ok(res, adminDashboard(data, runtimeContext));
+      if (route === "GET /api/v1/admin/activities") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
+        return ok(res, listAdminActivityDefinitions(data, Object.fromEntries(url.searchParams), runtimeContext));
+      }
+      if (route === "GET /api/v1/admin/activity-sessions") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
+        return ok(res, listAdminActivitySessions(data, Object.fromEntries(url.searchParams), runtimeContext));
+      }
+      if (route === "GET /api/v1/admin/activity-enrollments") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_ENROLLMENT_REVIEW);
+        return ok(res, listAdminActivityEnrollments(data, Object.fromEntries(url.searchParams), runtimeContext));
+      }
+      if (route === "GET /api/v1/admin/activity-enrollments/review-queue") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_ENROLLMENT_REVIEW);
+        return ok(res, listAdminActivityReviewQueue(data, Object.fromEntries(url.searchParams), runtimeContext));
+      }
       if (route === "GET /api/v1/admin/cloudbase-identity-probe") {
+        const trustedWechatIdentity = await resolveTrustedWechatIdentity({
+          adapter: runtimeContext.trustedWechatIdentityAdapter,
+          request: req,
+          env: runtimeContext.env,
+        });
         return ok(res, getCloudbaseIdentityProbe({
           headers: req.headers,
           appCode: url.searchParams.get("appCode") || url.searchParams.get("app_code") || "",
+          trustedWechatIdentity,
         }));
       }
       if (route === "GET /api/v1/admin/config-workbench") return ok(res, getAdminConfigWorkbench(data, runtimeContext));
@@ -837,7 +1724,9 @@ function createApp(options = {}) {
       if (route === "GET /api/v1/admin/lifecycle-settlement-jobs") {
         return ok(res, listAdminLifecycleSettlementJobs(data, Object.fromEntries(url.searchParams)));
       }
-      if (route === "GET /api/v1/admin/lifecycle-users") return ok(res, getAdminLifecycleWorkbench(data, Object.fromEntries(url.searchParams)));
+      if (route === "GET /api/v1/admin/lifecycle-users") {
+        return ok(res, getAdminLifecycleWorkbench(data, Object.fromEntries(url.searchParams), runtimeContext));
+      }
       if (route === "POST /api/v1/admin/lifecycle-users/settlement-batch-preview") {
         return ok(res, previewAdminLifecycleSettlementBatch(data, body, runtimeContext));
       }
@@ -1066,7 +1955,7 @@ function createApp(options = {}) {
       }
       if (route === "POST /api/v1/admin/orders/sync") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, withIdempotency(data, req, () => syncManualOrder(data, body)));
+        return ok(res, withIdempotency(data, req, () => syncManualOrder(data, body, runtimeContext)));
       }
       if (route === "POST /api/v1/admin/orders/fulfillment") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
@@ -1089,6 +1978,139 @@ function createApp(options = {}) {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
         return ok(res, withIdempotency(data, req, () => upsertCampaign(data, body)));
       }
+      if (route === "POST /api/v1/admin/activities/draft") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_CONTENT_WRITE);
+        const command = prepareActivityAdminCommandBody(req, adminPrincipal, body, "活动草稿", "ACTIVITY_DRAFT_UPSERT");
+        return ok(res, await withIdempotency(
+          data,
+          req,
+          () => upsertActivityDraft(data, command, runtimeContext),
+          command.idempotencyKey
+        ));
+      }
+      if (route === "POST /api/v1/admin/activities/submit-review") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_CONTENT_WRITE);
+        const command = prepareActivityAdminCommandBody(req, adminPrincipal, body, "活动提交审核", "ACTIVITY_SUBMIT_REVIEW");
+        return ok(res, await withIdempotency(
+          data,
+          req,
+          () => submitActivityForReview(data, command, runtimeContext),
+          command.idempotencyKey
+        ));
+      }
+      if (route === "POST /api/v1/admin/activities/request-changes") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_CONTENT_WRITE);
+        const command = prepareActivityAdminCommandBody(req, adminPrincipal, body, "活动审核退回", "ACTIVITY_REQUEST_CHANGES");
+        return ok(res, await withIdempotency(
+          data,
+          req,
+          () => requestActivityChanges(data, command, { ...runtimeContext, adminPrincipal }),
+          command.idempotencyKey
+        ));
+      }
+      if (route === "POST /api/v1/admin/activities/publish") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_PUBLISH);
+        const command = prepareActivityAdminCommandBody(req, adminPrincipal, body, "活动发布", "ACTIVITY_PUBLISH");
+        return ok(res, await withIdempotency(
+          data,
+          req,
+          () => publishActivity(data, command, { ...runtimeContext, adminPrincipal }),
+          command.idempotencyKey
+        ));
+      }
+      if (route === "POST /api/v1/admin/activities/unpublish") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_PUBLISH);
+        const command = prepareActivityAdminCommandBody(req, adminPrincipal, body, "活动下架", "ACTIVITY_UNPUBLISH");
+        return ok(res, await withIdempotency(
+          data,
+          req,
+          () => unpublishActivity(data, command, { ...runtimeContext, adminPrincipal }),
+          command.idempotencyKey
+        ));
+      }
+      if (route === "POST /api/v1/admin/activities/archive") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_PUBLISH);
+        const command = prepareActivityAdminCommandBody(req, adminPrincipal, body, "活动归档", "ACTIVITY_ARCHIVE");
+        return ok(res, await withIdempotency(
+          data,
+          req,
+          () => archiveActivity(data, command, { ...runtimeContext, adminPrincipal }),
+          command.idempotencyKey
+        ));
+      }
+      if (route === "POST /api/v1/admin/activity-sessions/create") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_SESSION_CONTROL);
+        const command = prepareActivityAdminCommandBody(req, adminPrincipal, body, "创建活动场次", "ACTIVITY_SESSION_CREATE");
+        return ok(res, await withIdempotency(
+          data,
+          req,
+          () => createActivitySession(data, command, runtimeContext),
+          command.idempotencyKey
+        ));
+      }
+      if (route === "POST /api/v1/admin/activity-sessions/state") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_SESSION_CONTROL);
+        const command = prepareActivityAdminCommandBody(req, adminPrincipal, body, "更新活动场次", "ACTIVITY_SESSION_STATE");
+        return ok(res, await withIdempotency(
+          data,
+          req,
+          () => updateActivitySessionState(data, command, runtimeContext),
+          command.idempotencyKey
+        ));
+      }
+      if (route === "POST /api/v1/admin/activity-sessions/cancel") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_SESSION_CONTROL);
+        const command = prepareActivityAdminCommandBody(req, adminPrincipal, body, "取消活动场次", "ACTIVITY_SESSION_CANCEL");
+        return ok(res, await withIdempotency(
+          data,
+          req,
+          () => cancelActivitySession(
+            data,
+            command,
+            activityTaskWriteContext(
+              req,
+              requestContext,
+              runtimeContext,
+              runtimeMetadata,
+              { adminPrincipal }
+            )
+          ),
+          command.idempotencyKey
+        ));
+      }
+      if (route === "POST /api/v1/admin/activity-enrollments/review") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_ENROLLMENT_REVIEW);
+        const command = prepareActivityAdminCommandBody(req, adminPrincipal, body, "审核活动报名", "ACTIVITY_ENROLLMENT_REVIEW");
+        return ok(res, await withIdempotency(
+          data,
+          req,
+          () => reviewActivityEnrollment(
+            data,
+            command,
+            activityTaskWriteContext(req, requestContext, runtimeContext, runtimeMetadata)
+          ),
+          command.idempotencyKey
+        ));
+      }
+      if (route === "POST /api/v1/jobs/activity-review-timeouts") {
+        if (!adminPrincipal.jobOnly) {
+          throw createClientError("ACTIVITY_JOB_PRINCIPAL_REQUIRED", "该任务只接受定时任务身份", 403);
+        }
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_ENROLLMENT_REVIEW);
+        const command = prepareActivityAdminCommandBody(
+          req,
+          adminPrincipal,
+          body,
+          "活动审核超时处理",
+          "ACTIVITY_REVIEW_TIMEOUTS"
+        );
+        return ok(res, await withIdempotency(
+          data,
+          req,
+          () => expireActivityEnrollmentReviews(data, command, runtimeContext),
+          command.idempotencyKey
+        ));
+      }
       if (route === "POST /api/v1/admin/task-definitions/upsert") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
         return ok(res, withIdempotency(data, req, () => upsertTaskDefinition(data, body)));
@@ -1101,11 +2123,18 @@ function createApp(options = {}) {
           requestId: req.headers["x-request-id"] || body.requestId || body.request_id || "",
         })));
       }
-      if (route === "POST /api/v1/admin/settlement/preview") return ok(res, previewAdminSettlement(data, body, runtimeContext));
-      if (route === "POST /api/v1/admin/settlement/batch-preview") return ok(res, previewAdminSettlementBatch(data, body, runtimeContext));
+      if (route === "POST /api/v1/admin/settlement/preview") {
+        await loadAdminSettlementSourceScopes(requestContext, body);
+        return ok(res, previewAdminSettlement(data, body, runtimeContext));
+      }
+      if (route === "POST /api/v1/admin/settlement/batch-preview") {
+        await loadAdminSettlementSourceScopes(requestContext, body);
+        return ok(res, previewAdminSettlementBatch(data, body, runtimeContext));
+      }
       if (route === "POST /api/v1/admin/settlement/batch-execute") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.SETTLEMENT_EXECUTE);
         const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
+        await loadAdminSettlementSourceScopes(requestContext, body);
         return ok(res, withIdempotency(data, req, () => executeAdminSettlementBatch(data, {
           ...body,
           operatorId: adminOperatorId(adminPrincipal, body),
@@ -1289,7 +2318,7 @@ function createApp(options = {}) {
       if (route === "POST /api/v1/admin/external-samples/preview") return ok(res, previewExternalSamples(data, body));
       if (route === "POST /api/v1/admin/external-samples/import") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, withIdempotency(data, req, () => importExternalSamples(data, body)));
+        return ok(res, withIdempotency(data, req, () => importExternalSamples(data, body, undefined, runtimeContext)));
       }
       if (route === "GET /api/v1/admin/imports") return ok(res, listImportBatches(data, Object.fromEntries(url.searchParams)));
       if (route === "POST /api/v1/admin/imports/preview") return ok(res, withIdempotency(data, req, () => previewImport(data, body)));
@@ -1307,7 +2336,13 @@ function createApp(options = {}) {
       if (method === "POST" && url.pathname.startsWith("/api/v1/admin/imports/") && url.pathname.endsWith("/confirm")) {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
         const batchId = url.pathname.split("/").at(-2);
-        return ok(res, withIdempotency(data, req, () => confirmImport(data, batchId, { ...body, operatorId: adminOperatorId(adminPrincipal, body) })));
+        return ok(res, withIdempotency(data, req, () => confirmImport(
+          data,
+          batchId,
+          { ...body, operatorId: adminOperatorId(adminPrincipal, body) },
+          undefined,
+          runtimeContext
+        )));
       }
       if (route === "POST /api/v1/admin/corrections/preview") return ok(res, previewCorrection(data, body));
       if (route === "POST /api/v1/admin/corrections/apply") {
@@ -1323,12 +2358,69 @@ function createApp(options = {}) {
         return ok(res, withIdempotency(data, req, () => upsertExternalStatusMapping(data, body)));
       }
       if (method === "POST" && url.pathname.startsWith("/api/v1/admin/tasks/") && url.pathname.endsWith("/complete")) {
+        requireAdminCommandCapability(adminPrincipal, ADMIN_COMMANDS.TASK_COMPLETE);
         const taskId = url.pathname.split("/").at(-2);
-        return ok(res, completeOperationTask(data, taskId, body));
+        const commandBody = prepareAdminCommandBody(req, adminPrincipal, body, "待办完成", ADMIN_COMMANDS.TASK_COMPLETE);
+        return ok(res, withIdempotency(data, req, () => completeOperationTask(data, taskId, commandBody), commandBody.requestId));
       }
       if (method === "POST" && url.pathname.startsWith("/api/v1/admin/tasks/") && url.pathname.endsWith("/resolve")) {
+        requireAdminCommandCapability(adminPrincipal, ADMIN_COMMANDS.TASK_RESOLVE);
         const taskId = url.pathname.split("/").at(-2);
-        return ok(res, resolveManualReview(data, taskId, body));
+        const commandBody = prepareAdminCommandBody(req, adminPrincipal, body, "人工待办处理", ADMIN_COMMANDS.TASK_RESOLVE);
+        return ok(res, withIdempotency(data, req, () => resolveManualReview(data, taskId, commandBody), commandBody.requestId));
+      }
+      if (method === "POST"
+        && url.pathname.startsWith("/api/v1/admin/settlement-source-invalidations/")
+        && url.pathname.endsWith("/resolve")) {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.REVIEW_RESOLVE);
+        const implementation = requestContext.settlementSourceInvalidationResolve;
+        if (!implementation || typeof implementation.resolve !== "function") {
+          throw createClientError(
+            "SETTLEMENT_SOURCE_RESOLUTION_CONFIGURATION_INVALID",
+            "结算来源失效专用处理 Interface 不可用",
+            503
+          );
+        }
+        const candidateId = url.pathname.split("/").at(-2);
+        const rawRequestId = req.headers["x-request-id"]
+          ?? body.requestId
+          ?? body.request_id
+          ?? "";
+        const requestId = typeof rawRequestId === "string"
+          ? rawRequestId.trim()
+          : rawRequestId;
+        const rawResolutionNote = body.resolutionNote
+          ?? body.resolution_note
+          ?? body.note
+          ?? body.reason
+          ?? "";
+        const resolutionNote = typeof rawResolutionNote === "string"
+          ? rawResolutionNote.trim()
+          : rawResolutionNote;
+        const rawPublicNote = body.publicNote ?? body.public_note ?? null;
+        const publicNote = rawPublicNote === null || rawPublicNote === ""
+          ? null
+          : typeof rawPublicNote === "string" ? rawPublicNote.trim() : rawPublicNote;
+        const rawRootUserId = body.rootUserId ?? body.root_user_id ?? "";
+        const rawCampaignId = body.campaignId ?? body.campaign_id ?? "";
+        const rawResolution = body.resolution ?? "";
+        const result = await implementation.resolve({
+          candidateId,
+          rootUserId: typeof rawRootUserId === "string"
+            ? rawRootUserId.trim()
+            : rawRootUserId,
+          campaignId: typeof rawCampaignId === "string"
+            ? rawCampaignId.trim()
+            : rawCampaignId,
+          requestId,
+          operatorId: adminOperatorId(adminPrincipal, body),
+          resolution: typeof rawResolution === "string"
+            ? rawResolution.trim().toUpperCase()
+            : rawResolution,
+          resolutionNote,
+          publicNote,
+        });
+        return ok(res, { code: 0, message: "ok", data: result });
       }
       if (route === "POST /api/v1/admin/manual-reviews/batch-resolve") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.REVIEW_RESOLVE);
@@ -1349,16 +2441,25 @@ function createApp(options = {}) {
         }));
       }
       if (method === "POST" && url.pathname.startsWith("/api/v1/admin/refunds/") && url.pathname.endsWith("/approve")) {
+        requireAdminCommandCapability(adminPrincipal, ADMIN_COMMANDS.REFUND_APPROVE);
         const refundId = url.pathname.split("/").at(-2);
-        return ok(res, approveRefund(data, refundId));
+        const commandBody = prepareAdminCommandBody(req, adminPrincipal, body, "退款审批", ADMIN_COMMANDS.REFUND_APPROVE);
+        return ok(res, withIdempotency(data, req, () => approveRefund(data, refundId, commandBody), commandBody.requestId));
       }
       if (method === "POST" && url.pathname.startsWith("/api/v1/admin/coupons/") && url.pathname.endsWith("/use")) {
+        requireAdminCommandCapability(adminPrincipal, ADMIN_COMMANDS.COUPON_USE);
         const couponId = url.pathname.split("/").at(-2);
-        return ok(res, markCouponUsed(data, couponId));
+        const commandBody = prepareAdminCommandBody(req, adminPrincipal, body, "优惠券核销", ADMIN_COMMANDS.COUPON_USE);
+        return ok(res, withIdempotency(data, req, () => markCouponUsed(data, couponId, commandBody), commandBody.requestId));
       }
 
       send(res, 404, { code: 404, message: "接口不存在", data: null });
     } catch (error) {
+      if (isAtomicWriteError(error)) throw error;
+      if (req.commandIdempotencyContext && req.commandIdempotencyContext.executor) {
+        const response = clientErrorResponse(error, requestCorrelationId(req));
+        return send(res, response.status, response.payload);
+      }
       send(res, error.status || 200, {
         code: error.code || 500,
         message: error.message || "服务端错误",
@@ -1372,7 +2473,10 @@ function createApp(options = {}) {
     try {
       await initialPersistPromise;
       const url = new URL(req.url, "http://localhost");
-      if (!url.pathname.startsWith("/api/") || (req.method || "GET") === "OPTIONS") {
+      const method = req.method || "GET";
+      const bypassSnapshotTransaction = method === "POST"
+        && url.pathname === V1_RUNTIME_CYCLE_ROUTE;
+      if (!url.pathname.startsWith("/api/") || method === "OPTIONS" || bypassSnapshotTransaction) {
         await handleRequest(req, realResponse);
         return;
       }
@@ -1380,6 +2484,14 @@ function createApp(options = {}) {
       const execute = (_storeData, transactionControl = {}) => handleRequest(req, bufferedResponse, {
         transactionCheckpoint: transactionControl.checkpoint,
         transactionResume: transactionControl.resume,
+        commandRecovery: transactionControl.commandRecovery,
+        activityTaskReadAdapter: transactionControl.activityTaskReadAdapter,
+        settlementSourceInvalidationRead:
+          transactionControl.settlementSourceInvalidationRead,
+        settlementSourceInvalidationResolve:
+          transactionControl.settlementSourceInvalidationResolve,
+        getEventTransport: () => transactionControl.eventTransport,
+        eventTransport: transactionControl.eventTransport,
       });
       if (typeof storeAdapter.runRequest === "function") {
         await storeAdapter.runRequest({
@@ -1400,10 +2512,14 @@ function createApp(options = {}) {
         try {
           await Promise.resolve(storeAdapter.importSnapshot(rollbackSnapshot));
         } catch (rollbackError) {
-          console.error("Store rollback failed:", rollbackError.message);
+          console.error("Store rollback failed: STORE_ROLLBACK_FAILED");
         }
       }
-      console.error("Store transaction failed:", error.message);
+      const storeErrorCode = String(error && error.code || "");
+      console.error(
+        "Store transaction failed:",
+        /^[A-Z0-9_-]{1,64}$/.test(storeErrorCode) ? storeErrorCode : "STORE_TRANSACTION_FAILED"
+      );
       if (!realResponse.headersSent) {
         send(realResponse, 503, { code: 50301, message: "数据保存失败，请稍后重试", data: null });
       } else {
@@ -1414,6 +2530,7 @@ function createApp(options = {}) {
 
   server.store = data;
   server.storeAdapter = storeAdapter;
+  server.commandResultCodec = commandResultCodec;
   server.readyPromise = initialPersistPromise;
   return server;
 }

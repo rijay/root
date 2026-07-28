@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "myroot.local-mysql-execution-result.v1",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "attempt": 18,
+  "authorizationPacketAttempt": 19,
+  "packetSha256": "1c6c614f57f10f065e9e47c4ae4e301a6287ea8d2f57164c8fd65c318b88878d",
+  "authorizationNonce": "196d4644-dc3a-4c86-8c41-e3c6e1195424",
+  "status": "FAIL_TWO_KEY_INVENTORY_CHECK_DIGESTS_IDENTIFIED_CLEANED",
+  "failureStage": "FINAL_REPOSITORY_VERIFY",
+  "provedBeforeFailure": {
+    "realEngineTestsPassed": 13,
+    "realEngineTestsFailed": 0,
+    "realEngineTestsSkipped": 0,
+    "migrationSetDigest": "c385ef2952d272a961420a5c3df5886cab7a36325cdf7729a13484744d561cb4",
+    "generatedTableCount": 56,
+    "schemaWriteMatches": true,
+    "schemaByteEqualityMatches": true,
+    "schemaProvenanceMatches": true,
+    "schemaSnapshotSha256": "895aad618b6b0c34d06ae19684ffb3d4a4beda8bf994e212380727cd6d44819d"
+  },
+  "keyInventoryCheckAttestation": {
+    "constraintCount": 9,
+    "matchingConstraintCount": 7,
+    "mismatches": [
+      {
+        "constraintName": "chk_notification_send_attempt_accepted_receipt",
+        "expectedDigest": "ec5c8c72f44a0e9186331ef4ef4cf0d631a4c021896f7f5a4ebe20cac2b8ee37",
+        "actualDigest": "064bb5a4f71106a4b117c5ad1f1f4abcc5d4563ed716a204fc54802e79b2bf75"
+      },
+      {
+        "constraintName": "chk_notification_send_attempt_receipt_digest",
+        "expectedDigest": "353a19a0236dc233933efec344a3be9ef2775d85820d4641e587b1a3cc21adc9",
+        "actualDigest": "1f8b855ebd0cc7dc857f907d1fa7ffe19a725f53bb23eadad87baa3672b4a7c7"
+      }
+    ],
+    "checkClausesRetained": false,
+    "credentialsRetained": false
+  },
+  "observedFailure": {
+    "finalVerificationFailureLabels": ["Backend tests"],
+    "termination": {"kind": "EXIT", "exitCode": 1, "signal": null, "errorCode": null},
+    "testSummary": {
+      "tests": 1368,
+      "passed": 1325,
+      "failed": 34,
+      "cancelled": 0,
+      "skipped": 9,
+      "todo": 0
+    },
+    "primaryStableErrorCode": "KEY_INVENTORY_SCHEMA_DRIFT"
+  },
+  "cleanup": {
+    "containerRemoved": true,
+    "ownedContainersObservedAfterRun": 0,
+    "temporaryListenerRemoved": true,
+    "mutableOutputsRestored": true,
+    "nonceConsumed": true
+  },
+  "scope": {
+    "candidateConnectionUsed": false,
+    "productionConnectionUsed": false,
+    "deploymentPerformed": false
+  },
+  "formalGateEffect": {
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "formalLaunchAuthorized": false
+  }
+}

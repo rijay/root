@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const { createYouzanIdentityImplementation } = require("../src/youzanIdentityResolver");
 const { candidateIdentities, reconcileYouzanIdentities } = require("../src/youzanIdentityReconciliation");
+const { stampVerifiedWechatUnionId } = require("../src/wechatIdentityAuthority");
 const {
   buildYouzanIdentityReconciliationReport,
   defaultRequestId,
@@ -18,6 +19,8 @@ function readyEnv(overrides = {}) {
     YOUZAN_USER_QUERY_URL: "https://open.youzanyun.com/api/youzan.users.info.query/1.0.1",
     YOUZAN_USER_QUERY_ACCESS_TOKEN: "token-must-not-leak",
     ROOT_YOUZAN_IDENTITY_RECONCILE_ENABLED: "true",
+    ROOT_COMMAND_REQUEST_DIGEST_KEY: "youzan-unionid-authority-test-key-with-strong-entropy-2026",
+    ROOT_COMMAND_REQUEST_DIGEST_KEY_ID: "youzan-unionid-authority-v1",
     ...overrides,
   };
 }
@@ -26,13 +29,13 @@ function candidateData() {
   return {
     users: [{ user_id: "usr_root_1", root_user_id: "root_1", phone: "13800000000" }],
     rootUsers: [{ root_user_id: "root_1" }],
-    wechatIdentities: [{
+    wechatIdentities: [stampVerifiedWechatUnionId({
       wechat_identity_id: "wxi_1",
       root_user_id: "root_1",
       app_code: "MYROOT",
       openid: "openid-private",
       unionid: "union-private-001",
-    }],
+    }, { source: "CLOUDBASE", verifiedAt: "2026-07-11T00:00:00.000Z" }, { env: readyEnv() })],
     youzanCustomers: [],
     youzanIdentityReconciliations: [],
     youzanOrders: [],
@@ -91,7 +94,7 @@ test("Youzan identity reconciliation defaults to dry-run without external calls 
   const data = candidateData();
   let called = false;
   const result = await reconcileYouzanIdentities(data, {}, {
-    env: {},
+    env: readyEnv({ ROOT_YOUZAN_IDENTITY_RECONCILE_ENABLED: "false" }),
     identityImplementation: async () => {
       called = true;
       return { status: "RESOLVED", identities: [] };
@@ -104,6 +107,68 @@ test("Youzan identity reconciliation defaults to dry-run without external calls 
   assert.equal(called, false);
   assert.deepEqual(data.youzanIdentityReconciliations, []);
   assert.deepEqual(data.auditLogs, []);
+});
+
+test("historical UNVERIFIED UnionID cannot enter reconciliation or bind customers and orders", async () => {
+  const data = candidateData();
+  Object.assign(data.wechatIdentities[0], {
+    unionid_status: "PENDING",
+    unionid_trust_status: "UNVERIFIED",
+    unionid_provenance_source: "",
+    unionid_verified_at: "",
+    unionid_provenance_canonical_version: "",
+    unionid_provenance_digest: "",
+    unionid_provenance_digest_scheme: "",
+    unionid_provenance_key_id: "",
+  });
+  data.youzanOrders.push({
+    order_id: "ord_historical_unverified",
+    user_id: "",
+    youzan_order_no: "YZ-HISTORICAL-UNVERIFIED",
+    youzan_yz_uid: "yz_historical_unverified",
+    order_status: "PAID",
+    delivery_status: "SHIPPED",
+  });
+  let called = false;
+
+  const result = await reconcileYouzanIdentities(data, { execute: true }, {
+    env: readyEnv(),
+    identityImplementation: async () => {
+      called = true;
+      return { status: "RESOLVED", identities: [{ youzanYzUid: "yz_historical_unverified" }] };
+    },
+  });
+
+  assert.equal(result.candidateCount, 0);
+  assert.equal(result.executedCount, 0);
+  assert.equal(called, false);
+  assert.equal(data.youzanCustomers.length, 0);
+  assert.equal(data.youzanOrders[0].user_id, "");
+});
+
+test("tampered and unknown-key UnionID provenance cannot enter reconciliation", async () => {
+  const tampered = candidateData();
+  tampered.wechatIdentities[0].unionid = "unionid-tampered-after-stamp";
+  const unknownKey = candidateData();
+  const wrongEnv = readyEnv({
+    ROOT_COMMAND_REQUEST_DIGEST_KEY: "youzan-unionid-authority-other-key-with-strong-entropy-2026",
+    ROOT_COMMAND_REQUEST_DIGEST_KEY_ID: "youzan-unionid-authority-other-v2",
+  });
+  let called = false;
+
+  for (const [data, env] of [[tampered, readyEnv()], [unknownKey, wrongEnv]]) {
+    const result = await reconcileYouzanIdentities(data, { execute: true }, {
+      env,
+      identityImplementation: async () => {
+        called = true;
+        return { status: "RESOLVED", identities: [{ youzanYzUid: "must_not_link" }] };
+      },
+    });
+    assert.equal(result.candidateCount, 0);
+    assert.equal(result.executedCount, 0);
+    assert.equal(data.youzanCustomers.length, 0);
+  }
+  assert.equal(called, false);
 });
 
 test("Youzan identity reconciliation runner is dry-run by default and generates stable execute request id", () => {
@@ -184,21 +249,21 @@ test("Youzan identity reconciliation links unbound orders and preserves conflict
   assert.equal(auditJson.includes("13800000000"), false);
   assert.equal(auditJson.includes("token-must-not-leak"), false);
 
-  assert.equal(candidateIdentities(data, { now: "2026-07-18T11:59:00+08:00" }).length, 0);
-  assert.equal(candidateIdentities(data, { now: "2026-07-18T12:01:00+08:00" }).length, 1);
+  assert.equal(candidateIdentities(data, { now: "2026-07-18T11:59:00+08:00", env: readyEnv() }).length, 0);
+  assert.equal(candidateIdentities(data, { now: "2026-07-18T12:01:00+08:00", env: readyEnv() }).length, 1);
 });
 
 test("Youzan identity reconciliation quarantines duplicate Root ownership before external lookup", async () => {
   const data = candidateData();
   data.users.push({ user_id: "usr_root_2", root_user_id: "root_2" });
   data.rootUsers.push({ root_user_id: "root_2" });
-  data.wechatIdentities.push({
+  data.wechatIdentities.push(stampVerifiedWechatUnionId({
     wechat_identity_id: "wxi_2",
     root_user_id: "root_2",
     app_code: "MYROOT",
     openid: "openid-private-2",
     unionid: "union-private-001",
-  });
+  }, { source: "CLOUDBASE", verifiedAt: "2026-07-11T00:00:00.000Z" }, { env: readyEnv() }));
   data.youzanOrders.push({
     order_id: "ord_duplicate_identity",
     user_id: "",
@@ -231,10 +296,10 @@ test("Youzan identity reconciliation quarantines duplicate Root ownership before
   assert.equal(data.youzanIdentityReconciliations.length, 2);
   assert.ok(data.youzanIdentityReconciliations.every((item) => item.error_code === "DUPLICATE_ROOT_UNIONID"));
   assert.equal(data.operationTasks.filter((item) => item.task_type === "YOUZAN_IDENTITY_REVIEW_REQUIRED").length, 1);
-  assert.equal(candidateIdentities(data, { now: "2026-07-12T14:00:00+08:00" }).length, 0);
+  assert.equal(candidateIdentities(data, { now: "2026-07-12T14:00:00+08:00", env: readyEnv() }).length, 0);
 
   data.wechatIdentities = data.wechatIdentities.filter((item) => item.root_user_id !== "root_2");
-  assert.equal(candidateIdentities(data, { now: "2026-07-11T13:01:00+08:00" }).length, 1);
+  assert.equal(candidateIdentities(data, { now: "2026-07-11T13:01:00+08:00", env: readyEnv() }).length, 1);
 
   const recovered = await reconcileYouzanIdentities(data, {
     execute: true,

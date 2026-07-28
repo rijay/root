@@ -86,6 +86,7 @@ async function recordSubscription(template, rawResult, options = {}) {
       templateId: template.templateId,
       templateVersion: template.version,
       grantRequestId,
+      decidedAt: options.decidedAt || new Date().toISOString(),
       result,
       subscribed: result === "accept",
       trigger: options.trigger || "CAMPAIGN_JOIN",

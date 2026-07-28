@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "myroot.local-mysql-preparation-verification.v9",
+  "observedAt": "2026-07-20T00:18:01+08:00",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "status": "R9_PREPARED_NOT_AUTHORIZED_LOCAL_CONTRACTS_PASS_FORMAL_GATES_OPEN",
+  "authorizationPacket": {
+    "path": "docs/evidence/v1.0.0/mysql_001_065_local_authorization_packet_2026-07-20_r9.json",
+    "sha256": "2dc3d74eb33af4e641eb09e935cddf9c6e2035ac1c7b7d84c23c1007c8e797db",
+    "companionPath": "docs/evidence/v1.0.0/mysql_001_065_local_authorization_packet_2026-07-20_r9.md",
+    "companionSha256": "cac1c30d863b4e791fef921f7d2aa6800f8979af8bef5535ac8213bb3189dc75",
+    "singleUseNonce": "7f2aca54-87ea-4c48-bf8c-096dcbbcdd4a",
+    "authorized": false,
+    "executed": false,
+    "nonceConsumed": false
+  },
+  "attempt8Evidence": {
+    "path": "docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-20_attempt8.json",
+    "sha256": "66d952d86a96db218945c93c37749eeae5362714b7fb281e1c210bcb6b3cd75e",
+    "result": "12_PASS_1_FAIL_0_SKIP_CLEANED"
+  },
+  "correction": {
+    "classification": "TEST_FIXTURE_AUTHORITY_VERSION_DRIFT",
+    "canonicalAuthorityVersionImportedFromRuntimeModule": true,
+    "migration001To065Changed": false,
+    "targetedTests": {
+      "tests": 88,
+      "passed": 87,
+      "failed": 0,
+      "skipped": 1,
+      "skipReason": "real MySQL branch intentionally disabled outside an authorized run"
+    }
+  },
+  "localVerification": {
+    "backend": {
+      "tests": 1291,
+      "passed": 1282,
+      "failed": 0,
+      "skipped": 9,
+      "status": "PASS_WITH_REAL_ENGINE_SKIPS"
+    },
+    "foundation": {
+      "command": "npm run v1:foundation:check",
+      "status": "PASS"
+    },
+    "runnerAndPacketContracts": {
+      "tests": 28,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0
+    },
+    "unauthorizedGuard": {
+      "status": "PASS",
+      "failedBeforeDocker": true,
+      "ownedContainerResidual": 0,
+      "r9NonceConsumed": false
+    }
+  },
+  "formalGateEffect": {
+    "localMysqlEngineProofClosed": false,
+    "localSchemaSnapshotProvenanceClosed": false,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "formalLaunchAuthorized": false
+  }
+}

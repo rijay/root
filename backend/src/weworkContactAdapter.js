@@ -59,7 +59,7 @@ function valueFor(record, fieldMap, field, fallbackPaths) {
 
 function mapWeworkContact(record, fieldMap) {
   return {
-    userId: valueFor(record, fieldMap, "userId", ["userId", "user_id", "unionid", "openid", "external_contact.unionid"]),
+    userId: valueFor(record, fieldMap, "userId", ["userId", "user_id"]),
     receiverPhone: valueFor(record, fieldMap, "receiverPhone", ["receiverPhone", "receiver_phone", "phone", "mobile", "remark_mobiles.0", "phones.0", "customer.mobile", "profile.mobile", "follow_info.remark_mobiles.0"]),
     externalContactId: valueFor(record, fieldMap, "externalContactId", ["externalContactId", "external_contact_id", "external_userid", "external_user_id", "userid", "id", "external_contact.external_userid"]),
     remarkName: valueFor(record, fieldMap, "remarkName", ["remarkName", "remark_name", "remark", "name", "nickname", "customer.name", "profile.name", "follow_info.remark", "external_contact.name"]),

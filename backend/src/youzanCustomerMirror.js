@@ -1,6 +1,10 @@
 const { nowISO } = require("./dates");
 const { normalizePhone, recordLifecycleEvent } = require("./identity");
 const { externalPayloadFieldPaths } = require("./externalEvidenceSanitizer");
+const {
+  VERIFIED_UNIONID_RESOLUTION,
+  resolveVerifiedWechatUnionIdOwnership,
+} = require("./wechatUnionIdAuthority");
 
 function ensureList(data, key) {
   if (!Array.isArray(data[key])) data[key] = [];
@@ -35,14 +39,14 @@ function customerUnionId(input = {}) {
   return text(input.unionid || input.unionId || input.union_id || input.buyerUnionId || input.buyer_unionid);
 }
 
-function rootUserByUnionId(data, unionid) {
-  const value = text(unionid);
-  if (!value) return null;
-  const identity = ensureList(data, "wechatIdentities").find((item) => item.unionid === value);
-  if (identity) return ensureList(data, "rootUsers").find((item) => item.root_user_id === identity.root_user_id) || null;
-  const legacyUser = ensureList(data, "users").find((item) => item.unionid === value);
-  if (!legacyUser) return null;
-  return ensureList(data, "rootUsers").find((item) => item.root_user_id === (legacyUser.root_user_id || legacyUser.user_id)) || null;
+function rootUserByUnionId(data, unionid, options = {}) {
+  const ownership = resolveVerifiedWechatUnionIdOwnership(
+    ensureList(data, "wechatIdentities"),
+    unionid,
+    { env: options.env || process.env }
+  );
+  if (ownership.status !== VERIFIED_UNIONID_RESOLUTION.VERIFIED) return null;
+  return ensureList(data, "rootUsers").find((item) => item.root_user_id === ownership.rootUserId) || null;
 }
 
 function rootUserByPhone(data, phone) {
@@ -54,10 +58,12 @@ function rootUserByPhone(data, phone) {
   return ensureList(data, "rootUsers").find((item) => item.root_user_id === rootUserId) || null;
 }
 
-function rootUserByInput(data, input = {}) {
+function rootUserByInput(data, input = {}, options = {}) {
   const explicit = text(input.rootUserId || input.root_user_id || input.userId || input.user_id);
   if (explicit) return ensureList(data, "rootUsers").find((item) => item.root_user_id === explicit) || null;
-  return rootUserByUnionId(data, customerUnionId(input)) || rootUserByPhone(data, input.phone || input.receiverPhone || input.receiver_phone);
+  const unionid = customerUnionId(input);
+  if (unionid) return rootUserByUnionId(data, unionid, options);
+  return rootUserByPhone(data, input.phone || input.receiverPhone || input.receiver_phone);
 }
 
 function orderSummaryForCustomer(data, customer = {}) {
@@ -123,7 +129,7 @@ function upsertYouzanCustomer(data, input = {}, context = {}) {
   let customer = customers.find((item) => item.youzan_yz_uid === yzUid);
   const unionid = customerUnionId(input);
   const phone = normalizePhone(input.phone || input.receiverPhone || input.receiver_phone || input.buyerPhone || input.buyer_phone);
-  const matchedRootUser = rootUserByInput(data, { ...input, unionid, phone });
+  const matchedRootUser = rootUserByInput(data, { ...input, unionid, phone }, context);
   if (!customer) {
     customer = {
       youzan_yz_uid: yzUid,

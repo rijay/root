@@ -19,7 +19,13 @@ const {
   validateCloudbaseJobManifest,
 } = require("../backend/scripts/cloudbase-job-manifest");
 const { buildProductionEnvMatrix } = require("../backend/src/productionEnvMatrix");
+const { inspectCommittedSnapshotProvenance } = require("../backend/src/mysqlSchemaSnapshot");
 const { version: candidateVersion } = require("../backend/package.json");
+const { JOBS: DISPATCHER_JOBS } = require("../cloudfunctions/myroot-job-dispatcher");
+const {
+  ROUTE: V1_RUNTIME_SCHEDULER_ROUTE,
+  TRIGGER_NAME: V1_RUNTIME_TRIGGER_NAME,
+} = require("../cloudfunctions/myroot-v1-runtime-scheduler");
 
 const projectRoot = path.resolve(__dirname, "..");
 const adminDir = path.join(projectRoot, "admin");
@@ -52,6 +58,10 @@ function runCommand(label, command, args, options = {}) {
     command: [command, ...args].join(" "),
     status: result.status === 0 ? "PASS" : "FAIL",
     code: result.status,
+    signal: result.signal || null,
+    errorCode: result.error && typeof result.error.code === "string"
+      ? result.error.code
+      : null,
     durationMs: Date.now() - startedAt,
     stdout: result.stdout || "",
     stderr: result.stderr || "",
@@ -97,6 +107,7 @@ function releaseVersionAlignmentCheck() {
     "miniprogram/package.json",
     "admin/package.json",
     "cloudfunctions/myroot-job-dispatcher/package.json",
+    "cloudfunctions/myroot-v1-runtime-scheduler/package.json",
   ];
   const lockFiles = [
     "backend/package-lock.json",
@@ -167,6 +178,39 @@ function migrationChecksumManifestCheck() {
     checks,
     failures,
   };
+}
+
+function migrationSchemaSnapshotProvenanceCheck() {
+  const startedAt = Date.now();
+  try {
+    const inspection = inspectCommittedSnapshotProvenance();
+    return {
+      label: "Generated MySQL schema snapshot provenance",
+      command: "compare backend/db/schema.sql provenance with ordered migration set",
+      status: inspection.matches ? "PASS" : "FAIL",
+      code: inspection.matches ? 0 : 1,
+      durationMs: Date.now() - startedAt,
+      checks: [
+        { id: "generated_snapshot", status: inspection.format ? "PASS" : "FAIL" },
+        {
+          id: "migration_set_digest",
+          status: inspection.migrationSetDigest === inspection.expectedMigrationSetDigest ? "PASS" : "FAIL",
+        },
+        { id: "schema_body_digest", status: inspection.bodyDigest === inspection.actualBodyDigest ? "PASS" : "FAIL" },
+        { id: "table_count", status: inspection.tableCount === inspection.expectedTableCount ? "PASS" : "FAIL" },
+      ],
+      failures: inspection.matches ? [] : [inspection],
+    };
+  } catch (error) {
+    return {
+      label: "Generated MySQL schema snapshot provenance",
+      command: "compare backend/db/schema.sql provenance with ordered migration set",
+      status: "FAIL",
+      code: 1,
+      durationMs: Date.now() - startedAt,
+      failures: [{ code: error.code || "ERROR", message: error.message }],
+    };
+  }
 }
 
 function miniprogramReleaseManifestCheck() {
@@ -288,6 +332,78 @@ function cloudbaseConfigSecretCheck() {
   };
 }
 
+const EXPECTED_CLOUDBASE_TRIGGER_CONTRACTS = Object.freeze([
+  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "adapter_retry_due", type: "timer", cron: "0 */10 * * * * *" },
+  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "operational_alerts", type: "timer", cron: "0 */30 * * * * *" },
+  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "checkin_reminders", type: "timer", cron: "0 */10 * * * * *" },
+  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "wework_touch_due", type: "timer", cron: "0 */10 * * * * *" },
+  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "lifecycle_settlement_due", type: "timer", cron: "0 */15 * * * * *" },
+  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "lifecycle_settlement_cleanup", type: "timer", cron: "0 5 * * * * *" },
+  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "lifecycle_users_export", type: "timer", cron: "0 30 9 * * * *" },
+  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "lifecycle_user_exports_delivery_retry", type: "timer", cron: "0 */20 * * * * *" },
+  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "lifecycle_user_exports_cleanup", type: "timer", cron: "0 45 3 * * * *" },
+  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "youzan_identity_reconcile", type: "timer", cron: "0 25 * * * * *" },
+  { functionName: "myroot-health-retention", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "health_data_retention_cleanup", type: "timer", cron: "0 15 4 * * * *" },
+  { functionName: "myroot-v1-runtime-scheduler", sourceDir: "cloudfunctions/myroot-v1-runtime-scheduler", triggerName: "v1_runtime_cycle", type: "timer", cron: "0 * * * * * *" },
+]);
+
+function collectCloudbaseTriggerContracts(functions) {
+  return functions.flatMap((fn) => (
+    Array.isArray(fn.triggers) ? fn.triggers : []
+  ).map((trigger) => ({
+    functionName: fn.name,
+    sourceDir: fn.dir,
+    triggerName: trigger.name,
+    type: trigger.type,
+    cron: trigger.config,
+  })));
+}
+
+function sortCloudbaseTriggerContracts(contracts) {
+  return [...contracts].sort((left, right) => (
+    `${left.functionName}\u0000${left.triggerName}`.localeCompare(`${right.functionName}\u0000${right.triggerName}`)
+  ));
+}
+
+function cloudbaseTriggerContractsMatch(functions) {
+  const actual = sortCloudbaseTriggerContracts(collectCloudbaseTriggerContracts(functions));
+  const expected = sortCloudbaseTriggerContracts(EXPECTED_CLOUDBASE_TRIGGER_CONTRACTS);
+  return JSON.stringify(actual) === JSON.stringify(expected);
+}
+
+function cloudbaseTriggerContractMutationSelfCheck(functions) {
+  if (!cloudbaseTriggerContractsMatch(functions)) return false;
+  const mutate = (mutation) => {
+    const candidate = JSON.parse(JSON.stringify(functions));
+    mutation(candidate);
+    return cloudbaseTriggerContractsMatch(candidate) === false;
+  };
+  const getTrigger = (candidate, functionName, triggerName) => candidate
+    .find((fn) => fn.name === functionName)
+    .triggers.find((trigger) => trigger.name === triggerName);
+  return [
+    mutate((candidate) => {
+      getTrigger(candidate, "myroot-job-dispatcher", "adapter_retry_due").config = "* * * * * * *";
+    }),
+    mutate((candidate) => {
+      const alerts = getTrigger(candidate, "myroot-job-dispatcher", "operational_alerts");
+      const settlement = getTrigger(candidate, "myroot-job-dispatcher", "lifecycle_settlement_due");
+      [alerts.config, settlement.config] = [settlement.config, alerts.config];
+    }),
+    mutate((candidate) => {
+      getTrigger(candidate, "myroot-job-dispatcher", "checkin_reminders").type = "http";
+    }),
+    mutate((candidate) => {
+      candidate.find((fn) => fn.name === "myroot-health-retention").dir = "cloudfunctions/myroot-health-retention";
+    }),
+    mutate((candidate) => {
+      const runtime = candidate.find((fn) => fn.name === "myroot-v1-runtime-scheduler");
+      const dispatcher = candidate.find((fn) => fn.name === "myroot-job-dispatcher");
+      dispatcher.triggers.push(runtime.triggers.pop());
+    }),
+  ].every(Boolean);
+}
+
 function cloudbaseTriggerTopologyCheck() {
   const startedAt = Date.now();
   const configPath = path.join(projectRoot, "cloudbaserc.json");
@@ -295,43 +411,92 @@ function cloudbaseTriggerTopologyCheck() {
   const functions = Array.isArray(config.functions) ? config.functions : [];
   const primary = functions.find((item) => item.name === "myroot-job-dispatcher");
   const retention = functions.find((item) => item.name === "myroot-health-retention");
+  const runtimeScheduler = functions.find((item) => item.name === "myroot-v1-runtime-scheduler");
   const triggerGroups = functions.map((item) => ({
     functionName: item.name,
     triggers: Array.isArray(item.triggers) ? item.triggers : [],
   }));
   const triggerNames = triggerGroups.flatMap((item) => item.triggers.map((trigger) => trigger.name));
   const uniqueTriggerNames = new Set(triggerNames);
-  const expectedTriggerNames = [
-    "adapter_retry_due",
-    "operational_alerts",
-    "checkin_reminders",
-    "wework_touch_due",
-    "lifecycle_settlement_due",
-    "lifecycle_settlement_cleanup",
-    "lifecycle_users_export",
-    "lifecycle_user_exports_delivery_retry",
-    "lifecycle_user_exports_cleanup",
-    "health_data_retention_cleanup",
-    "youzan_identity_reconcile",
+  const expectedTriggerNames = EXPECTED_CLOUDBASE_TRIGGER_CONTRACTS.map((contract) => contract.triggerName);
+  const actualTriggerContracts = collectCloudbaseTriggerContracts(functions);
+  const triggerContractChecks = EXPECTED_CLOUDBASE_TRIGGER_CONTRACTS.map((expected) => ({
+    id: `trigger_contract:${expected.functionName}:${expected.triggerName}`,
+    status: actualTriggerContracts.filter((actual) => (
+      actual.functionName === expected.functionName &&
+      actual.sourceDir === expected.sourceDir &&
+      actual.triggerName === expected.triggerName &&
+      actual.type === expected.type &&
+      actual.cron === expected.cron
+    )).length === 1 ? "PASS" : "FAIL",
+  }));
+  const manifestJobIds = buildCloudbaseJobManifest({
+    baseUrl: "https://runtime.example.test",
+  }).jobs.map((job) => job.id).sort();
+  const configuredFunctionContracts = [
+    [primary, "cloudfunctions/myroot-job-dispatcher", 10],
+    [retention, "cloudfunctions/myroot-job-dispatcher", 1],
+    [runtimeScheduler, "cloudfunctions/myroot-v1-runtime-scheduler", 1],
   ];
   const checks = [
     {
-      id: "two_function_topology",
-      status: primary && retention ? "PASS" : "FAIL",
+      id: "three_function_topology",
+      status: functions.length === 3 && primary && retention && runtimeScheduler ? "PASS" : "FAIL",
     },
     {
       id: "per_function_trigger_limit",
       status: triggerGroups.every((item) => item.triggers.length <= 10) ? "PASS" : "FAIL",
     },
     {
-      id: "eleven_unique_triggers",
-      status: triggerNames.length === 11 && uniqueTriggerNames.size === 11 &&
+      id: "function_runtime_and_handler_contracts",
+      status: configuredFunctionContracts.every(([fn, dir, triggerCount]) => (
+        fn && fn.dir === dir && fn.runtime === "Nodejs18.15" && fn.handler === "index.main" &&
+        fn.timeout === 30 && Array.isArray(fn.triggers) && fn.triggers.length === triggerCount
+      )) ? "PASS" : "FAIL",
+    },
+    {
+      id: "all_triggers_are_seven_field_timers",
+      status: triggerGroups.every((item) => item.triggers.every((trigger) => (
+        trigger.type === "timer" && String(trigger.config || "").trim().split(/\s+/).length === 7
+      ))) ? "PASS" : "FAIL",
+    },
+    {
+      id: "twelve_unique_triggers",
+      status: triggerNames.length === 12 && uniqueTriggerNames.size === 12 &&
         expectedTriggerNames.every((name) => uniqueTriggerNames.has(name)) ? "PASS" : "FAIL",
+    },
+    ...triggerContractChecks,
+    {
+      id: "exact_trigger_contract_set",
+      status: cloudbaseTriggerContractsMatch(functions) ? "PASS" : "FAIL",
+    },
+    {
+      id: "trigger_contract_mutation_self_check",
+      status: cloudbaseTriggerContractMutationSelfCheck(functions) ? "PASS" : "FAIL",
     },
     {
       id: "health_retention_isolated",
       status: retention && retention.triggers.length === 1 &&
         retention.triggers[0].name === "health_data_retention_cleanup" ? "PASS" : "FAIL",
+    },
+    {
+      id: "v1_runtime_timer_isolated",
+      status: runtimeScheduler && runtimeScheduler.dir === "cloudfunctions/myroot-v1-runtime-scheduler" &&
+        runtimeScheduler.handler === "index.main" && runtimeScheduler.triggers.length === 1 &&
+        runtimeScheduler.triggers[0].name === "v1_runtime_cycle" &&
+        V1_RUNTIME_TRIGGER_NAME === "v1_runtime_cycle" &&
+        V1_RUNTIME_SCHEDULER_ROUTE === "/api/v1/jobs/v1-runtime-cycle" &&
+        runtimeScheduler.triggers[0].type === "timer" &&
+        runtimeScheduler.triggers[0].config === "0 * * * * * *" &&
+        fs.existsSync(path.join(projectRoot, runtimeScheduler.dir, "index.js")) ? "PASS" : "FAIL",
+    },
+    {
+      id: "dispatcher_and_manifest_alignment",
+      status: JSON.stringify(Object.keys(DISPATCHER_JOBS).sort()) === JSON.stringify(
+        expectedTriggerNames.filter((name) => name !== V1_RUNTIME_TRIGGER_NAME).sort()
+      ) && JSON.stringify(manifestJobIds) === JSON.stringify([...expectedTriggerNames].sort())
+        ? "PASS"
+        : "FAIL",
     },
     {
       id: "shared_dispatcher_source",
@@ -342,7 +507,7 @@ function cloudbaseTriggerTopologyCheck() {
   const failures = checks.filter((check) => check.status !== "PASS");
   return {
     label: "CloudBase trigger topology",
-    command: "validate 11 Jobs across CloudBase's 10-trigger-per-function limit",
+    command: "validate 12 Jobs across three CloudBase functions and the 10-trigger-per-function limit",
     status: failures.length ? "FAIL" : "PASS",
     code: failures.length ? 1 : 0,
     durationMs: Date.now() - startedAt,
@@ -457,9 +622,20 @@ function cloudbaseJobManifestCheck() {
         job.http.body.batchSize === 5) ? "PASS" : "FAIL",
     },
     {
+      id: "v1_runtime_cycle_job",
+      status: manifest.jobs.some((job) =>
+        job.id === "v1_runtime_cycle" &&
+        job.schedule.cron === "* * * * *" &&
+        job.http.path === "/api/v1/jobs/v1-runtime-cycle" &&
+        job.http.body.dryRun === true &&
+        job.invocation && job.invocation.mode === "CLOUDBASE_TIMER_ONLY" &&
+        job.invocation.functionName === "myroot-v1-runtime-scheduler") ? "PASS" : "FAIL",
+    },
+    {
       id: "job_environment",
       status: manifest.environment.requiredEnv.includes("ROOT_JOB_BASE_URL") &&
-        manifest.environment.requiredEnv.includes("ROOT_ADMIN_JOB_TOKEN") &&
+        manifest.environment.anyOfEnv.some((group) =>
+          group.includes("ROOT_ADMIN_JOB_TOKEN") && group.includes("ROOT_ADMIN_JOB_TOKENS")) &&
         manifest.environment.optionalEnv.includes("ROOT_JOB_ROUTE_QUERY") &&
         manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_CLEANUP_LIMIT") &&
         manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_CHANNEL") &&
@@ -504,17 +680,56 @@ function productionEnvMatrixCheck() {
     WECHAT_APPSECRET: "wechat-secret",
     ROOT_PUBLIC_BASE_URL: "https://express-x7te-258599-9-1404419431.sh.run.tcloudbase.com",
     ROOT_RELEASE_ID: "v0.5.13+final-verification",
-    ROOT_ADMIN_TOKEN: "admin-secret",
+    ROOT_PHONE_HMAC_KEY: "final-verification-phone-hmac-key",
+    ROOT_COMMAND_REQUEST_DIGEST_KEY: "final-verification-command-request-digest-key-strong-2026",
+    ROOT_COMMAND_REQUEST_DIGEST_KEY_ID: "final-verification-request-v1",
+    ROOT_COMMAND_RESULT_ENCRYPTION_KEY: "final-verification-command-result-key-32-characters-minimum",
+    ROOT_COMMAND_RESULT_KEY_ID: "final-verification-v1",
+    ROOT_INBOX_CONTENT_ENCRYPTION_KEY: "final-verification-inbox-content-key-32-characters-minimum",
+    ROOT_INBOX_CONTENT_KEY_ID: "final-verification-inbox-v1",
+    ROOT_ADMIN_TOKEN: "admin-secret-with-strong-entropy-2026",
     ROOT_REQUIRE_HEALTH_CONSENT: "true",
     ROOT_PRIVACY_CONTROLLER_NAME: "ROOT 测试主体",
     ROOT_PRIVACY_CONTACT: "privacy@example.com",
     ROOT_HEALTH_DATA_RETENTION_DAYS: "180",
     ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED: "true",
     ROOT_STORE_ADAPTER: "mysql",
+    ROOT_MYSQL_MIGRATION_MODE: "verify_only",
     MYSQL_ADDRESS: "10.11.103.164:3306",
     MYSQL_USERNAME: "root",
     MYSQL_PASSWORD: "mysql-secret",
     MYSQL_DATABASE: "root_checkin",
+    MYSQL_CONNECTION_LIMIT: "8",
+    K_REVISION: "myroot-api-00001-final-verification",
+    MYROOT_V1_RUNTIME_CONTROL_PLANE_ENABLED: "true",
+    ROOT_V1_RUNTIME_READY_REQUIRED: "true",
+    MYROOT_V1_RUNTIME_KILL_SWITCH: "DISENGAGED",
+    MYROOT_V1_RUNTIME_OWNER: "runtime-owner-final-verification",
+    MYROOT_V1_RUNTIME_ATTESTATION_MAX_AGE_SECONDS: "180",
+    MYROOT_V1_RUNTIME_ENVIRONMENT_ID: "final-verification",
+    MYROOT_V1_RUNTIME_TARGET_GENERATION: "final-verification-initial",
+    MYROOT_V1_RUNTIME_CONNECTION_LIMIT: "3",
+    MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE: "controlled",
+    MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_USERNAME: "runtime-alert-registrar",
+    MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD: "final-registrar-role-secret-2026",
+    MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CURRENT_USER: "runtime-alert-registrar@%",
+    MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CONNECTION_LIMIT: "2",
+    MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_USERNAME: "runtime-alert-worker",
+    MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_PASSWORD: "final-worker-role-secret-2026",
+    MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CURRENT_USER: "runtime-alert-worker@%",
+    MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CONNECTION_LIMIT: "3",
+    MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_USERNAME: "runtime-alert-inspector",
+    MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_PASSWORD: "final-inspector-role-secret-2026",
+    MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CURRENT_USER: "runtime-alert-inspector@%",
+    MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT: "1",
+    MYROOT_CLOUDRUN_MAX_INSTANCES: "2",
+    MYSQL_SERVER_MAX_CONNECTIONS: "100",
+    MYROOT_MYSQL_CONNECTION_HEADROOM: "20",
+    MYROOT_MYSQL_CAPACITY_EVIDENCE_REF: "final-verification-capacity-proof",
+    MYROOT_V1_RUNTIME_ORCHESTRATOR_ENABLED: "true",
+    MYROOT_OUTBOX_INBOX_BRIDGE_ENABLED: "true",
+    MYROOT_INBOX_WORKER_HARNESS_ENABLED: "true",
+    ROOT_KEY_INVENTORY_READINESS_ENABLED: "true",
     ROOT_CLOUDBASE_STORE_DECISION: "MYSQL_ON_CLOUDBASE",
     ROOT_CLOUDBASE_ENV_ID: "root-prod-env",
     ROOT_CLOUDBASE_REGION: "ap-shanghai",
@@ -527,10 +742,29 @@ function productionEnvMatrixCheck() {
     ROOT_MEMBER_CENTER_PRODUCT_PATH: "pages/product/detail?id=ROOT_PREBIOTIC",
     ROOT_MEMBER_CENTER_ENV_VERSION: "release",
     ROOT_CHECKIN_REMINDER_ENABLED: "true",
+    ROOT_CHECKIN_REMINDER_SEND_ENABLED: "true",
     ROOT_CHECKIN_REMINDER_TEMPLATE_ID: "template-checkin-next-day",
     ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION: "v2026-06-28-tpl10850",
+    MYROOT_NOTIFICATION_DELIVERY_FOUNDATION_ENABLED: "true",
+    ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY: "final-verification-notification-provider-receipt-hmac-key-with-strong-entropy-2026",
+    ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID: "final-verification-notification-receipt-v1",
     ROOT_JOB_BASE_URL: "https://express-x7te-258599-9-1404419431.sh.run.tcloudbase.com",
-    ROOT_ADMIN_JOB_TOKENS: JSON.stringify(["job-old-secret", "job-new-secret"]),
+    ROOT_CLOUDBASE_JOB_INVOCATION_POLICY_EVIDENCE: "final-verification-timer-only-policy-proof",
+    ROOT_REQUIRE_SCOPED_JOB_TOKENS: "true",
+    ROOT_ADMIN_JOB_ROUTE_TOKENS: JSON.stringify({
+      "/api/v1/jobs/adapter-retry-due": ["fixture-adapter-retry-route-token-2026"],
+      "/api/v1/jobs/operational-alerts": ["fixture-operational-alerts-route-token-2026"],
+      "/api/v1/jobs/checkin-reminders": ["fixture-checkin-reminders-route-token-2026"],
+      "/api/v1/jobs/wework-touch-due": ["fixture-wework-touch-route-token-2026"],
+      "/api/v1/jobs/lifecycle-settlement-due": ["fixture-lifecycle-settlement-route-token-2026"],
+      "/api/v1/jobs/lifecycle-settlement-cleanup": ["fixture-settlement-cleanup-route-token-2026"],
+      "/api/v1/jobs/lifecycle-users-export": ["fixture-lifecycle-export-route-token-2026"],
+      "/api/v1/jobs/lifecycle-user-exports-delivery-retry": ["fixture-export-retry-route-token-2026"],
+      "/api/v1/jobs/lifecycle-user-exports-cleanup": ["fixture-export-cleanup-route-token-2026"],
+      "/api/v1/jobs/health-data-retention-cleanup": ["fixture-health-retention-route-token-2026"],
+      "/api/v1/jobs/youzan-identity-reconcile": ["fixture-youzan-identity-route-token-2026"],
+      "/api/v1/jobs/v1-runtime-cycle": ["fixture-v1-runtime-route-token-2026"],
+    }),
     ROOT_LIFECYCLE_EXPORT_OBJECT_PROVIDER: "CLOUDBASE",
     ROOT_LIFECYCLE_EXPORT_OBJECT_PREFIX: "lifecycle-user-exports",
     YOUZAN_CLIENT_ID: "youzan-client",
@@ -592,7 +826,7 @@ function productionEnvMatrixCheck() {
     },
     {
       id: "runtime_store_job_groups",
-      status: ["runtime", "privacy_compliance", "store", "cloudbase_store", "cloudbase_object_storage", "cloudbase_jobs", "checkin_reminder_subscription", "root_member_center_jump"].every((id) =>
+      status: ["runtime", "v1_runtime_control", "privacy_compliance", "store", "cloudbase_store", "cloudbase_object_storage", "cloudbase_jobs", "checkin_reminder_subscription", "root_member_center_jump"].every((id) =>
         ready.groups.some((group) => group.id === id && group.status === "PASS")) ? "PASS" : "FAIL",
     },
     {
@@ -600,6 +834,33 @@ function productionEnvMatrixCheck() {
       status: ready.groups.some((group) =>
         group.id === "runtime" &&
         group.required.some((item) => item.name === "ROOT_RELEASE_ID" && item.present && item.valid)) ? "PASS" : "FAIL",
+    },
+    {
+      id: "runtime_phone_hmac_key",
+      status: ready.groups.some((group) =>
+        group.id === "runtime" &&
+        group.required.some((item) => item.name === "ROOT_PHONE_HMAC_KEY" && item.present && item.valid)) ? "PASS" : "FAIL",
+    },
+    {
+      id: "runtime_command_request_digest_keys",
+      status: ready.groups.some((group) =>
+        group.id === "runtime" &&
+        group.required.some((item) => item.name === "ROOT_COMMAND_REQUEST_DIGEST_KEY" && item.present && item.valid) &&
+        group.required.some((item) => item.name === "ROOT_COMMAND_REQUEST_DIGEST_KEY_ID" && item.present && item.valid)) ? "PASS" : "FAIL",
+    },
+    {
+      id: "runtime_command_result_keys",
+      status: ready.groups.some((group) =>
+        group.id === "runtime" &&
+        group.required.some((item) => item.name === "ROOT_COMMAND_RESULT_ENCRYPTION_KEY" && item.present && item.valid) &&
+        group.required.some((item) => item.name === "ROOT_COMMAND_RESULT_KEY_ID" && item.present && item.valid)) ? "PASS" : "FAIL",
+    },
+    {
+      id: "runtime_inbox_content_keys",
+      status: ready.groups.some((group) =>
+        group.id === "runtime" &&
+        group.required.some((item) => item.name === "ROOT_INBOX_CONTENT_ENCRYPTION_KEY" && item.present && item.valid) &&
+        group.required.some((item) => item.name === "ROOT_INBOX_CONTENT_KEY_ID" && item.present && item.valid)) ? "PASS" : "FAIL",
     },
     {
       id: "cloudbase_object_storage_http_env",
@@ -614,7 +875,10 @@ function productionEnvMatrixCheck() {
       status: ready.groups.some((group) =>
         group.id === "cloudbase_jobs" &&
         group.status === "PASS" &&
-        group.anyOf.some((item) => item.presentNames.includes("ROOT_ADMIN_JOB_TOKENS"))) ? "PASS" : "FAIL",
+        group.required.some((item) =>
+          item.name === "ROOT_ADMIN_JOB_ROUTE_TOKENS" && item.present && item.valid) &&
+        group.required.some((item) =>
+          item.name === "ROOT_REQUIRE_SCOPED_JOB_TOKENS" && item.present && item.valid)) ? "PASS" : "FAIL",
     },
     {
       id: "lifecycle_export_optional_env",
@@ -789,8 +1053,22 @@ async function httpSmoke() {
   const lifecycleDeliveryRetryAttempts = new Map();
   const server = createApp({
     storeAdapter,
+    trustedWechatIdentityAdapter: async ({ request: incomingRequest }) => {
+      const headers = incomingRequest && incomingRequest.headers ? incomingRequest.headers : {};
+      if (String(headers["x-final-verification-trusted-wechat"] || "") !== "1") return null;
+      const openid = String(headers["x-wx-openid"] || "").trim();
+      if (!openid) return null;
+      return {
+        openid,
+        unionid: String(headers["x-wx-unionid"] || "").trim(),
+        appCode: "MYROOT",
+        source: "CLOUDBASE",
+      };
+    },
     env: {
       ROOT_ALLOW_OPENID_LOGIN: "true",
+      ROOT_COMMAND_REQUEST_DIGEST_KEY: "final-verification-http-wechat-authority-key-with-strong-entropy-2026",
+      ROOT_COMMAND_REQUEST_DIGEST_KEY_ID: "final-verification-http-wechat-authority-v1",
       ROOT_REQUIRE_HEALTH_CONSENT: "false",
       ROOT_PRIVACY_CONTROLLER_NAME: "ROOT 最终验收主体",
       ROOT_PRIVACY_CONTACT: "privacy@example.com",
@@ -936,8 +1214,11 @@ async function httpSmoke() {
     }));
     checks.push({
       id: "cloudbase_identity_probe",
-      status: cloudbaseIdentityProbe.status === "READY" &&
-        cloudbaseIdentityProbe.readyForUnionPrimaryKey === true &&
+      status: cloudbaseIdentityProbe.status === "BLOCKED" &&
+        cloudbaseIdentityProbe.readyForUnionPrimaryKey === false &&
+        cloudbaseIdentityProbe.openidPresent === false &&
+        cloudbaseIdentityProbe.rawOpenidHeaderObserved === true &&
+        cloudbaseIdentityProbe.rawUnionidHeaderObserved === true &&
         JSON.stringify(cloudbaseIdentityProbe).includes(rawProbeOpenid) === false &&
         JSON.stringify(cloudbaseIdentityProbe).includes(rawProbeUnionid) === false ? "PASS" : "FAIL",
     });
@@ -946,6 +1227,10 @@ async function httpSmoke() {
       openid: "verify_lifecycle_openid",
       unionid: "verify_lifecycle_unionid",
       appCode: "MYROOT",
+    }, {
+      "X-Final-Verification-Trusted-WeChat": "1",
+      "X-WX-OPENID": "verify_lifecycle_openid",
+      "X-WX-UNIONID": "verify_lifecycle_unionid",
     }));
     const lifecycle = okPayload(await getJson(baseUrl, "/api/v1/admin/lifecycle-users?keyword=verify_lifecycle_unionid"));
     const lifecycleFiltered = okPayload(await getJson(
@@ -1364,6 +1649,10 @@ async function httpSmoke() {
       openid: "verify_questionnaire_openid",
       unionid: "verify_questionnaire_unionid",
       appCode: "MYROOT",
+    }, {
+      "X-Final-Verification-Trusted-WeChat": "1",
+      "X-WX-OPENID": "verify_questionnaire_openid",
+      "X-WX-UNIONID": "verify_questionnaire_unionid",
     }));
     const questionnaireAnswer = okPayload(await postJson(baseUrl, "/api/v1/questionnaire/answers", {
       campaignId: "ROOT_7D_RESET",
@@ -2567,6 +2856,7 @@ async function runFinalVerification() {
     syntaxCheck(),
     releaseVersionAlignmentCheck(),
     migrationChecksumManifestCheck(),
+    migrationSchemaSnapshotProvenanceCheck(),
     cloudbaseConfigSecretCheck(),
     cloudbaseTriggerTopologyCheck(),
     cloudbaseJobManifestCheck(),
@@ -2582,6 +2872,7 @@ async function runFinalVerification() {
     runCommand("Element Plus admin build", "npm", ["run", "build", "--prefix", adminDir]),
     adminDeployBundleCheck(),
     runCommand("Mini-program validation", "npm", ["run", "check", "--prefix", miniprogramDir]),
+    runCommand("v1 Route Registry contract", "npm", ["run", "v1:routes:check"]),
     miniprogramReleaseManifestCheck(),
     runCommand("WeChat trial QR release contract", process.execPath, ["scripts/generate-wechat-trial-qrcode.test.js"]),
     await httpSmoke(),
@@ -2615,6 +2906,7 @@ module.exports = {
   httpSmoke,
   runFinalVerification,
   migrationChecksumManifestCheck,
+  migrationSchemaSnapshotProvenanceCheck,
   releaseVersionAlignmentCheck,
   miniprogramReleaseManifestCheck,
   syntaxCheck,

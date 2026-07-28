@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "myroot.local-mysql-execution-result.v1",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "attempt": 17,
+  "authorizationPacketAttempt": 18,
+  "packetSha256": "c8a0e0bb3ceb5ac31a9a79709aab9a87d0e38f08dbdf7945dd0cc273571c63ad",
+  "authorizationNonce": "a5e97063-bbe1-4bd3-af1a-fa3cb7bc7f1e",
+  "status": "FAIL_KEY_INVENTORY_SCHEMA_ATTESTATION_CLEANED",
+  "failureStage": "FINAL_REPOSITORY_VERIFY",
+  "provedBeforeFailure": {
+    "realEngineTestsPassed": 13,
+    "realEngineTestsFailed": 0,
+    "realEngineTestsSkipped": 0,
+    "migrationSetDigest": "c385ef2952d272a961420a5c3df5886cab7a36325cdf7729a13484744d561cb4",
+    "generatedTableCount": 56,
+    "schemaWriteMatches": true,
+    "schemaByteEqualityMatches": true,
+    "schemaProvenanceMatches": true,
+    "schemaSnapshotSha256": "895aad618b6b0c34d06ae19684ffb3d4a4beda8bf994e212380727cd6d44819d"
+  },
+  "observedFailure": {
+    "finalVerificationFailureLabels": ["Backend tests"],
+    "termination": {"kind": "EXIT", "exitCode": 1, "signal": null, "errorCode": null},
+    "testSummary": {
+      "tests": 1366,
+      "passed": 1325,
+      "failed": 32,
+      "cancelled": 0,
+      "skipped": 9,
+      "todo": 0
+    },
+    "topLevelFailureCount": 27,
+    "nestedFailureContribution": 5,
+    "failureModule": "keyInventoryReadinessFoundation",
+    "stableErrorCode": "KEY_INVENTORY_SCHEMA_DRIFT",
+    "rootCauseClass": "REAL_MYSQL_NORMALIZED_SCHEMA_ATTESTATION_DIFFERS_FROM_FROZEN_EXPECTATION",
+    "exactNormalizedCheckDigestsRetained": false,
+    "topLevelFailureNames": [
+      "inspect and verify reconcile current and previous keys without returning secrets",
+      "fixed MySQL Adapter uses one read-only snapshot and selects every protected record with an overflow sentinel",
+      "callers cannot override the fixed statement deadline through environment input",
+      "unknown persisted keys fail closed",
+      "missing key or codec metadata fails closed",
+      "retired key references fail closed",
+      "request-digest retired and unknown key references fail closed without echoing unknown ids",
+      "unionid provenance and both recipient binding sources enforce request-digest key policy",
+      "provider receipt attempt and transition references form an independent metadata-only key domain",
+      "each newly inventoried source has an independent overflow and metadata fail-close sentinel",
+      "legacy request digests remain visible as a ready warning until normal replay upgrades them",
+      "CHECK attestation tolerates formatting and identifier quote differences outside literals",
+      "CHECK attestation accepts MySQL 8 escaped metadata delimiters without weakening literals",
+      "non-success command result residue is scanned and blocks metadata readiness",
+      "legitimate non-success command rows with no result do not create key references",
+      "legacy command result_ref and non-success Inbox digest residue are not invisible",
+      "relationship metadata and JSON envelope drift fail closed before witness authentication",
+      "wrong configured command secret fails deterministic witness authentication without leakage",
+      "every protected record is authenticated so a valid first row cannot hide later corruption",
+      "witness envelope size attestation and parse bounds fail closed before oversized content work",
+      "authentication row bound fails closed instead of sampling an oversized inventory",
+      "Inbox completion manifest digest is authenticated with its persisted key and binding",
+      "Inbox payload and result witnesses enforce purpose-specific envelope bounds",
+      "wrong previous Inbox secret fails the witness for that referenced key",
+      "witness relation metadata must agree with its authenticated envelope",
+      "codec drift is distinguished from key classification and blocks readiness",
+      "invalid persisted key ids are fingerprinted instead of echoed"
+    ]
+  },
+  "cleanup": {
+    "containerRemoved": true,
+    "ownedContainersObservedAfterRun": 0,
+    "temporaryListenerRemoved": true,
+    "mutableOutputsRestored": true,
+    "nonceConsumed": true
+  },
+  "scope": {
+    "candidateConnectionUsed": false,
+    "productionConnectionUsed": false,
+    "deploymentPerformed": false
+  },
+  "formalGateEffect": {
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "formalLaunchAuthorized": false
+  }
+}

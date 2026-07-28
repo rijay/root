@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "myroot.wechat-subscription-endpoint-security-verification.v1",
+  "observedAt": "2026-07-20T02:17:22+08:00",
+  "releaseTarget": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "status": "LOCAL_FAIL_CLOSED_IMPLEMENTATION_VERIFIED_LIVE_DELIVERY_GATE_OPEN",
+  "risk": {
+    "classification": "WECHAT_ACCESS_TOKEN_CONFIGURABLE_ENDPOINT_EXFILTRATION",
+    "priorFlow": "token acquisition preceded parsing ROOT_WECHAT_SUBSCRIBE_SEND_URL and the token was appended to an arbitrary HTTPS URL",
+    "liveExposureChecked": false
+  },
+  "implementation": {
+    "officialOrigin": "https://api.weixin.qq.com",
+    "subscribePath": "/cgi-bin/message/subscribe/send",
+    "validationLayers": [
+      "production_environment_matrix",
+      "server_startup_configuration_guard",
+      "pre_token_endpoint_validation",
+      "credential_bearing_network_seam_validation",
+      "non_redirecting_http_transport",
+      "static_source_contract"
+    ],
+    "testLoopbackPermittedForSubscriptionToken": false,
+    "protectedRuntimeTestModeBypassPermitted": false,
+    "realSendDefaultEnabled": false
+  },
+  "inputs": [
+    {"path":"backend/src/wechatOpenApiEndpoint.js","sha256":"16e1890fd8fb7c3479261ca3ce7ffc7b4f1bdc1a8843613144cc7392f34acab7"},
+    {"path":"backend/src/wechatSubscribeMessageAdapter.js","sha256":"9fcb415f3ae6bb05c8b9021ff5cf93414186b76f4f2fd37493be521b769d118d"},
+    {"path":"backend/src/productionEnvMatrix.js","sha256":"3acdf04c67671d265161dbceba70ae750f28f48b53451eb61bbd98a9114ea0f9"},
+    {"path":"backend/src/domain.js","sha256":"0cfde1d78794f0b5de09edc5c3c6a54288be40f55bbe88513f35786c271c67d3"},
+    {"path":"backend/src/server.js","sha256":"8909d723faffe8909dea16c1034da4101110db975756efd06b15ff8a24f1e68a"},
+    {"path":"backend/tests/wechat_openapi_endpoint.test.js","sha256":"c59885a558ccbf895b1848e9ff86692d267b2ca8505352fdfd64b7c3f458cabd"},
+    {"path":"backend/tests/wechat_subscribe_message_adapter.test.js","sha256":"25128997f391dccf08cbcd331c10531a873f5b0aa0f7090075a8ad148916c949"},
+    {"path":"backend/tests/wechat_subscription_endpoint_security_contract.test.js","sha256":"704a50e5b32ff6c5bef3443e95474be8cdf2de8db6cd72103bea8e83e0a213e9"},
+    {"path":"backend/tests/wechat_http.test.js","sha256":"74c6ca2ede08a21ba5009da59b62e4ba8a6aee484de93097fd72eb00b9f978fa"},
+    {"path":"backend/tests/api.test.js","sha256":"8fbefc60175df1423db986ca184f7bb222fdc6b8c5165c27f8f8bdec8f3f9c1b"},
+    {"path":"scripts/final-verification.js","sha256":"e176c14856d606fb7ceac60eabac6119642126a377184d3466a17e553b8f2f8b"}
+  ],
+  "verification": {
+    "focused": {"tests":103,"passed":103,"failed":0,"skipped":0},
+    "backend": {"tests":1310,"passed":1301,"failed":0,"skipped":9,"status":"PASS_WITH_REAL_ENGINE_SKIPS"},
+    "foundation": {"command":"npm run v1:foundation:check","status":"PASS"},
+    "finalVerification": {
+      "status":"FAIL_EXPECTED_SCHEMA_PROVENANCE_OPEN",
+      "passed":17,
+      "failed":1,
+      "total":18,
+      "javascriptFiles":450,
+      "migrationFiles":66,
+      "backendTests":1310,
+      "onlyFailure":"Generated MySQL schema snapshot provenance"
+    }
+  },
+  "formalGateEffect": {
+    "localEndpointExfiltrationRiskClosed": true,
+    "candidateArtifactBindingClosed": false,
+    "candidateEnvironmentReadbackClosed": false,
+    "productionEnvironmentReadbackClosed": false,
+    "networkEgressAllowlistClosed": false,
+    "realWechatIdentityClosed": false,
+    "liveSubscriptionDeliveryClosed": false,
+    "formalLaunchAuthorized": false
+  },
+  "externalActions": {
+    "candidateConnected": false,
+    "productionConnected": false,
+    "realMessageSent": false,
+    "credentialRead": false,
+    "deployed": false,
+    "committed": false,
+    "pushed": false
+  }
+}

@@ -1,4 +1,5 @@
 const { getToken, request, setToken, stringifyError } = require("../../utils/request");
+const { activityLoginRecoveryUrl, ROUTE_INTENT_STORAGE_KEY } = require("../../utils/activity-actions");
 const router = require("../../utils/router");
 
 function runWxLogin() {
@@ -10,6 +11,13 @@ function runWxLogin() {
       fail: reject,
     });
   });
+}
+
+function consumeActivityLoginRecovery() {
+  const value = wx.getStorageSync(ROUTE_INTENT_STORAGE_KEY);
+  const url = activityLoginRecoveryUrl(value, Date.now());
+  if (value) wx.removeStorageSync(ROUTE_INTENT_STORAGE_KEY);
+  return url;
 }
 
 Page({
@@ -100,6 +108,6 @@ Page({
   },
 
   continueToHome() {
-    router.go("/pages/home/index");
+    router.go(consumeActivityLoginRecovery() || "/pages/home/index");
   },
 });

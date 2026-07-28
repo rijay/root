@@ -1,6 +1,8 @@
 const { nowISO, todayISO } = require("./dates");
 const { createId } = require("./seed");
 const campaign = require("./campaign");
+const { createClientError } = require("./clientError");
+const { createTaskEventIdempotencyClaim } = require("./taskEventIdempotency");
 
 const TASK_TYPES = new Set(["CHECKIN", "QUESTIONNAIRE", "SHARE", "CONSULTATION", "PURCHASE"]);
 
@@ -73,10 +75,7 @@ function ensureList(data, key) {
 }
 
 function businessError(code, message, status = 200) {
-  const error = new Error(message);
-  error.code = code;
-  error.status = status;
-  return error;
+  return createClientError(code, message, status);
 }
 
 function text(value, fallback = "") {
@@ -185,13 +184,77 @@ function assertCanRecordTaskEvent(events, definition) {
   }
 }
 
-function computeTaskProgress(data, rootUserId, campaignId) {
-  const definitions = listTaskDefinitions(data, campaignId);
+function activityBoundDefinitionIds(data) {
+  return new Set(ensureList(data, "activityDefinitionVersions")
+    .map((definition) => text(definition.prebound_task_definition_id))
+    .filter(Boolean));
+}
+
+function activityCompletionEvents(events, fact) {
+  return events.filter((event) => {
+    const payload = objectValue(event.payload_json);
+    return payload.taskActivityAssignmentId === fact.taskActivityAssignmentId
+      && payload.taskDefinitionVersion === fact.taskDefinitionVersion;
+  });
+}
+
+function buildActivityAssignmentTask(events, definition, fact) {
+  const task = buildTaskProgress(activityCompletionEvents(events, fact), definition);
+  const invalidated = Boolean(fact.sourceInvalidationEventId);
+  return {
+    ...task,
+    taskKey: fact.taskActivityAssignmentId,
+    taskActivityAssignmentId: fact.taskActivityAssignmentId,
+    taskDefinitionVersion: fact.taskDefinitionVersion,
+    sourceType: "ACTIVITY_ASSIGNMENT",
+    sourceStatus: invalidated ? "CANCELED" : "AVAILABLE",
+    sourceInvalidated: invalidated,
+    sourceInvalidationReason: invalidated ? "SOURCE_CANCELED" : "",
+    sourceCancellationReasonCode: invalidated ? fact.sourceCancellationReasonCode : "",
+    sourceInvalidatedAt: invalidated ? fact.sourceInvalidatedAt : "",
+    status: invalidated && task.status !== "DONE" ? "CANCELED" : task.status,
+  };
+}
+
+function activityAssignmentTasks(data, rootUserId, campaignId, events, context) {
+  if (context.activityTaskSourceFactsLoaded !== true) return null;
+  const facts = Array.isArray(context.activityTaskSourceFacts) ? context.activityTaskSourceFacts : [];
+  ensureDefaultTaskDefinitions(data);
+  const definitions = ensureList(data, "taskDefinitions");
+  return facts
+    .filter((fact) => fact && fact.rootUserId === rootUserId)
+    .map((fact) => {
+      const definition = definitions.find((item) => item.task_definition_id === fact.taskDefinitionId);
+      if (!definition) {
+        const error = new Error("Activity task assignment references an unavailable definition");
+        error.code = "ACTIVITY_TASK_READ_MODEL_INVALID";
+        error.status = 503;
+        throw error;
+      }
+      return definition.campaign_id === campaignId && definition.status !== "ARCHIVED"
+        ? buildActivityAssignmentTask(events, definition, fact)
+        : null;
+    })
+    .filter(Boolean);
+}
+
+function computeTaskProgress(data, rootUserId, campaignId, context = {}) {
+  const allDefinitions = listTaskDefinitions(data, campaignId);
   const events = ensureList(data, "taskEvents").filter((event) => {
     return event.root_user_id === rootUserId && event.campaign_id === campaignId && event.status !== "VOID";
   });
-  const tasks = definitions.map((definition) => buildTaskProgress(events, definition));
-  const requiredTasks = tasks.filter((task) => task.required);
+  const assignedTasks = activityAssignmentTasks(data, rootUserId, campaignId, events, context);
+  const boundIds = assignedTasks === null ? new Set() : activityBoundDefinitionIds(data);
+  const tasks = allDefinitions
+    .filter((definition) => !boundIds.has(definition.task_definition_id))
+    .map((definition) => ({
+      ...buildTaskProgress(events, definition),
+      taskKey: definition.task_definition_id,
+      sourceType: "CAMPAIGN",
+      sourceStatus: "AVAILABLE",
+    }))
+    .concat(assignedTasks || []);
+  const requiredTasks = tasks.filter((task) => task.required && task.status !== "CANCELED");
   const requiredDone = requiredTasks.filter((task) => task.status === "DONE").length;
   const completedCount = tasks.filter((task) => task.status === "DONE").length;
   const progressPercent = requiredTasks.length ? Math.round((requiredDone / requiredTasks.length) * 100) : 100;
@@ -232,13 +295,25 @@ function upsertProgressSnapshot(data, progress) {
 }
 
 function idempotencyKeyFor(input, taskType, payload) {
-  return text(
-    input.idempotencyKey ||
-      input.idempotency_key ||
-      payload.idempotencyKey ||
-      payload.idempotency_key ||
-      [taskType, input.rootUserId || input.root_user_id, input.campaignId || input.campaign_id, payload.taskDate || input.taskDate || input.task_date || todayISO()].join(":")
-  );
+  for (const [source, key] of [
+    [input, "idempotencyKey"],
+    [input, "idempotency_key"],
+    [payload, "idempotencyKey"],
+    [payload, "idempotency_key"],
+  ]) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      // Preserve the literal client value. The idempotency Module owns the
+      // same ascii_bin validation as MySQL and must reject, never normalize,
+      // an invalid scope key.
+      return typeof source[key] === "string" ? source[key] : "";
+    }
+  }
+  return [
+    taskType,
+    input.rootUserId || input.root_user_id,
+    input.campaignId || input.campaign_id,
+    payload.taskDate || input.taskDate || input.task_date || todayISO(),
+  ].join(":");
 }
 
 function matchTaskDefinition(data, campaignId, taskType, payload = {}) {
@@ -260,6 +335,24 @@ function matchTaskDefinition(data, campaignId, taskType, payload = {}) {
   return definitions[0] || null;
 }
 
+function assertActivityAssignmentEvent(rootUserId, definition, payload, context) {
+  const assignmentId = text(payload.taskActivityAssignmentId || payload.task_activity_assignment_id);
+  const definitionVersion = text(payload.taskDefinitionVersion || payload.task_definition_version);
+  if (!assignmentId && !definitionVersion) return;
+  if (!assignmentId || !definitionVersion || context.activityTaskSourceFactsLoaded !== true) {
+    throw businessError(7004, "活动任务来源校验失败", 409);
+  }
+  const facts = Array.isArray(context.activityTaskSourceFacts) ? context.activityTaskSourceFacts : [];
+  const fact = facts.find((item) => item.taskActivityAssignmentId === assignmentId);
+  if (!fact
+    || fact.rootUserId !== rootUserId
+    || fact.taskDefinitionId !== definition.task_definition_id
+    || fact.taskDefinitionVersion !== definitionVersion
+    || fact.sourceInvalidationEventId) {
+    throw businessError(7004, "活动任务已取消或不可用", 409);
+  }
+}
+
 function recordTaskEvent(data, input = {}, context = {}) {
   const rootUserId = text(input.rootUserId || input.root_user_id);
   if (!rootUserId) throw businessError(1003, "请先登录", 401);
@@ -269,12 +362,53 @@ function recordTaskEvent(data, input = {}, context = {}) {
   const taskType = normalizeTaskType(input.taskType || input.task_type || payload.taskType || payload.task_type);
   const definition = matchTaskDefinition(data, activeCampaign.campaign_id, taskType, payload);
   if (!definition) throw businessError(7002, "任务配置不存在");
+  assertActivityAssignmentEvent(rootUserId, definition, payload, context);
 
   const idempotencyKey = idempotencyKeyFor(input, taskType, payload);
+  const now = nowISO();
+  const taskDate = text(input.taskDate || input.task_date || payload.taskDate || payload.task_date, todayISO());
+  const canonicalEventType = `${taskType}_COMPLETED`;
+  const requestedEventType = text(
+    input.eventType || input.event_type || payload.eventType || payload.event_type
+  ).toUpperCase();
+  if (requestedEventType && requestedEventType !== canonicalEventType) {
+    throw businessError(7003, "任务事件类型与任务类型不匹配");
+  }
+  const sourceChannel = text(
+    context.sourceChannel || context.source_channel || input.sourceChannel || input.source_channel
+  );
+  const requestedOccurredAt = input.occurredAt === undefined ? input.occurred_at : input.occurredAt;
+  const occurredAtClientSupplied = requestedOccurredAt !== undefined
+    && requestedOccurredAt !== null
+    && text(requestedOccurredAt) !== "";
+  const occurredAt = occurredAtClientSupplied ? text(requestedOccurredAt) : now;
+  const idempotencyClaim = createTaskEventIdempotencyClaim({
+    rootUserId,
+    idempotencyKey,
+    request: {
+      campaignId: activeCampaign.campaign_id,
+      taskDefinitionId: definition.task_definition_id,
+      taskType,
+      eventType: canonicalEventType,
+      taskDate,
+      payload,
+      sourceChannel,
+      occurredAt: occurredAtClientSupplied ? occurredAt : null,
+    },
+  }, context);
   const events = ensureList(data, "taskEvents");
-  const existing = events.find((event) => event.idempotency_key === idempotencyKey);
+  const existingEvents = events.filter(idempotencyClaim.scopeMatches);
+  if (existingEvents.length > 1) {
+    throw businessError(
+      "TASK_EVENT_IDEMPOTENCY_STATE_INVALID",
+      "任务事件幂等状态存在重复记录",
+      503
+    );
+  }
+  const existing = existingEvents[0];
   if (existing) {
-    const progress = computeTaskProgress(data, rootUserId, activeCampaign.campaign_id);
+    idempotencyClaim.reconcile(existing);
+    const progress = computeTaskProgress(data, rootUserId, activeCampaign.campaign_id, context);
     upsertProgressSnapshot(data, progress);
     return { event: existing, created: false, progress };
   }
@@ -283,25 +417,24 @@ function recordTaskEvent(data, input = {}, context = {}) {
   });
   assertCanRecordTaskEvent(scopedEvents, definition);
 
-  const now = nowISO();
-  const taskDate = text(input.taskDate || input.task_date || payload.taskDate || payload.task_date, todayISO());
-  const event = {
+  const event = idempotencyClaim.applyTo({
     task_event_id: createId("tev"),
     root_user_id: rootUserId,
     campaign_id: activeCampaign.campaign_id,
     task_definition_id: definition.task_definition_id,
     task_type: taskType,
-    event_type: text(input.eventType || input.event_type || payload.eventType || payload.event_type, `${taskType}_COMPLETED`),
+    event_type: canonicalEventType,
     task_date: taskDate,
-    payload_json: payload,
+    payload_json: idempotencyClaim.request.payload,
     idempotency_key: idempotencyKey,
     status: "RECORDED",
-    source_channel: context.sourceChannel || context.source_channel || input.sourceChannel || input.source_channel || "",
-    occurred_at: input.occurredAt || input.occurred_at || now,
+    source_channel: sourceChannel,
+    occurred_at: occurredAt,
+    occurred_at_client_supplied: occurredAtClientSupplied,
     created_at: now,
-  };
+  });
   events.push(event);
-  const progress = computeTaskProgress(data, rootUserId, activeCampaign.campaign_id);
+  const progress = computeTaskProgress(data, rootUserId, activeCampaign.campaign_id, context);
   upsertProgressSnapshot(data, progress);
   return { event, created: true, progress };
 }
@@ -309,7 +442,7 @@ function recordTaskEvent(data, input = {}, context = {}) {
 function getProgressView(data, rootUserId, campaignId = "", context = {}) {
   const activeCampaign = campaign.getActiveCampaign(data, { ...context, campaignId });
   const participant = campaign.findParticipant(data, rootUserId, activeCampaign.campaign_id);
-  const progress = computeTaskProgress(data, rootUserId, activeCampaign.campaign_id);
+  const progress = computeTaskProgress(data, rootUserId, activeCampaign.campaign_id, context);
   const snapshot = upsertProgressSnapshot(data, progress);
   return {
     campaign: campaign.toCampaignPayload(activeCampaign, participant),

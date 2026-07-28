@@ -47,6 +47,37 @@ test("WeChat JSON POST sends an explicit byte length instead of chunked transfer
   assert.equal(receivedHeaders["transfer-encoding"], undefined);
 });
 
+test("WeChat transport never follows cross-origin redirects", async (t) => {
+  let redirectedRequests = 0;
+  const destination = http.createServer((req, res) => {
+    redirectedRequests += 1;
+    req.resume();
+    res.setHeader("Content-Type", "application/json");
+    res.end('{"errcode":0}');
+  });
+  const destinationUrl = await listen(destination);
+  t.after(() => close(destination));
+
+  const redirector = http.createServer((req, res) => {
+    req.resume();
+    res.statusCode = 307;
+    res.setHeader("Location", `${destinationUrl}/capture`);
+    res.end();
+  });
+  const redirectorUrl = await listen(redirector);
+  t.after(() => close(redirector));
+
+  await assert.rejects(
+    () => fetchWechatJson(`${redirectorUrl}/cgi-bin/message/subscribe/send?access_token=must-not-forward`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    }),
+    (error) => error.code === 1006 && error.externalHttpStatus === "307"
+  );
+  assert.equal(redirectedRequests, 0);
+});
+
 test("WeChat non-JSON HTTP failures preserve only bounded sanitized diagnostics", async (t) => {
   const server = http.createServer((req, res) => {
     req.resume();

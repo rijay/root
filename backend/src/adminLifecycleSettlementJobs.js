@@ -147,11 +147,11 @@ function appendJobAudit(data, action, job, body = {}, before = null, after = nul
   });
 }
 
-function createLifecycleSettlementJob(data, body = {}) {
+function createLifecycleSettlementJob(data, body = {}, context = {}) {
   const requestId = requireRequestId(body);
   requireConfirmed(body);
   const query = lifecycleBatchQuery(body);
-  const selection = adminLifecyclePresenter.buildLifecycleBatchSelection(data, query);
+  const selection = adminLifecyclePresenter.buildLifecycleBatchSelection(data, query, context);
   if (!selection.rootUserIds.length) throw businessError(8010, "筛选结果没有可处理用户");
   const campaignId = lifecycleBatchCampaignId(selection, body, query);
   const now = nowISO();

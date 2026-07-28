@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "myroot.local-mysql-preparation-verification.v2",
+  "observedAt": "2026-07-19T21:59:32+08:00",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "status": "R6_PREPARED_NOT_AUTHORIZED_LOCAL_CONTRACTS_PASS_FORMAL_GATES_OPEN",
+  "authorizationPacket": {
+    "path": "docs/evidence/v1.0.0/mysql_001_065_local_authorization_packet_2026-07-19_r6.json",
+    "sha256": "58f04a58a10c50acd7942bfe94a901416ccde49625079685b219b09e93cb0b83",
+    "companion": "docs/evidence/v1.0.0/mysql_001_065_local_authorization_packet_2026-07-19_r6.md",
+    "companionSha256": "c3ae7b25294d8eb2fe68126dc4eb4021bff4bff4c10236ca50f301bde5dfc9fa",
+    "singleUseNonce": "91a87317-7cf5-4eeb-ade7-47e684a8bb7b",
+    "authorized": false,
+    "executed": false,
+    "nonceConsumed": false
+  },
+  "attempt5RootCauseCorrections": {
+    "informationSchemaMetadataLabelsStable": true,
+    "migratorCreateTemporaryTablesPrivilegePresent": true,
+    "existingMigrationsModified": false,
+    "runtimeDefinerStillSealedAndLocked": true
+  },
+  "verification": {
+    "targetedRootCauseTests": {
+      "status": "PASS_WITH_REAL_ENGINE_SKIPS",
+      "tests": 26,
+      "passed": 23,
+      "failed": 0,
+      "skipped": 3
+    },
+    "runnerAndPacketContracts": {
+      "status": "PASS",
+      "tests": 26,
+      "passed": 26,
+      "failed": 0,
+      "skipped": 0
+    },
+    "backend": {
+      "command": "npm test --prefix backend",
+      "status": "PASS_WITH_REAL_ENGINE_SKIPS",
+      "tests": 1287,
+      "passed": 1278,
+      "failed": 0,
+      "skipped": 9
+    },
+    "foundation": {
+      "command": "npm run v1:foundation:check",
+      "status": "PASS"
+    },
+    "finalVerification": {
+      "command": "npm run verify -- --json",
+      "status": "FAIL_EXPECTED_SCHEMA_PROVENANCE_OPEN",
+      "passed": 17,
+      "failed": 1,
+      "total": 18,
+      "javascriptFiles": 445,
+      "migrationFiles": 65,
+      "onlyFailure": "Generated MySQL schema snapshot provenance"
+    },
+    "unauthorizedRunnerGuard": {
+      "status": "PASS",
+      "runnerExitCode": 1,
+      "stableError": "MYSQL_LOCAL_RUNNER_NOT_AUTHORIZED",
+      "ownedContainerCountAfterGuard": 0,
+      "nonceMarkerExists": false
+    }
+  },
+  "scope": {
+    "dockerStartedForR6": false,
+    "candidateConnected": false,
+    "productionConnected": false,
+    "deploymentPerformed": false,
+    "commitPerformed": false,
+    "pushPerformed": false
+  },
+  "formalGateEffect": {
+    "localMysqlEngineProofClosed": false,
+    "localSchemaSnapshotProvenanceClosed": false,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "formalLaunchAuthorized": false
+  }
+}

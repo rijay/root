@@ -22,6 +22,8 @@ function retentionEnv(overrides = {}) {
     ROOT_HEALTH_DATA_RETENTION_DAYS: "180",
     ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED: "true",
     ROOT_CLOUDBASE_ENV_ID: "myroot-test",
+    ROOT_COMMAND_RESULT_ENCRYPTION_KEY: "health-retention-command-result-key-at-least-32-characters",
+    ROOT_COMMAND_RESULT_KEY_ID: "health-retention-v1",
     ...overrides,
   };
 }
@@ -408,6 +410,7 @@ test("health retention cleanup removes derived health text while preserving oper
 });
 
 test("health retention Job Interface is dry-run by default and execute is idempotent", async (t) => {
+  const jobRouteToken = "health-retention-route-secret-2026";
   const data = emptyHealthCollections();
   data.profiles.push({
     profile_id: "profile_http_old",
@@ -415,13 +418,18 @@ test("health retention Job Interface is dry-run by default and execute is idempo
     gut_health_status: "private",
   });
   const server = createApp({
-    env: retentionEnv({ ROOT_ADMIN_JOB_TOKEN: "job-token" }),
+    env: retentionEnv({
+      ROOT_REQUIRE_SCOPED_JOB_TOKENS: "true",
+      ROOT_ADMIN_JOB_ROUTE_TOKENS: JSON.stringify({
+        "/api/v1/jobs/health-data-retention-cleanup": [jobRouteToken],
+      }),
+    }),
     store: data,
     objectStorageAdapter: { async deleteObject() { return { deleted: true }; } },
   });
   const baseUrl = await listen(server);
   t.after(() => close(server));
-  const headers = { "X-ROOT-ADMIN-TOKEN": "job-token" };
+  const headers = { "X-ROOT-ADMIN-TOKEN": jobRouteToken };
 
   const dryRun = await request(baseUrl, "/api/v1/jobs/health-data-retention-cleanup", {
     method: "POST",

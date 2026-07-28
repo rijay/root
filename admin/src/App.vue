@@ -50,6 +50,7 @@
         <AuditLogPage v-else-if="currentModuleKey === 'audit'" ref="activeWorkbench" />
         <AdapterRunPage v-else-if="currentModuleKey === 'adapters'" ref="activeWorkbench" />
         <OperationalAnalytics v-else-if="currentModuleKey === 'analytics'" ref="activeWorkbench" />
+        <ActivityWorkbench v-else-if="currentModuleKey === 'activities'" ref="activeWorkbench" />
         <ReleaseWorkbench v-else-if="currentModuleKey === 'release'" ref="activeWorkbench" />
       </section>
     </main>
@@ -61,6 +62,7 @@ import { computed, nextTick, onMounted, provide, ref, watch } from "vue";
 import AdapterRunPage from "./modules/adapters/AdapterRunPage.vue";
 import OperationalAnalytics from "./modules/analytics/OperationalAnalytics.vue";
 import AuditLogPage from "./modules/audit/AuditLogPage.vue";
+import ActivityWorkbench from "./modules/activities/ActivityWorkbench.vue";
 import ConfigWorkbench from "./modules/config/ConfigWorkbench.vue";
 import ReleaseWorkbench from "./modules/release/ReleaseWorkbench.vue";
 import UserLifecycle from "./modules/users/UserLifecycle.vue";
@@ -83,6 +85,18 @@ const ADMIN_MODULES = [
   { key: "audit", label: "审计记录", title: "审计记录", capabilities: [ADMIN_CAPABILITIES.AUDIT_READ] },
   { key: "adapters", label: "Adapter 运行", title: "Adapter 运行", capabilities: [ADMIN_CAPABILITIES.CONFIG_WRITE] },
   { key: "analytics", label: "运营数据", title: "运营数据", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
+  {
+    key: "activities",
+    label: "活动运营",
+    title: "活动运营工作台",
+    capabilities: [
+      ADMIN_CAPABILITIES.ADMIN_READ,
+      ADMIN_CAPABILITIES.ACTIVITY_CONTENT_WRITE,
+      ADMIN_CAPABILITIES.ACTIVITY_PUBLISH,
+      ADMIN_CAPABILITIES.ACTIVITY_SESSION_CONTROL,
+      ADMIN_CAPABILITIES.ACTIVITY_ENROLLMENT_REVIEW,
+    ],
+  },
   { key: "release", label: "开发发布", title: "开发发布", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
 ];
 

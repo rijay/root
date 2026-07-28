@@ -82,6 +82,23 @@
           "config": "0 15 4 * * * *"
         }
       ]
+    },
+    {
+      "name": "myroot-v1-runtime-scheduler",
+      "dir": "cloudfunctions/myroot-v1-runtime-scheduler",
+      "description": "myRoot v1 Runtime Control timer-only scheduler; defaults to preview",
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "timeout": 30,
+      "memorySize": 256,
+      "installDependency": false,
+      "triggers": [
+        {
+          "name": "v1_runtime_cycle",
+          "type": "timer",
+          "config": "0 * * * * * *"
+        }
+      ]
     }
   ]
 }

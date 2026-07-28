@@ -1,0 +1,179 @@
+{
+  "schemaVersion": "myroot.local-mysql-authorization-packet.v8",
+  "generatedAt": "2026-07-20T01:16:34+08:00",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "status": "PREPARED_NOT_AUTHORIZED_NOT_EXECUTED",
+  "attempt": 10,
+  "supersedesPacketSha256": "2dc3d74eb33af4e641eb09e935cddf9c6e2035ac1c7b7d84c23c1007c8e797db",
+  "priorAttemptEvidence": [
+    {"path":"docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt1.json","sha256":"a6796cbb114c9a9a23a457fb011857fc046dd0dd034d9c94fd94c71fe4f07b44","status":"FAIL_HARNESS_ORCHESTRATION_CLEANED"},
+    {"path":"docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt2.json","sha256":"3e5ed3e853e4cca3e93d89caf0ed5820dba14bef335e38dfd2f136a936ec0dd8","status":"FAIL_STARTUP_READINESS_FALSE_POSITIVE_CLEANED"},
+    {"path":"docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt3.json","sha256":"d2a52d9d4987ada7250350327db1c26618c498c17b2b1e6352cffb0d0f288498","status":"FAIL_AUTHENTICATED_READINESS_QUERY_PARSE_ERROR_CLEANED"},
+    {"path":"docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt4.json","sha256":"6b7638168bc3637520bcaa01477ad9bbd07668fdb99c5bbacf00a81f07cf3df0","status":"FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED"},
+    {"path":"docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt5.json","sha256":"fc4dbe8a78f23eff75e527721f865226c54230aeb28d39a05dc846c86511f87b","status":"FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED"},
+    {"path":"docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt6.json","sha256":"82d6d227e945a77cdd0cfa0448430102f0058c4921143923a19cfb826e848151","status":"FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED"},
+    {"path":"docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-19_attempt7.json","sha256":"bbe809c1b144bdc5dd4407985d01185344718aeec7abe6a45b9fba2072da157d","status":"FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED"},
+    {"path":"docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-20_attempt8.json","sha256":"66d952d86a96db218945c93c37749eeae5362714b7fb281e1c210bcb6b3cd75e","status":"FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED"},
+    {"path":"docs/evidence/v1.0.0/mysql_001_065_local_execution_result_2026-07-20_attempt9.json","sha256":"2e81db50cf69fed4cf9e3ae69b1e8d102a1c9dbe2169e1fe194663f5e55708af","status":"FAIL_FROZEN_REAL_ENGINE_CHECK_CLEANED"}
+  ],
+  "scope": {
+    "host": "127.0.0.1",
+    "port": "EPHEMERAL_RANDOM_HOST_PORT",
+    "databaseClass": "DISPOSABLE_RANDOM_TEST_DATABASES_ONLY",
+    "candidateConnectionAuthorized": false,
+    "productionConnectionAuthorized": false,
+    "deploymentAuthorized": false,
+    "commitAuthorized": false,
+    "pushAuthorized": false
+  },
+  "container": {
+    "image": "mysql:8.0.43@sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10",
+    "bindAddress": "127.0.0.1",
+    "sandboxMarkerDatabase": "myroot_schema_snapshot_sandbox_marker",
+    "removeAfterRun": true
+  },
+  "migrationSet": {
+    "first": "001_store_snapshot.sql",
+    "last": "066_v1_runtime_alert_delivery_severity_slo_authority.sql",
+    "count": 66,
+    "lastChecksum": "411f29a8ac26eb8ee3261555bdbd33c20f46dde315fa7d642b308d4b832e64ac",
+    "expectedDigest": "c385ef2952d272a961420a5c3df5886cab7a36325cdf7729a13484744d561cb4"
+  },
+  "runnerCommand": "npm run v1:mysql-local-authorized:run -- --packet docs/evidence/v1.0.0/mysql_001_066_local_authorization_packet_2026-07-20_r10.json",
+  "executionCommand": "npm run v1:mysql-001-066-authorized:check",
+  "postSuccessCommands": [
+    "npm run db:schema-snapshot:write",
+    "npm run db:schema-snapshot:verify",
+    "npm run verify -- --json"
+  ],
+  "executionPolicy": {
+    "testFileConcurrency": 1,
+    "authenticatedReadinessConsecutiveObservations": 2,
+    "exactMysqlVersion": "8.0.43",
+    "authenticatedReadinessSqlSha256": "33dc8683efdf1fc97ed8e63c3593bf59ed8ad5e35f3d19747b12ad5d635ab220",
+    "deterministicReadinessFailureImmediate": true,
+    "sanitizedMysqlDiagnostic": true,
+    "childFailureDiagnostic": {
+      "channels": ["stdout", "stderr"],
+      "retention": "TAIL",
+      "maximumRetainedUtf8BytesPerChannel": 4096,
+      "digestInput": "FULL_REDACTED_CHANNEL",
+      "emptyOutputReason": "NO_CHILD_OUTPUT",
+      "secretVariants": ["RAW", "URI_COMPONENT", "JSON_ESCAPED", "BASE64", "BASE64URL"],
+      "ansiAndControlCharactersStripped": true,
+      "ephemeralPortRedacted": true,
+      "structuredTapFailureLabels": {
+        "source": "FULL_REDACTED_STDOUT",
+        "maximumLabels": 32,
+        "maximumUtf8BytesPerLabel": 512
+      }
+    },
+    "childEnvironment": {
+      "inheritance": "ALLOWLIST_ONLY",
+      "allowlist": ["PATH", "HOME", "TMPDIR", "TMP", "TEMP", "LANG", "LC_ALL", "TZ", "CI"],
+      "explicitOverlay": "FROZEN_TEST_ENABLE_VARIABLES_AND_SANDBOX_MYSQL_ONLY"
+    },
+    "singleUseNonce": "66d0134b-d70e-497b-a9a3-9bf78530ae0f",
+    "packageJsonSha256": "b00d53dc0f0fbee05fdd6fb4f9d592a651c0b7eb8824f6cfa73ba195964e9162",
+    "reason": "correct Attempt 9 fixture SLO profile at its source and add database severity-to-SLO authority in immutable migration 066"
+  },
+  "testGroups": [
+    {"file":"backend/tests/mysql_local_readiness.integration.test.js","enableVariable":"MYSQL_LOCAL_READINESS_INTEGRATION_ENABLED","sha256":"66085b0b9e4dfbdd7a5cc71a37197391a71142501ed81e38aae3fec2a0f2fa44"},
+    {"file":"backend/tests/mysql_identity_notification_binding_migrations.integration.test.js","enableVariable":"IDENTITY_NOTIFICATION_BINDING_MYSQL_INTEGRATION_ENABLED","sha256":"34d0738e46a2c7b4105f58e9617582a03bfd78beea49e0461c75fdb35481f128"},
+    {"file":"backend/tests/mysql_notification_provider_call_fence.integration.test.js","enableVariable":"NOTIFICATION_PROVIDER_FENCE_MYSQL_INTEGRATION_ENABLED","sha256":"23a8af29517cfb9c7aa477d4bb024c838965086b4dc0cf0ea10941ea0f61263f"},
+    {"file":"backend/tests/mysql_v1_runtime_alert_delivery.integration.test.js","enableVariable":"V1_RUNTIME_ALERT_DELIVERY_MYSQL_INTEGRATION_ENABLED","sha256":"a9f7d5cf8319cf9b45acf9c0c513f4a12d6909c140f90b9ab5e4c041999d2e83"},
+    {"file":"backend/tests/mysql_settlement_source_authority.integration.test.js","enableVariable":"SETTLEMENT_SOURCE_AUTHORITY_MYSQL_INTEGRATION_ENABLED","sha256":"7a1a3186df82f5a6d323191ed44e72ffbffcca1e05d97c3badd1b9e04476dedb"},
+    {"file":"backend/tests/mysql_v1_runtime_control_ledger.integration.test.js","enableVariable":"V1_RUNTIME_LEDGER_INTEGRATION_ENABLED","sha256":"92a20ba421508561dbaab5b79c2d3a657685e4ce5b15c3183ac9032676132460"},
+    {"file":"backend/tests/mysql_runtime_principal_bootstrap.integration.test.js","enableVariable":"MYSQL_RUNTIME_PRINCIPAL_BOOTSTRAP_INTEGRATION_ENABLED","sha256":"f2cc0d5653dd092d66c2dfb8c31ea389ccc8b954f157d41e68ec891064ac6efb"}
+  ],
+  "supportingInputs": [
+    {"file":"backend/src/mysqlNotificationDeliveryUniquenessAdapter.js","sha256":"b7cafc2069a499c459be524f100f36b56c3a112cea33eab4b4a2b11ebd89acc5"},
+    {"file":"backend/src/mysqlRuntimePrincipalReadiness.js","sha256":"997b8da2205b5eb2d9e0cf1afb154786c81488e60e1092547e6e999a6ec0973d"},
+    {"file":"backend/src/mysqlV1RuntimeAlertDeliveryAuthorityAdapter.js","sha256":"bc724245fe0cafc61212bdc99d6dbc7830415da862cf4c9c8c7c46de00ac9dcc"},
+    {"file":"backend/src/mysqlV1RuntimeControlLedger.js","sha256":"ac9ecc1a7401eac951fefdf412fea397a8831e15316623b628dd7a392f1f316e"},
+    {"file":"backend/src/mysqlProductionPreflight.js","sha256":"28d5172f8e21b48668d16a1253454344e85c40710b6f4a14d7bdbee5dbbc4314"},
+    {"file":"backend/src/mysqlRuntimeAlertAuthorityPolicy.js","sha256":"d4e697688b15e1e074c6bab6f292483857ab734e5d9c3fd17303a45dbe2c9a70"},
+    {"file":"backend/src/mysqlRuntimePrincipalBootstrap.js","sha256":"d0674350c9a8a31ecb4f59f57844f70b996b7e6ba0939bc965a42237be202651"},
+    {"file":"backend/src/mysqlLocalAuthorizedRunner.js","sha256":"03317818695574091935d47c59d1b970d1df273c98141cec5a0d25fa1f65c42e"},
+    {"file":"backend/scripts/mysql-local-authorized-runner.js","sha256":"867bec824b4e9c8fa57f88c769210504d353c894c7316070b54e0371501482a7"},
+    {"file":"backend/tests/mysql_local_authorized_runner.test.js","sha256":"f6afad8bbd8c1682d8890a5e473903225a50abf6fdc4b9ea0002e10ae772bd64"},
+    {"file":"backend/src/mysqlSchemaSnapshot.js","sha256":"e4bf8daf00331dccdb193d4f29901781afd8b1605b817f5a81643be056bcf349"},
+    {"file":"backend/src/mysqlMigrations.js","sha256":"78eddbeb1147a937cac0d8814a82c962315709622bb4d6eaf760989915969e27"},
+    {"file":"backend/tests/mysql_migrations_sql_splitter.test.js","sha256":"a5879e28b74eccdfb05b3b68d7c00e54ff17a18b4f25cc19fb15649583e0be6a"},
+    {"file":"backend/tests/mysql_runtime_principal_bootstrap.test.js","sha256":"c6235e7e25975165bc2defcedad7fd15ec216b668bbb27585dbdd79f32bf0238"},
+    {"file":"backend/tests/notification_delivery_uniqueness.test.js","sha256":"b10706d707a8651859f46bfe328d0bbc206449064b6320fc02184970d70ef13f"},
+    {"file":"backend/tests/mysql_local_authorization_packet_contract.test.js","sha256":"c5ebde32b2e38bdd56eb283efa3f5618e81fe6a567231f4a6c7212c06cf4c41d"},
+    {"file":"backend/src/v1RuntimeAlertDeliveryPolicy.js","sha256":"dde1516c8c7bee509f63262383ad6c6d534ee2c3c4564aca470a2ecba0e50f5a"},
+    {"file":"backend/src/mysqlV1RuntimeAlertDeliveryAdapter.js","sha256":"ec84c1d54ca881e279a5052362ec5bf216a3d8a209f058acbd2277d5d4aa76e3"},
+    {"file":"backend/src/v1RuntimeAlertPayloadAdapter.js","sha256":"e3eea2b441a9c99d1bf578d48b80e88d351e63f70c05b9af80ab10a133c6e239"},
+    {"file":"backend/tests/mysql_runtime_alert_severity_slo_authority_schema.test.js","sha256":"59bf95913d37297a7cc41815214a229733c1774ada2a19e6dc76b4145ab93368"},
+    {"file":"backend/tests/mysql_v1_runtime_alert_delivery_adapter.test.js","sha256":"27966774133430f9852c831ad35c2fc080d308d161eed40f96f538241fd883a2"},
+    {"file":"backend/tests/v1_runtime_alert_payload_adapter.test.js","sha256":"d9cff84845bf529f5c429728a34fd4c07949e11968b1323a99a9c1695c094448"},
+    {"file":"backend/tests/mysql_runtime_authority_procedure_contract.test.js","sha256":"5ac821f48eb10245c166c26c05a5c872b241ddc6138154284a02680dc613ebf0"},
+    {"file":"backend/db/migrations/061_v1_runtime_alert_delivery.sql","sha256":"dff221a9835467d6c9d127ea8fadad128f20b1fb881ea30fd311fcea41cbce92"},
+    {"file":"backend/db/migrations/065_v1_runtime_alert_registration_return_row.sql","sha256":"263a4edb996596d9c8868471006ddc636e904dc17e7ce39813495fd3db20f39e"},
+    {"file":"backend/db/migrations/066_v1_runtime_alert_delivery_severity_slo_authority.sql","sha256":"411f29a8ac26eb8ee3261555bdbd33c20f46dde315fa7d642b308d4b832e64ac"},
+    {"file":"backend/db/migrations/checksums.json","sha256":"df9ce00daeb30360abb5dcac34b9b66d2aa0326914b0c35e83bf30b12b410ecc"}
+  ],
+  "rootCauseCorrections": {
+    "attempt9FailureAttribution": "DIRECT_STRUCTURED_EXECUTION_PROOF",
+    "attempt9ObservedFixtureSloClass": "BLOCKER",
+    "attempt9ObservedFixtureSloTargetSeconds": 60,
+    "canonicalBlockerSeverity": "BLOCKER",
+    "canonicalBlockerSloClass": "BLOCKER_IMMEDIATE",
+    "canonicalBlockerSloTargetSeconds": 300,
+    "runtimeSloPolicyModuleIsCanonical": true,
+    "runtimePrincipalFixtureUsesCanonicalSloPolicy": true,
+    "databaseSeverityToSloAuthorityEnforced": true,
+    "databaseCrossFactMismatchNegativeTestAdded": true,
+    "migrations001To065Modified": false,
+    "migration066Added": true,
+    "correctionExecutedAgainstMysqlInThisAuthorization": false
+  },
+  "orchestrationCorrections": {
+    "sequentialTestFiles": true,
+    "explicitTapReporter": true,
+    "hostSideAuthenticatedSqlReadiness": true,
+    "exactReadinessSqlFrozen": true,
+    "deterministicReadinessFailureImmediate": true,
+    "boundedChildFailureDiagnostic": true,
+    "structuredTapFailureDiagnostics": true,
+    "stdoutStderrSeparated": true,
+    "fullRedactionBeforeUtf8Tail": true,
+    "rawChildOutputSuppressed": true,
+    "childEnvironmentAllowlist": true,
+    "singleUseAuthorizationNonce": true,
+    "exactMysqlVersion": true,
+    "ownedContainerIdAndLabelCleanup": true,
+    "testSummarySkipRejected": true,
+    "preStartAndPreTestHashVerification": true,
+    "secretInArgv": false
+  },
+  "requiredOutcomes": {
+    "allEnabledTests": 13,
+    "allEnabledTestsPass": 13,
+    "enabledTestsFail": 0,
+    "enabledTestsSkip": 0,
+    "schemaSnapshotWriteThenIndependentVerifyMatches": true,
+    "finalRepositoryVerifyPassCount": 18,
+    "finalRepositoryVerifyFailCount": 0,
+    "containerRemoved": true,
+    "temporaryListenerRemoved": true,
+    "temporaryDatabasesRemoved": true,
+    "temporaryPrincipalsRemoved": true
+  },
+  "formalGateEffect": {
+    "localMysqlEngineProofMayAdvance": true,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "liveDeliveryGateClosed": false,
+    "runtimeDatabaseWriteAuthorityGateClosed": false
+  },
+  "authorization": {
+    "requestedInThisPacket": false,
+    "granted": false,
+    "executed": false
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "myroot.pre-external-gate-trust-seam-audit.v1",
+  "observedAt": "2026-07-20T03:47:03+08:00",
+  "releaseTarget": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "scope": "READ_ONLY_LOCAL_IMPLEMENTATION_AND_CONTRACT_AUDIT",
+  "status": "P0_TRUST_SEAMS_OPEN_NOT_READY_FOR_EXTERNAL_ACCEPTANCE_COLLECTION",
+  "r11Freeze": {
+    "packetPath": "docs/evidence/v1.0.0/mysql_001_066_local_authorization_packet_2026-07-20_r11.json",
+    "packetSha256": "d0369e06f7fb57a2085cd5a567bf775370fe0ae2a43178179465a435e7aa3016",
+    "nonce": "dd1a2ef2-8687-4509-a799-0960748cb6fd",
+    "executionInputCount": 688,
+    "executionInputAggregateSha256": "36dd29f585c0192c889ea193de1ce7a4d3e6a554cbae61fee779271e12d0a4ec",
+    "preservedWithoutCodeChanges": true,
+    "authorized": false,
+    "executed": false
+  },
+  "auditedInputs": [
+    {"path":"backend/src/baselineSignoffContractRegistry.js","sha256":"8a6551f5f1dfe690675c0a237c45187b1b16bb41fd58cb69da407f33ff4a949b"},
+    {"path":"backend/src/formalLaunchReadinessRegistry.js","sha256":"063a0ede7ccf2becc2fd739ec66133b293ef745fd9f2e8cf80dcf532b6c66fc9"},
+    {"path":"backend/src/contentUedAuthorizationRegistry.js","sha256":"c667cc7afbc7de939f24171f58b073c3d63448980c43c78c2031725509d5bcb9"},
+    {"path":"contracts/baseline-signoff/v1.0.0.json","sha256":"0b61952718ca4d8e819f6aff4f7c34ba9ef9087c1325b55930f1374e201699f3"},
+    {"path":"contracts/required-checks/v1.0.0.json","sha256":"21da9e2e53ef980ed52d5d7d383bad502f826550316eab91489cebeaa37c8689"},
+    {"path":"contracts/content-ued-authorization/v1.0.0.json","sha256":"c7a667b7e4d0c5c49e17d05bf4780f335e15da0a14e924864c7bdc9f2c9d96b4"},
+    {"path":".github/workflows/ci.yml","sha256":"8d15c3b98b38eac055a6da9fe038e322cce85f0c80d44424abbf2001cf753b34"},
+    {"path":"scripts/build-candidate-provenance.js","sha256":"0182db1936619c4113df93c48a16d359dd5c9096d93f4f548995968608322c9a"}
+  ],
+  "findings": [
+    {
+      "findingId": "TRUST-P0-001",
+      "affectedGates": ["PRD_NAMED_SIGNOFF"],
+      "severity": "P0",
+      "status": "OPEN",
+      "failureMode": "The Baseline Signoff Module accepts any 64-hex signatureDigest plus caller-asserted VALIDATED state; its tests intentionally use synthetic hashes and can derive BASELINE_CLOSED.",
+      "requiredClosure": "Introduce a trusted evidence verification seam with controlled-approval readback and detached-signature Adapters; remove any signature method that has no real verifier. Closure must bind signer authority, approval event bytes, role, decision, payload and revocation state.",
+      "externalEvidenceStillRequired": true
+    },
+    {
+      "findingId": "TRUST-P0-002",
+      "affectedGates": ["PRD_NAMED_SIGNOFF"],
+      "severity": "P0",
+      "status": "OPEN",
+      "failureMode": "approvalSystemRef, workflowInstanceRef, workflow owner, evidence custodian, dueAt, escalation and revocation source exist only in prose and are not part of a machine-validated Interface.",
+      "requiredClosure": "Add a Baseline Signoff Execution Control Module and bind its digest into every signoff payload and Acceptance Envelope. Expired, cancelled, unreadable or revoked workflow control must fail closed.",
+      "externalEvidenceStillRequired": true
+    },
+    {
+      "findingId": "TRUST-P0-003",
+      "affectedGates": ["PRD_NAMED_SIGNOFF"],
+      "severity": "P0",
+      "status": "OPEN",
+      "failureMode": "ACTIVE revocation state and CLOSED conditions are caller assertions; sealing has no fresh as-of revocation or condition-evidence readback and cannot detect later revocation.",
+      "requiredClosure": "Derive condition, validation and revocation states through trusted Adapters using fresh bounded readback evidence; verify again at the formal-release decision time.",
+      "externalEvidenceStillRequired": true
+    },
+    {
+      "findingId": "TRUST-P0-004",
+      "affectedGates": ["PRD_NAMED_SIGNOFF", "REMOTE_CI_REQUIRED_CHECK", "ARTIFACT_PROVENANCE", "TIMER_ONLY_IAM", "ALERT_RECEIVER", "KEY_ROTATION_RETENTION", "REAL_WECHAT_IDENTITY_AND_DELIVERY", "HEALTH_CONTENT", "PRIVACY_FULFILLMENT", "ACTIVITY_OPERATIONS", "UED_HANDOFF", "PHOTO_BRAND_RIGHTS"],
+      "severity": "P0",
+      "status": "OPEN",
+      "failureMode": "The Formal Launch Readiness Module validates evidencePath and sha256 shapes but does not resolve files, recompute digests or invoke evidence-kind validators. A nonexistent path and fabricated digest can be structurally accepted as CLOSED evidence.",
+      "requiredClosure": "Add a restricted Evidence Resolver seam with realpath and symlink protection, byte-digest verification, evidence-kind dispatch and release/environment binding. Structural validity must never equal Gate closure.",
+      "externalEvidenceStillRequired": true
+    },
+    {
+      "findingId": "TRUST-P0-005",
+      "affectedGates": ["REMOTE_CI_REQUIRED_CHECK", "ARTIFACT_PROVENANCE"],
+      "severity": "P0",
+      "status": "OPEN",
+      "failureMode": "No deep Module consumes GitHub workflow, job, check-run, artifact and ruleset readback. Check names are not bound to App identity and PR head, tested merge, base and post-merge SHA roles are conflated.",
+      "requiredClosure": "Add a Remote CI Evidence Registry that distinguishes SHA roles and binds repository, workflow blob/path, run attempt, event, job/check identity, GitHub App, artifact bytes and active protection readback. It remains non-networking and non-authorizing until supplied by a trusted readback Adapter.",
+      "externalEvidenceStillRequired": true
+    },
+    {
+      "findingId": "TRUST-P0-006",
+      "affectedGates": ["HEALTH_CONTENT", "PRIVACY_FULFILLMENT", "ACTIVITY_OPERATIONS", "UED_HANDOFF", "PHOTO_BRAND_RIGHTS"],
+      "severity": "P0",
+      "status": "OPEN",
+      "failureMode": "The Content/UED Authorization Module correctly labels its result STRUCTURE_ONLY_UNTRUSTED_INPUT, but a complete synthetic bundle built from sha256(seed), fabricated references and fabricated signature digests still passes structure verification.",
+      "requiredClosure": "Formal release logic must reject structureValid, allEvidenceStructureValid, allEnvironmentStructuresValid or verify=true as proof of external acceptance. Add a second trusted Evidence Resolution layer before any Gate can close.",
+      "externalEvidenceStillRequired": true
+    },
+    {
+      "findingId": "TRUST-P1-001",
+      "affectedGates": ["ARTIFACT_PROVENANCE"],
+      "severity": "P1",
+      "status": "OPEN",
+      "failureMode": "Source provenance is commit-tree based but does not explicitly bind sourceTreeObjectId, worktree exclusion, the complete release/build tooling set or deployed artifact bytes.",
+      "requiredClosure": "Create provenance v2 with COMMIT_TREE_ONLY semantics, complete toolchain/build-input coverage and separate Backend OCI, Admin bundle, Cloud Function archive and mini-program upload-package digests.",
+      "externalEvidenceStillRequired": true
+    },
+    {
+      "findingId": "TRUST-P1-002",
+      "affectedGates": ["HEALTH_CONTENT", "PRIVACY_FULFILLMENT", "ACTIVITY_OPERATIONS", "UED_HANDOFF", "PHOTO_BRAND_RIGHTS"],
+      "severity": "P1",
+      "status": "OPEN",
+      "failureMode": "Time, revocation snapshot, opaque references, activity publication facts, UED coverage counts and photography rights applicability are supplied by the caller; the photography asset-set digest covers only assetRef and cleanMasterDigest.",
+      "requiredClosure": "Use trusted clock and evidence-resolution Adapters, derive counts and state from readback, and bind all rights metadata plus current revocation state into the published asset-set digest.",
+      "externalEvidenceStillRequired": true
+    }
+  ],
+  "sequencingDecision": {
+    "currentAction": "PRESERVE_R11_AND_DO_NOT_EDIT_ITS_688_EXECUTION_INPUTS",
+    "nextLocalSlice": "TRUST-SEAM-1_FORMAL_EVIDENCE_RESOLVER_AND_BASELINE_EVIDENCE_VERIFIER",
+    "startCondition": "R11 is either executed under exact authorization or explicitly cancelled and superseded by a newly frozen packet.",
+    "reason": "Changing backend, contracts, scripts or workflow now would invalidate the exact R11 execution-input manifest while authorization is pending."
+  },
+  "authorization": {
+    "dockerExecutionAuthorized": false,
+    "candidateConnectionAuthorized": false,
+    "productionConnectionAuthorized": false,
+    "remoteReadAuthorized": false,
+    "remoteWriteAuthorized": false,
+    "commitAuthorized": false,
+    "pushAuthorized": false,
+    "deploymentAuthorized": false,
+    "realSendAuthorized": false,
+    "gateClosureAuthorized": false,
+    "formalLaunchAuthorized": false
+  }
+}

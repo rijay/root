@@ -15,6 +15,10 @@ const routePermissions = {
   "/pages/login/index": ["GUEST"],
   "/pages/register/index": ["UNREGISTERED"],
   "/pages/health-consent/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
+  "/pages/health/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
+  "/pages/activities/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
+  "/subpkg/activity/pages/detail/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
+  "/subpkg/activity/pages/enrollments/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
   "/pages/activity/index": ["REGISTERED_IDLE"],
   "/pages/order/match": ["REGISTERED_IDLE"],
   "/pages/products/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
@@ -36,10 +40,16 @@ const routePermissions = {
   "/subpkg/profile/pages/review/index": ["REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
   "/subpkg/profile/pages/about/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
   "/subpkg/profile/pages/support/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/pages/profile/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
+  "/pages/profile/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
 };
 
-const tabRoutes = ["/pages/home/index", "/pages/products/index", "/pages/tasks/index", "/pages/rewards/index"];
+const tabRoutes = [
+  "/pages/home/index",
+  "/pages/health/index",
+  "/pages/activities/index",
+  "/pages/tasks/index",
+  "/pages/profile/index",
+];
 
 function normalize(route) {
   if (!route) return "";
@@ -48,11 +58,22 @@ function normalize(route) {
 
 function go(route) {
   const url = normalize(route);
-  if (tabRoutes.includes(url)) {
-    wx.switchTab({ url });
+  const pathOnly = url.split("?")[0];
+  if (tabRoutes.includes(pathOnly)) {
+    wx.switchTab({ url: pathOnly });
     return;
   }
   wx.redirectTo({ url });
+}
+
+function open(route) {
+  const url = normalize(route);
+  const pathOnly = url.split("?")[0];
+  if (tabRoutes.includes(pathOnly)) {
+    wx.switchTab({ url: pathOnly });
+    return;
+  }
+  wx.navigateTo({ url });
 }
 
 async function fetchState() {
@@ -94,7 +115,9 @@ module.exports = {
   decideHomeRoute,
   fetchState,
   go,
+  open,
   routeGuard,
   routePermissions,
   stateRoutes,
+  tabRoutes,
 };

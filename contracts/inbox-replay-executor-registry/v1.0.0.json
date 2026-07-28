@@ -1,0 +1,135 @@
+{
+  "registryVersion": 1,
+  "scope": "PRODUCTION",
+  "assemblySourcePaths": [
+    "backend/src/inboxReplayExecutorRegistry.js"
+  ],
+  "assemblySourceDigest": "778be3260207fe52b6353c0083bdc8ff08b7942c89f2cfe2588875ddd1494d8e",
+  "executors": [
+    {
+      "descriptor": {
+        "descriptorVersion": 1,
+        "executorId": "task-share-completion-shadow-v1",
+        "executorVersion": "task-share-shadow-v1",
+        "ownerModule": "TaskShareShadowReplayExecutor",
+        "policyId": "TASK_SHARE_SHADOW_REBUILD_V1",
+        "mode": "SHADOW_REBUILD",
+        "targetProjectionPolicy": "SHADOW_GENERATION_GE_2",
+        "allowsOutbox": false,
+        "allowsNetwork": false,
+        "applyStatementIds": [
+          "task_share_shadow.insert.v1",
+          "task_share_shadow.select_conflicts_for_update.v1"
+        ],
+        "applyExecutionProfiles": [
+          [
+            "task_share_shadow.select_conflicts_for_update.v1"
+          ],
+          [
+            "task_share_shadow.select_conflicts_for_update.v1",
+            "task_share_shadow.insert.v1"
+          ]
+        ],
+        "verifyStatementIds": [
+          "task_share_shadow.verify_by_run_receipt.v1"
+        ],
+        "requiredVerifyStatementIds": [
+          "task_share_shadow.verify_by_run_receipt.v1"
+        ],
+        "sourcePaths": [
+          "backend/src/inboxReplayExecutors/taskShareShadowReplayV1.js"
+        ],
+        "sourceDigest": "344558609a1315f3b259766002ab777ce1c3bcdcca8d1d37db0f4ca0ef460046",
+        "descriptorDigest": "b6bed52a15aacf6bc75e3ea6fc1aa2ad7b5a2c61ab017f27b11f0b971034e0f3"
+      },
+      "statements": [
+        {
+          "statementId": "task_share_shadow.insert.v1",
+          "phase": "APPLY_WRITE",
+          "sql": "INSERT INTO task_share_completion_shadow_projection (shadow_projection_id, replay_run_id, projection_generation, source_receipt_id, task_event_id, source_event_id, source_event_type, source_schema_version, source_name, source_partition_key, source_partition_position, source_aggregate_version, task_type, completion_event_type, occurred_at, source_handler_registration_digest, execution_handler_id, execution_handler_version, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(3))",
+          "sqlDigest": "72b4e24c6a582aedaa3e356098aefeabf80c24d18db2691b8602251b80ece12c",
+          "placeholderCount": 18,
+          "parameterNames": [
+            "shadowProjectionId",
+            "replayRunId",
+            "projectionGeneration",
+            "sourceReceiptId",
+            "taskEventId",
+            "sourceEventId",
+            "sourceEventType",
+            "sourceSchemaVersion",
+            "sourceName",
+            "sourcePartitionKey",
+            "sourcePartitionPosition",
+            "sourceAggregateVersion",
+            "taskType",
+            "completionEventType",
+            "occurredAt",
+            "sourceHandlerRegistrationDigest",
+            "executionHandlerId",
+            "executionHandlerVersion"
+          ],
+          "parameterRules": [
+            { "name": "shadowProjectionId", "type": "TEXT", "nullable": false, "maximumLength": 64, "minimum": null, "maximum": null },
+            { "name": "replayRunId", "type": "TEXT", "nullable": false, "maximumLength": 64, "minimum": null, "maximum": null },
+            { "name": "projectionGeneration", "type": "INTEGER", "nullable": false, "maximumLength": null, "minimum": 2, "maximum": 9007199254740991 },
+            { "name": "sourceReceiptId", "type": "TEXT", "nullable": false, "maximumLength": 64, "minimum": null, "maximum": null },
+            { "name": "taskEventId", "type": "TEXT", "nullable": false, "maximumLength": 64, "minimum": null, "maximum": null },
+            { "name": "sourceEventId", "type": "TEXT", "nullable": false, "maximumLength": 64, "minimum": null, "maximum": null },
+            { "name": "sourceEventType", "type": "TEXT", "nullable": false, "maximumLength": 128, "minimum": null, "maximum": null },
+            { "name": "sourceSchemaVersion", "type": "TEXT", "nullable": false, "maximumLength": 32, "minimum": null, "maximum": null },
+            { "name": "sourceName", "type": "TEXT", "nullable": false, "maximumLength": 96, "minimum": null, "maximum": null },
+            { "name": "sourcePartitionKey", "type": "TEXT", "nullable": false, "maximumLength": 191, "minimum": null, "maximum": null },
+            { "name": "sourcePartitionPosition", "type": "INTEGER", "nullable": false, "maximumLength": null, "minimum": 1, "maximum": 9007199254740991 },
+            { "name": "sourceAggregateVersion", "type": "INTEGER", "nullable": false, "maximumLength": null, "minimum": 1, "maximum": 9007199254740991 },
+            { "name": "taskType", "type": "TEXT", "nullable": false, "maximumLength": 32, "minimum": null, "maximum": null },
+            { "name": "completionEventType", "type": "TEXT", "nullable": false, "maximumLength": 128, "minimum": null, "maximum": null },
+            { "name": "occurredAt", "type": "MYSQL_DATETIME", "nullable": false, "maximumLength": 23, "minimum": null, "maximum": null },
+            { "name": "sourceHandlerRegistrationDigest", "type": "SHA256", "nullable": false, "maximumLength": 64, "minimum": null, "maximum": null },
+            { "name": "executionHandlerId", "type": "TEXT", "nullable": false, "maximumLength": 96, "minimum": null, "maximum": null },
+            { "name": "executionHandlerVersion", "type": "TEXT", "nullable": false, "maximumLength": 64, "minimum": null, "maximum": null }
+          ],
+          "resultMode": "AFFECTED_ONE"
+        },
+        {
+          "statementId": "task_share_shadow.select_conflicts_for_update.v1",
+          "phase": "APPLY_READ",
+          "sql": "SELECT shadow_projection_id, replay_run_id, projection_generation, source_receipt_id, task_event_id, source_event_id, source_event_type, source_schema_version, source_name, source_partition_key, source_partition_position, source_aggregate_version, task_type, completion_event_type, occurred_at, source_handler_registration_digest, execution_handler_id, execution_handler_version FROM task_share_completion_shadow_projection WHERE (replay_run_id = ? AND source_receipt_id = ?) OR (projection_generation = ? AND (task_event_id = ? OR source_event_id = ?)) FOR UPDATE",
+          "sqlDigest": "c478baebb24160c21175f3607d87379aa7fb595761b1c4da8b5fb51859e852a6",
+          "placeholderCount": 5,
+          "parameterNames": [
+            "replayRunId",
+            "sourceReceiptId",
+            "projectionGeneration",
+            "taskEventId",
+            "sourceEventId"
+          ],
+          "parameterRules": [
+            { "name": "replayRunId", "type": "TEXT", "nullable": false, "maximumLength": 64, "minimum": null, "maximum": null },
+            { "name": "sourceReceiptId", "type": "TEXT", "nullable": false, "maximumLength": 64, "minimum": null, "maximum": null },
+            { "name": "projectionGeneration", "type": "INTEGER", "nullable": false, "maximumLength": null, "minimum": 2, "maximum": 9007199254740991 },
+            { "name": "taskEventId", "type": "TEXT", "nullable": false, "maximumLength": 64, "minimum": null, "maximum": null },
+            { "name": "sourceEventId", "type": "TEXT", "nullable": false, "maximumLength": 64, "minimum": null, "maximum": null }
+          ],
+          "resultMode": "ROWS"
+        },
+        {
+          "statementId": "task_share_shadow.verify_by_run_receipt.v1",
+          "phase": "VERIFY_READ",
+          "sql": "SELECT shadow_projection_id, replay_run_id, projection_generation, source_receipt_id, task_event_id, source_event_id, source_event_type, source_schema_version, source_name, source_partition_key, source_partition_position, source_aggregate_version, task_type, completion_event_type, occurred_at, source_handler_registration_digest, execution_handler_id, execution_handler_version FROM task_share_completion_shadow_projection WHERE replay_run_id = ? AND source_receipt_id = ? LIMIT 1",
+          "sqlDigest": "569d7daba771c5c16111f74beb7145f24d44cc1d09ede2c4f02573d401d886a0",
+          "placeholderCount": 2,
+          "parameterNames": [
+            "replayRunId",
+            "sourceReceiptId"
+          ],
+          "parameterRules": [
+            { "name": "replayRunId", "type": "TEXT", "nullable": false, "maximumLength": 64, "minimum": null, "maximum": null },
+            { "name": "sourceReceiptId", "type": "TEXT", "nullable": false, "maximumLength": 64, "minimum": null, "maximum": null }
+          ],
+          "resultMode": "ROWS"
+        }
+      ]
+    }
+  ]
+}

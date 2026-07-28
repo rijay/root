@@ -154,7 +154,7 @@ Page({
 
   handlePrimaryAction() {
     if (this.data.primaryAction === "查看商品") {
-      wx.switchTab({ url: "/pages/products/index" });
+      router.open("/pages/products/index?source=orders");
       return;
     }
     if (this.data.primaryAction === "联系顾问") {

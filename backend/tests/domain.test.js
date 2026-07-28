@@ -12,6 +12,20 @@ const alertWebhookAdapter = require("../src/operationalAlertWebhookAdapter");
 const cloudbaseStoreReadiness = require("../src/cloudbaseStoreReadiness");
 const manualReviewExplanation = require("../src/manualReviewExplanation");
 const rootMemberCenterReadiness = require("../src/rootMemberCenterReadiness");
+const { sessionTokenDigest } = require("../src/credentialProtection");
+
+const verifiedWechatEnv = Object.freeze({
+  NODE_ENV: "production",
+  ROOT_COMMAND_REQUEST_DIGEST_KEY: "domain-wechat-authority-test-key-with-strong-entropy-2026",
+  ROOT_COMMAND_REQUEST_DIGEST_KEY_ID: "domain-wechat-authority-test-v1",
+});
+
+async function trustedWechatLogin(store, { openid, unionid, appCode = "MYROOT" }) {
+  return domain.loginWithWechat(store, { appCode }, {
+    env: { ...verifiedWechatEnv, ROOT_WECHAT_APP_CODE: appCode },
+    trustedWechatIdentity: { source: "CLOUDBASE", appCode, openid, unionid },
+  });
+}
 
 function readyMysqlAdapter() {
   return {
@@ -1050,11 +1064,11 @@ test("built-in WeWork tag Adapter applies tag by linked external contact", async
 
 test("Youzan customer mirror links customer and order by unionid", async () => {
   const store = domain.createStore();
-  const login = await domain.loginWithWechat(store, {
+  const login = await trustedWechatLogin(store, {
     openid: "youzan_customer_union_openid",
     unionid: "youzan_customer_unionid",
     appCode: "MYROOT",
-  }, { ROOT_ALLOW_OPENID_LOGIN: "true" });
+  });
 
   const customerImport = domain.importExternalSamples(store, {
     sourceType: "YOUZAN_CUSTOMER",
@@ -1066,7 +1080,7 @@ test("Youzan customer mirror links customer and order by unionid", async () => {
         昵称: "有赞客户样本",
       },
     ],
-  }, "2026-05-18").data;
+  }, "2026-05-18", { env: verifiedWechatEnv }).data;
   const orderImport = domain.importExternalSamples(store, {
     sourceType: "YOUZAN_ORDER",
     samples: [
@@ -1083,7 +1097,7 @@ test("Youzan customer mirror links customer and order by unionid", async () => {
         收货地址: "上海市客户补链地址",
       },
     ],
-  }, "2026-05-18").data;
+  }, "2026-05-18", { env: verifiedWechatEnv }).data;
   const customer = store.youzanCustomers.find((item) => item.youzan_yz_uid === "yz_customer_union_001");
   const order = store.youzanOrders.find((item) => item.youzan_order_no === "YZROOT202605180188");
   const customerMirror = domain.listAdminYouzanCustomers(store, { keyword: "yz_customer_union_001" }).data.customers[0];
@@ -1104,14 +1118,16 @@ test("Youzan customer mirror links customer and order by unionid", async () => {
 
 test("built-in Youzan customer Adapter imports customers and advances cursor", async () => {
   const store = domain.createStore();
-  const login = await domain.loginWithWechat(store, {
+  const login = await trustedWechatLogin(store, {
     openid: "youzan_customer_adapter_openid",
     unionid: "youzan_customer_adapter_unionid",
     appCode: "MYROOT",
-  }, { ROOT_ALLOW_OPENID_LOGIN: "true" });
+  });
   const calls = [];
   const context = {
     env: {
+      ...verifiedWechatEnv,
+      NODE_ENV: "test",
       YOUZAN_CUSTOMER_LIST_URL: "https://youzan.example/customers",
       YOUZAN_CUSTOMER_ACCESS_TOKEN: "customer-token",
       YOUZAN_CUSTOMER_LIST_DATA_PATH: "data.customers",
@@ -2940,13 +2956,14 @@ test("phone login issues a persisted session with explicit expiry", () => {
   assert.match(login.token, /^root_/);
   assert.match(login.session.expiresAt, /^\d{4}-\d{2}-\d{2}T/);
   assert.equal(store.sessions.length, 1);
-  assert.equal(store.sessions[0].token, login.token);
+  assert.equal(store.sessions[0].token, undefined);
+  assert.equal(store.sessions[0].token_hash, sessionTokenDigest(login.token));
   assert.equal(domain.getUserState(store, login.token).data.user.phone, "138****0001");
 
   store.sessions[0].expires_at = "2000-01-01T00:00:00+08:00";
   assert.throws(() => domain.getUserState(store, login.token), /登录已过期/);
   assert.equal(Boolean(store.sessions[0].revoked_at), true);
-  assert.equal(store.tokens[login.token], undefined);
+  assert.equal(store.tokens[sessionTokenDigest(login.token)], undefined);
 });
 
 test("user can update display profile after phone login", () => {
@@ -2975,9 +2992,24 @@ test("cloudbase identity probe reports masked header status without raw identiti
       "x-wx-unionid": rawUnionid,
       "x-root-app-code": "root_member_center",
     },
+    trustedWechatIdentity: {
+      openid: rawOpenid,
+      unionid: rawUnionid,
+      appCode: "ROOT_MEMBER_CENTER",
+      source: "CLOUDBASE",
+    },
   }).data;
   const pending = domain.getCloudbaseIdentityProbe({
     headers: { "x-wx-openid": "openid_only_probe_1234" },
+    trustedWechatIdentity: {
+      openid: "openid_only_probe_1234",
+      unionid: "",
+      appCode: "MYROOT",
+      source: "CLOUDBASE",
+    },
+  }).data;
+  const rawHeaderOnly = domain.getCloudbaseIdentityProbe({
+    headers: { "x-wx-openid": "untrusted_openid_probe" },
   }).data;
   const blocked = domain.getCloudbaseIdentityProbe({ headers: {} }).data;
 
@@ -2993,8 +3025,12 @@ test("cloudbase identity probe reports masked header status without raw identiti
   assert.ok(ready.checks.some((item) => item.id === "privacy_guard" && item.status === "PASS"));
   assert.equal(pending.status, "UNIONID_PENDING");
   assert.equal(pending.readyForUnionPrimaryKey, false);
+  assert.equal(rawHeaderOnly.status, "BLOCKED");
+  assert.equal(rawHeaderOnly.openidPresent, false);
+  assert.equal(rawHeaderOnly.rawOpenidHeaderObserved, true);
+  assert.ok(rawHeaderOnly.checks.some((item) => item.id === "trusted_identity" && item.status === "BLOCKER"));
   assert.equal(blocked.status, "BLOCKED");
-  assert.ok(blocked.checks.some((item) => item.id === "openid_header" && item.status === "BLOCKER"));
+  assert.ok(blocked.checks.some((item) => item.id === "trusted_identity" && item.status === "BLOCKER"));
 });
 
 test("openid login creates root identity without requiring an order or phone", async () => {
@@ -3370,6 +3406,13 @@ test("check-in reminder grant recording is idempotent per native authorization",
   assert.equal(first.grant.notification_subscription_grant_id, repeated.grant.notification_subscription_grant_id);
   assert.notEqual(first.grant.notification_subscription_grant_id, second.grant.notification_subscription_grant_id);
   assert.ok(store.notificationSubscriptionGrants.every((grant) => grant.status === "AVAILABLE"));
+
+  first.grant.recipient_binding_key_id = "valid-looking-replacement-key";
+  assert.throws(
+    () => domain.recordCheckinReminderSubscription(store, login.data.token, input, { env }),
+    (error) => error.code === "CHECKIN_REMINDER_RECIPIENT_BINDING_REPLAY_CONFLICT"
+      && error.status === 409
+  );
 });
 
 test("check-in reminder job sends only after accepted subscription and skips completed day", async () => {
@@ -4700,11 +4743,11 @@ test("admin reward delivery can fail, retry, and complete with audit", async () 
 
 test("admin lifecycle workbench exposes identity, progress, settlement, and reward summary", async () => {
   const store = domain.createStore();
-  const login = await domain.loginWithWechat(store, {
+  const login = await trustedWechatLogin(store, {
     openid: "admin_lifecycle_openid",
     unionid: "admin_lifecycle_unionid",
     appCode: "MYROOT",
-  }, { ROOT_ALLOW_OPENID_LOGIN: "true" });
+  });
   const token = login.data.token;
   const rootUserId = login.data.user.rootUserId;
 
@@ -4732,7 +4775,11 @@ test("admin lifecycle workbench exposes identity, progress, settlement, and rewa
   });
   domain.evaluateUserSettlement(store, token, {});
 
-  const workbench = domain.getAdminLifecycleWorkbench(store, { keyword: "admin_lifecycle_unionid" }).data;
+  const workbench = domain.getAdminLifecycleWorkbench(
+    store,
+    { keyword: "admin_lifecycle_unionid" },
+    { env: verifiedWechatEnv }
+  ).data;
   const row = workbench.users[0];
 
   assert.equal(workbench.metrics.totalUsers, 1);
@@ -4752,11 +4799,11 @@ test("admin lifecycle workbench exposes identity, progress, settlement, and rewa
     rewardStatus: "PENDING",
     consultationStatus: "NONE",
     openTasks: "NO_OPEN_TASKS",
-  }).data;
+  }, { env: verifiedWechatEnv }).data;
   const excluded = domain.getAdminLifecycleWorkbench(store, {
     campaignId: "ROOT_7D_RESET",
     consultationStatus: "PENDING",
-  }).data;
+  }, { env: verifiedWechatEnv }).data;
   const csv = domain.exportAdminLifecycleUsersCsv(store, {
     campaignId: "ROOT_7D_RESET",
     taskProgress: "SETTLEMENT_READY",
@@ -4764,7 +4811,7 @@ test("admin lifecycle workbench exposes identity, progress, settlement, and rewa
     rewardStatus: "PENDING",
     consultationStatus: "NONE",
     openTasks: "NO_OPEN_TASKS",
-  });
+  }, { env: verifiedWechatEnv });
   const rawCsv = domain.exportAdminLifecycleUsersCsv(store, {
     campaignId: "ROOT_7D_RESET",
     taskProgress: "SETTLEMENT_READY",
@@ -4773,7 +4820,10 @@ test("admin lifecycle workbench exposes identity, progress, settlement, and rewa
     consultationStatus: "NONE",
     openTasks: "NO_OPEN_TASKS",
     sensitivity: "RAW",
-  }, { adminPrincipal: { role: "admin", tokenConfigured: true } });
+  }, {
+    env: verifiedWechatEnv,
+    adminPrincipal: { role: "admin", tokenConfigured: true },
+  });
   const operatorRawCsv = domain.exportAdminLifecycleUsersCsv(store, {
     campaignId: "ROOT_7D_RESET",
     taskProgress: "SETTLEMENT_READY",
@@ -4782,7 +4832,10 @@ test("admin lifecycle workbench exposes identity, progress, settlement, and rewa
     consultationStatus: "NONE",
     openTasks: "NO_OPEN_TASKS",
     sensitivity: "RAW",
-  }, { adminPrincipal: { role: "operator", tokenConfigured: true } });
+  }, {
+    env: verifiedWechatEnv,
+    adminPrincipal: { role: "operator", tokenConfigured: true },
+  });
   store.adminLifecycleUserExports.push({
     export_id: "lue_expired_domain",
     source: "LIFECYCLE_USERS",
@@ -4836,7 +4889,10 @@ test("admin lifecycle workbench exposes identity, progress, settlement, and rewa
     operatorId: "admin-lifecycle",
     reason: "Domain 生命周期原文字段导出",
     now: "2026-06-20T10:04:00+08:00",
-  }, { adminPrincipal: { role: "admin", tokenConfigured: true } }).data;
+  }, {
+    env: verifiedWechatEnv,
+    adminPrincipal: { role: "admin", tokenConfigured: true },
+  }).data;
   assert.throws(() => domain.downloadAdminLifecycleUserExport(store, rawApprovalExport.exportRecord.exportId, {
     now: "2026-06-20T10:05:00+08:00",
   }), /审批通过/);
@@ -5817,11 +5873,11 @@ test("admin lifecycle filtered batch settlement ignores page limit and writes ba
   const store = domain.createStore();
 
   async function makeLifecycleUser(prefix, qualified) {
-    const login = await domain.loginWithWechat(store, {
+    const login = await trustedWechatLogin(store, {
       openid: `${prefix}_openid`,
       unionid: `${prefix}_unionid`,
       appCode: "MYROOT",
-    }, { ROOT_ALLOW_OPENID_LOGIN: "true" });
+    });
     domain.joinCampaign(store, login.data.token, {
       campaignId: "ROOT_7D_RESET",
       sourceChannel: "ROADSHOW_QR",
@@ -6022,7 +6078,7 @@ test("admin lifecycle settlement job queues filtered selection, runs batches, ca
   const retryCandidate = domain.createAdminLifecycleSettlementJob(store, {
     filters: {
       campaignId: "ROOT_7D_RESET",
-      keyword: "lifecycle_job_retry_unionid",
+      keyword: "lifecycle_job_retry_openid",
       taskProgress: "SETTLEMENT_READY",
       settlementStatus: "SETTLEMENT_READY",
     },

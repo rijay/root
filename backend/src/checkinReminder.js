@@ -1,5 +1,10 @@
 const { addDays, nowISO, todayISO } = require("./dates");
 const { createId } = require("./seed");
+const { isProtectedRuntime } = require("./credentialProtection");
+const {
+  freezeWechatRecipientBinding,
+  verifyWechatRecipientBinding,
+} = require("./wechatRecipientBinding");
 
 const TEMPLATE_KEY = "CHECKIN_REMINDER_NEXT_DAY";
 const DEFAULT_TEMPLATE_VERSION = "v2026-06-28-tpl10850";
@@ -247,6 +252,13 @@ function buildJobData(template, campaign, reminderDate) {
 }
 
 function scheduleNextDayCheckinReminder(data, rootUserId, campaign, context = {}) {
+  if (isProtectedRuntime(context.env || process.env)) {
+    return {
+      scheduled: false,
+      reason: "AWAITING_SUBSCRIPTION_GRANT",
+      authority: "MYSQL_NOTIFICATION_DELIVERY_CORE_V1",
+    };
+  }
   const template = resolveTemplate(context.env || process.env);
   if (!template.enabled) {
     return { scheduled: false, reason: "TEMPLATE_NOT_CONFIGURED", template: publicTemplate(template) };
@@ -304,6 +316,18 @@ function recordSubscription(data, rootUserId, input = {}, context = {}) {
   const templateVersion = text(input.templateVersion || input.template_version, template.version);
   const result = text(input.result || input.status || input.subscribeResult || input.subscribe_result);
   const status = normalizeSubscribeStatus(input.subscribed === true ? "accept" : result);
+  const grantRequestId = status === "ACCEPTED"
+    ? grantRequestIdFor(input, rootUserId, template, context)
+    : "";
+  const recipientBinding = status === "ACCEPTED"
+    ? freezeWechatRecipientBinding(data, {
+      rootUserId,
+      grantRequestId,
+      templateKey,
+      templateId,
+      templateVersion,
+    }, { env: context.env || process.env })
+    : null;
   const subscriptions = ensureList(data, "notificationSubscriptions");
   let subscription = subscriptions.find((item) => {
     return item.root_user_id === rootUserId &&
@@ -336,7 +360,6 @@ function recordSubscription(data, rootUserId, input = {}, context = {}) {
   });
   let grant = null;
   if (status === "ACCEPTED") {
-    const grantRequestId = grantRequestIdFor(input, rootUserId, template, context);
     const idempotencyKey = `SUBSCRIPTION_GRANT:${rootUserId}:${grantRequestId}`;
     const grants = ensureList(data, "notificationSubscriptionGrants");
     grant = grants.find((item) => item.idempotency_key === idempotencyKey) || null;
@@ -364,8 +387,14 @@ function recordSubscription(data, rootUserId, input = {}, context = {}) {
         release_reason: "",
         created_at: now,
         updated_at: now,
+        ...recipientBinding,
       };
       grants.push(grant);
+    } else if (Object.keys(recipientBinding).some((key) => grant[key] !== recipientBinding[key])) {
+      const error = new Error("订阅授权的固定收件人和历史请求冲突");
+      error.code = "CHECKIN_REMINDER_RECIPIENT_BINDING_REPLAY_CONFLICT";
+      error.status = 409;
+      throw error;
     }
   }
   return { subscription, grant };
@@ -435,15 +464,6 @@ function settleSubscriptionGrantFailure(grant, job, failure) {
   }
   grant.updated_at = now;
   return grant;
-}
-
-function openidForRootUser(data, rootUserId) {
-  const identities = ensureList(data, "wechatIdentities")
-    .filter((item) => item.root_user_id === rootUserId && item.app_code === "MYROOT" && item.openid)
-    .sort((left, right) => String(right.last_seen_at || right.updated_at || "").localeCompare(String(left.last_seen_at || left.updated_at || "")));
-  if (identities[0]) return identities[0].openid;
-  const user = ensureList(data, "users").find((item) => (item.root_user_id || item.user_id) === rootUserId && item.openid);
-  return user ? user.openid : "";
 }
 
 function hasCheckinForDate(data, rootUserId, campaignId, dateText) {
@@ -661,16 +681,26 @@ async function runDueCheckinReminders(data, input = {}, context = {}) {
       results.push({ jobId: job.notification_job_id, status });
       continue;
     }
-    const openid = openidForRootUser(data, job.root_user_id);
-    if (!openid) {
+    let recipient;
+    try {
+      recipient = verifyWechatRecipientBinding(data, availableGrant, { env });
+    } catch (error) {
       if (!dryRun) {
-        markJob(job, "FAILED", { error: "OPENID_NOT_FOUND" });
-        addDelivery(data, job, { status: "FAILED", errorCode: "OPENID_NOT_FOUND" });
+        markJob(job, "REVIEW_REQUIRED", { error: error.code || "RECIPIENT_BINDING_INVALID" });
+        availableGrant.status = GRANT_STATUS.REVIEW_REQUIRED;
+        availableGrant.review_required_at = nowISO();
+        availableGrant.release_reason = error.code || "RECIPIENT_BINDING_INVALID";
+        availableGrant.updated_at = nowISO();
+        addDelivery(data, job, { status: "REVIEW_REQUIRED", errorCode: error.code || "RECIPIENT_BINDING_INVALID" });
       }
-      results.push({ jobId: job.notification_job_id, status: "FAILED", errorCode: "OPENID_NOT_FOUND" });
+      results.push({
+        jobId: job.notification_job_id,
+        status: dryRun ? "DRY_RUN_REVIEW_REQUIRED" : "REVIEW_REQUIRED",
+        errorCode: error.code || "RECIPIENT_BINDING_INVALID",
+      });
       continue;
     }
-    const request = buildSendRequest(job, openid);
+    const request = buildSendRequest(job, recipient.openid);
     if (dryRun) {
       dryRunGrantIds.add(availableGrant.notification_subscription_grant_id);
       results.push({
@@ -783,6 +813,7 @@ async function runDueCheckinReminders(data, input = {}, context = {}) {
 module.exports = {
   TEMPLATE_KEY,
   GRANT_STATUS,
+  buildJobData,
   getCheckinReminderTemplate,
   recordSubscription,
   resolveTemplate,

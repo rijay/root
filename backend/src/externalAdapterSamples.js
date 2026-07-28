@@ -702,7 +702,7 @@ function ensureLeadProfiles(data) {
 
 function upsertWechatLead(data, mapped, dateText = todayISO()) {
   const leadProfiles = ensureLeadProfiles(data);
-  const userId = mapped.userId || findUserIdByPhone(data, mapped.receiverPhone);
+  const userId = userIdByLeadMapped(data, mapped);
   let lead = leadProfiles.find((item) => mapped.externalContactId && item.external_contact_id === mapped.externalContactId);
   if (!lead && userId) lead = leadProfiles.find((item) => item.user_id === userId);
   if (!lead) {
@@ -772,7 +772,9 @@ function customerByYzUid(data, yzUid) {
 }
 
 function userIdByLeadMapped(data, mapped) {
-  return mapped.userId || findUserIdByPhone(data, mapped.receiverPhone);
+  const explicitUserId = normalizeString(mapped.userId);
+  if (explicitUserId && data.users.some((item) => item.user_id === explicitUserId)) return explicitUserId;
+  return findUserIdByPhone(data, mapped.receiverPhone);
 }
 
 function leadByMapped(data, mapped) {
@@ -811,7 +813,7 @@ function restoreRollbackRef(targetType, targetId, label, beforeSnapshot, metadat
   });
 }
 
-function importMappedRow(data, sourceType, mapped, dateText) {
+function importMappedRow(data, sourceType, mapped, dateText, context = {}) {
   if (sourceType === "YOUZAN_ORDER") {
     const beforeOrder = orderByNo(data, mapped.youzanOrderNo);
     const beforeOrderSnapshot = cloneRecord(beforeOrder);
@@ -819,7 +821,7 @@ function importMappedRow(data, sourceType, mapped, dateText) {
     const yzUid = youzanCustomerMirror.customerYzUid(mapped);
     const beforeCustomer = yzUid ? customerByYzUid(data, yzUid) : null;
     const beforeCustomerSnapshot = cloneRecord(beforeCustomer);
-    const order = orderFulfillment.syncManualOrder(data, mapped);
+    const order = orderFulfillment.syncManualOrder(data, mapped, context);
     const afterFulfillment = fulfillmentByOrderId(data, order.order_id);
     const afterCustomer = yzUid ? customerByYzUid(data, yzUid) : null;
     const rollbackRefs = [];
@@ -855,7 +857,10 @@ function importMappedRow(data, sourceType, mapped, dateText) {
     const yzUid = youzanCustomerMirror.customerYzUid(mapped);
     const beforeCustomer = customerByYzUid(data, yzUid);
     const beforeCustomerSnapshot = cloneRecord(beforeCustomer);
-    const result = youzanCustomerMirror.upsertYouzanCustomer(data, mapped, { sourceChannel: "YOUZAN_CUSTOMER_SAMPLE" });
+    const result = youzanCustomerMirror.upsertYouzanCustomer(data, mapped, {
+      sourceChannel: "YOUZAN_CUSTOMER_SAMPLE",
+      env: context.env,
+    });
     const rollbackRefs = beforeCustomer
       ? [restoreRollbackRef("YOUZAN_CUSTOMER", result.customer.youzan_yz_uid, result.customer.youzan_yz_uid, beforeCustomerSnapshot)]
       : [createRollbackRef("YOUZAN_CUSTOMER", result.customer.youzan_yz_uid, result.customer.youzan_yz_uid)];
@@ -912,12 +917,12 @@ function importMappedRow(data, sourceType, mapped, dateText) {
   throw sampleError(400, "未知样本来源");
 }
 
-function importExternalSamples(data, sourceType, samples, dateText = todayISO()) {
+function importExternalSamples(data, sourceType, samples, dateText = todayISO(), context = {}) {
   const preview = previewExternalSamples(data, sourceType, samples);
   const rows = preview.rows.map((row) => {
     if (!row.importable) return { ...row, imported: false, result: null };
     try {
-      const imported = importMappedRow(data, preview.sourceType, row.mapped, dateText);
+      const imported = importMappedRow(data, preview.sourceType, row.mapped, dateText, context);
       return {
         ...row,
         status: row.warnings.length ? "IMPORTED_WITH_WARNING" : "IMPORTED",

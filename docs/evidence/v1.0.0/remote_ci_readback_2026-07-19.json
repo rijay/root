@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "myroot.remote-ci-readback.v1",
+  "observedAt": "2026-07-19T20:14:41+08:00",
+  "mode": "READ_ONLY_NO_REMOTE_WRITES",
+  "repository": {
+    "fullName": "rijay/root",
+    "visibility": "public",
+    "defaultBranch": "main",
+    "connectorPermissionObserved": "admin"
+  },
+  "source": {
+    "localHeadSha": "d761ae26fd328df703d2f2d3233124b07065e453",
+    "remoteMainSha": "d761ae26fd328df703d2f2d3233124b07065e453",
+    "sameCommit": true,
+    "localWorktreeClean": false
+  },
+  "remoteMain": {
+    "workflowPath": ".github/workflows/ci.yml",
+    "workflowFetchStatus": "NOT_FOUND_404",
+    "combinedStatuses": [],
+    "pullRequestWorkflowRuns": [],
+    "workflowPresent": false,
+    "successfulRequiredChecksObserved": false,
+    "artifactObserved": false
+  },
+  "localPendingWorkflow": {
+    "path": ".github/workflows/ci.yml",
+    "sha256": "1691c969f5b85b419a9173147578ec6b826089ffd17f855318632628cc1a4a29",
+    "trackedByHead": false,
+    "expectedChecks": [
+      {
+        "jobId": "candidate-provenance",
+        "expectedName": "Source provenance only"
+      },
+      {
+        "jobId": "verify",
+        "expectedName": "Full verification"
+      },
+      {
+        "jobId": "cloudfunctions-node18",
+        "expectedName": "Cloud Functions Node.js 18 compatibility"
+      }
+    ],
+    "mysql001To065RealEngineCoverage": {
+      "exactFrozenCommand": "npm run v1:mysql-001-065-authorized:check",
+      "expectedTests": 13,
+      "zeroSkipEnforced": true,
+      "readinessParserRegressionEnabled": true,
+      "runtimePrincipalBootstrapEnabled": true
+    }
+  },
+  "requiredCheckContract": {
+    "path": "contracts/required-checks/v1.0.0.json",
+    "sha256": "21da9e2e53ef980ed52d5d7d383bad502f826550316eab91489cebeaa37c8689",
+    "status": "LOCAL_EXPECTED_NAMES_ONLY_UNTIL_FIRST_REAL_RUN",
+    "allRemoteMutationAuthorizationFalse": true
+  },
+  "protection": {
+    "branchProtectionCurrentState": "UNVERIFIED_CONNECTOR_INTERFACE_UNAVAILABLE",
+    "rulesetsCurrentState": "UNVERIFIED_CONNECTOR_INTERFACE_UNAVAILABLE",
+    "requiredContextsCurrentState": "UNVERIFIED_CONNECTOR_INTERFACE_UNAVAILABLE"
+  },
+  "gate": {
+    "requiredCheckGateClosed": false,
+    "artifactProvenanceGateClosed": false,
+    "reason": "The workflow and local contracts are not in remote main, no status or workflow run exists for the current main SHA, no artifact was read back, and active protection or ruleset state was not available through the read-only connector Interface."
+  },
+  "authorization": {
+    "commitPerformed": false,
+    "pushPerformed": false,
+    "pullRequestCreated": false,
+    "workflowTriggered": false,
+    "protectionMutationPerformed": false,
+    "attestationPerformed": false
+  }
+}

@@ -1,4 +1,45 @@
 <view class="root-page profile-page">
+  <view wx:if="{{viewState === 'loading'}}" class="root-card public-state-card">
+    <view class="public-state-kicker">MY ROOT</view>
+    <view class="root-section-title public-state-title">正在读取账号信息</view>
+    <view class="root-helper-text public-state-copy">此过程不会创建健康、活动或任务记录。</view>
+  </view>
+
+  <view wx:elif="{{viewState === 'error'}}" class="root-card public-state-card">
+    <view class="public-state-kicker">读取失败</view>
+    <view class="root-section-title public-state-title">账号信息暂不可用</view>
+    <view class="root-helper-text public-state-copy">{{errorText}}</view>
+    <button class="root-button root-button--secondary public-state-action" bindtap="retryLoad">重新加载</button>
+    <button class="public-text-action" bindtap="openPrivacy">查看隐私说明</button>
+  </view>
+
+  <view wx:elif="{{viewState === 'guest'}}">
+    <view class="guest-hero">
+      <image class="guest-logo" src="/static/brand/root-logo-horizontal-light.png" mode="aspectFit" />
+      <view class="guest-kicker">MY ROOT</view>
+      <view class="guest-title">身份、权益与记录，在这里归于一处</view>
+      <view class="guest-copy">登录后可查看本人会员信息、报名、任务与历史。登录不会自动报名、提交健康信息或开启提醒。</view>
+    </view>
+    <view class="root-card guest-action-card">
+      <button class="root-button guest-primary" bindtap="goLogin">微信身份进入</button>
+      <button class="root-button root-button--secondary guest-secondary" bindtap="browseProducts">先浏览 ROOT 商品</button>
+    </view>
+    <view class="root-cell-group guest-menu">
+      <view class="menu-row" bindtap="openPrivacy">
+        <text class="menu-label">隐私说明</text><text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-row" data-url="/subpkg/profile/pages/about/index" bindtap="goLink">
+        <text class="menu-label">关于 ROOT</text><text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-row contact-menu-row">
+        <text class="menu-label">人工协助</text><text class="menu-arrow">›</text>
+        <button class="contact-hitarea" open-type="contact" session-from="profile-guest" plain="true" hover-class="none" aria-label="人工协助"></button>
+      </view>
+    </view>
+    <view class="version">v{{appVersion}}</view>
+  </view>
+
+  <block wx:else>
   <view class="profile-hero">
     <image class="profile-logo" src="/static/brand/root-logo-horizontal-light.png" mode="aspectFit" />
     <view class="profile-identity">
@@ -95,5 +136,6 @@
 
   <button class="root-button root-button--secondary logout-btn" bindtap="logout">退出登录</button>
   <view class="version">v{{appVersion}}</view>
+  </block>
 </view>
 <privacy-consent />

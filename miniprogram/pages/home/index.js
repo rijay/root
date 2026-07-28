@@ -6,6 +6,7 @@ const { ensureHealthConsent } = require("../../utils/health-consent");
 const { gutHealthLabel, stoolLabel } = require("../../utils/option-labels");
 const { openLegalPage } = require("../../utils/legal");
 const { clearToken, getToken, request, setToken, stringifyError } = require("../../utils/request");
+const router = require("../../utils/router");
 const { enrichProgress, todayChina } = require("../../utils/task-presenter");
 
 const questions = [
@@ -186,7 +187,7 @@ Page({
   },
 
   browseWithoutHealthConsent() {
-    wx.switchTab({ url: "/pages/products/index" });
+    router.open("/pages/products/index?source=health_consent_declined");
   },
 
   loginWithWechat() {
@@ -335,7 +336,8 @@ Page({
 
   buildActivityHome(campaign, progress, tasks, products, syncedAt) {
     const summary = progress.summary || {};
-    const primaryTask = tasks.find((task) => task.required && task.status !== "DONE") || tasks.find((task) => task.status !== "DONE") || null;
+    const actionable = (task) => !["DONE", "CANCELED"].includes(task.status);
+    const primaryTask = tasks.find((task) => task.required && actionable(task)) || tasks.find(actionable) || null;
     const participant = campaign && campaign.participant;
     return {
       campaignTitle: campaign && campaign.title ? campaign.title : "ROOT 身体记录计划",
@@ -385,11 +387,11 @@ Page({
   },
 
   goProducts() {
-    wx.switchTab({ url: "/pages/products/index" });
+    router.open("/pages/products/index?source=home");
   },
 
   goRewards() {
-    wx.switchTab({ url: "/pages/rewards/index" });
+    router.open("/pages/rewards/index?source=home");
   },
 
   async ensureActivityJoined() {
@@ -423,9 +425,9 @@ Page({
   },
 
   async openHomeTask(event) {
-    const taskId = event.currentTarget.dataset.taskId;
+    const taskKey = event.currentTarget.dataset.taskKey || event.currentTarget.dataset.taskId;
     const tasks = (this.data.activityHome && this.data.activityHome.tasks) || [];
-    const task = tasks.find((item) => item.taskDefinitionId === taskId);
+    const task = tasks.find((item) => (item.taskKey || item.taskDefinitionId) === taskKey);
     if (task) await this.navigateActivityTask(task);
   },
 
@@ -435,14 +437,18 @@ Page({
       wx.showToast({ title: "任务已完成", icon: "none" });
       return;
     }
+    if (task.status === "CANCELED") {
+      wx.showToast({ title: "来源活动已取消", icon: "none" });
+      return;
+    }
     if (task.taskType !== "PURCHASE" && !(await this.ensureActivityJoined())) return;
     if (["CHECKIN", "QUESTIONNAIRE"].includes(task.taskType) && !(await ensureHealthConsent())) return;
     if (task.taskType === "CHECKIN") {
-      wx.navigateTo({ url: `/subpkg/task/pages/checkin/index?campaignId=${home.campaignId || ""}` });
+      wx.navigateTo({ url: `/subpkg/task/pages/checkin/index?campaignId=${home.campaignId || ""}&taskDefinitionId=${encodeURIComponent(task.taskDefinitionId || "")}&taskActivityAssignmentId=${encodeURIComponent(task.taskActivityAssignmentId || "")}&taskDefinitionVersion=${encodeURIComponent(task.taskDefinitionVersion || "")}` });
       return;
     }
     if (task.taskType === "QUESTIONNAIRE") {
-      wx.navigateTo({ url: `/subpkg/task/pages/questionnaire/index?campaignId=${home.campaignId || ""}&questionnaireType=${questionnaireTypeOf(task)}` });
+      wx.navigateTo({ url: `/subpkg/task/pages/questionnaire/index?campaignId=${home.campaignId || ""}&questionnaireType=${questionnaireTypeOf(task)}&taskDefinitionId=${encodeURIComponent(task.taskDefinitionId || "")}&taskActivityAssignmentId=${encodeURIComponent(task.taskActivityAssignmentId || "")}&taskDefinitionVersion=${encodeURIComponent(task.taskDefinitionVersion || "")}` });
       return;
     }
     if (task.taskType === "PURCHASE") {
@@ -470,7 +476,12 @@ Page({
         data: {
           taskType,
           taskDate,
-          payload: { taskDate, taskDefinitionId: task.taskDefinitionId },
+          payload: {
+            taskDate,
+            taskDefinitionId: task.taskDefinitionId,
+            taskActivityAssignmentId: task.taskActivityAssignmentId || undefined,
+            taskDefinitionVersion: task.taskDefinitionVersion || undefined,
+          },
           idempotencyKey: `home:${taskType}:${task.taskDefinitionId}:${taskDate}`,
         },
       });
@@ -605,7 +616,7 @@ Page({
         },
       });
     }
-    wx.switchTab({ url: "/pages/products/index" });
+    router.open("/pages/products/index?source=daily_home");
   },
 
   async claimCoupon() {

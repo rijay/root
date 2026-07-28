@@ -465,9 +465,10 @@ function buildSummary(workbench, csvText, options) {
 
 function planLifecycleUserExport(data, body = {}, context = {}) {
   const options = normalizeOptions(body, context);
-  const workbench = adminLifecyclePresenter.buildLifecycleWorkbench(data, options.filters);
+  const workbench = adminLifecyclePresenter.buildLifecycleWorkbench(data, options.filters, context);
   const csvText = adminLifecyclePresenter.buildLifecycleUsersCsv(data, options.filters, {
     exportPolicy: options.exportPolicy,
+    env: context.env,
   });
   return {
     dryRun: options.dryRun,
@@ -540,9 +541,10 @@ function runLifecycleUserExport(data, body = {}, context = {}) {
   }
   requireExecuteRequestId(options);
   const prunedExpiredCount = pruneExpiredExports(data, options.now);
-  const workbench = adminLifecyclePresenter.buildLifecycleWorkbench(data, options.filters);
+  const workbench = adminLifecyclePresenter.buildLifecycleWorkbench(data, options.filters, context);
   const csvText = adminLifecyclePresenter.buildLifecycleUsersCsv(data, options.filters, {
     exportPolicy: options.exportPolicy,
+    env: context.env,
   });
   const record = {
     export_id: createId("lue"),

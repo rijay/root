@@ -1,0 +1,220 @@
+{
+  "registryVersion": 1,
+  "contractVersion": "1.0.0",
+  "scope": "NON_RUNTIME_FOUNDATION_CONTRACT",
+  "digestAlgorithm": "SHA-256",
+  "canonicalization": {
+    "version": "MYROOT_CANONICAL_JSON_V1",
+    "unicodeNormalization": "NFC_REQUIRED",
+    "objectKeyOrdering": "UTF16_CODE_UNIT_ASCENDING",
+    "numberEncoding": "SAFE_INTEGER_JSON",
+    "arrayOrdering": "SCHEMA_DEFINED_DETERMINISTIC",
+    "undefinedPolicy": "REJECT",
+    "digestDomainSeparation": "DOCUMENT_TYPE_V1"
+  },
+  "sameSourceFields": [
+    "releaseId",
+    "candidateManifestDigest",
+    "targetEnvironmentId"
+  ],
+  "requiredArtifactModuleIds": [
+    "ADMIN",
+    "BACKEND",
+    "CLOUD_FUNCTION",
+    "CONTENT",
+    "MIGRATION",
+    "MINIPROGRAM",
+    "ROUTE_REGISTRY"
+  ],
+  "adapterRequirementLevels": [
+    "REQUIRED",
+    "OPTIONAL",
+    "DISABLED"
+  ],
+  "requiredSignoffRoles": [
+    "PRODUCT",
+    "OPERATIONS",
+    "ENGINEERING",
+    "QA",
+    "PRIVACY",
+    "HEALTH_CONTENT_REVIEW"
+  ],
+  "documents": [
+    {
+      "documentType": "ADAPTER_ATTESTATION",
+      "formatVersionField": "attestationFormatVersion",
+      "formatVersion": 1,
+      "digestFieldName": "adapterAttestationDigest",
+      "exactFields": [
+        "adapterContractDigest",
+        "adapterId",
+        "adapterRequirement",
+        "attestationFormatVersion",
+        "candidateManifestDigest",
+        "createdAt",
+        "digestCanonicalizationVersion",
+        "proofDigest",
+        "releaseId",
+        "runtimeConfigDigest",
+        "secretReferenceVersionDigest",
+        "targetEnvironmentId"
+      ]
+    },
+    {
+      "documentType": "ADAPTER_REQUIREMENT_REGISTRY",
+      "formatVersionField": "registryFormatVersion",
+      "formatVersion": 1,
+      "digestFieldName": "adapterRequirementRegistryDigest",
+      "exactFields": [
+        "adapterRequirements",
+        "createdAt",
+        "digestCanonicalizationVersion",
+        "registryFormatVersion",
+        "registryId"
+      ]
+    },
+    {
+      "documentType": "CANDIDATE_MANIFEST",
+      "formatVersionField": "manifestFormatVersion",
+      "formatVersion": 1,
+      "digestFieldName": "candidateManifestDigest",
+      "exactFields": [
+        "adapterContractDigests",
+        "adapterRequirementRegistryDigest",
+        "artifactDigestByModule",
+        "createdAt",
+        "digestCanonicalizationVersion",
+        "eventSchemaSetDigest",
+        "featureFlagSnapshot",
+        "manifestFormatVersion",
+        "migrationSetDigest",
+        "relationalSchemaDigest",
+        "releaseId",
+        "rollbackArtifactId",
+        "routeRegistryDigest",
+        "runtimeConfigDigest",
+        "secretReferenceVersionDigest",
+        "sourceCommit",
+        "storeFormatVersion",
+        "targetEnvironmentId"
+      ]
+    },
+    {
+      "documentType": "DATA_MIGRATION_ATTESTATION",
+      "formatVersionField": "attestationFormatVersion",
+      "formatVersion": 1,
+      "digestFieldName": "dataMigrationAttestationDigest",
+      "exactFields": [
+        "attestationFormatVersion",
+        "candidateManifestDigest",
+        "createdAt",
+        "digestCanonicalizationVersion",
+        "lineageSummaryDigest",
+        "migrationSetDigest",
+        "relationalSchemaDigest",
+        "releaseId",
+        "rollbackDrillId",
+        "runtimeConfigDigest",
+        "sourceSnapshotId",
+        "sourceSnapshotRevision",
+        "targetEnvironmentId"
+      ]
+    },
+    {
+      "documentType": "RELEASE_EVIDENCE_INDEX",
+      "formatVersionField": "indexFormatVersion",
+      "formatVersion": 1,
+      "digestFieldName": "releaseEvidenceIndexDigest",
+      "exactFields": [
+        "adapterAttestationDigests",
+        "candidateManifestDigest",
+        "createdAt",
+        "dataMigrationAttestationDigest",
+        "digestCanonicalizationVersion",
+        "indexFormatVersion",
+        "releaseId",
+        "rollbackDrillEvidenceDigest",
+        "signoffEvidenceDigest",
+        "targetEnvironmentId",
+        "uatEvidenceDigest"
+      ]
+    },
+    {
+      "documentType": "ROLLBACK_DRILL_EVIDENCE",
+      "formatVersionField": "evidenceFormatVersion",
+      "formatVersion": 1,
+      "digestFieldName": "rollbackDrillEvidenceDigest",
+      "exactFields": [
+        "candidateManifestDigest",
+        "createdAt",
+        "digestCanonicalizationVersion",
+        "drillProofDigest",
+        "evidenceFormatVersion",
+        "releaseId",
+        "rollbackArtifactId",
+        "rollbackDrillId",
+        "targetEnvironmentId"
+      ]
+    },
+    {
+      "documentType": "SIGNOFF_EVIDENCE",
+      "formatVersionField": "evidenceFormatVersion",
+      "formatVersion": 1,
+      "digestFieldName": "signoffEvidenceDigest",
+      "exactFields": [
+        "candidateManifestDigest",
+        "createdAt",
+        "digestCanonicalizationVersion",
+        "evidenceFormatVersion",
+        "releaseId",
+        "signoffs",
+        "targetEnvironmentId"
+      ]
+    },
+    {
+      "documentType": "UAT_EVIDENCE",
+      "formatVersionField": "evidenceFormatVersion",
+      "formatVersion": 1,
+      "digestFieldName": "uatEvidenceDigest",
+      "exactFields": [
+        "candidateManifestDigest",
+        "createdAt",
+        "digestCanonicalizationVersion",
+        "evidenceFormatVersion",
+        "releaseId",
+        "targetEnvironmentId",
+        "uatProofDigest"
+      ]
+    }
+  ],
+  "secretPolicy": {
+    "allowedReferenceDigestFields": [
+      "secretReferenceVersionDigest"
+    ],
+    "forbiddenFieldNamePatterns": [
+      "access[_-]?key",
+      "credential",
+      "key[_-]?material",
+      "password",
+      "private[_-]?key",
+      "secret",
+      "token"
+    ]
+  },
+  "invalidationRules": [
+    { "ruleId": "TARGET_ENVIRONMENT_CHANGED", "candidateField": "targetEnvironmentId" },
+    { "ruleId": "SOURCE_COMMIT_CHANGED", "candidateField": "sourceCommit" },
+    { "ruleId": "ARTIFACT_DIGEST_CHANGED", "candidateField": "artifactDigestByModule" },
+    { "ruleId": "STORE_FORMAT_CHANGED", "candidateField": "storeFormatVersion" },
+    { "ruleId": "MIGRATION_SET_CHANGED", "candidateField": "migrationSetDigest" },
+    { "ruleId": "RELATIONAL_SCHEMA_CHANGED", "candidateField": "relationalSchemaDigest" },
+    { "ruleId": "EVENT_SCHEMA_SET_CHANGED", "candidateField": "eventSchemaSetDigest" },
+    { "ruleId": "ROUTE_REGISTRY_CHANGED", "candidateField": "routeRegistryDigest" },
+    { "ruleId": "RUNTIME_CONFIG_CHANGED", "candidateField": "runtimeConfigDigest" },
+    { "ruleId": "SECRET_REFERENCE_VERSION_CHANGED", "candidateField": "secretReferenceVersionDigest" },
+    { "ruleId": "FEATURE_FLAG_SNAPSHOT_CHANGED", "candidateField": "featureFlagSnapshot" },
+    { "ruleId": "ADAPTER_CONTRACT_CHANGED", "candidateField": "adapterContractDigests" },
+    { "ruleId": "ADAPTER_REQUIREMENT_REGISTRY_CHANGED", "candidateField": "adapterRequirementRegistryDigest" },
+    { "ruleId": "ROLLBACK_ARTIFACT_CHANGED", "candidateField": "rollbackArtifactId" }
+  ]
+}

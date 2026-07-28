@@ -12,7 +12,8 @@ function productionPolicy(overrides = {}) {
     YOUZAN_CLIENT_ID: "client-id-must-not-leak",
     YOUZAN_GRANT_ID: "12345678",
     YOUZAN_ACCESS_TOKEN: "access-token-must-not-leak",
-    YOUZAN_ACCESS_TOKEN_EXPIRES_AT: "2026-07-20T12:00:00+08:00",
+    // Stable fixture: tests that need expiry semantics override this value explicitly.
+    YOUZAN_ACCESS_TOKEN_EXPIRES_AT: "2099-12-31T23:59:59+08:00",
     YOUZAN_TOKEN_MANAGEMENT_MODE: "STATIC_ROTATION",
     YOUZAN_TOKEN_ROTATION_OWNER: "root-ops",
     ...overrides,

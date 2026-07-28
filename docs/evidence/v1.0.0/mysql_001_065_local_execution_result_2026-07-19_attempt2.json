@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "myroot.local-mysql-execution-result.v2",
+  "observedAt": "2026-07-19T15:59:37+08:00",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "attempt": 2,
+  "authorizationPacket": {
+    "path": "docs/evidence/v1.0.0/mysql_001_065_local_authorization_packet_2026-07-19_r2.json",
+    "sha256": "d40bc98c265a5b53ffc4dba93a58f560248e8729706db00d1ae0933a9d2c8708"
+  },
+  "scope": {
+    "host": "127.0.0.1",
+    "port": "EPHEMERAL_RANDOM_HOST_PORT",
+    "candidateConnected": false,
+    "productionConnected": false,
+    "deploymentPerformed": false,
+    "commitPerformed": false,
+    "pushPerformed": false
+  },
+  "container": {
+    "image": "mysql:8.0.43@sha256:3e646bcda0d9448ffa3d2024eef04e1bca95528ec19b9e8b76749da9d97d4a10",
+    "bindAddress": "127.0.0.1",
+    "randomHostPort": true,
+    "removed": true,
+    "residualContainerCount": 0
+  },
+  "result": {
+    "status": "FAIL_STARTUP_READINESS_FALSE_POSITIVE_CLEANED",
+    "exitCode": 1,
+    "failedStage": "CREATE_SANDBOX_MARKER_DATABASE",
+    "mysqlErrorCode": 1045,
+    "mysqlError": "Access denied for root at localhost while initialization was still converging",
+    "frozenCommandStarted": false,
+    "integrationTestsStarted": false,
+    "integrationTestsPassed": 0,
+    "integrationTestsFailed": 0,
+    "schemaSnapshotRun": false,
+    "finalRepositoryVerifyRun": false
+  },
+  "rootCause": {
+    "classification": "LOCAL_HARNESS_READINESS_CONDITION_TOO_SHALLOW",
+    "detail": "mysqladmin ping can report server reachability before the configured root credential can successfully execute SQL during image initialization.",
+    "requiredCorrection": "Poll a credential-authenticated SELECT 1 using the same root credential before creating the marker database or starting the frozen npm command."
+  },
+  "stopPolicy": {
+    "stoppedImmediately": true,
+    "automaticRetryPerformed": false,
+    "newAuthorizationRequiredForRetry": true
+  },
+  "formalGateEffect": {
+    "localMysqlEngineProofClosed": false,
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "liveDeliveryGateClosed": false
+  }
+}

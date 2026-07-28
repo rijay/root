@@ -38,6 +38,14 @@ let currentAuditKeyword = "";
 let currentAuditAction = "";
 
 const ADMIN_TOKEN_KEY = "ROOT_ADMIN_TOKEN";
+let sessionAdminToken = "";
+
+function adminCommandRequestId(command) {
+  const suffix = globalThis.crypto && typeof globalThis.crypto.randomUUID === "function"
+    ? globalThis.crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `admin-${command}-${suffix}`;
+}
 
 const sampleExamples = {
   YOUZAN_ORDER: [
@@ -76,14 +84,30 @@ const sampleExamples = {
 };
 
 function getAdminToken() {
-  return window.localStorage.getItem(ADMIN_TOKEN_KEY) || "";
+  let storage = null;
+  try {
+    storage = window.sessionStorage;
+  } catch (_) {
+    return sessionAdminToken;
+  }
+  try {
+    sessionAdminToken = storage.getItem(ADMIN_TOKEN_KEY) || "";
+    return sessionAdminToken;
+  } catch (_) {
+    return sessionAdminToken;
+  }
 }
 
 function setAdminToken(token) {
-  if (token) {
-    window.localStorage.setItem(ADMIN_TOKEN_KEY, token);
-  } else {
-    window.localStorage.removeItem(ADMIN_TOKEN_KEY);
+  sessionAdminToken = String(token || "").trim();
+  try {
+    if (sessionAdminToken) {
+      window.sessionStorage.setItem(ADMIN_TOKEN_KEY, sessionAdminToken);
+    } else {
+      window.sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+    }
+  } catch (_) {
+    // Keep the credential in this page only when browser storage is unavailable.
   }
 }
 
@@ -100,7 +124,7 @@ async function api(path, options = {}, retryAuth = true) {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(adminToken ? { "X-Admin-Token": adminToken, "X-ROOT-ADMIN-TOKEN": adminToken } : {}),
+      ...(adminToken ? { "X-Admin-Token": adminToken } : {}),
       ...(options.headers || {}),
     },
   });
@@ -1168,7 +1192,7 @@ async function exportBatchFailures(batchId) {
   try {
     const adminToken = getAdminToken();
     const response = await fetch(`/api/v1/admin/imports/${encodeURIComponent(batchId)}/failures.csv`, {
-      headers: adminToken ? { "X-Admin-Token": adminToken, "X-ROOT-ADMIN-TOKEN": adminToken } : {},
+      headers: adminToken ? { "X-Admin-Token": adminToken } : {},
     });
     if (!response.ok) throw new Error("导出失败，请检查后台口令");
     const text = await response.text();
@@ -1886,13 +1910,19 @@ on("#sample-reviews", "click", async (event) => {
 on("#refunds", "click", async (event) => {
   const id = event.target.dataset.id;
   if (!id) return;
-  await api(`/api/v1/admin/refunds/${id}/approve`, { method: "POST" });
+  await api(`/api/v1/admin/refunds/${id}/approve`, {
+    method: "POST",
+    headers: { "X-Request-Id": adminCommandRequestId("refund-approve") },
+  });
   await load();
 });
 on("#coupons", "click", async (event) => {
   const couponId = event.target.dataset.couponId;
   if (!couponId) return;
-  await api(`/api/v1/admin/coupons/${couponId}/use`, { method: "POST" });
+  await api(`/api/v1/admin/coupons/${couponId}/use`, {
+    method: "POST",
+    headers: { "X-Request-Id": adminCommandRequestId("coupon-use") },
+  });
   await load();
 });
 async function handleTaskAction(event) {
@@ -1906,6 +1936,7 @@ async function handleTaskAction(event) {
   if (!taskId) return;
   await api(`/api/v1/admin/tasks/${taskId}/complete`, {
     method: "POST",
+    headers: { "X-Request-Id": adminCommandRequestId("task-complete") },
     body: JSON.stringify({
       status: event.target.dataset.status || "DONE",
       note: event.target.dataset.note || "",

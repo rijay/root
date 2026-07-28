@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "myroot.local-mysql-execution-result.v1",
+  "releaseVersion": "v1.0.0",
+  "runtimePackageVersion": "0.5.13",
+  "attempt": 13,
+  "authorizationPacketAttempt": 14,
+  "packetSha256": "e428f74f45be344dd3eca25c4d542a120192e4dd28a8a102ce51141e702f1631",
+  "authorizationNonce": "3c8efca6-3ebc-42dc-8443-2bb767841964",
+  "status": "FAIL_FINAL_REPOSITORY_VERIFY_CLEANED",
+  "failureStage": "FINAL_REPOSITORY_VERIFY",
+  "provedBeforeFailure": {
+    "realEngineTestsPassed": 13,
+    "realEngineTestsFailed": 0,
+    "realEngineTestsSkipped": 0,
+    "migrationSetDigest": "c385ef2952d272a961420a5c3df5886cab7a36325cdf7729a13484744d561cb4",
+    "generatedTableCount": 56,
+    "schemaWriteMatches": true,
+    "schemaByteEqualityMatches": true,
+    "schemaProvenanceMatches": true
+  },
+  "observedFailure": {
+    "cause": "FINAL_VERIFICATION_RETURNED_NONZERO_BUT_OLD_RUNNER_RETAINED_ONLY_OUTPUT_TAIL_WITHOUT_FAILURE_LABELS",
+    "code": "MYSQL_LOCAL_RUNNER_COMMAND_FAILED"
+  },
+  "scope": {
+    "host": "127.0.0.1",
+    "port": "EPHEMERAL_RANDOM_HOST_PORT",
+    "mysqlVersion": "8.0.43",
+    "candidateConnectionUsed": false,
+    "productionConnectionUsed": false,
+    "deploymentPerformed": false
+  },
+  "cleanup": {
+    "containerRemoved": true,
+    "temporaryListenerRemoved": true,
+    "mutableOutputsRestored": true
+  },
+  "formalGateEffect": {
+    "candidateMysqlGateClosed": false,
+    "productionMysqlGateClosed": false,
+    "capacityGateClosed": false,
+    "formalLaunchAuthorized": false
+  }
+}
