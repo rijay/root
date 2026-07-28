@@ -1,0 +1,84 @@
+{
+  "registryVersion": 2,
+  "contractVersion": "2.0.0",
+  "productVersion": "v1.0.0",
+  "scope": "NON_RUNTIME_ACCOUNTABLE_OWNER_RISK_ACCEPTANCE",
+  "classification": "DIRECT_OWNER_DIRECTIVE_SELF_ATTESTED",
+  "digestAlgorithm": "SHA-256",
+  "canonicalization": {
+    "version": "MYROOT_CANONICAL_JSON_V1",
+    "unicodeNormalization": "NFC_REQUIRED",
+    "objectKeyOrdering": "UTF16_CODE_UNIT_ASCENDING",
+    "numberEncoding": "SAFE_INTEGER_JSON",
+    "arrayOrdering": "SCHEMA_DEFINED_DETERMINISTIC",
+    "undefinedPolicy": "REJECT",
+    "digestDomainSeparation": "ACCOUNTABLE_OWNER_RISK_ACCEPTANCE_V2"
+  },
+  "inputBinding": {
+    "productVersion": "v1.0.0",
+    "prdSha256": "c7973c271bd60666196644b84655c9c56eda73835d7239072085c80290b39f81",
+    "designSha256": "5a2f774adb5db2f385985add6efd5c00df7a95fd6d05f0cf78b8a49af1bc5a44",
+    "gateDecisionSha256": "abc86917520c533942588991907e4b81622f30e9fba37b56af1074e6c0c59109"
+  },
+  "requiredDecisionIds": [
+    "D-001",
+    "D-002",
+    "D-003",
+    "D-004",
+    "D-005",
+    "D-006",
+    "D-007",
+    "D-008",
+    "D-009",
+    "D-010"
+  ],
+  "requiredRiskCategories": [
+    "PRODUCT_SCOPE",
+    "OPERATIONS_READINESS",
+    "ENGINEERING_READINESS",
+    "QA_QUALITY",
+    "PRIVACY_COMPLIANCE",
+    "HEALTH_CONTENT_SAFETY"
+  ],
+  "requiredDirective": "允许将 v1.0.0 六角色审批机制替换为单一责任人风险接受机制，并重新生成审批基线。",
+  "authorizationMethod": "DIRECT_ACCOUNTABLE_OWNER_DIRECTIVE_V1",
+  "supersedes": {
+    "contractPath": "contracts/baseline-signoff/v1.0.0.json",
+    "contractSha256": "0b61952718ca4d8e819f6aff4f7c34ba9ef9087c1325b55930f1374e201699f3",
+    "status": "SUPERSEDED_NOT_DELETED"
+  },
+  "documentSchema": {
+    "acceptanceExactFields": [
+      "acceptanceFormatVersion",
+      "digestCanonicalizationVersion",
+      "productVersion",
+      "acceptanceId",
+      "accountableOwnerRef",
+      "inputBinding",
+      "sourceInputBindingDigest",
+      "coveredDecisionIds",
+      "acceptedRiskCategories",
+      "directive",
+      "directiveDigest",
+      "authorizationMethod",
+      "authorizationEvidenceRef",
+      "acceptedAt",
+      "revocationStatus",
+      "revocationEvidenceRef",
+      "supersedes",
+      "createdAt"
+    ],
+    "opaqueReferencePatterns": {
+      "acceptance": "^acceptance:sha256:[a-f0-9]{64}$",
+      "actor": "^actor:sha256:[a-f0-9]{64}$",
+      "evidence": "^evidence:sha256:[a-f0-9]{64}$"
+    }
+  },
+  "authorization": {
+    "baselineApprovalGateClosureAuthorized": true,
+    "runtimeAuthorized": false,
+    "candidateCreationAuthorized": false,
+    "deploymentAuthorized": false,
+    "formalLaunchAuthorized": false
+  }
+}

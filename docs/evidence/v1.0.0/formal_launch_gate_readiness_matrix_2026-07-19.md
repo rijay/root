@@ -1,5 +1,7 @@
 # myRoot v1.0.0 正式上线 Gate 就绪矩阵
 
+> **历史快照校准：** 本矩阵及其 JSON 固定在 2026-07-20 的六角色 V1 治理模型下，因此其中 `PRD 具名签署=OPEN`、14 OPEN / 0 CLOSED 仅描述当时状态。2026-07-28 当前 PRD baseline 审批已由单一责任人风险接受 V2 关闭，详见 `docs/v1.0.0_accountable_owner_risk_acceptance_baseline_2026-07-28.md`；本历史矩阵不重写，其他 13 个正式上线 Gate 仍独立开放，且 `formalLaunchAuthorized=false`。
+
 截至 2026-07-20 04:50 +08:00，正式上线仍为 `NOT_READY_FORMAL_LAUNCH_GATES_OPEN`。本矩阵区分“本地 Implementation 已具备”“外部只读证据缺失”“外部写动作待授权”，不把结构测试、合成签名或历史证据当作正式验收。
 
 固定 Readiness Validator 已对 JSON 矩阵派生：14 OPEN、3 HARD BLOCKER、0 CLOSED、`formalLaunchAuthorized=false`，matrix digest=`7788123ec1b59b4e46192b46beb8a6695a6e486c31c07adc4c6a024959838293`。即使未来 14 项均具有受控外部 readback，也只允许进入独立正式发布决策，不能由本矩阵自行授权。详见 `formal_launch_readiness_validation_2026-07-19.json`。
