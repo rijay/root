@@ -53,8 +53,14 @@ function payload(overrides = {}) {
 test("delivery mode is default-off and cannot be enabled by an operation input", () => {
   assert.equal(runtimeAlertDeliveryMode({}), "DISABLED");
   assert.equal(runtimeAlertDeliveryMode({ MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE: "DRY_RUN" }), "DRY_RUN");
+  assert.equal(runtimeAlertDeliveryMode({ MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE: "dry_run" }), "DRY_RUN");
+  assert.equal(runtimeAlertDeliveryMode({ MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE: "controlled" }), "CONTROLLED");
   assert.throws(
     () => runtimeAlertDeliveryMode({ MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE: "true" }),
+    { code: "V1_RUNTIME_ALERT_DELIVERY_CONFIGURATION_INVALID" }
+  );
+  assert.throws(
+    () => runtimeAlertDeliveryMode({ MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE: "Controlled" }),
     { code: "V1_RUNTIME_ALERT_DELIVERY_CONFIGURATION_INVALID" }
   );
   assert.throws(
