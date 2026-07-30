@@ -23,7 +23,11 @@ const REQUIRED_MODULE_IDS = Object.freeze([
 ]);
 const MODULE_SOURCE_POLICIES = Object.freeze([
   Object.freeze({ moduleId: "ADMIN", includePrefixes: Object.freeze(["admin/"]), includeFiles: Object.freeze([]) }),
-  Object.freeze({ moduleId: "BACKEND", includePrefixes: Object.freeze(["backend/"]), includeFiles: Object.freeze([]) }),
+  Object.freeze({
+    moduleId: "BACKEND",
+    includePrefixes: Object.freeze(["backend/", "contracts/"]),
+    includeFiles: Object.freeze([]),
+  }),
   Object.freeze({
     moduleId: "CLOUD_FUNCTION",
     includePrefixes: Object.freeze(["cloudfunctions/"]),
