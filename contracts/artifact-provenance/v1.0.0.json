@@ -29,7 +29,7 @@
     },
     {
       "moduleId": "BACKEND",
-      "includePrefixes": ["backend/"],
+      "includePrefixes": ["backend/", "contracts/"],
       "includeFiles": []
     },
     {

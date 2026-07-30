@@ -76,6 +76,7 @@ function fixtureRepository(options = {}) {
     write(root, "miniprogram/app.js", "App({});\n");
   }
   write(root, "contracts/route-registry/v1.0.0.json", "{}\n");
+  write(root, "contracts/inbox-handler-registry/v1.0.0.json", "{}\n");
   write(root, "scripts/lib/route-registry.js", "module.exports = {};\n");
   write(root, "scripts/route-registry-v1.test.js", "module.exports = true;\n");
   write(root, "scripts/validate-v1-route-registry.js", "module.exports = true;\n");
@@ -138,6 +139,14 @@ test("contract fixes seven module policies and keeps every authorization false",
     "MINIPROGRAM",
     "ROUTE_REGISTRY",
   ]);
+  assert.deepEqual(
+    contract.moduleSourcePolicies.find(({ moduleId }) => moduleId === "BACKEND"),
+    {
+      moduleId: "BACKEND",
+      includePrefixes: ["backend/", "contracts/"],
+      includeFiles: [],
+    }
+  );
   assert.deepEqual(contract.authorization, {
     runtimeAuthorized: false,
     candidateCreationAuthorized: false,
@@ -299,6 +308,7 @@ test("source, module and USTAR digests are deterministic while builder refs stay
     assert.equal(listed.status, 0, listed.stderr);
     assert.match(listed.stdout, /^source\/admin\/src\/app\.js$/m);
     assert.match(listed.stdout, /^source\/contracts\/artifact-provenance\/v1\.0\.0\.json$/m);
+    assert.match(listed.stdout, /^source\/contracts\/inbox-handler-registry\/v1\.0\.0\.json$/m);
   } finally {
     fs.rmSync(fixture.root, { recursive: true, force: true });
     fs.rmSync(firstOutput, { recursive: true, force: true });
