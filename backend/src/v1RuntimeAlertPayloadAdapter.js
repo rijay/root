@@ -12,6 +12,14 @@ const {
 } = require("./v1RuntimeAlertDeliveryPolicy");
 
 const DELIVERY_MODES = Object.freeze(["DISABLED", "DRY_RUN", "CONTROLLED"]);
+const DELIVERY_MODE_ALIASES = new Map([
+  ["DISABLED", "DISABLED"],
+  ["disabled", "DISABLED"],
+  ["DRY_RUN", "DRY_RUN"],
+  ["dry_run", "DRY_RUN"],
+  ["CONTROLLED", "CONTROLLED"],
+  ["controlled", "CONTROLLED"],
+]);
 const PAYLOAD_SCHEMA_VERSION = "myroot.runtime-alert.delivery.v1";
 const CANONICAL_VERSION = "canonical-json:v1";
 const DIGEST_SCHEME = "hmac-sha256:v1";
@@ -86,8 +94,8 @@ function hasEnvironmentValue(env, name) {
 
 function runtimeAlertDeliveryMode(env = process.env) {
   const raw = environmentText(env, "MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE");
-  const mode = raw || "DISABLED";
-  if (!DELIVERY_MODES.includes(mode)) throw configurationError();
+  const mode = raw ? DELIVERY_MODE_ALIASES.get(raw) : "DISABLED";
+  if (!mode || !DELIVERY_MODES.includes(mode)) throw configurationError();
   const required = environmentText(env, "MYROOT_V1_RUNTIME_ALERT_DELIVERY_REQUIRED");
   if (required && !["true", "false"].includes(required)) throw configurationError();
   if (required === "true" && mode === "DISABLED") throw configurationError();
