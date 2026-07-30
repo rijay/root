@@ -861,7 +861,14 @@ async function createMysqlStore(config = {}, options = {}) {
   const createSettlementSourceInvalidationResolveAdapter = dependencies
     .createMysqlSettlementSourceInvalidationResolveAdapter
     || createMysqlSettlementSourceInvalidationResolveAdapter;
-  const policyEnv = options.env || process.env;
+  const policyEnvSource = options.env || process.env;
+  // Node exposes process.env as a host object whose prototype is not
+  // Object.prototype. Internal persistence modules intentionally accept only
+  // plain records, so normalize the platform environment at this seam while
+  // preserving explicitly supplied test/configuration records unchanged.
+  const policyEnv = policyEnvSource === process.env
+    ? { ...policyEnvSource }
+    : policyEnvSource;
   const commandRequestDigestCodec = options.commandRequestDigestCodec
     || createCommandRequestDigestCodec(policyEnv);
   const commandResultCodec = options.commandResultCodec

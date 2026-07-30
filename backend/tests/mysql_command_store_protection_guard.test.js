@@ -47,3 +47,64 @@ test("protected MySQL Store refuses a missing request digest key before creating
   );
   assert.equal(state.poolCreated, false);
 });
+
+test("MySQL Store normalizes the Node process environment before crossing persistence interfaces", async () => {
+  const names = [
+    "NODE_ENV",
+    "ROOT_COMMAND_REQUEST_DIGEST_KEY",
+    "ROOT_COMMAND_REQUEST_DIGEST_KEY_ID",
+    "ROOT_COMMAND_RESULT_ENCRYPTION_KEY",
+    "ROOT_COMMAND_RESULT_KEY_ID",
+    "ROOT_MYSQL_MIGRATION_MODE",
+  ];
+  const previous = Object.fromEntries(names.map((name) => [
+    name,
+    Object.prototype.hasOwnProperty.call(process.env, name)
+      ? process.env[name]
+      : undefined,
+  ]));
+  process.env.NODE_ENV = "production";
+  process.env.ROOT_COMMAND_REQUEST_DIGEST_KEY =
+    "store-process-env-request-digest-key-with-strong-entropy-2026";
+  process.env.ROOT_COMMAND_REQUEST_DIGEST_KEY_ID = "store-process-env-request-v1";
+  process.env.ROOT_COMMAND_RESULT_ENCRYPTION_KEY =
+    "store-process-env-result-encryption-key-with-strong-entropy-2026";
+  process.env.ROOT_COMMAND_RESULT_KEY_ID = "store-process-env-result-v1";
+  process.env.ROOT_MYSQL_MIGRATION_MODE = "verify_only";
+
+  const sentinel = new Error("normalized process environment observed");
+  let poolEnded = false;
+  try {
+    await assert.rejects(
+      () => createMysqlStore(MYSQL_CONFIG, {
+        dependencies: {
+          mysql: {
+            createPool() {
+              return {
+                async end() {
+                  poolEnded = true;
+                },
+              };
+            },
+          },
+          createMysqlNotificationDeliveryCore(_pool, options) {
+            assert.equal(Object.getPrototypeOf(options.env), Object.prototype);
+            assert.notEqual(options.env, process.env);
+            assert.equal(
+              options.env.ROOT_COMMAND_RESULT_KEY_ID,
+              "store-process-env-result-v1"
+            );
+            throw sentinel;
+          },
+        },
+      }),
+      (error) => error === sentinel
+    );
+    assert.equal(poolEnded, true);
+  } finally {
+    for (const name of names) {
+      if (previous[name] === undefined) delete process.env[name];
+      else process.env[name] = previous[name];
+    }
+  }
+});
