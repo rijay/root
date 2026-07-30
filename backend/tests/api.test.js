@@ -982,6 +982,19 @@ test("production environment matrix groups launch and Adapter variables", () => 
     K_REVISION: "myroot-api-00001-test",
     MYROOT_V1_RUNTIME_CONNECTION_LIMIT: "3",
     MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE: "controlled",
+    ROOT_V1_RUNTIME_ALERT_RECEIVER_BINDING_REF: "runtime-alert-receiver-test-v1",
+    ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT: "https://alerts.example.test/myroot/runtime",
+    ROOT_V1_RUNTIME_ALERT_RECEIVER_SECRET:
+      "runtime-alert-receiver-secret-with-strong-entropy-2026",
+    ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY:
+      "runtime-alert-binding-digest-key-with-strong-entropy-2026",
+    ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID: "runtime-alert-binding-test-v1",
+    ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY:
+      "runtime-alert-payload-signing-key-with-strong-entropy-2026",
+    ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY_ID: "runtime-alert-payload-test-v1",
+    ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY:
+      "runtime-alert-receipt-digest-key-with-strong-entropy-2026",
+    ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID: "runtime-alert-receipt-test-v1",
     MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_USERNAME: "runtime-alert-registrar",
     MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD: "registrar-role-secret-2026",
     MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CURRENT_USER: "runtime-alert-registrar@%",
@@ -1292,6 +1305,34 @@ test("production environment matrix groups launch and Adapter variables", () => 
     ...readyEnv,
     MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_PASSWORD: "",
   }, { target: "production" });
+  const missingRuntimeAlertDeliveryFields = [
+    "ROOT_V1_RUNTIME_ALERT_RECEIVER_BINDING_REF",
+    "ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT",
+    "ROOT_V1_RUNTIME_ALERT_RECEIVER_SECRET",
+    "ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY",
+    "ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID",
+    "ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY",
+    "ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY_ID",
+    "ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY",
+    "ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID",
+  ].map((name) => ({
+    name,
+    matrix: buildProductionEnvMatrix({ ...readyEnv, [name]: "" }, { target: "production" }),
+  }));
+  const invalidRuntimeAlertEndpoint = buildProductionEnvMatrix({
+    ...readyEnv,
+    ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT: "http://alerts.example.test/myroot/runtime",
+  }, { target: "production" });
+  const duplicateRuntimeAlertKeyId = buildProductionEnvMatrix({
+    ...readyEnv,
+    ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID:
+      readyEnv.ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID,
+  }, { target: "production" });
+  const duplicateRuntimeAlertKey = buildProductionEnvMatrix({
+    ...readyEnv,
+    ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY:
+      readyEnv.ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY,
+  }, { target: "production" });
   const weakRuntimeRegistrarPassword = buildProductionEnvMatrix({
     ...readyEnv,
     MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD: "too-short",
@@ -1476,6 +1517,21 @@ test("production environment matrix groups launch and Adapter variables", () => 
   assert.ok(missingRuntimeWorkerPassword.groups.some((group) =>
     group.id === "v1_runtime_control" && group.status === "BLOCKER"
       && group.missingRequired.includes("MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_PASSWORD")));
+  for (const { name, matrix } of missingRuntimeAlertDeliveryFields) {
+    assert.ok(matrix.groups.some((group) =>
+      group.id === "v1_runtime_control" && group.status === "BLOCKER"
+        && group.missingRequired.includes(name)));
+  }
+  assert.ok(invalidRuntimeAlertEndpoint.groups.some((group) =>
+    group.id === "v1_runtime_control" && group.status === "BLOCKER"
+      && group.missingRequired.some((item) =>
+        item.startsWith("ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT="))));
+  assert.ok(duplicateRuntimeAlertKeyId.groups.some((group) =>
+    group.id === "v1_runtime_control" && group.status === "BLOCKER"
+      && group.missingRequired.includes("ROOT_V1_RUNTIME_ALERT_DIGEST_KEY_IDS_DISTINCT=required")));
+  assert.ok(duplicateRuntimeAlertKey.groups.some((group) =>
+    group.id === "v1_runtime_control" && group.status === "BLOCKER"
+      && group.missingRequired.includes("ROOT_V1_RUNTIME_ALERT_DIGEST_KEYS_DISTINCT=required")));
   assert.ok(weakRuntimeRegistrarPassword.groups.some((group) =>
     group.id === "v1_runtime_control" && group.status === "BLOCKER"
       && group.missingRequired.some((item) => item.startsWith("MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD="))));
