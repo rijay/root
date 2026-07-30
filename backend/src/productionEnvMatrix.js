@@ -93,6 +93,15 @@ const ENV_GROUPS = [
       "MYROOT_V1_RUNTIME_TARGET_GENERATION",
       "MYROOT_V1_RUNTIME_CONNECTION_LIMIT",
       "MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE",
+      "ROOT_V1_RUNTIME_ALERT_RECEIVER_BINDING_REF",
+      "ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT",
+      "ROOT_V1_RUNTIME_ALERT_RECEIVER_SECRET",
+      "ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY",
+      "ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID",
+      "ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY",
+      "ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY_ID",
+      "ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY",
+      "ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID",
       "MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_USERNAME",
       "MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD",
       "MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CURRENT_USER",
@@ -124,6 +133,15 @@ const ENV_GROUPS = [
       MYROOT_V1_RUNTIME_ENVIRONMENT_ID: "opaque_ascii",
       MYROOT_V1_RUNTIME_TARGET_GENERATION: "opaque_ascii",
       MYROOT_V1_RUNTIME_CONNECTION_LIMIT: "integer_3_64",
+      ROOT_V1_RUNTIME_ALERT_RECEIVER_BINDING_REF: "opaque_ascii_128",
+      ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT: "https_endpoint",
+      ROOT_V1_RUNTIME_ALERT_RECEIVER_SECRET: "strong_key",
+      ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY: "strong_key",
+      ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID: "key_id",
+      ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY: "strong_key",
+      ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY_ID: "key_id",
+      ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY: "strong_key",
+      ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID: "key_id",
       MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_USERNAME: "mysql_role_username",
       MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD: "mysql_role_password",
       MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CURRENT_USER: "mysql_current_user",
@@ -703,6 +721,21 @@ function isHttpsBaseUrl(value) {
   }
 }
 
+function isHttpsEndpoint(value) {
+  const raw = String(value || "");
+  if (!raw || raw !== raw.trim() || raw.length > 2048) return false;
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === "https:"
+      && Boolean(parsed.hostname)
+      && !parsed.username
+      && !parsed.password
+      && !parsed.hash;
+  } catch {
+    return false;
+  }
+}
+
 function isWechatOfficialOpenApiOrigin(value) {
   try {
     const target = resolveWechatOpenApiUrl("/", {
@@ -857,6 +890,8 @@ function envRows(env, names = [], requiredValues = {}, requiredRules = {}) {
         ? /^[0-9a-f]{64}$/.test(raw)
       : rule === "https_url"
         ? isHttpsBaseUrl(raw)
+      : rule === "https_endpoint"
+        ? isHttpsEndpoint(raw)
       : rule === "wechat_official_openapi_origin"
         ? isWechatOfficialOpenApiOrigin(raw)
       : rule === "wechat_official_subscribe_send_url"
@@ -915,6 +950,7 @@ function envRows(env, names = [], requiredValues = {}, requiredRules = {}) {
         : rule === "mysql_current_user" ? "3 至 288 位、含 @ 且仅含非空白可打印 ASCII 的 CURRENT_USER"
         : rule === "sha256_digest" ? "64 位小写十六进制 SHA-256 摘要"
         : rule === "https_url" ? "无用户信息、查询或片段的 HTTPS origin"
+        : rule === "https_endpoint" ? "无用户信息或片段的 HTTPS endpoint"
         : rule === "wechat_official_openapi_origin" ? "精确微信官方 HTTPS origin https://api.weixin.qq.com"
         : rule === "wechat_official_subscribe_send_url" ? "精确微信官方订阅发送 URL"
         : rule === "privacy_contact" ? "有效邮箱或 7 至 15 位电话"
@@ -994,6 +1030,22 @@ function crossGroupMissing(group, env) {
   const mainPassword = String(env && env.MYSQL_PASSWORD || "");
   if (mainPassword && rolePasswords.includes(mainPassword)) {
     authorityMissing.push("MYROOT_V1_RUNTIME_ALERT_MYSQL_CREDENTIALS_DISTINCT_FROM_MAIN=required");
+  }
+  const alertDigestKeyIds = [
+    String(env && env.ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID || ""),
+    String(env && env.ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY_ID || ""),
+    String(env && env.ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID || ""),
+  ];
+  if (alertDigestKeyIds.every(Boolean) && new Set(alertDigestKeyIds).size !== 3) {
+    authorityMissing.push("ROOT_V1_RUNTIME_ALERT_DIGEST_KEY_IDS_DISTINCT=required");
+  }
+  const alertDigestKeys = [
+    String(env && env.ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY || ""),
+    String(env && env.ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY || ""),
+    String(env && env.ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY || ""),
+  ];
+  if (alertDigestKeys.every(Boolean) && new Set(alertDigestKeys).size !== 3) {
+    authorityMissing.push("ROOT_V1_RUNTIME_ALERT_DIGEST_KEYS_DISTINCT=required");
   }
   const names = [
     "MYSQL_CONNECTION_LIMIT",

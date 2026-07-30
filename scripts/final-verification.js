@@ -710,6 +710,20 @@ function productionEnvMatrixCheck() {
     MYROOT_V1_RUNTIME_TARGET_GENERATION: "final-verification-initial",
     MYROOT_V1_RUNTIME_CONNECTION_LIMIT: "3",
     MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE: "controlled",
+    ROOT_V1_RUNTIME_ALERT_RECEIVER_BINDING_REF: "runtime-alert-receiver-final-v1",
+    ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT:
+      "https://alerts.example.test/myroot/runtime",
+    ROOT_V1_RUNTIME_ALERT_RECEIVER_SECRET:
+      "runtime-alert-receiver-secret-final-with-strong-entropy-2026",
+    ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY:
+      "runtime-alert-binding-digest-key-final-with-strong-entropy-2026",
+    ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID: "runtime-alert-binding-final-v1",
+    ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY:
+      "runtime-alert-payload-signing-key-final-with-strong-entropy-2026",
+    ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY_ID: "runtime-alert-payload-final-v1",
+    ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY:
+      "runtime-alert-receipt-digest-key-final-with-strong-entropy-2026",
+    ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID: "runtime-alert-receipt-final-v1",
     MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_USERNAME: "runtime-alert-registrar",
     MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD: "final-registrar-role-secret-2026",
     MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CURRENT_USER: "runtime-alert-registrar@%",
