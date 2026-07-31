@@ -115,6 +115,7 @@ const {
   importExternalSamples,
   enrollActivity,
   loginWithWechat,
+  prepareWechatLoginExternalInputs,
   joinCampaign,
   listActivities,
   listAdminActivityDefinitions,
@@ -579,8 +580,12 @@ function publicV1RuntimeCycleResult(result, dryRun, expectedScheduleId) {
   });
 }
 
+const REQUEST_BODY_PROMISE = Symbol("root.requestBodyPromise");
+const PREPARED_WECHAT_LOGIN = Symbol("root.preparedWechatLogin");
+
 function readBody(req) {
-  return new Promise((resolve, reject) => {
+  if (req[REQUEST_BODY_PROMISE]) return req[REQUEST_BODY_PROMISE];
+  req[REQUEST_BODY_PROMISE] = new Promise((resolve, reject) => {
     let raw = "";
     req.on("data", (chunk) => {
       raw += chunk;
@@ -598,6 +603,7 @@ function readBody(req) {
       }
     });
   });
+  return req[REQUEST_BODY_PROMISE];
 }
 
 function send(res, status, payload, headers = {}) {
@@ -1252,15 +1258,21 @@ function createApp(options = {}) {
       };
 
       if (route === "POST /api/v1/auth/login") {
-        const trustedWechatIdentity = await resolveTrustedWechatIdentity({
-          adapter: runtimeContext.trustedWechatIdentityAdapter,
-          request: req,
-          env: runtimeContext.env,
-        });
+        const preparedWechatLogin = req[PREPARED_WECHAT_LOGIN] || null;
+        const trustedWechatIdentity = preparedWechatLogin
+          ? preparedWechatLogin.trustedWechatIdentity
+          : await resolveTrustedWechatIdentity({
+            adapter: runtimeContext.trustedWechatIdentityAdapter,
+            request: req,
+            env: runtimeContext.env,
+          });
         return ok(res, await loginWithWechat(data, body, {
           env: runtimeContext.env,
           headers: req.headers,
           trustedWechatIdentity,
+          trustedPhoneNumber: preparedWechatLogin
+            ? preparedWechatLogin.trustedPhoneNumber
+            : "",
         }));
       }
       if (route === "GET /api/v1/privacy/notice") return ok(res, getPrivacyNotice(runtimeContext));
@@ -2474,6 +2486,29 @@ function createApp(options = {}) {
       await initialPersistPromise;
       const url = new URL(req.url, "http://localhost");
       const method = req.method || "GET";
+      if (method === "POST" && url.pathname === "/api/v1/auth/login") {
+        try {
+          const body = await readBody(req);
+          const trustedWechatIdentity = await resolveTrustedWechatIdentity({
+            adapter: runtimeContext.trustedWechatIdentityAdapter,
+            request: req,
+            env: runtimeContext.env,
+          });
+          req[PREPARED_WECHAT_LOGIN] = await prepareWechatLoginExternalInputs(body, {
+            env: runtimeContext.env,
+            headers: req.headers,
+            trustedWechatIdentity,
+          });
+        } catch (error) {
+          realResponse.responseSecurityHeaders = responseSecurityPolicy.headersFor(req);
+          send(realResponse, error.status || 200, {
+            code: error.code || 500,
+            message: error.message || "服务端错误",
+            data: null,
+          });
+          return;
+        }
+      }
       const bypassSnapshotTransaction = method === "POST"
         && url.pathname === V1_RUNTIME_CYCLE_ROUTE;
       if (!url.pathname.startsWith("/api/") || method === "OPTIONS" || bypassSnapshotTransaction) {

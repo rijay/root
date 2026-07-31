@@ -2457,6 +2457,69 @@ test("cloud container login uses WeChat cloud open Interface", async (t) => {
   assert.deepEqual(JSON.parse(requestedBody), { code: "phone_code" });
 });
 
+test("WeChat code exchange completes before the serialized Store Interface starts", async (t) => {
+  let releaseWechatResponse;
+  let markWechatRequestStarted;
+  const wechatRequestStarted = new Promise((resolve) => {
+    markWechatRequestStarted = resolve;
+  });
+  const wechatResponseGate = new Promise((resolve) => {
+    releaseWechatResponse = resolve;
+  });
+  const wechatServer = http.createServer(async (_req, res) => {
+    markWechatRequestStarted();
+    await wechatResponseGate;
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify({
+      openid: "outside_store_openid",
+      unionid: "outside_store_unionid",
+    }));
+  });
+  const wechatBaseUrl = await listen(wechatServer);
+  t.after(() => wechatServer.close());
+
+  const storeAdapter = createMemoryStore(createEmptyData());
+  let storeRequestCount = 0;
+  storeAdapter.runRequest = async (_options, work) => {
+    storeRequestCount += 1;
+    return work(storeAdapter.data, {});
+  };
+  const server = createApp({
+    storeAdapter,
+    env: {
+      NODE_ENV: "test",
+      ROOT_WECHAT_OPENAPI_BASE_URL: wechatBaseUrl,
+      ROOT_WECHAT_APPID: "wx_test_app",
+      ROOT_WECHAT_APPSECRET: "test_secret",
+    },
+  });
+  await server.readyPromise;
+  storeRequestCount = 0;
+  const baseUrl = await listen(server);
+  t.after(() => server.close());
+
+  const loginPromise = request(baseUrl, "/api/v1/auth/login", {
+    method: "POST",
+    body: JSON.stringify({
+      appCode: "MYROOT",
+      wxCode: "temporary_wechat_code",
+    }),
+  });
+  await wechatRequestStarted;
+
+  assert.equal(
+    storeRequestCount,
+    0,
+    "the Store Interface must not start while WeChat network I/O is pending"
+  );
+  releaseWechatResponse();
+  const login = await loginPromise;
+
+  assert.equal(login.code, 0);
+  assert.equal(login.data.identity.appCode, "MYROOT");
+  assert.equal(storeRequestCount, 1);
+});
+
 test("cloud container openid login can enter before phone authorization", async (t) => {
   const server = createApp({ trustedWechatIdentityAdapter: verifiedCloudbaseHeaderIdentityAdapter });
   const baseUrl = await listen(server);
