@@ -22,20 +22,21 @@
 接口地址和云托管调用信息在 `config/env.js`：
 
 ```js
-const productionApiBaseUrl = "https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com";
 const productionCloudServiceName = "myroot-api";
 const internalTestCloudServiceName = "myroot-api";
 const internalTestCloudContainerConfig = {
+  requestAdapter: "cloudContainer",
   cloudEnvId: "myroot-prod-d5gl3gzg7115f149a",
   cloudServiceName: internalTestCloudServiceName,
 };
 const productionCloudContainerConfig = {
+  requestAdapter: "cloudContainer",
   cloudEnvId: "myroot-prod-d5gl3gzg7115f149a",
   cloudServiceName: productionCloudServiceName,
 };
 ```
 
-开发版、体验版和正式版都会默认使用 `wx.cloud.callContainer`，不让小程序直连 SQL。当前团队内测阶段的 `develop`、`trial` 和 `release` 均使用腾讯云 CloudBase 环境 `myroot-prod-d5gl3gzg7115f149a` 与云托管 `myroot-api`，由后端连接 CloudBase MySQL；这是一项明确的临时环境策略。恢复独立测试环境时，只替换 `develop/trial` 的 `cloudEnvId` 和对应后端 secret。如果开发者工具或脚本运行态没有注入 `__wxConfig.envVersion`，本地仍按 `develop` 处理。
+开发版、体验版和正式版都会默认使用 `wx.cloud.callContainer`，通过 `cloudEnvId + cloudServiceName` 访问云托管，不依赖仅供测试的 `*.sh.run.tcloudbase.com` 默认公网域名，也不让小程序直连 SQL。当前团队内测阶段的 `develop`、`trial` 和 `release` 均使用腾讯云 CloudBase 环境 `myroot-prod-d5gl3gzg7115f149a` 与云托管 `myroot-api`，由后端连接 CloudBase MySQL；这是一项明确的临时环境策略。恢复独立测试环境时，只替换 `develop/trial` 的 `cloudEnvId` 和对应后端 secret。如果开发者工具或脚本运行态没有注入 `__wxConfig.envVersion`，本地仍按 `develop` 处理。
 
 ## 调试排错
 

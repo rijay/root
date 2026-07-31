@@ -158,6 +158,21 @@ if (runtimeEnv.requestAdapter !== "cloudContainer") {
 if (!runtimeEnv.cloudEnvId || !runtimeEnv.cloudServiceName) {
   networkProblems.push("config/env.js: cloudEnvId and cloudServiceName are required for wx.cloud.callContainer");
 }
+if (runtimeEnv.apiBaseUrl && /\.sh\.run\.tcloudbase\.com/i.test(runtimeEnv.apiBaseUrl)) {
+  networkProblems.push("config/env.js: CloudBase default public domain is test-only and must not ship in a formal mini-program package");
+}
+const formalPackageDomainPattern = /\.sh\.run\.tcloudbase\.com/i;
+[
+  "config/env.js",
+  "app.js",
+  "app.json",
+  "project.config.json",
+].forEach((relativePath) => {
+  const content = fs.readFileSync(path.join(root, relativePath), "utf8");
+  if (formalPackageDomainPattern.test(content)) {
+    networkProblems.push(`${relativePath}: formal mini-program package must not contain a CloudBase default public domain`);
+  }
+});
 if (runtimeEnv.youzanAppId === "wx1234567890abcdef" || runtimeEnv.youzanProductPath === "pages/product/detail?id=ROOT_PREBIOTIC") {
   networkProblems.push("config/env.js: Root member center purchase jump must not use placeholder appid or product path");
 }
