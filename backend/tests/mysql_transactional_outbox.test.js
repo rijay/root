@@ -1026,12 +1026,16 @@ test("read-only and rolled-back requests never flush staged outbox facts", async
   const store = await createStore(runtime);
   t.after(() => store.close());
 
+  runtime.state.calls.length = 0;
   await store.runRequest({ write: false }, async (_data, transactionControl) => {
     assert.throws(
       () => transactionControl.eventTransport.stageOutbox(envelope("tev_read_only")),
       (error) => error.code === "STORE_EVENT_TRANSPORT_READ_ONLY"
     );
   });
+  assert.equal(runtime.state.calls.includes("SNAPSHOT_READ"), true);
+  assert.equal(runtime.state.calls.includes("SNAPSHOT_LOCK"), false);
+
   await store.runRequest({ write: true, shouldCommit: () => false }, async (_data, transactionControl) => {
     transactionControl.eventTransport.stageOutbox(envelope("tev_should_rollback"));
   });
