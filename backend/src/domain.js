@@ -445,9 +445,15 @@ function normalizeWechatContext(context) {
       env: context.env,
       headers: context.headers || {},
       trustedWechatIdentity: context.trustedWechatIdentity || null,
+      trustedPhoneNumber: context.trustedPhoneNumber || "",
     };
   }
-  return { env: context || process.env, headers: {}, trustedWechatIdentity: null };
+  return {
+    env: context || process.env,
+    headers: {},
+    trustedWechatIdentity: null,
+    trustedPhoneNumber: "",
+  };
 }
 
 function shouldUseCloudbaseOpenApi(identity) {
@@ -499,6 +505,95 @@ async function getWechatSession(config, wxCode, env = process.env) {
   url.searchParams.set("js_code", wxCode);
   url.searchParams.set("grant_type", "authorization_code");
   return fetchWechatJson(url);
+}
+
+function resolveWechatLoginAppCode(body, runtime, trustedWechatIdentity = null) {
+  const env = runtime.env;
+  const requestedAppCodeValue = body.appCode
+    || body.app_code
+    || getHeader(runtime.headers, "x-root-app-code");
+  const requestedAppCode = requestedAppCodeValue
+    ? normalizeAppCode(requestedAppCodeValue)
+    : "";
+  const deploymentAppCode = isProtectedRuntime(env)
+    ? normalizeAppCode(env.ROOT_WECHAT_APP_CODE || "MYROOT")
+    : "";
+  if (
+    trustedWechatIdentity
+    && deploymentAppCode
+    && trustedWechatIdentity.appCode !== deploymentAppCode
+  ) {
+    throw businessError(
+      "TRUSTED_WECHAT_DEPLOYMENT_APP_CODE_MISMATCH",
+      "可信微信身份与当前部署应用不一致",
+      401
+    );
+  }
+  if (
+    trustedWechatIdentity
+    && requestedAppCode
+    && requestedAppCode !== trustedWechatIdentity.appCode
+  ) {
+    throw businessError(
+      "TRUSTED_WECHAT_APP_CODE_MISMATCH",
+      "请求应用与可信微信身份所属应用不一致",
+      401
+    );
+  }
+  if (
+    !trustedWechatIdentity
+    && deploymentAppCode
+    && requestedAppCode
+    && requestedAppCode !== deploymentAppCode
+  ) {
+    throw businessError(
+      "WECHAT_DEPLOYMENT_APP_CODE_MISMATCH",
+      "请求应用与当前微信部署应用不一致",
+      401
+    );
+  }
+  return trustedWechatIdentity
+    ? trustedWechatIdentity.appCode
+    : deploymentAppCode || normalizeAppCode(requestedAppCodeValue);
+}
+
+async function prepareWechatLoginExternalInputs(body = {}, context = process.env) {
+  const runtime = normalizeWechatContext(context);
+  const env = runtime.env;
+  let trustedWechatIdentity = runtime.trustedWechatIdentity
+    ? normalizeVerifiedAssertion(runtime.trustedWechatIdentity)
+    : null;
+  const appCode = resolveWechatLoginAppCode(body, runtime, trustedWechatIdentity);
+  const shouldUseWechatPhone = !body.phone && body.phoneCode;
+
+  if (!trustedWechatIdentity && body.wxCode) {
+    const config = getWechatConfig(env);
+    if (!config.appid || !config.secret) {
+      throw businessError(1006, "服务端未配置微信登录密钥");
+    }
+    trustedWechatIdentity = normalizeWechatSessionIdentity(
+      await getWechatSession(config, body.wxCode, env),
+      appCode
+    );
+  }
+
+  let trustedPhoneNumber = "";
+  if (shouldUseWechatPhone) {
+    if (shouldUseCloudbaseOpenApi(trustedWechatIdentity)) {
+      trustedPhoneNumber = await getCloudbaseWechatPhoneNumber(body.phoneCode, env);
+    } else {
+      const config = getWechatConfig(env);
+      if (!config.appid || !config.secret) {
+        throw businessError(1006, "服务端未配置微信登录密钥");
+      }
+      trustedPhoneNumber = await getWechatPhoneNumber(config, body.phoneCode);
+    }
+  }
+
+  return Object.freeze({
+    trustedWechatIdentity,
+    trustedPhoneNumber,
+  });
 }
 
 function currentSessionForUser(data, userId) {
@@ -604,38 +699,10 @@ function updateDisplayProfile(data, token, body = {}) {
 async function loginWithWechat(data, body = {}, context = process.env) {
   const runtime = normalizeWechatContext(context);
   const env = runtime.env;
-  const requestedAppCodeValue = body.appCode || body.app_code || getHeader(runtime.headers, "x-root-app-code");
-  const requestedAppCode = requestedAppCodeValue ? normalizeAppCode(requestedAppCodeValue) : "";
   const trustedWechatIdentity = runtime.trustedWechatIdentity
     ? normalizeVerifiedAssertion(runtime.trustedWechatIdentity)
     : null;
-  const deploymentAppCode = isProtectedRuntime(env)
-    ? normalizeAppCode(env.ROOT_WECHAT_APP_CODE || "MYROOT")
-    : "";
-  if (trustedWechatIdentity && deploymentAppCode && trustedWechatIdentity.appCode !== deploymentAppCode) {
-    throw businessError(
-      "TRUSTED_WECHAT_DEPLOYMENT_APP_CODE_MISMATCH",
-      "可信微信身份与当前部署应用不一致",
-      401
-    );
-  }
-  if (trustedWechatIdentity && requestedAppCode && requestedAppCode !== trustedWechatIdentity.appCode) {
-    throw businessError(
-      "TRUSTED_WECHAT_APP_CODE_MISMATCH",
-      "请求应用与可信微信身份所属应用不一致",
-      401
-    );
-  }
-  if (!trustedWechatIdentity && deploymentAppCode && requestedAppCode && requestedAppCode !== deploymentAppCode) {
-    throw businessError(
-      "WECHAT_DEPLOYMENT_APP_CODE_MISMATCH",
-      "请求应用与当前微信部署应用不一致",
-      401
-    );
-  }
-  const appCode = trustedWechatIdentity
-    ? trustedWechatIdentity.appCode
-    : deploymentAppCode || normalizeAppCode(requestedAppCodeValue);
+  const appCode = resolveWechatLoginAppCode(body, runtime, trustedWechatIdentity);
   const shouldUseWechatPhone = !body.phone && body.phoneCode;
 
   function loginByWechatIdentity(input, identityContext = {}) {
@@ -704,7 +771,8 @@ async function loginWithWechat(data, body = {}, context = process.env) {
   }
 
   if (shouldUseCloudbaseOpenApi(trustedWechatIdentity)) {
-    const phone = await getCloudbaseWechatPhoneNumber(body.phoneCode, env);
+    const phone = runtime.trustedPhoneNumber
+      || await getCloudbaseWechatPhoneNumber(body.phoneCode, env);
     return loginByPhone(data, {
       ...body,
       env,
@@ -717,11 +785,15 @@ async function loginWithWechat(data, body = {}, context = process.env) {
   const config = getWechatConfig(env);
   if (!config.appid || !config.secret) throw businessError(1006, "服务端未配置微信登录密钥");
 
-  const [session, phone] = await Promise.all([
-    getWechatSession(config, body.wxCode, env),
-    getWechatPhoneNumber(config, body.phoneCode),
+  const [sessionIdentity, phone] = await Promise.all([
+    trustedWechatIdentity
+      ? Promise.resolve(trustedWechatIdentity)
+      : getWechatSession(config, body.wxCode, env)
+        .then((session) => normalizeWechatSessionIdentity(session, appCode)),
+    runtime.trustedPhoneNumber
+      ? Promise.resolve(runtime.trustedPhoneNumber)
+      : getWechatPhoneNumber(config, body.phoneCode),
   ]);
-  const sessionIdentity = normalizeWechatSessionIdentity(session, appCode);
   return loginByPhone(
     data,
     { ...body, env, appCode, openid: sessionIdentity.openid, unionid: sessionIdentity.unionid },
@@ -3282,6 +3354,7 @@ module.exports = {
   getUserState,
   login,
   loginWithWechat,
+  prepareWechatLoginExternalInputs,
   joinCampaign,
   listActivities,
   listAdminActivityDefinitions,
