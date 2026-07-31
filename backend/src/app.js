@@ -2529,10 +2529,11 @@ function createApp(options = {}) {
         eventTransport: transactionControl.eventTransport,
       });
       if (typeof storeAdapter.runRequest === "function") {
+        const writesStore = method !== "GET";
         await storeAdapter.runRequest({
-          write: true,
+          write: writesStore,
           // Handled business failures can include audit or retry evidence and must persist.
-          shouldCommit: () => true,
+          shouldCommit: () => writesStore,
         }, execute);
       } else {
         rollbackSnapshot = typeof storeAdapter.exportSnapshot === "function" ? storeAdapter.exportSnapshot() : null;

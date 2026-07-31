@@ -2520,6 +2520,34 @@ test("WeChat code exchange completes before the serialized Store Interface start
   assert.equal(storeRequestCount, 1);
 });
 
+test("GET routes use the read-only Store Interface while login remains writable", async (t) => {
+  const storeAdapter = createMemoryStore(createEmptyData());
+  const requestOptions = [];
+  storeAdapter.runRequest = async (options, work) => {
+    requestOptions.push(options);
+    return work(storeAdapter.data, {});
+  };
+  const server = createApp({ storeAdapter, env: directPhoneLoginEnv });
+  await server.readyPromise;
+  requestOptions.length = 0;
+  const baseUrl = await listen(server);
+  t.after(() => server.close());
+
+  const activities = await request(baseUrl, "/api/v1/activities");
+  const login = await request(baseUrl, "/api/v1/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ phone: "13800008888" }),
+  });
+
+  assert.equal(activities.code, 0);
+  assert.equal(login.code, 0);
+  assert.equal(requestOptions.length, 2);
+  assert.equal(requestOptions[0].write, false);
+  assert.equal(requestOptions[0].shouldCommit(), false);
+  assert.equal(requestOptions[1].write, true);
+  assert.equal(requestOptions[1].shouldCommit(), true);
+});
+
 test("cloud container openid login can enter before phone authorization", async (t) => {
   const server = createApp({ trustedWechatIdentityAdapter: verifiedCloudbaseHeaderIdentityAdapter });
   const baseUrl = await listen(server);

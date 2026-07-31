@@ -1298,7 +1298,7 @@ async function createMysqlStore(config = {}, options = {}) {
           });
         };
 
-        const beginLockedTransaction = async () => {
+        const beginRequestTransaction = async () => {
           await connection.beginTransaction();
           transactionActive = true;
           transactionEventTransport = createMysqlEventTransportAdapter(connection);
@@ -1307,7 +1307,7 @@ async function createMysqlStore(config = {}, options = {}) {
             requestDigestCodec: commandRequestDigestCodec,
             resultCodec: commandResultCodec,
           });
-          const row = await selectSnapshot(connection, true);
+          const row = await selectSnapshot(connection, requestOptions.write !== false);
           beforePersisted = normalizeStoreData(parseMysqlPayload(row.payload_json), options);
           settlementSourceInvalidationRead = createSettlementSourceInvalidationReadAdapter(
             connection
@@ -1386,7 +1386,7 @@ async function createMysqlStore(config = {}, options = {}) {
         };
 
         try {
-          await beginLockedTransaction();
+          await beginRequestTransaction();
           phase = "work";
           const checkpointCurrentTransaction = async (checkpointOptions = {}) => {
             if (requestOptions.write === false) {
@@ -1413,7 +1413,7 @@ async function createMysqlStore(config = {}, options = {}) {
             }
             phase = "store";
             try {
-              await beginLockedTransaction();
+              await beginRequestTransaction();
             } catch (error) {
               if (transactionActive) {
                 await connection.rollback().catch(() => {});
