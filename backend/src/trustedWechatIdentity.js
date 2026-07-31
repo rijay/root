@@ -1,4 +1,8 @@
-const ALLOWED_SOURCES = new Set(["CLOUDBASE", "WECHAT_GATEWAY"]);
+const ALLOWED_SOURCES = new Set([
+  "CLOUDBASE",
+  "WECHAT_GATEWAY",
+  "WECHAT_CODE2SESSION",
+]);
 const APP_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,31}$/;
 
 function text(value) {

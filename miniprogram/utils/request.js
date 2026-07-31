@@ -116,10 +116,10 @@ function buildHeader(token, requestId, idempotencyKey, optionsHeader) {
 
 function requestByWxRequest(options, token, requestId, idempotencyKey) {
   return new Promise((resolve, reject) => {
-    if (/example\.com/.test(env.apiBaseUrl)) {
+    if (!env.apiBaseUrl || /example\.com|\.sh\.run\.tcloudbase\.com/i.test(env.apiBaseUrl)) {
       reject(createRequestError({
         code: "REQUEST_ENV_UNCONFIGURED",
-        message: "请先在 config/env.js 配置正式环境接口域名",
+        message: "请先在 config/env.js 配置已备案的正式环境接口域名",
       }));
       return;
     }
