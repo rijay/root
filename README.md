@@ -1,5 +1,7 @@
 # ROOT 7日身体重启计划
 
+> myRoot 前后端重构请从 [`docs/rebuild_handoff/README.md`](docs/rebuild_handoff/README.md) 开始。该交接包冻结了产品/UED 基线、当前 Implementation 差距、性能问题、资产索引、目标架构和新任务启动说明，不需要读取历史长对话。
+
 基于 ROOT 试饮流程更新 PRD 的小程序与后台项目，已收敛为「线下获客 / 企业微信承接 / 有赞订单 / 物流送达 / 小程序打卡 / 运营待办 / 退款 / 复购转化」的演示闭环。
 
 > 当前运行与包版本仍为 `0.5.13`。`v1.0.0` 只形成了本地、默认禁用的 Foundation Implementation；尚未创建 Candidate、体验版或正式发布授权，也未执行生产 DDL、真实订阅发送或版本提升。
