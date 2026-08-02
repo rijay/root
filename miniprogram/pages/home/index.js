@@ -8,6 +8,11 @@ const { openLegalPage } = require("../../utils/legal");
 const { clearToken, getToken, request, setToken, stringifyError } = require("../../utils/request");
 const router = require("../../utils/router");
 const { enrichProgress, todayChina } = require("../../utils/task-presenter");
+const {
+  authenticateWechat,
+  ensureLoginAgreement,
+  showLoginFailure,
+} = require("../../utils/wechat-login-flow");
 
 const questions = [
   { key: "joinReasons", type: "multi", title: "参与本次试饮的原因", options: options.joinReasonOptions },
@@ -42,6 +47,8 @@ Page({
     user: null,
     agreed: false,
     loading: false,
+    loginStatusText: "",
+    loadErrorText: "",
     registerSteps: [0, 1, 2, 3],
     registerStep: 0,
     registerTotal: questions.length,
@@ -155,10 +162,20 @@ Page({
       if (viewType === "activity") await this.loadActivityHome();
       if (viewType === "checkin" && state !== "GUEST") await this.loadCheckinState();
       if (viewType === "daily") await this.loadDailyState();
+      return true;
     } catch (error) {
-      clearToken();
       this.healthConsentPrompted = false;
-      this.setData({ state: "GUEST", viewType: "login", user: null });
+      const stillAuthenticated = Boolean(getToken()) && error.code !== 1003 && error.status !== 401;
+      if (stillAuthenticated) {
+        this.setData({
+          viewType: "loadError",
+          loadErrorText: "微信身份已验证，但页面内容暂未完成加载。请点击重新加载。",
+        });
+      } else {
+        clearToken();
+        this.setData({ state: "GUEST", viewType: "login", user: null });
+      }
+      return false;
     } finally {
       this.setData({ loading: false });
     }
@@ -190,44 +207,37 @@ Page({
     router.open("/pages/products/index?source=health_consent_declined");
   },
 
-  loginWithWechat() {
-    this.submitLogin({});
+  retryRefresh() {
+    this.refresh();
   },
 
-  submitLogin(detail) {
-    if (!this.data.agreed) {
-      wx.showToast({ title: "请先阅读并同意协议", icon: "none" });
-      return;
+  async loginWithWechat() {
+    if (this.data.loading) return;
+    const confirmed = await ensureLoginAgreement(this.data.agreed);
+    if (!confirmed) return;
+    if (!this.data.agreed) this.setData({ agreed: true });
+    return this.submitLogin({});
+  },
+
+  async submitLogin(detail) {
+    if (this.data.loading) return;
+    this.setData({ loading: true, loginStatusText: "正在连接微信…" });
+    try {
+      const data = await authenticateWechat({
+        request,
+        phoneCode: detail.code || "",
+        onStage: (loginStatusText) => this.setData({ loginStatusText }),
+      });
+      setToken(data.token);
+      this.healthConsentPrompted = false;
+      this.setData({ loginStatusText: "身份验证完成，正在加载首页…" });
+      await this.refresh();
+    } catch (error) {
+      const message = stringifyError(error) || "登录失败，请重试";
+      showLoginFailure(message, () => this.submitLogin(detail));
+    } finally {
+      this.setData({ loading: false, loginStatusText: "" });
     }
-    this.setData({ loading: true });
-    wx.login({
-      success: async (loginResult) => {
-        try {
-          const data = await request({
-            url: "/api/v1/auth/login",
-            method: "POST",
-            timeout: 45000,
-            data: {
-              appCode: "MYROOT",
-              wxCode: loginResult.code || "",
-              phoneCode: detail.code || "",
-            },
-          });
-          setToken(data.token);
-          this.healthConsentPrompted = false;
-          await this.refresh();
-        } catch (error) {
-          const message = stringifyError(error) || "登录失败，请重试";
-          wx.showToast({ title: message.slice(0, 28), icon: "none" });
-        } finally {
-          this.setData({ loading: false });
-        }
-      },
-      fail: (error) => {
-        this.setData({ loading: false });
-        wx.showToast({ title: (stringifyError(error) || "登录失败，请重试").slice(0, 28), icon: "none" });
-      },
-    });
   },
 
   decorateQuestion(step, answers) {

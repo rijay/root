@@ -123,6 +123,41 @@
   text-align: center;
 }
 
+.login-status {
+  width: 670rpx;
+  margin-top: var(--spacing-md);
+  color: var(--color-root-moss);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-align: center;
+}
+
+.load-error-view {
+  display: flex;
+  min-height: 100vh;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 120rpx;
+  text-align: center;
+}
+
+.load-error-title {
+  margin-top: var(--spacing-lg);
+}
+
+.load-error-copy {
+  max-width: 600rpx;
+  margin-top: var(--spacing-md);
+  line-height: 1.7;
+}
+
+.load-error-action {
+  width: 600rpx;
+  margin-top: var(--spacing-xl);
+}
+
 .agreement {
   display: flex;
   align-items: center;

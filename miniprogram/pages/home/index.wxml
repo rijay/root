@@ -4,6 +4,13 @@
     <view class="body">正在恢复你的身体记录...</view>
   </view>
 
+  <view wx:elif="{{viewType === 'loadError'}}" class="root-page load-error-view">
+    <image class="brand-mark" src="/static/brand/logo.png" mode="aspectFit" />
+    <view class="root-section-title load-error-title">内容暂未加载</view>
+    <view class="root-helper-text load-error-copy">{{loadErrorText}}</view>
+    <button class="root-button load-error-action" loading="{{loading}}" disabled="{{loading}}" bindtap="retryRefresh">重新加载</button>
+  </view>
+
   <view wx:elif="{{viewType === 'healthConsent'}}" class="root-page health-consent-handoff">
     <image class="brand-mark" src="/static/brand/logo.png" mode="aspectFit" />
     <view class="eyebrow">单独同意</view>
@@ -25,7 +32,8 @@
       <view class="root-promise">不追求完美答案，只关注身体反馈</view>
       <view class="root-promise">异常状态可进入人工协助</view>
     </view>
-    <button class="root-button login-button" loading="{{loading}}" bindtap="loginWithWechat">微信身份进入</button>
+    <button class="root-button login-button" loading="{{loading}}" disabled="{{loading}}" bindtap="loginWithWechat">{{loading ? '正在进入…' : '微信身份进入'}}</button>
+    <view wx:if="{{loading && loginStatusText}}" class="login-status" aria-live="polite">{{loginStatusText}}</view>
     <view class="agreement root-agreement">
       <view class="agreement-check" bindtap="toggleAgree">
         <view class="checkbox {{agreed ? 'checked' : ''}}">{{agreed ? '✓' : ''}}</view>
