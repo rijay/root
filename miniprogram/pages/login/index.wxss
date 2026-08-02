@@ -99,3 +99,11 @@
   font-size: var(--font-size-xs);
   text-align: center;
 }
+
+.login-status {
+  margin-top: var(--spacing-md);
+  color: var(--color-root-moss);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-align: center;
+}

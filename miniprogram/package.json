@@ -4,6 +4,6 @@
   "private": true,
   "description": "ROOT 7日身体重启计划微信小程序",
   "scripts": {
-    "check": "node scripts/validate.js && node scripts/request.test.js && node scripts/activity-presenter.test.js && node scripts/activity-actions.test.js && node scripts/activity-command-recovery.test.js && node scripts/activity-enrollments-model.test.js && node scripts/health-consent-recovery.test.js && node scripts/cloud-route.test.js && node scripts/campaign-join.test.js && node scripts/checkin-reminder-subscribe.test.js"
+    "check": "node scripts/validate.js && node scripts/request.test.js && node scripts/wechat-login-flow.test.js && node scripts/home-login-interaction.test.js && node scripts/activity-presenter.test.js && node scripts/activity-actions.test.js && node scripts/activity-command-recovery.test.js && node scripts/activity-enrollments-model.test.js && node scripts/health-consent-recovery.test.js && node scripts/cloud-route.test.js && node scripts/campaign-join.test.js && node scripts/checkin-reminder-subscribe.test.js"
   }
 }

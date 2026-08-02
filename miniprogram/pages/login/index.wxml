@@ -22,8 +22,10 @@
     <button
       class="root-button login-btn"
       loading="{{loading}}"
+      disabled="{{loading}}"
       bindtap="loginWithWechat"
-    >微信身份进入</button>
+    >{{loading ? '正在进入…' : '微信身份进入'}}</button>
+    <view wx:if="{{loading && loginStatusText}}" class="login-status" aria-live="polite">{{loginStatusText}}</view>
     <view class="login-note">手机号后续可选补充，用于咨询协助和活动联系。</view>
   </view>
 </view>
