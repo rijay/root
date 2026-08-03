@@ -26,6 +26,13 @@ const RETIRED_ADMIN_ROUTES = Object.freeze([
   "/api/v1/admin/lifecycle-settlement-jobs/run",
   "/api/v1/admin/lifecycle-settlement-jobs/cancel",
   "/api/v1/admin/lifecycle-settlement-jobs/retry-failed",
+  "/api/v1/admin/lifecycle-users/settlement-batch-preview",
+  "/api/v1/admin/lifecycle-users/settlement-batch-execute",
+  "/api/v1/admin/settlement/preview",
+  "/api/v1/admin/settlement/batch-preview",
+  "/api/v1/admin/settlement/batch-execute",
+  "/api/v1/admin/reward-delivery/execute",
+  "/api/v1/admin/reward-delivery/status-query",
 ]);
 
 const RETIRED_PACKAGE_COMMANDS = Object.freeze([

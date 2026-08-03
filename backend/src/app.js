@@ -61,11 +61,8 @@ const {
   dailyTrend,
   deleteAdminLifecycleFilterPreset,
   deliverAdminLifecycleUserExport,
-  executeAdminLifecycleSettlementBatch,
   executeAdminOrderIncrementSync,
-  executeAdminRewardDelivery,
   executeAdminProductSync,
-  executeAdminSettlementBatch,
   expireActivityEnrollmentReviews,
   downloadAdminLifecycleUserExport,
   downloadSignedAdminLifecycleUserExport,
@@ -147,19 +144,15 @@ const {
   listOperationTasks,
   markCouponUsed,
   matchOrder,
-  previewAdminLifecycleSettlementBatch,
   previewAdminOrderIncrementSync,
   previewAdminOrderMatch,
   previewAdminProductSync,
-  previewAdminSettlement,
-  previewAdminSettlementBatch,
   previewCorrection,
   previewExternalSamples,
   previewImport,
   planWeWorkTouches,
   publishActivity,
   publishCampaignRuleVersion,
-  queryAdminRewardDeliveryStatus,
   recordConsultationAdvisorAssignment,
   recordCheckinReminderSubscription,
   recordConsultationWeworkWriteback,
@@ -1068,33 +1061,6 @@ function createApp(options = {}) {
     }]);
   }
 
-  function settlementRootUserIds(input = {}) {
-    const raw = input.rootUserIds || input.root_user_ids
-      || input.userIds || input.user_ids || input.users || [];
-    const values = typeof raw === "string"
-      ? raw.split(/[\s,，;；]+/)
-      : Array.isArray(raw) ? raw : [];
-    return Array.from(new Set(values.map((item) => (
-      typeof item === "string"
-        ? item
-        : item && (item.rootUserId || item.root_user_id || item.userId || item.user_id)
-    )).map((item) => String(item || "").trim()).filter(Boolean)));
-  }
-
-  async function loadAdminSettlementSourceScopes(requestContext, input = {}) {
-    const campaignId = settlementCampaignId(input);
-    const single = input.rootUserId || input.root_user_id
-      || input.userId || input.user_id || "";
-    const rootUserIds = single
-      ? [String(single).trim()]
-      : settlementRootUserIds(input);
-    if (!rootUserIds.length) return;
-    await loadSettlementSourceScopes(requestContext, rootUserIds.map((rootUserId) => ({
-      rootUserId,
-      campaignId,
-    })));
-  }
-
   async function handleRequest(req, res, requestContext = {}) {
     const url = new URL(req.url, "http://localhost");
     const method = req.method || "GET";
@@ -1618,18 +1584,6 @@ function createApp(options = {}) {
       if (route === "GET /api/v1/admin/lifecycle-users") {
         return ok(res, getAdminLifecycleWorkbench(data, Object.fromEntries(url.searchParams), runtimeContext));
       }
-      if (route === "POST /api/v1/admin/lifecycle-users/settlement-batch-preview") {
-        return ok(res, previewAdminLifecycleSettlementBatch(data, body, runtimeContext));
-      }
-      if (route === "POST /api/v1/admin/lifecycle-users/settlement-batch-execute") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.SETTLEMENT_EXECUTE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => executeAdminLifecycleSettlementBatch(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
       if (route === "POST /api/v1/admin/lifecycle-user-exports/create") {
         const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
         return ok(res, withIdempotency(data, req, () => createAdminLifecycleUserExport(data, {
@@ -1979,42 +1933,6 @@ function createApp(options = {}) {
           operatorId: adminOperatorId(adminPrincipal, body),
           requestId: req.headers["x-request-id"] || body.requestId || body.request_id || "",
         })));
-      }
-      if (route === "POST /api/v1/admin/settlement/preview") {
-        await loadAdminSettlementSourceScopes(requestContext, body);
-        return ok(res, previewAdminSettlement(data, body, runtimeContext));
-      }
-      if (route === "POST /api/v1/admin/settlement/batch-preview") {
-        await loadAdminSettlementSourceScopes(requestContext, body);
-        return ok(res, previewAdminSettlementBatch(data, body, runtimeContext));
-      }
-      if (route === "POST /api/v1/admin/settlement/batch-execute") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.SETTLEMENT_EXECUTE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        await loadAdminSettlementSourceScopes(requestContext, body);
-        return ok(res, withIdempotency(data, req, () => executeAdminSettlementBatch(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId })));
-      }
-      if (route === "POST /api/v1/admin/reward-delivery/execute") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.REWARD_DELIVERY_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, await withIdempotency(data, req, () => executeAdminRewardDelivery(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId })));
-      }
-      if (route === "POST /api/v1/admin/reward-delivery/status-query") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.REWARD_DELIVERY_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, await withIdempotency(data, req, () => queryAdminRewardDeliveryStatus(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId })));
       }
       if (route === "POST /api/v1/admin/products/upsert") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
