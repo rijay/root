@@ -23,12 +23,24 @@ function saveDraft(path, prefix, input = {}) {
   });
 }
 
+function publishVersion(path, prefix, input = {}) {
+  return saveDraft(path, prefix, {
+    ...input,
+    confirmed: true,
+    confirmationText: "确认发布",
+  });
+}
+
 export function fetchInitializationQuestions(filters = {}, options = {}) {
   return adminRequest(`/api/v1/admin/formal-health/initialization${queryString(filters)}`, options);
 }
 
 export function saveInitializationDraft(input = {}) {
   return saveDraft("/api/v1/admin/formal-health/initialization/draft", "health-initialization-draft", input);
+}
+
+export function publishInitializationVersion(input = {}) {
+  return publishVersion("/api/v1/admin/formal-health/initialization/publish", "health-initialization-publish", input);
 }
 
 export function fetchHealthScales(filters = {}, options = {}) {
@@ -39,6 +51,10 @@ export function saveHealthScaleDraft(input = {}) {
   return saveDraft("/api/v1/admin/formal-health/scales/draft", "health-scale-draft", input);
 }
 
+export function publishHealthScaleVersion(input = {}) {
+  return publishVersion("/api/v1/admin/formal-health/scales/publish", "health-scale-publish", input);
+}
+
 export function fetchRecommendationRules(filters = {}, options = {}) {
   return adminRequest(`/api/v1/admin/formal-health/recommendation-rules${queryString(filters)}`, options);
 }
@@ -47,10 +63,18 @@ export function saveRecommendationRuleDraft(input = {}) {
   return saveDraft("/api/v1/admin/formal-health/recommendation-rules/draft", "health-recommendation-draft", input);
 }
 
+export function publishRecommendationRuleVersion(input = {}) {
+  return publishVersion("/api/v1/admin/formal-health/recommendation-rules/publish", "health-recommendation-publish", input);
+}
+
 export function fetchLifestyleAdvicePolicies(filters = {}, options = {}) {
   return adminRequest(`/api/v1/admin/formal-health/lifestyle-advice${queryString(filters)}`, options);
 }
 
 export function saveLifestyleAdviceDraft(input = {}) {
   return saveDraft("/api/v1/admin/formal-health/lifestyle-advice/draft", "health-lifestyle-draft", input);
+}
+
+export function publishLifestyleAdviceVersion(input = {}) {
+  return publishVersion("/api/v1/admin/formal-health/lifestyle-advice/publish", "health-lifestyle-publish", input);
 }

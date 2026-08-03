@@ -60,7 +60,7 @@ async function request(baseUrl, path, options = {}) {
 
 test("Root4U initial assessment uses all 12 required questions and produces three tips", () => {
   const { data, user, profile } = fixture();
-  const definition = formalHealthModule.getDefinition(profile, { today: "2026-08-03" }).definition;
+  const definition = formalHealthModule.getDefinition(data, profile, { today: "2026-08-03" }).definition;
   assert.equal(definition.questions.length, 12);
 
   const submitted = formalHealthModule.submit(data, user, profile, { answers: answers() }, {
@@ -80,7 +80,7 @@ test("Root4U initial assessment uses all 12 required questions and produces thre
 test("Root4U fails closed for minors, missing answers and safety signals", () => {
   const { data, user, profile } = fixture();
   assert.throws(
-    () => formalHealthModule.getDefinition({ ...profile, birthDate: "2010-08-04" }, { today: "2026-08-03" }),
+    () => formalHealthModule.getDefinition(data, { ...profile, birthDate: "2010-08-04" }, { today: "2026-08-03" }),
     (error) => error.code === "FORMAL_HEALTH_AGE_RESTRICTED",
   );
   assert.throws(

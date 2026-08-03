@@ -118,6 +118,9 @@ const {
   listAdminActivityReviewQueue,
   listAdminActivitySessions,
   listAdminFormalHealthInitialization,
+  listAdminFormalHealthLifestyleAdvice,
+  listAdminFormalHealthRecommendationRules,
+  listAdminFormalHealthScales,
   listConsultationAdvisorAssignments,
   listExternalSampleReviews,
   listFormalHomeContent,
@@ -143,6 +146,10 @@ const {
   previewImport,
   planWeWorkTouches,
   publishActivity,
+  publishAdminFormalHealthInitialization,
+  publishAdminFormalHealthLifestyleAdvice,
+  publishAdminFormalHealthRecommendationRule,
+  publishAdminFormalHealthScale,
   recordConsultationAdvisorAssignment,
   recordConsultationWeworkWriteback,
   recordAdminLegacyDeprecationDecision,
@@ -170,6 +177,10 @@ const {
   submitDailyCheckin,
   submitFormalProfile,
   submitFormalHealthInitialAssessment,
+  saveAdminFormalHealthInitializationDraft,
+  saveAdminFormalHealthLifestyleAdviceDraft,
+  saveAdminFormalHealthRecommendationRuleDraft,
+  saveAdminFormalHealthScaleDraft,
   submitProfile,
   submitQuestionnaireAnswer,
   submitQuestionnaire,
@@ -1379,7 +1390,19 @@ function createApp(options = {}) {
       }
       if (route === "GET /api/v1/admin/formal-health/initialization") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
-        return ok(res, listAdminFormalHealthInitialization(Object.fromEntries(url.searchParams)));
+        return ok(res, listAdminFormalHealthInitialization(data, Object.fromEntries(url.searchParams)));
+      }
+      if (route === "GET /api/v1/admin/formal-health/scales") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
+        return ok(res, listAdminFormalHealthScales(data, Object.fromEntries(url.searchParams)));
+      }
+      if (route === "GET /api/v1/admin/formal-health/recommendation-rules") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
+        return ok(res, listAdminFormalHealthRecommendationRules(data, Object.fromEntries(url.searchParams)));
+      }
+      if (route === "GET /api/v1/admin/formal-health/lifestyle-advice") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
+        return ok(res, listAdminFormalHealthLifestyleAdvice(data, Object.fromEntries(url.searchParams)));
       }
       if (route === "GET /api/v1/admin/cloudbase-identity-probe") {
         const trustedWechatIdentity = await resolveTrustedWechatIdentity({
@@ -1636,6 +1659,46 @@ function createApp(options = {}) {
           operatorId: adminOperatorId(adminPrincipal, body),
           requestId,
         }, { ...runtimeContext, requestId })));
+      }
+      if (route === "POST /api/v1/admin/formal-health/initialization/draft") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_CONTENT_WRITE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "初始化建档草稿", "HEALTH_INITIALIZATION_DRAFT_SAVE");
+        return ok(res, await withIdempotency(data, req, () => saveAdminFormalHealthInitializationDraft(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/formal-health/initialization/publish") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_PUBLISH);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "初始化建档发布", "HEALTH_INITIALIZATION_PUBLISH");
+        return ok(res, await withIdempotency(data, req, () => publishAdminFormalHealthInitialization(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/formal-health/scales/draft") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_CONTENT_WRITE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "健康量表草稿", "HEALTH_SCALE_DRAFT_SAVE");
+        return ok(res, await withIdempotency(data, req, () => saveAdminFormalHealthScaleDraft(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/formal-health/scales/publish") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_PUBLISH);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "健康量表发布", "HEALTH_SCALE_PUBLISH");
+        return ok(res, await withIdempotency(data, req, () => publishAdminFormalHealthScale(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/formal-health/recommendation-rules/draft") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_CONTENT_WRITE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "推荐规则草稿", "HEALTH_RECOMMENDATION_DRAFT_SAVE");
+        return ok(res, await withIdempotency(data, req, () => saveAdminFormalHealthRecommendationRuleDraft(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/formal-health/recommendation-rules/publish") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_PUBLISH);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "推荐规则发布", "HEALTH_RECOMMENDATION_PUBLISH");
+        return ok(res, await withIdempotency(data, req, () => publishAdminFormalHealthRecommendationRule(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/formal-health/lifestyle-advice/draft") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_CONTENT_WRITE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "生活方式建议草稿", "HEALTH_LIFESTYLE_DRAFT_SAVE");
+        return ok(res, await withIdempotency(data, req, () => saveAdminFormalHealthLifestyleAdviceDraft(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/formal-health/lifestyle-advice/publish") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_PUBLISH);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "生活方式建议发布", "HEALTH_LIFESTYLE_PUBLISH");
+        return ok(res, await withIdempotency(data, req, () => publishAdminFormalHealthLifestyleAdvice(data, command, runtimeContext)));
       }
       if (route === "POST /api/v1/admin/activities/draft") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_CONTENT_WRITE);

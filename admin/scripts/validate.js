@@ -193,20 +193,28 @@ const recommendationPage = read("src/modules/health/RecommendationRulesPage.vue"
 const lifestylePage = read("src/modules/health/LifestyleAdvicePage.vue");
 for (const route of [
   "/api/v1/admin/formal-health/initialization",
+  "/api/v1/admin/formal-health/initialization/draft",
+  "/api/v1/admin/formal-health/initialization/publish",
   "/api/v1/admin/formal-health/scales",
+  "/api/v1/admin/formal-health/scales/draft",
+  "/api/v1/admin/formal-health/scales/publish",
   "/api/v1/admin/formal-health/recommendation-rules",
+  "/api/v1/admin/formal-health/recommendation-rules/draft",
+  "/api/v1/admin/formal-health/recommendation-rules/publish",
   "/api/v1/admin/formal-health/lifestyle-advice",
+  "/api/v1/admin/formal-health/lifestyle-advice/draft",
+  "/api/v1/admin/formal-health/lifestyle-advice/publish",
 ]) assert.equal(healthApi.includes(route), true, `health Interface must include ${route}`);
-for (const value of ["12 问", "安全分流", "固定指引版本", "联合签署", "AbortController", "300"]) {
+for (const value of ["12 问", "安全分流", "固定指引版本", "联合签署", "发布当前草稿", "expectedRevision", "AbortController", "300"]) {
   assert.equal(initializationPage.includes(value), true, `initialization page must include ${value}`);
 }
-for (const value of ["题目与选项", "计分与结果分层", "适用与版本", "建议内容版本", "100", "20 题", "AbortController"]) {
+for (const value of ["题目与选项", "计分与结果分层", "适用与版本", "建议内容版本", "确认发布", "expectedRevision", "100", "20 题", "AbortController"]) {
   assert.equal(scalePage.includes(value), true, `scale page must include ${value}`);
 }
-for (const value of ["主分类", "辅助标签", "不使用手机号、昵称或原始健康答案", "最多 3", "已发布且有效", "AbortController"]) {
+for (const value of ["主分类", "辅助标签", "不使用手机号、昵称或原始健康答案", "最多 3", "已发布且有效", "确认发布", "expectedRevision", "AbortController"]) {
   assert.equal(recommendationPage.includes(value), true, `recommendation page must include ${value}`);
 }
-for (const value of ["模型配置", "不输入或显示模型密钥", "最少字段", "三条轮换", "固定降级内容", "健康安全", "AbortController"]) {
+for (const value of ["模型配置", "不输入或显示模型密钥", "最少字段", "三条轮换", "固定降级内容", "健康安全", "确认发布", "expectedRevision", "AbortController"]) {
   assert.equal(lifestylePage.includes(value), true, `lifestyle page must include ${value}`);
 }
 for (const forbidden of ["apiKey", "apiSecret", "modelSecret", "type=\"password\""]) {

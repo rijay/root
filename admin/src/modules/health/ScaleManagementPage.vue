@@ -18,7 +18,7 @@
         <el-table-column label="版本与适用人群" min-width="170"><template #default="{ row }"><strong class="table-title">{{ row.versionLabel || '草稿' }} · {{ row.audienceLabel || '待配置' }}</strong><span class="description-meta">{{ row.adviceVersionLabel || '建议内容待关联' }}</span></template></el-table-column>
         <el-table-column label="生效时间" min-width="136"><template #default="{ row }">{{ row.effectiveAtLabel || '待配置' }}</template></el-table-column>
         <el-table-column label="状态" width="96"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ statusLabel(row.status) }}</el-tag></template></el-table-column>
-        <el-table-column align="right" label="操作" width="112"><template #default="{ row }"><el-button link type="primary" @click="editDraft(row)">{{ row.status === 'PUBLISHED' ? '复制草稿' : '编辑' }}</el-button></template></el-table-column>
+        <el-table-column align="right" label="操作" width="164"><template #default="{ row }"><el-button link type="primary" @click="editDraft(row)">{{ row.status === 'PUBLISHED' ? '复制草稿' : '编辑' }}</el-button><el-button v-if="row.status === 'DRAFT'" :loading="publishingId === row.versionId" link type="success" @click="publishDraft(row)">发布</el-button></template></el-table-column>
       </el-table>
       <el-pagination v-if="total > pageSize" v-model:current-page="filters.page" class="content-pagination" :page-size="pageSize" :total="total" layout="prev, pager, next" @current-change="load" />
     </section>
@@ -29,7 +29,7 @@
         <el-form-item label="题目与选项 *"><el-input v-model="draft.questionSummary" :rows="4" resize="none" type="textarea" placeholder="填写题目数量、题型和预计完成时间" /><p class="field-help">长量表每组最多编辑 20 题，未展开题目不挂载。</p></el-form-item>
         <el-form-item label="计分与结果分层 *"><el-input v-model="draft.scoringSummary" :rows="3" resize="none" type="textarea" placeholder="填写总分范围、分层阈值和校验方式" /></el-form-item>
         <el-form-item label="适用与版本"><div class="typography-controls"><el-select v-model="draft.audience"><el-option label="18+" value="ADULT_18_PLUS" /></el-select><el-input-number v-model="draft.questionCount" :min="1" :max="100" controls-position="right" /><el-input-number v-model="draft.resultLevelCount" :min="1" :max="10" controls-position="right" /></div></el-form-item>
-        <el-form-item label="建议内容版本 *"><el-select v-model="draft.adviceVersionId" placeholder="选择已批准建议内容版本" /></el-form-item>
+        <el-form-item label="建议内容版本 *"><el-select v-model="draft.adviceVersionId" placeholder="选择已批准建议内容版本"><el-option v-for="item in adviceOptions" :key="item.versionId" :label="item.label" :value="item.versionId" /></el-select></el-form-item>
         <el-form-item label="审批与生效"><div class="health-approval-grid"><el-input v-model="draft.approver" placeholder="健康内容负责人" /><el-date-picker v-model="draft.effectiveAt" placeholder="生效时间" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" /></div></el-form-item>
       </el-form>
       <template #footer><el-button @click="drawerVisible = false">取消</el-button><el-button :loading="saving" type="primary" @click="saveDraft">保存草稿</el-button></template>
@@ -39,12 +39,12 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
-import { fetchHealthScales, saveHealthScaleDraft } from "./adminHealthApi";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { fetchHealthScales, publishHealthScaleVersion, saveHealthScaleDraft } from "./adminHealthApi";
 
-const emptyDraft = () => ({ id: "", sourceVersionId: "", name: "", questionSummary: "", scoringSummary: "", audience: "ADULT_18_PLUS", questionCount: 12, resultLevelCount: 3, adviceVersionId: "", approver: "", effectiveAt: "" });
+const emptyDraft = () => ({ id: "", sourceVersionId: "", expectedRevision: 0, name: "", questionSummary: "", scoringSummary: "", audience: "ADULT_18_PLUS", questionCount: 12, resultLevelCount: 3, adviceVersionId: "", approver: "", effectiveAt: "" });
 const rows = ref([]), total = ref(0), loading = ref(false), saving = ref(false), drawerVisible = ref(false), interfaceUnavailable = ref(false);
-const errorMessage = ref(""), previewPath = ref("");
+const errorMessage = ref(""), previewPath = ref(""), publishingId = ref(""), adviceOptions = ref([]);
 const draft = reactive(emptyDraft()), filters = reactive({ keyword: "", status: "", audience: "", page: 1 });
 const pageSize = 20;
 let searchTimer = null, loadSequence = 0, loadController = null;
@@ -54,7 +54,7 @@ function statusType(status) { return status === "PUBLISHED" ? "success" : status
 function scheduleLoad() { clearTimeout(searchTimer); searchTimer = setTimeout(() => { filters.page = 1; load(); }, 300); }
 function resetFilters() { Object.assign(filters, { keyword: "", status: "", audience: "", page: 1 }); load(); }
 function createDraft() { Object.assign(draft, emptyDraft()); drawerVisible.value = true; }
-function editDraft(row) { Object.assign(draft, emptyDraft(), row, { id: row.status === "PUBLISHED" ? "" : row.id, sourceVersionId: row.status === "PUBLISHED" ? row.versionId : row.sourceVersionId || "" }); drawerVisible.value = true; }
+function editDraft(row) { Object.assign(draft, emptyDraft(), row, { id: row.status === "PUBLISHED" ? "" : row.id, sourceVersionId: row.status === "PUBLISHED" ? row.versionId : row.sourceVersionId || "", expectedRevision: row.status === "DRAFT" ? row.revision : 0 }); drawerVisible.value = true; }
 function previewOnline() { ElMessage.info(`请在小程序预览：${previewPath.value}`); }
 async function saveDraft() {
   if (!draft.name.trim() || !draft.questionSummary.trim() || !draft.scoringSummary.trim() || !draft.adviceVersionId) return ElMessage.warning("请完成所有必填项");
@@ -63,10 +63,18 @@ async function saveDraft() {
   catch (error) { errorMessage.value = error.status === 404 ? "正式量表草稿能力尚未接入，内容未保存" : (error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message); }
   finally { saving.value = false; }
 }
+async function publishDraft(row) {
+  try { await ElMessageBox.confirm(`确认发布“${row.name} · ${row.versionLabel}”？发布后该版本不可原地修改。`, "确认发布", { confirmButtonText: "确认发布", cancelButtonText: "取消", type: "warning" }); }
+  catch (action) { if (["cancel", "close"].includes(action)) return; throw action; }
+  publishingId.value = row.versionId; errorMessage.value = "";
+  try { await publishHealthScaleVersion({ versionId: row.versionId, expectedRevision: row.revision }); ElMessage.success("量表版本已发布"); await load(); }
+  catch (error) { errorMessage.value = error.outcomeUnknown ? "发布结果待确认，请刷新权威记录" : error.message; }
+  finally { publishingId.value = ""; }
+}
 async function load() {
   const sequence = ++loadSequence; loadController?.abort(); const controller = new AbortController(); loadController = controller; loading.value = true; errorMessage.value = ""; interfaceUnavailable.value = false;
-  try { const data = await fetchHealthScales({ ...filters, pageSize }, { signal: controller.signal }); if (sequence !== loadSequence) return; rows.value = data?.items || []; total.value = Number(data?.pagination?.total ?? data?.total ?? 0); previewPath.value = data?.previewPath || ""; }
-  catch (error) { if (error.code === "ADMIN_ABORTED" || sequence !== loadSequence) return; rows.value = []; total.value = 0; if (error.status === 404) interfaceUnavailable.value = true; else errorMessage.value = error.message; }
+  try { const data = await fetchHealthScales({ ...filters, pageSize }, { signal: controller.signal }); if (sequence !== loadSequence) return; rows.value = data?.items || []; total.value = Number(data?.pagination?.total ?? data?.total ?? 0); adviceOptions.value = data?.adviceOptions || []; previewPath.value = data?.previewPath || ""; }
+  catch (error) { if (error.code === "ADMIN_ABORTED" || sequence !== loadSequence) return; rows.value = []; total.value = 0; adviceOptions.value = []; if (error.status === 404) interfaceUnavailable.value = true; else errorMessage.value = error.message; }
   finally { if (sequence === loadSequence) loading.value = false; }
 }
 onMounted(load); onBeforeUnmount(() => { clearTimeout(searchTimer); loadController?.abort(); }); defineExpose({ load });

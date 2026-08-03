@@ -18,7 +18,7 @@
         <el-table-column label="版本与用途" min-width="170"><template #default="{ row }"><strong class="table-title">{{ row.versionLabel || '草稿' }} · {{ row.approvalLabel || '待审批' }}</strong><span class="description-meta">{{ row.purposeLabel || '用户生活方式建议' }}</span></template></el-table-column>
         <el-table-column label="生效时间" min-width="136"><template #default="{ row }">{{ row.effectiveAtLabel || '待配置' }}</template></el-table-column>
         <el-table-column label="状态" width="96"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ statusLabel(row.status) }}</el-tag></template></el-table-column>
-        <el-table-column align="right" label="操作" width="112"><template #default="{ row }"><el-button link type="primary" @click="editDraft(row)">{{ ['ACTIVE', 'APPROVED'].includes(row.status) ? '复制草稿' : '编辑' }}</el-button></template></el-table-column>
+        <el-table-column align="right" label="操作" width="164"><template #default="{ row }"><el-button link type="primary" @click="editDraft(row)">{{ ['ACTIVE', 'APPROVED'].includes(row.status) ? '复制草稿' : '编辑' }}</el-button><el-button v-if="row.status === 'DRAFT'" :loading="publishingId === row.versionId" link type="success" @click="publishDraft(row)">发布</el-button></template></el-table-column>
       </el-table>
       <el-pagination v-if="total > pageSize" v-model:current-page="filters.page" class="content-pagination" :page-size="pageSize" :total="total" layout="prev, pager, next" @current-change="load" />
     </section>
@@ -39,12 +39,12 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
-import { fetchLifestyleAdvicePolicies, saveLifestyleAdviceDraft } from "./adminHealthApi";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { fetchLifestyleAdvicePolicies, publishLifestyleAdviceVersion, saveLifestyleAdviceDraft } from "./adminHealthApi";
 
-const emptyDraft = () => ({ id: "", sourceVersionId: "", name: "", modelConfigurationId: "", minimumFieldsSummary: "仅发送分类、辅助标签与量表结果\n资料或评测结果变化时才重新生成", structureCheck: "REQUIRED", prohibitedLanguageCheck: "REQUIRED", healthSafetyCheck: "REQUIRED", fallbackContentVersionId: "", approver: "", effectiveAt: "" });
+const emptyDraft = () => ({ id: "", sourceVersionId: "", expectedRevision: 0, name: "", modelConfigurationId: "", minimumFieldsSummary: "仅发送分类、辅助标签与量表结果\n资料或评测结果变化时才重新生成", structureCheck: "REQUIRED", prohibitedLanguageCheck: "REQUIRED", healthSafetyCheck: "REQUIRED", fallbackContentVersionId: "", approver: "", effectiveAt: "" });
 const rows = ref([]), total = ref(0), loading = ref(false), saving = ref(false), drawerVisible = ref(false), interfaceUnavailable = ref(false);
-const modelConfigurations = ref([]), fallbackOptions = ref([]), errorMessage = ref(""), previewPath = ref("");
+const modelConfigurations = ref([]), fallbackOptions = ref([]), errorMessage = ref(""), previewPath = ref(""), publishingId = ref("");
 const draft = reactive(emptyDraft()), filters = reactive({ keyword: "", status: "", version: "", page: 1 });
 const pageSize = 20;
 let searchTimer = null, loadSequence = 0, loadController = null;
@@ -54,14 +54,22 @@ function statusType(status) { return status === "ACTIVE" ? "success" : status ==
 function scheduleLoad() { clearTimeout(searchTimer); searchTimer = setTimeout(() => { filters.page = 1; load(); }, 300); }
 function resetFilters() { Object.assign(filters, { keyword: "", status: "", version: "", page: 1 }); load(); }
 function createDraft() { Object.assign(draft, emptyDraft()); drawerVisible.value = true; }
-function editDraft(row) { Object.assign(draft, emptyDraft(), row, { id: ["ACTIVE", "APPROVED"].includes(row.status) ? "" : row.id, sourceVersionId: ["ACTIVE", "APPROVED"].includes(row.status) ? row.versionId : row.sourceVersionId || "" }); drawerVisible.value = true; }
+function editDraft(row) { Object.assign(draft, emptyDraft(), row, { id: ["ACTIVE", "APPROVED"].includes(row.status) ? "" : row.id, sourceVersionId: ["ACTIVE", "APPROVED"].includes(row.status) ? row.versionId : row.sourceVersionId || "", expectedRevision: row.status === "DRAFT" ? row.revision : 0, structureCheck: row.validation?.structure || "REQUIRED", prohibitedLanguageCheck: row.validation?.prohibitedLanguage || "REQUIRED", healthSafetyCheck: row.validation?.healthSafety || "REQUIRED" }); drawerVisible.value = true; }
 function previewOnline() { ElMessage.info(`请在小程序预览：${previewPath.value}`); }
 async function saveDraft() {
   if (!draft.name.trim() || !draft.modelConfigurationId || !draft.minimumFieldsSummary.trim() || !draft.fallbackContentVersionId) return ElMessage.warning("请完成所有必填项");
   saving.value = true; errorMessage.value = "";
-  try { await saveLifestyleAdviceDraft({ id: draft.id, sourceVersionId: draft.sourceVersionId, name: draft.name.trim(), modelConfigurationId: draft.modelConfigurationId, minimumFields: ["PRIMARY_CATEGORY", "AUXILIARY_TAGS", "ASSESSMENT_RESULTS"], regenerationTrigger: "PROFILE_OR_ASSESSMENT_CHANGED", rotationSize: 3, validation: { structure: draft.structureCheck, prohibitedLanguage: draft.prohibitedLanguageCheck, healthSafety: draft.healthSafetyCheck }, fallbackContentVersionId: draft.fallbackContentVersionId, approver: draft.approver.trim(), effectiveAt: draft.effectiveAt }); ElMessage.success("建议策略草稿已保存"); drawerVisible.value = false; await load(); }
+  try { await saveLifestyleAdviceDraft({ id: draft.id, sourceVersionId: draft.sourceVersionId, expectedRevision: draft.expectedRevision, name: draft.name.trim(), modelConfigurationId: draft.modelConfigurationId, minimumFields: ["PRIMARY_CATEGORY", "AUXILIARY_TAGS", "ASSESSMENT_RESULTS"], minimumFieldsSummary: draft.minimumFieldsSummary.trim(), regenerationTrigger: "PROFILE_OR_ASSESSMENT_CHANGED", rotationSize: 3, validation: { structure: draft.structureCheck, prohibitedLanguage: draft.prohibitedLanguageCheck, healthSafety: draft.healthSafetyCheck }, fallbackContentVersionId: draft.fallbackContentVersionId, approver: draft.approver.trim(), effectiveAt: draft.effectiveAt }); ElMessage.success("建议策略草稿已保存"); drawerVisible.value = false; await load(); }
   catch (error) { errorMessage.value = error.status === 404 ? "正式建议策略草稿能力尚未接入，内容未保存" : (error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message); }
   finally { saving.value = false; }
+}
+async function publishDraft(row) {
+  try { await ElMessageBox.confirm(`确认发布“${row.name} · ${row.versionLabel}”？该策略仅使用固定建议内容，不调用模型。`, "确认发布", { confirmButtonText: "确认发布", cancelButtonText: "取消", type: "warning" }); }
+  catch (action) { if (["cancel", "close"].includes(action)) return; throw action; }
+  publishingId.value = row.versionId; errorMessage.value = "";
+  try { await publishLifestyleAdviceVersion({ versionId: row.versionId, expectedRevision: row.revision }); ElMessage.success("生活方式建议策略已发布"); await load(); }
+  catch (error) { errorMessage.value = error.outcomeUnknown ? "发布结果待确认，请刷新权威记录" : error.message; }
+  finally { publishingId.value = ""; }
 }
 async function load() {
   const sequence = ++loadSequence; loadController?.abort(); const controller = new AbortController(); loadController = controller; loading.value = true; errorMessage.value = ""; interfaceUnavailable.value = false;

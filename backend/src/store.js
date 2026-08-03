@@ -69,6 +69,7 @@ function createEmptyData() {
   data.notificationJobs = [];
   data.notificationDeliveries = [];
   data.questionnaireAnswers = [];
+  data.healthContentVersions = [];
   data.campaignRuleVersions = [];
   data.settlementRecords = [];
   data.manualReviewItems = [];
@@ -159,6 +160,7 @@ function validateSnapshot(snapshot, options = {}) {
     ["rootUsers", "root_user_id"],
     ["wechatIdentities", "wechat_identity_id"],
     ["privacyConsentRecords", "privacy_consent_record_id"],
+    ["healthContentVersions", "health_content_version_id"],
     ["youzanProducts", "youzan_product_id"],
     ["youzanSkus", "youzan_sku_id"],
     ["campaignProductRelations", "campaign_product_relation_id"],

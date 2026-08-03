@@ -6,6 +6,7 @@
       <div><h1>初始化建档</h1><p>管理 12 问、选项、安全分流和联合签署版本。</p></div>
       <el-space>
         <el-button :disabled="!previewPath" @click="previewOnline">预览候选版本</el-button>
+        <el-button v-if="currentStatus === 'DRAFT'" :loading="publishing" type="success" @click="publishCurrentVersion">发布当前草稿</el-button>
         <el-button :disabled="!rows.length" :loading="copying" type="primary" @click="copyCurrentVersion">复制为新版本</el-button>
       </el-space>
     </header>
@@ -42,7 +43,7 @@
         <el-form-item label="选项设置 *"><el-input v-model="draft.optionsText" :rows="4" resize="none" type="textarea" /><p class="field-help">每行一个选项；安全题选项不进入普通运营分析。</p></el-form-item>
         <el-form-item label="命中后的处理 *"><el-input v-model="draft.hitAction" :rows="2" resize="none" type="textarea" /></el-form-item>
         <el-form-item label="分流级别"><div class="typography-controls"><el-select v-model="draft.riskMode"><el-option label="风险" value="RISK" /></el-select><el-select v-model="draft.specialMode"><el-option label="特殊适用" value="SPECIAL" /></el-select><el-select v-model="draft.standardMode"><el-option label="普通" value="STANDARD" /></el-select></div></el-form-item>
-        <el-form-item label="固定指引版本 *"><el-select v-model="draft.guidanceVersionId" placeholder="选择已批准固定指引" /></el-form-item>
+        <el-form-item label="固定指引版本 *"><el-select v-model="draft.guidanceVersionId" placeholder="选择已批准固定指引"><el-option v-for="item in guidanceOptions" :key="item.versionId" :label="item.label" :value="item.versionId" /></el-select></el-form-item>
         <el-form-item label="版本签署"><el-input v-model="draft.signoffLabel" disabled /></el-form-item>
       </el-form>
       <template #footer><el-button @click="drawerVisible = false">取消</el-button><el-button :loading="saving" type="primary" @click="saveDraft">保存草稿</el-button></template>
@@ -52,14 +53,15 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
-import { fetchInitializationQuestions, saveInitializationDraft } from "./adminHealthApi";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { fetchInitializationQuestions, publishInitializationVersion, saveInitializationDraft } from "./adminHealthApi";
 
-const rows = ref([]), total = ref(0), loading = ref(false), saving = ref(false), copying = ref(false), drawerVisible = ref(false);
-const errorMessage = ref(""), currentVersion = ref(""), previewPath = ref("");
+const rows = ref([]), total = ref(0), loading = ref(false), saving = ref(false), copying = ref(false), publishing = ref(false), drawerVisible = ref(false);
+const errorMessage = ref(""), currentVersion = ref(""), currentVersionId = ref(""), currentRevision = ref(0), currentStatus = ref("CANDIDATE"), previewPath = ref("");
+const guidanceOptions = ref([]);
 const pageSize = 20;
 const filters = reactive({ keyword: "", type: "", version: "", page: 1 });
-const draft = reactive({ number: "", id: "", title: "", optionsText: "", hitAction: "", riskMode: "RISK", specialMode: "SPECIAL", standardMode: "STANDARD", guidanceVersionId: "", signoffLabel: "产品 / 健康内容 / 隐私负责人（待共同签署）", versionLabel: "", nextVersion: "v1.1" });
+const draft = reactive({ number: "", id: "", versionId: "", expectedRevision: 0, title: "", optionsText: "", hitAction: "", riskMode: "RISK", specialMode: "SPECIAL", standardMode: "STANDARD", guidanceVersionId: "", signoffLabel: "产品 / 健康内容 / 隐私负责人（待共同签署）", versionLabel: "", nextVersion: "v1.1" });
 let searchTimer = null, loadSequence = 0, loadController = null;
 
 function statusLabel(status) { return status === "CANDIDATE" ? "候选" : status === "PUBLISHED" ? "已发布" : status === "DRAFT" ? "草稿" : "待确认"; }
@@ -69,8 +71,9 @@ function editQuestion(row) {
   Object.assign(draft, {
     number: row.number, id: row.id, title: row.title,
     optionsText: (row.options || []).map((item) => item.label).join("\n"),
-    hitAction: row.routing === "SAFETY" ? "停止普通 tips 与常规推荐\n展示固定求助、就医或谨慎指引" : "进入普通分类与生活方式建议流程",
-    riskMode: "RISK", specialMode: "SPECIAL", standardMode: "STANDARD", guidanceVersionId: "",
+    versionId: currentVersionId.value, expectedRevision: currentRevision.value,
+    hitAction: row.hitAction || (row.routing === "SAFETY" ? "停止普通 tips 与常规推荐\n展示固定求助、就医或谨慎指引" : "进入普通分类与生活方式建议流程"),
+    riskMode: row.routingSettings?.risk || "RISK", specialMode: row.routingSettings?.special || "SPECIAL", standardMode: row.routingSettings?.standard || "STANDARD", guidanceVersionId: row.guidanceVersionId || guidanceOptions.value[0]?.versionId || "",
     signoffLabel: "产品 / 健康内容 / 隐私负责人（待共同签署）", versionLabel: row.versionLabel,
     nextVersion: `v${Number(row.version || 1)}.1`,
   });
@@ -79,7 +82,7 @@ function editQuestion(row) {
 async function copyCurrentVersion() {
   if (!currentVersion.value) return;
   copying.value = true; errorMessage.value = "";
-  try { await saveInitializationDraft({ action: "COPY_VERSION", sourceVersion: currentVersion.value }); ElMessage.success("新版本草稿已创建"); await load(); }
+  try { await saveInitializationDraft({ action: "COPY_VERSION", sourceVersionId: currentVersionId.value }); ElMessage.success("新版本草稿已创建"); await load(); }
   catch (error) { errorMessage.value = error.status === 404 ? "初始化建档版本复制能力尚未接入，未创建草稿" : (error.outcomeUnknown ? "复制结果待确认，请刷新权威记录" : error.message); }
   finally { copying.value = false; }
 }
@@ -89,10 +92,19 @@ async function saveDraft() {
   if (!draft.title.trim() || !options.length || !draft.hitAction.trim() || !draft.guidanceVersionId) return ElMessage.warning("请完成所有必填项");
   saving.value = true; errorMessage.value = "";
   try {
-    await saveInitializationDraft({ sourceVersion: draft.versionLabel, questionId: draft.id, title: draft.title.trim(), options, routing: { risk: draft.riskMode, special: draft.specialMode, standard: draft.standardMode }, hitAction: draft.hitAction.trim(), guidanceVersionId: draft.guidanceVersionId });
+    await saveInitializationDraft({ versionId: draft.versionId, expectedRevision: draft.expectedRevision, questionId: draft.id, title: draft.title.trim(), options, routing: { risk: draft.riskMode, special: draft.specialMode, standard: draft.standardMode }, hitAction: draft.hitAction.trim(), guidanceVersionId: draft.guidanceVersionId });
     ElMessage.success("初始化建档草稿已保存"); drawerVisible.value = false; await load();
   } catch (error) { errorMessage.value = error.status === 404 ? "初始化建档草稿能力尚未接入，内容未保存" : (error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message); }
   finally { saving.value = false; }
+}
+async function publishCurrentVersion() {
+  try {
+    await ElMessageBox.confirm("发布后该版本将成为候选环境的建档定义，已发布版本不可原地修改。生产健康写入仍保持关闭。", "确认发布", { confirmButtonText: "确认发布", cancelButtonText: "取消", type: "warning" });
+  } catch (action) { if (["cancel", "close"].includes(action)) return; throw action; }
+  publishing.value = true; errorMessage.value = "";
+  try { await publishInitializationVersion({ versionId: currentVersionId.value, expectedRevision: currentRevision.value }); ElMessage.success("初始化建档版本已发布"); await load(); }
+  catch (error) { errorMessage.value = error.outcomeUnknown ? "发布结果待确认，请刷新权威记录" : error.message; }
+  finally { publishing.value = false; }
 }
 async function load() {
   const sequence = ++loadSequence; loadController?.abort(); const controller = new AbortController(); loadController = controller;
@@ -100,7 +112,7 @@ async function load() {
   try {
     const data = await fetchInitializationQuestions({ ...filters, pageSize }, { signal: controller.signal });
     if (sequence !== loadSequence) return;
-    rows.value = data?.items || []; total.value = Number(data?.pagination?.total || 0); currentVersion.value = data?.currentVersion || ""; previewPath.value = data?.previewPath || "";
+    rows.value = data?.items || []; total.value = Number(data?.pagination?.total || 0); currentVersion.value = data?.currentVersion || ""; currentVersionId.value = data?.currentVersionId || ""; currentRevision.value = Number(data?.currentRevision || 0); currentStatus.value = data?.currentStatus || "CANDIDATE"; guidanceOptions.value = data?.guidanceOptions || []; previewPath.value = data?.previewPath || "";
   } catch (error) { if (error.code !== "ADMIN_ABORTED" && sequence === loadSequence) { rows.value = []; total.value = 0; errorMessage.value = error.message; } }
   finally { if (sequence === loadSequence) loading.value = false; }
 }

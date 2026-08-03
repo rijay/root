@@ -5,6 +5,7 @@ const { isProtectedRuntime } = require("./credentialProtection");
 const assessmentModule = require("./assessmentModule");
 const healthSafetyPolicy = require("./healthSafetyPolicy");
 const lifestyleAdviceModule = require("./lifestyleAdviceModule");
+const healthOperationsModule = require("./healthOperationsModule");
 
 const QUESTIONNAIRE_ID = assessmentModule.QUESTIONNAIRE_ID;
 const QUESTIONNAIRE_VERSION = assessmentModule.QUESTIONNAIRE_VERSION;
@@ -95,9 +96,9 @@ function bootstrap(data, user, profile, consentStatus, context = {}) {
   };
 }
 
-function getDefinition(profile, context = {}) {
+function getDefinition(data, profile, context = {}) {
   assertEligible(profile, context);
-  return { definition: assessmentModule.getPublishedDefinition(profile) };
+  return { definition: healthOperationsModule.resolveInitializationDefinition(data, profile) };
 }
 
 function adminInitializationDefinition(query = {}) {
@@ -158,7 +159,7 @@ function submit(data, user, profile, input = {}, context = {}) {
   if (previous && publicResult(previous)) {
     throw createClientError("FORMAL_HEALTH_ALREADY_COMPLETED", "健康起点评测已完成", 409);
   }
-  const definition = assessmentModule.getPublishedDefinition(profile);
+  const definition = healthOperationsModule.resolveInitializationDefinition(data, profile);
   const answers = assessmentModule.normalizeAnswers(input.answers, definition);
   const evaluation = evaluateAnswers(answers);
   const submittedAt = context.now || nowISO();
@@ -168,7 +169,7 @@ function submit(data, user, profile, input = {}, context = {}) {
     campaign_id: CAMPAIGN_ID,
     questionnaire_id: QUESTIONNAIRE_ID,
     questionnaire_type: QUESTIONNAIRE_ID,
-    version: QUESTIONNAIRE_VERSION,
+    version: definition.version,
     scoring_version: assessmentModule.SCORING_VERSION,
     answers_json: {
       answers,
@@ -185,6 +186,7 @@ function submit(data, user, profile, input = {}, context = {}) {
   return {
     success: true,
     answerId: row.questionnaire_answer_id,
+    questionnaireVersion: row.version,
     result: publicResult(row),
   };
 }

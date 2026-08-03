@@ -33,6 +33,7 @@ const coupon = require("./coupon");
 const cloudbaseIdentityProbe = require("./cloudbaseIdentityProbe");
 const contentModule = require("./contentModule");
 const formalHealthModule = require("./formalHealthModule");
+const healthOperationsModule = require("./healthOperationsModule");
 const csvImport = require("./csvImport");
 const externalAdapterSamples = require("./externalAdapterSamples");
 const externalPlatformAdapters = require("./externalPlatformAdapters");
@@ -850,11 +851,91 @@ function getFormalHealthInitialAssessment(data, token, context = {}) {
   const user = requireUser(data, token);
   const { profile } = formalHealthContext(data, user, context);
   privacyConsent.requireHealthConsent(data, user.root_user_id || user.user_id, context);
-  return response(formalHealthModule.getDefinition(profile, context));
+  return response(formalHealthModule.getDefinition(data, profile, context));
 }
 
-function listAdminFormalHealthInitialization(query = {}) {
-  return response(formalHealthModule.adminInitializationDefinition(query));
+function listAdminFormalHealthInitialization(data, query = {}) {
+  return response(healthOperationsModule.listInitialization(data, query));
+}
+
+function listAdminFormalHealthScales(data, query = {}) {
+  return response(healthOperationsModule.listScales(data, query));
+}
+
+function listAdminFormalHealthRecommendationRules(data, query = {}) {
+  return response(healthOperationsModule.listRecommendationRules(data, query));
+}
+
+function listAdminFormalHealthLifestyleAdvice(data, query = {}) {
+  return response(healthOperationsModule.listLifestyleAdvice(data, query));
+}
+
+function healthOperationContext(body = {}, context = {}) {
+  return {
+    ...context,
+    operatorId: body.operatorId || body.operator_id || "",
+  };
+}
+
+function healthOperationAudit(data, action, targetType, result, body = {}) {
+  const version = result.version;
+  return auditLog.appendAuditLog(data, {
+    action,
+    targetType,
+    targetId: version.versionId,
+    operatorId: body.operatorId || body.operator_id || "",
+    reason: body.reason || (action.endsWith("PUBLISH") ? "发布健康运营内容候选版本" : "保存健康运营内容草稿"),
+    before: null,
+    after: {
+      versionId: version.versionId,
+      logicalId: version.logicalId,
+      version: version.version,
+      revision: version.revision,
+      status: version.status,
+    },
+    metadata: {
+      requestId: body.requestId || body.request_id || "",
+      releaseStage: "CANDIDATE",
+    },
+  });
+}
+
+function healthOperationWrite(data, body, context, operation, action, targetType) {
+  const result = operation(data, body, healthOperationContext(body, context));
+  const audit = healthOperationAudit(data, action, targetType, result, body);
+  return response({ ...result, audit });
+}
+
+function saveAdminFormalHealthInitializationDraft(data, body = {}, context = {}) {
+  return healthOperationWrite(data, body, context, healthOperationsModule.saveInitializationDraft, "HEALTH_INITIALIZATION_DRAFT_SAVE", "HEALTH_INITIALIZATION_VERSION");
+}
+
+function publishAdminFormalHealthInitialization(data, body = {}, context = {}) {
+  return healthOperationWrite(data, body, context, healthOperationsModule.publishInitialization, "HEALTH_INITIALIZATION_PUBLISH", "HEALTH_INITIALIZATION_VERSION");
+}
+
+function saveAdminFormalHealthScaleDraft(data, body = {}, context = {}) {
+  return healthOperationWrite(data, body, context, healthOperationsModule.saveScaleDraft, "HEALTH_SCALE_DRAFT_SAVE", "HEALTH_SCALE_VERSION");
+}
+
+function publishAdminFormalHealthScale(data, body = {}, context = {}) {
+  return healthOperationWrite(data, body, context, healthOperationsModule.publishScale, "HEALTH_SCALE_PUBLISH", "HEALTH_SCALE_VERSION");
+}
+
+function saveAdminFormalHealthRecommendationRuleDraft(data, body = {}, context = {}) {
+  return healthOperationWrite(data, body, context, healthOperationsModule.saveRecommendationRuleDraft, "HEALTH_RECOMMENDATION_DRAFT_SAVE", "HEALTH_RECOMMENDATION_VERSION");
+}
+
+function publishAdminFormalHealthRecommendationRule(data, body = {}, context = {}) {
+  return healthOperationWrite(data, body, context, healthOperationsModule.publishRecommendationRule, "HEALTH_RECOMMENDATION_PUBLISH", "HEALTH_RECOMMENDATION_VERSION");
+}
+
+function saveAdminFormalHealthLifestyleAdviceDraft(data, body = {}, context = {}) {
+  return healthOperationWrite(data, body, context, healthOperationsModule.saveLifestyleAdviceDraft, "HEALTH_LIFESTYLE_DRAFT_SAVE", "HEALTH_LIFESTYLE_VERSION");
+}
+
+function publishAdminFormalHealthLifestyleAdvice(data, body = {}, context = {}) {
+  return healthOperationWrite(data, body, context, healthOperationsModule.publishLifestyleAdvice, "HEALTH_LIFESTYLE_PUBLISH", "HEALTH_LIFESTYLE_VERSION");
 }
 
 function submitFormalHealthInitialAssessment(data, token, body = {}, context = {}) {
@@ -868,7 +949,7 @@ function submitFormalHealthInitialAssessment(data, token, body = {}, context = {
     metadata: {
       answerId: result.answerId,
       questionnaireId: formalHealthModule.QUESTIONNAIRE_ID,
-      questionnaireVersion: formalHealthModule.QUESTIONNAIRE_VERSION,
+      questionnaireVersion: result.questionnaireVersion,
     },
   });
   return response(result);
@@ -3012,6 +3093,9 @@ module.exports = {
   listAdminActivityReviewQueue,
   listAdminActivitySessions,
   listAdminFormalHealthInitialization,
+  listAdminFormalHealthLifestyleAdvice,
+  listAdminFormalHealthRecommendationRules,
+  listAdminFormalHealthScales,
   listConsultationAdvisorAssignments,
   listConsultationWeworkWritebacks,
   listOrderAfterSalesRecords,
@@ -3034,6 +3118,10 @@ module.exports = {
   previewCorrection,
   previewImport,
   publishActivity,
+  publishAdminFormalHealthInitialization,
+  publishAdminFormalHealthLifestyleAdvice,
+  publishAdminFormalHealthRecommendationRule,
+  publishAdminFormalHealthScale,
   confirmAdminOrderMatch,
   confirmImport,
   previewExternalSamples,
@@ -3048,6 +3136,10 @@ module.exports = {
   submitDailyCheckin,
   submitFormalProfile,
   submitFormalHealthInitialAssessment,
+  saveAdminFormalHealthInitializationDraft,
+  saveAdminFormalHealthLifestyleAdviceDraft,
+  saveAdminFormalHealthRecommendationRuleDraft,
+  saveAdminFormalHealthScaleDraft,
   submitProfile,
   submitQuestionnaireAnswer,
   submitQuestionnaire,
