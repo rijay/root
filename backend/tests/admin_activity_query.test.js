@@ -33,6 +33,12 @@ async function request(baseUrl, path, headers = {}) {
 
 function seedAdminActivityData() {
   const store = createStore();
+  store.users.push({
+    user_id: "root-user-pseudonym-001",
+    root_user_id: "root-user-pseudonym-001",
+    nickname: "节律体验官",
+    phone: "13800138000",
+  });
   store.activityDefinitionVersions = [
     {
       activity_version_id: "activity-v1-manual",
@@ -357,10 +363,12 @@ test("Admin Activity Query HTTP Interface enforces capabilities, filters and exp
   assert.equal(enrollments.status, 200);
   assert.equal(enrollments.body.data.pagination.total, 1);
   assert.equal(enrollments.body.data.enrollments[0].rootUserId, "root-user-pseudonym-001");
+  assert.equal(enrollments.body.data.enrollments[0].memberNickname, "节律体验官");
+  assert.equal(enrollments.body.data.enrollments[0].memberContact, "138****8000");
   assert.deepEqual(Object.keys(enrollments.body.data.enrollments[0]).sort(), [
     "activityId", "activityTitle", "activityVersionId", "approvalMode", "attemptGeneration", "capacity",
     "capacityState", "city", "confirmedCount", "createdAt", "enrollmentId", "reasonCode",
-    "remainingCapacity", "reviewDeadline", "reviewState", "rootUserId", "sessionId", "sessionStartAt",
+    "memberContact", "memberNickname", "remainingCapacity", "reviewDeadline", "reviewState", "rootUserId", "sessionId", "sessionStartAt",
     "status", "updatedAt",
   ].sort());
 

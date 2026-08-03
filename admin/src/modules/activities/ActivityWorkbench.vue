@@ -1,13 +1,6 @@
 <template>
   <section class="workbench activity-workbench">
     <el-alert
-      :closable="false"
-      class="workbench-alert"
-      title="正式活动内容只接受 OPS_BACKEND。UED 占位、示意文案和未授权摄影素材不可提交。"
-      type="warning"
-      show-icon
-    />
-    <el-alert
       v-if="readErrors.length"
       :closable="false"
       class="workbench-alert"
@@ -52,201 +45,103 @@
       </el-table>
     </el-card>
 
+    <el-row :gutter="12" class="activity-summary">
+      <el-col :span="8"><el-card shadow="never"><span>活动版本</span><strong>{{ activityPagination.total }}</strong></el-card></el-col>
+      <el-col :span="8"><el-card shadow="never"><span>近期场次</span><strong>{{ sessionPagination.total }}</strong></el-card></el-col>
+      <el-col :span="8"><el-card shadow="never"><span>待处理报名</span><strong>{{ pendingEnrollmentCount }}</strong></el-card></el-col>
+    </el-row>
+
     <el-tabs v-model="activeTab" class="workbench-tabs">
-      <el-tab-pane label="活动内容" name="activities">
-        <el-row :gutter="16">
-          <el-col :span="9">
-            <el-card shadow="never">
-              <template #header>
-                <div class="toolbar-title">
-                  <span>{{ draftForm.activityVersionId ? "编辑草稿" : "新建草稿" }}</span>
-                  <el-tag effect="plain" type="success">OPS_BACKEND</el-tag>
-                </div>
-              </template>
-              <el-form label-position="top" :model="draftForm">
-                <el-row :gutter="12">
-                  <el-col :span="16"><el-form-item label="活动 ID"><el-input v-model="draftForm.activityId" /></el-form-item></el-col>
-                  <el-col :span="8"><el-form-item label="版本"><el-input-number v-model="draftForm.version" :min="1" /></el-form-item></el-col>
-                </el-row>
-                <el-form-item label="标题"><el-input v-model="draftForm.title" /></el-form-item>
-                <el-form-item label="摘要"><el-input v-model="draftForm.summary" :rows="2" type="textarea" /></el-form-item>
-                <el-form-item label="活动目标"><el-input v-model="draftForm.objective" :rows="3" type="textarea" /></el-form-item>
-                <el-form-item label="适合人群"><el-input v-model="draftForm.audience" :rows="3" type="textarea" /></el-form-item>
-                <el-form-item label="活动流程"><el-input v-model="draftForm.agenda" :rows="5" type="textarea" /></el-form-item>
-                <el-row :gutter="12">
-                  <el-col :span="12"><el-form-item label="主办方"><el-input v-model="draftForm.organizer" /></el-form-item></el-col>
-                  <el-col :span="12"><el-form-item label="费用口径"><el-input v-model="draftForm.feeDescription" /></el-form-item></el-col>
-                </el-row>
-                <el-form-item label="携带物品"><el-input v-model="draftForm.bringItems" :rows="3" type="textarea" /></el-form-item>
-                <el-form-item label="取消规则"><el-input v-model="draftForm.cancelPolicy" :rows="3" type="textarea" /></el-form-item>
-                <el-form-item label="报名隐私说明"><el-input v-model="draftForm.privacyNoticeText" :rows="3" type="textarea" /></el-form-item>
-                <el-form-item label="现场摄影说明"><el-input v-model="draftForm.photographyNoticeText" :rows="3" type="textarea" /></el-form-item>
-                <el-form-item label="用户可见联系人"><el-input v-model="draftForm.contactDisplay" /></el-form-item>
-                <el-row :gutter="12">
-                  <el-col :span="12"><el-form-item label="详情版本"><el-input v-model="draftForm.detailVersion" /></el-form-item></el-col>
-                  <el-col :span="12"><el-form-item label="活动类型"><el-input v-model="draftForm.activityType" /></el-form-item></el-col>
-                  <el-col :span="10"><el-form-item label="城市"><el-input v-model="draftForm.city" /></el-form-item></el-col>
-                  <el-col :span="14"><el-form-item label="场地摘要"><el-input v-model="draftForm.venueSummary" /></el-form-item></el-col>
-                </el-row>
-                <el-form-item label="主视觉受控资产引用">
-                  <el-input v-model="draftForm.heroAssetRef" placeholder="asset://..." />
-                  <span class="description-meta">摄影素材先进入已授权资产存储 Adapter，再填写不可变引用。</span>
-                </el-form-item>
-                <el-form-item label="隐私告知引用"><el-input v-model="draftForm.privacyNoticeRef" placeholder="notice://..." /></el-form-item>
-                <el-form-item label="摄影告知引用"><el-input v-model="draftForm.photographyNoticeRef" placeholder="notice://..." /></el-form-item>
-                <el-form-item label="内容审批引用"><el-input v-model="draftForm.contentApprovalRef" placeholder="approval://..." /></el-form-item>
-                <el-form-item label="联系负责人受信引用"><el-input v-model="draftForm.contactOwnerSignerRef" placeholder="signer://..." /></el-form-item>
-                <el-row :gutter="12">
-                  <el-col :span="10">
-                    <el-form-item label="可见范围">
-                      <el-select v-model="draftForm.visibility" style="width: 100%">
-                        <el-option label="公开" value="PUBLIC" />
-                        <el-option label="会员" value="MEMBER" />
-                      </el-select>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="14">
-                    <el-form-item label="会员要求"><el-input v-model="draftForm.memberRequirement" :disabled="draftForm.visibility !== 'MEMBER'" /></el-form-item>
-                  </el-col>
-                </el-row>
-                <el-space wrap>
-                  <el-button :disabled="!canContentWrite" :loading="writeLoading" type="primary" @click="submitDraft">保存草稿</el-button>
-                  <el-button @click="resetDraft">清空</el-button>
-                  <span v-if="!canContentWrite" class="description-meta">{{ access.reason(ADMIN_CAPABILITIES.ACTIVITY_CONTENT_WRITE) }}</span>
-                </el-space>
-              </el-form>
-            </el-card>
-          </el-col>
-
-          <el-col :span="15">
-            <el-card shadow="never">
-              <template #header>
-                <div class="toolbar-title">
-                  <span>活动版本</span>
-                  <el-space wrap>
-                    <el-input v-model="activityFilters.search" clearable placeholder="活动 ID 或标题" @keyup.enter="refreshActivities" />
-                    <el-select v-model="activityFilters.status" clearable placeholder="状态">
-                      <el-option v-for="status in definitionStates" :key="status" :label="status" :value="status" />
-                    </el-select>
-                    <el-button :loading="activitiesLoading" @click="refreshActivities">刷新</el-button>
-                  </el-space>
-                </div>
-              </template>
-              <el-table v-loading="activitiesLoading" :data="activities" height="650" empty-text="暂无活动版本，或后台读取 Interface 尚未交付">
-                <el-table-column label="活动" min-width="210">
-                  <template #default="{ row }">
-                    <div class="table-title">{{ row.title || row.activityId }}</div>
-                    <div class="table-meta">{{ row.activityId }} / v{{ row.version }}</div>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="city" label="城市" width="90" />
-                <el-table-column label="状态" width="120">
-                  <template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ row.status }}</el-tag></template>
-                </el-table-column>
-                <el-table-column prop="visibility" label="范围" width="90" />
-                <el-table-column label="操作" min-width="310" fixed="right">
-                  <template #default="{ row }">
-                    <el-space wrap>
-                      <el-button v-if="row.status === 'DRAFT'" size="small" @click="editDraft(row)">编辑</el-button>
-                      <el-button v-if="row.status === 'DRAFT'" :disabled="!canContentWrite" size="small" type="primary" @click="submitForReview(row)">提交审核</el-button>
-                      <el-button v-if="row.status === 'IN_REVIEW'" :disabled="!canContentWrite" size="small" @click="returnForChanges(row)">退回</el-button>
-                      <el-button v-if="row.status === 'IN_REVIEW'" :disabled="!canPublish" size="small" type="success" @click="openPublish(row)">发布 Gate</el-button>
-                      <el-button v-if="row.status === 'PUBLISHED'" :disabled="!canPublish" size="small" type="warning" @click="withdraw(row)">下架</el-button>
-                      <el-button v-if="row.status === 'UNPUBLISHED'" :disabled="!canPublish" size="small" type="danger" @click="archive(row)">归档</el-button>
-                    </el-space>
-                  </template>
-                </el-table-column>
-              </el-table>
-              <el-pagination
-                v-if="activityPagination.total > activityPagination.pageSize"
-                class="activity-pagination"
-                :current-page="activityPagination.page"
-                :page-size="activityPagination.pageSize"
-                :total="activityPagination.total"
-                layout="total, prev, pager, next"
-                @current-change="changeActivityPage"
-              />
-            </el-card>
-          </el-col>
-        </el-row>
-      </el-tab-pane>
-
-      <el-tab-pane label="场次管理" name="sessions">
-        <el-card shadow="never">
-          <template #header><div class="toolbar-title"><span>创建场次</span><el-button :loading="sessionsLoading" @click="refreshSessions">刷新场次</el-button></div></template>
-          <el-form :inline="true" :model="sessionForm" class="activity-inline-form">
-            <el-form-item label="活动版本"><el-input v-model="sessionForm.activityVersionId" placeholder="actv_..." /></el-form-item>
-            <el-form-item label="容量"><el-input-number v-model="sessionForm.capacity" :min="1" /></el-form-item>
-            <el-form-item label="审核"><el-select v-model="sessionForm.approvalMode"><el-option label="自动" value="AUTO" /><el-option label="人工" value="MANUAL" /></el-select></el-form-item>
-            <el-form-item label="报名开始"><el-date-picker v-model="sessionForm.registrationOpenAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" /></el-form-item>
-            <el-form-item label="报名截止"><el-date-picker v-model="sessionForm.registrationCloseAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" /></el-form-item>
-            <el-form-item label="自助取消截止"><el-date-picker v-model="sessionForm.cancelCloseAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" /></el-form-item>
-            <el-form-item v-if="sessionForm.approvalMode === 'MANUAL'" label="审核截止"><el-date-picker v-model="sessionForm.reviewDeadline" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" /></el-form-item>
-            <el-form-item label="开始"><el-date-picker v-model="sessionForm.sessionStartAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" /></el-form-item>
-            <el-form-item label="结束"><el-date-picker v-model="sessionForm.sessionEndAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" /></el-form-item>
-            <el-form-item><el-checkbox v-model="sessionForm.allowReapply">允许重新报名</el-checkbox></el-form-item>
-            <el-form-item><el-button :disabled="!canSessionControl" :loading="writeLoading" type="primary" @click="submitSession">创建场次</el-button></el-form-item>
-          </el-form>
-        </el-card>
+      <el-tab-pane label="活动管理" name="activities">
         <el-card shadow="never">
           <template #header>
-            <div class="toolbar-title">
-              <span>场次列表</span>
-              <el-space><el-input v-model="sessionFilters.activityVersionId" clearable placeholder="活动版本" /><el-select v-model="sessionFilters.status" clearable placeholder="状态"><el-option v-for="status in sessionStates" :key="status" :label="status" :value="status" /></el-select></el-space>
+            <div class="activity-page-heading">
+              <div><strong>活动管理</strong><p>维护活动内容、发布状态和场次安排</p></div>
+              <el-button :disabled="!canContentWrite" type="primary" @click="openNewDraft">新建活动</el-button>
             </div>
           </template>
-          <el-table v-loading="sessionsLoading" :data="sessions" empty-text="暂无场次，或后台读取 Interface 尚未交付">
-            <el-table-column prop="sessionId" label="场次 ID" min-width="160" />
-            <el-table-column prop="activityVersionId" label="活动版本" min-width="160" />
-            <el-table-column label="状态" width="110"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ row.status }}</el-tag></template></el-table-column>
-            <el-table-column label="容量" width="120"><template #default="{ row }">{{ row.confirmedCount || 0 }} / {{ row.capacity }}</template></el-table-column>
-            <el-table-column prop="approvalMode" label="审核" width="90" />
-            <el-table-column prop="sessionStartAt" label="开始时间" min-width="175" />
-            <el-table-column label="操作" width="260" fixed="right">
+          <div class="activity-filter-bar">
+            <el-input v-model="activityFilters.search" clearable placeholder="搜索活动标题或 ID" @keyup.enter="refreshActivities" />
+            <el-select v-model="activityFilters.status" clearable placeholder="全部状态">
+              <el-option v-for="status in definitionStates" :key="status" :label="statusLabel(status)" :value="status" />
+            </el-select>
+            <el-button :loading="activitiesLoading" @click="refreshActivities">查询</el-button>
+          </div>
+          <el-table v-loading="activitiesLoading" :data="activities" empty-text="暂无活动">
+            <el-table-column label="活动" min-width="260">
               <template #default="{ row }">
-                <el-space>
-                  <el-button v-if="nextSessionState(row.status)" :disabled="!canSessionControl" size="small" type="primary" @click="advanceSession(row)">转为 {{ nextSessionState(row.status) }}</el-button>
-                  <el-button v-if="!['CANCELED', 'ENDED'].includes(row.status)" :disabled="!canSessionControl" size="small" type="danger" @click="openCancel(row)">取消</el-button>
+                <div class="table-title">{{ row.title || row.activityId }}</div>
+                <div class="table-meta">{{ row.summary || `${row.activityId} / v${row.version}` }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column label="地点" min-width="140"><template #default="{ row }">{{ [row.city, row.venueSummary].filter(Boolean).join(' · ') || '—' }}</template></el-table-column>
+            <el-table-column label="状态" width="112"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ statusLabel(row.status) }}</el-tag></template></el-table-column>
+            <el-table-column label="可见范围" width="110"><template #default="{ row }">{{ row.visibility === 'PUBLIC' ? '公开' : '会员' }}</template></el-table-column>
+            <el-table-column label="更新时间" min-width="170"><template #default="{ row }">{{ formatDateTime(row.updatedAt) }}</template></el-table-column>
+            <el-table-column label="操作" min-width="300" fixed="right" align="right">
+              <template #default="{ row }">
+                <el-space wrap>
+                  <el-button v-if="row.status === 'DRAFT'" link type="primary" @click="editDraft(row)">编辑</el-button>
+                  <el-button v-if="row.status === 'DRAFT'" :disabled="!canContentWrite" link type="primary" @click="submitForReview(row)">提交审核</el-button>
+                  <el-button v-if="row.status === 'IN_REVIEW'" :disabled="!canContentWrite" link @click="returnForChanges(row)">退回</el-button>
+                  <el-button v-if="row.status === 'IN_REVIEW'" :disabled="!canPublish" link type="success" @click="openPublish(row)">发布</el-button>
+                  <el-button v-if="row.status === 'PUBLISHED'" :disabled="!canPublish" link type="warning" @click="withdraw(row)">下架</el-button>
+                  <el-button v-if="row.status === 'UNPUBLISHED'" :disabled="!canPublish" link type="danger" @click="archive(row)">归档</el-button>
                 </el-space>
               </template>
             </el-table-column>
           </el-table>
-          <el-pagination
-            v-if="sessionPagination.total > sessionPagination.pageSize"
-            class="activity-pagination"
-            :current-page="sessionPagination.page"
-            :page-size="sessionPagination.pageSize"
-            :total="sessionPagination.total"
-            layout="total, prev, pager, next"
-            @current-change="changeSessionPage"
-          />
+          <el-pagination v-if="activityPagination.total > activityPagination.pageSize" class="activity-pagination" :current-page="activityPagination.page" :page-size="activityPagination.pageSize" :total="activityPagination.total" layout="total, prev, pager, next" @current-change="changeActivityPage" />
+        </el-card>
+
+        <el-card shadow="never">
+          <template #header>
+            <div class="activity-page-heading">
+              <div><strong>场次安排</strong><p>设置报名时间、人数和现场安排</p></div>
+              <el-button :disabled="!canSessionControl" type="primary" plain @click="sessionDrawerVisible = true">新建场次</el-button>
+            </div>
+          </template>
+          <div class="activity-filter-bar">
+            <el-input v-model="sessionFilters.activityVersionId" clearable placeholder="活动版本 ID" @keyup.enter="refreshSessions" />
+            <el-select v-model="sessionFilters.status" clearable placeholder="全部状态"><el-option v-for="status in sessionStates" :key="status" :label="statusLabel(status)" :value="status" /></el-select>
+            <el-button :loading="sessionsLoading" @click="refreshSessions">查询</el-button>
+          </div>
+          <el-table v-loading="sessionsLoading" :data="sessions" empty-text="暂无场次">
+            <el-table-column label="活动" min-width="220"><template #default="{ row }"><div class="table-title">{{ row.activityTitle || row.activityVersionId }}</div><div class="table-meta">{{ row.sessionId }}</div></template></el-table-column>
+            <el-table-column label="开始时间" min-width="170"><template #default="{ row }">{{ formatDateTime(row.sessionStartAt) }}</template></el-table-column>
+            <el-table-column label="状态" width="110"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ statusLabel(row.status) }}</el-tag></template></el-table-column>
+            <el-table-column label="报名人数" width="110"><template #default="{ row }">{{ row.confirmedCount || 0 }} / {{ row.capacity }}</template></el-table-column>
+            <el-table-column label="确认方式" width="100"><template #default="{ row }">{{ row.approvalMode === 'AUTO' ? '自动' : '人工' }}</template></el-table-column>
+            <el-table-column label="操作" width="230" fixed="right" align="right"><template #default="{ row }"><el-space><el-button v-if="nextSessionState(row.status)" :disabled="!canSessionControl" link type="primary" @click="advanceSession(row)">转为{{ statusLabel(nextSessionState(row.status)) }}</el-button><el-button v-if="!['CANCELED', 'ENDED'].includes(row.status)" :disabled="!canSessionControl" link type="danger" @click="openCancel(row)">取消</el-button></el-space></template></el-table-column>
+          </el-table>
+          <el-pagination v-if="sessionPagination.total > sessionPagination.pageSize" class="activity-pagination" :current-page="sessionPagination.page" :page-size="sessionPagination.pageSize" :total="sessionPagination.total" layout="total, prev, pager, next" @current-change="changeSessionPage" />
         </el-card>
       </el-tab-pane>
 
-      <el-tab-pane :disabled="!canEnrollmentReview" label="报名审核" name="enrollments">
+      <el-tab-pane :disabled="!canEnrollmentReview" label="报名管理" name="enrollments">
         <el-card shadow="never">
           <template #header>
-            <div class="toolbar-title">
-              <span>报名申请</span>
-              <el-space wrap>
-                <el-input v-model="enrollmentFilters.sessionId" clearable placeholder="场次 ID" />
-                <el-select v-model="enrollmentFilters.status" clearable placeholder="状态"><el-option v-for="status in enrollmentStates" :key="status" :label="status" :value="status" /></el-select>
-                <el-button :loading="enrollmentsLoading" @click="refreshEnrollments">刷新</el-button>
-              </el-space>
+            <div class="activity-page-heading">
+              <div><strong>报名管理</strong><p>查看报名状态并处理需要人工确认的申请</p></div>
             </div>
           </template>
-          <el-alert :closable="false" class="workbench-alert" title="审核命令必须携带列表当前的 expectedAttemptGeneration。若用户重新报名，旧页面操作会被服务端拒绝。" type="info" />
-          <el-table v-loading="enrollmentsLoading" :data="enrollments" empty-text="暂无报名，或后台读取 Interface 尚未交付">
-            <el-table-column prop="enrollmentId" label="报名 ID" min-width="180" />
-            <el-table-column prop="sessionId" label="场次 ID" min-width="160" />
-            <el-table-column label="状态" width="110"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ row.status }}</el-tag></template></el-table-column>
-            <el-table-column prop="attemptGeneration" label="申请代次" width="100" />
-            <el-table-column prop="updatedAt" label="更新时间" min-width="175" />
-            <el-table-column label="操作" width="210" fixed="right">
+          <div class="activity-filter-bar activity-filter-bar--wide">
+            <el-input v-model="enrollmentFilters.activityId" clearable placeholder="活动 ID" @keyup.enter="refreshEnrollments" />
+            <el-input v-model="enrollmentFilters.sessionId" clearable placeholder="场次 ID" @keyup.enter="refreshEnrollments" />
+            <el-select v-model="enrollmentFilters.status" clearable placeholder="全部状态"><el-option v-for="status in enrollmentStates" :key="status" :label="statusLabel(status)" :value="status" /></el-select>
+            <el-button :loading="enrollmentsLoading" @click="refreshEnrollments">查询</el-button>
+          </div>
+          <el-table v-loading="enrollmentsLoading" :data="enrollments" empty-text="暂无报名记录">
+            <el-table-column label="活动" min-width="220"><template #default="{ row }"><div class="table-title">{{ row.activityTitle || row.activityId }}</div><div class="table-meta">{{ row.sessionId }}</div></template></el-table-column>
+            <el-table-column label="会员" min-width="190"><template #default="{ row }"><div>{{ row.memberNickname || 'Root用户' }}</div><div class="table-meta">{{ row.memberContact || row.rootUserId }}</div></template></el-table-column>
+            <el-table-column label="活动时间" min-width="170"><template #default="{ row }">{{ formatDateTime(row.sessionStartAt) }}</template></el-table-column>
+            <el-table-column label="状态" width="110"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ statusLabel(row.status) }}</el-tag></template></el-table-column>
+            <el-table-column label="更新时间" min-width="170"><template #default="{ row }">{{ formatDateTime(row.updatedAt) }}</template></el-table-column>
+            <el-table-column label="操作" width="150" fixed="right" align="right">
               <template #default="{ row }">
                 <el-space v-if="row.status === 'PENDING'">
-                  <el-button :disabled="!canEnrollmentReview" size="small" type="success" @click="reviewEnrollment(row, true)">通过</el-button>
-                  <el-button :disabled="!canEnrollmentReview" size="small" type="danger" @click="reviewEnrollment(row, false)">拒绝</el-button>
+                  <el-button :disabled="!canEnrollmentReview" link type="success" @click="reviewEnrollment(row, true)">通过</el-button>
+                  <el-button :disabled="!canEnrollmentReview" link type="danger" @click="reviewEnrollment(row, false)">拒绝</el-button>
                 </el-space>
               </template>
             </el-table-column>
@@ -264,16 +159,59 @@
       </el-tab-pane>
     </el-tabs>
 
-    <el-dialog v-model="publishDialogVisible" title="活动发布 Gate" width="620px" @closed="resetPublishGate">
-      <el-alert :closable="false" class="workbench-alert" title="Gate 默认关闭。这里只提交证据绑定，受信 Authorization Adapter 仍会校验主体、证据、版本和有效时间。" type="warning" show-icon />
+    <el-drawer v-model="draftDrawerVisible" :title="draftForm.activityVersionId ? '编辑活动' : '新建活动'" size="720px" @closed="resetDraft">
+      <el-form label-position="top" :model="draftForm" class="activity-drawer-form">
+        <el-row :gutter="12"><el-col :span="16"><el-form-item label="活动 ID"><el-input v-model="draftForm.activityId" /></el-form-item></el-col><el-col :span="8"><el-form-item label="版本"><el-input-number v-model="draftForm.version" :min="1" /></el-form-item></el-col></el-row>
+        <el-form-item label="标题"><el-input v-model="draftForm.title" /></el-form-item>
+        <el-form-item label="摘要"><el-input v-model="draftForm.summary" :rows="2" type="textarea" /></el-form-item>
+        <el-row :gutter="12"><el-col :span="12"><el-form-item label="城市"><el-input v-model="draftForm.city" /></el-form-item></el-col><el-col :span="12"><el-form-item label="场地"><el-input v-model="draftForm.venueSummary" /></el-form-item></el-col></el-row>
+        <el-row :gutter="12"><el-col :span="12"><el-form-item label="活动类型"><el-input v-model="draftForm.activityType" /></el-form-item></el-col><el-col :span="12"><el-form-item label="主办方"><el-input v-model="draftForm.organizer" /></el-form-item></el-col></el-row>
+        <el-form-item label="活动目标"><el-input v-model="draftForm.objective" :rows="3" type="textarea" /></el-form-item>
+        <el-form-item label="适合人群"><el-input v-model="draftForm.audience" :rows="3" type="textarea" /></el-form-item>
+        <el-form-item label="活动流程"><el-input v-model="draftForm.agenda" :rows="4" type="textarea" /></el-form-item>
+        <el-row :gutter="12"><el-col :span="12"><el-form-item label="费用说明"><el-input v-model="draftForm.feeDescription" /></el-form-item></el-col><el-col :span="12"><el-form-item label="用户可见联系人"><el-input v-model="draftForm.contactDisplay" /></el-form-item></el-col></el-row>
+        <el-form-item label="携带物品"><el-input v-model="draftForm.bringItems" :rows="2" type="textarea" /></el-form-item>
+        <el-form-item label="取消规则"><el-input v-model="draftForm.cancelPolicy" :rows="2" type="textarea" /></el-form-item>
+        <el-form-item label="报名隐私说明"><el-input v-model="draftForm.privacyNoticeText" :rows="2" type="textarea" /></el-form-item>
+        <el-form-item label="现场摄影说明"><el-input v-model="draftForm.photographyNoticeText" :rows="2" type="textarea" /></el-form-item>
+        <el-form-item label="主视觉素材引用"><el-input v-model="draftForm.heroAssetRef" placeholder="asset://..." /></el-form-item>
+        <el-collapse class="activity-advanced-fields"><el-collapse-item title="内容引用与可见范围" name="references">
+          <el-row :gutter="12"><el-col :span="12"><el-form-item label="详情版本"><el-input v-model="draftForm.detailVersion" /></el-form-item></el-col><el-col :span="12"><el-form-item label="可见范围"><el-select v-model="draftForm.visibility" style="width:100%"><el-option label="公开" value="PUBLIC" /><el-option label="会员" value="MEMBER" /></el-select></el-form-item></el-col></el-row>
+          <el-form-item v-if="draftForm.visibility === 'MEMBER'" label="会员要求"><el-input v-model="draftForm.memberRequirement" /></el-form-item>
+          <el-form-item label="隐私告知引用"><el-input v-model="draftForm.privacyNoticeRef" /></el-form-item>
+          <el-form-item label="摄影告知引用"><el-input v-model="draftForm.photographyNoticeRef" /></el-form-item>
+          <el-form-item label="内容审批引用"><el-input v-model="draftForm.contentApprovalRef" /></el-form-item>
+          <el-form-item label="联系负责人引用"><el-input v-model="draftForm.contactOwnerSignerRef" /></el-form-item>
+        </el-collapse-item></el-collapse>
+      </el-form>
+      <template #footer><div class="drawer-footer"><span v-if="!canContentWrite" class="description-meta">{{ access.reason(ADMIN_CAPABILITIES.ACTIVITY_CONTENT_WRITE) }}</span><el-button @click="draftDrawerVisible = false">取消</el-button><el-button :disabled="!canContentWrite" :loading="writeLoading" type="primary" @click="submitDraft">保存草稿</el-button></div></template>
+    </el-drawer>
+
+    <el-drawer v-model="sessionDrawerVisible" title="新建场次" size="620px">
+      <el-form label-position="top" :model="sessionForm" class="activity-drawer-form">
+        <el-form-item label="活动版本"><el-input v-model="sessionForm.activityVersionId" placeholder="活动版本 ID" /></el-form-item>
+        <el-row :gutter="12"><el-col :span="12"><el-form-item label="人数上限"><el-input-number v-model="sessionForm.capacity" :min="1" /></el-form-item></el-col><el-col :span="12"><el-form-item label="报名确认"><el-select v-model="sessionForm.approvalMode" style="width:100%"><el-option label="自动确认" value="AUTO" /><el-option label="人工确认" value="MANUAL" /></el-select></el-form-item></el-col></el-row>
+        <el-form-item label="报名开始"><el-date-picker v-model="sessionForm.registrationOpenAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" style="width:100%" /></el-form-item>
+        <el-form-item label="报名截止"><el-date-picker v-model="sessionForm.registrationCloseAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" style="width:100%" /></el-form-item>
+        <el-form-item label="取消截止"><el-date-picker v-model="sessionForm.cancelCloseAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" style="width:100%" /></el-form-item>
+        <el-form-item v-if="sessionForm.approvalMode === 'MANUAL'" label="审核截止"><el-date-picker v-model="sessionForm.reviewDeadline" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" style="width:100%" /></el-form-item>
+        <el-form-item label="活动开始"><el-date-picker v-model="sessionForm.sessionStartAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" style="width:100%" /></el-form-item>
+        <el-form-item label="活动结束"><el-date-picker v-model="sessionForm.sessionEndAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" style="width:100%" /></el-form-item>
+        <el-checkbox v-model="sessionForm.allowReapply">取消后允许重新报名</el-checkbox>
+      </el-form>
+      <template #footer><div class="drawer-footer"><el-button @click="sessionDrawerVisible = false">取消</el-button><el-button :disabled="!canSessionControl" :loading="writeLoading" type="primary" @click="submitSession">创建场次</el-button></div></template>
+    </el-drawer>
+
+    <el-dialog v-model="publishDialogVisible" title="发布活动" width="620px" @closed="resetPublishGate">
+      <el-alert :closable="false" class="workbench-alert" title="当前正式素材授权尚未接入，发布前请核对以下内容引用。" type="warning" show-icon />
       <el-form label-position="top" :model="publishForm">
         <el-form-item label="受控审批引用"><el-input v-model="publishForm.controlledApprovalRef" disabled /><span class="description-meta">值来自草稿 contentApprovalRef，不允许在发布时改写。</span></el-form-item>
         <el-form-item v-for="item in digestFields" :key="item.key" :label="item.label"><el-input v-model="publishForm[item.key]" placeholder="64 位 SHA-256" /></el-form-item>
-        <el-checkbox v-model="publishGateAcknowledged">我确认四份证据与当前活动版本一致，且不含 UED 占位或未授权摄影素材。</el-checkbox>
+        <el-checkbox v-model="publishGateAcknowledged">我确认当前活动内容和素材引用已完成内部核对。</el-checkbox>
       </el-form>
       <template #footer>
         <el-button @click="publishDialogVisible = false">取消</el-button>
-        <el-button :disabled="!publishGateReady" :loading="writeLoading" type="primary" @click="submitPublish">提交受控发布</el-button>
+        <el-button :disabled="!publishGateReady" :loading="writeLoading" type="primary" @click="submitPublish">确认发布</el-button>
       </template>
     </el-dialog>
 
@@ -313,6 +251,8 @@ import { ADMIN_CAPABILITIES, useAdminAccess } from "../access";
 
 const access = useAdminAccess();
 const activeTab = ref("activities");
+const draftDrawerVisible = ref(false);
+const sessionDrawerVisible = ref(false);
 const activities = ref([]);
 const sessions = ref([]);
 const enrollments = ref([]);
@@ -332,7 +272,7 @@ const enrollmentStates = ["PENDING", "CONFIRMED", "REJECTED", "CANCELED"];
 const cancelReasons = ["OPERATOR_CANCELED", "WEATHER", "VENUE", "FORCE_MAJEURE", "OTHER"];
 const activityFilters = reactive({ search: "", status: "", page: 1, pageSize: 20 });
 const sessionFilters = reactive({ activityVersionId: "", status: "", page: 1, pageSize: 20 });
-const enrollmentFilters = reactive({ sessionId: "", status: "PENDING", page: 1, pageSize: 20 });
+const enrollmentFilters = reactive({ activityId: "", sessionId: "", status: "PENDING", page: 1, pageSize: 20 });
 const activityPagination = reactive({ page: 1, pageSize: 20, total: 0 });
 const sessionPagination = reactive({ page: 1, pageSize: 20, total: 0 });
 const enrollmentPagination = reactive({ page: 1, pageSize: 20, total: 0 });
@@ -341,6 +281,11 @@ const canContentWrite = computed(() => access.has(ADMIN_CAPABILITIES.ACTIVITY_CO
 const canPublish = computed(() => access.has(ADMIN_CAPABILITIES.ACTIVITY_PUBLISH));
 const canSessionControl = computed(() => access.has(ADMIN_CAPABILITIES.ACTIVITY_SESSION_CONTROL));
 const canEnrollmentReview = computed(() => access.has(ADMIN_CAPABILITIES.ACTIVITY_ENROLLMENT_REVIEW));
+const pendingEnrollmentCount = computed(() => (
+  enrollmentFilters.status === "PENDING"
+    ? enrollmentPagination.total
+    : enrollments.value.filter((row) => row.status === "PENDING").length
+));
 
 function emptyDraft() {
   return {
@@ -651,9 +596,13 @@ async function submitDraft() {
 }
 
 function resetDraft() { Object.assign(draftForm, emptyDraft()); }
+function openNewDraft() {
+  resetDraft();
+  draftDrawerVisible.value = true;
+}
 function editDraft(row) {
   Object.assign(draftForm, emptyDraft(), row, { source: "OPS_BACKEND" });
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  draftDrawerVisible.value = true;
 }
 
 async function submitForReview(row) {
@@ -739,18 +688,51 @@ function statusType(status) {
   return "info";
 }
 
+function statusLabel(status) {
+  return ({
+    DRAFT: "草稿", IN_REVIEW: "审核中", PUBLISHED: "已发布", UNPUBLISHED: "已下架", ARCHIVED: "已归档",
+    SCHEDULED: "待开放", OPEN: "报名中", CLOSED: "报名结束", CANCELED: "已取消", ENDED: "已结束",
+    PENDING: "待确认", CONFIRMED: "已确认", REJECTED: "已拒绝",
+  })[status] || status || "—";
+}
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(date).replaceAll("/", "-");
+}
+
 defineExpose({ load });
 onMounted(() => { syncPendingRecords(); load(); });
 onBeforeUnmount(unsubscribePendingCommands);
 </script>
 
 <style scoped>
-.activity-workbench { min-width: 0; }
-.activity-inline-form :deep(.el-input), .activity-inline-form :deep(.el-select) { width: 180px; }
-.activity-inline-form :deep(.el-date-editor) { width: 220px; }
+.activity-workbench { min-width: 0; overflow: hidden; }
+.activity-workbench .workbench-tabs { min-width: 0; }
+.activity-workbench :deep(.el-tabs__content),
+.activity-workbench :deep(.el-tab-pane),
+.activity-workbench :deep(.el-card),
+.activity-workbench :deep(.el-card__body) { min-width: 0; }
+.activity-workbench :deep(.el-table) { width: 100%; }
 .activity-workbench :deep(.el-card) { margin-bottom: 14px; }
 .activity-workbench :deep(.el-form-item) { margin-bottom: 14px; }
 .activity-pagination { justify-content: flex-end; margin-top: 14px; }
 .pending-command-card { margin-bottom: 14px; }
 .pending-command-card code { overflow-wrap: anywhere; }
+.activity-summary :deep(.el-card__body) { display: flex; align-items: center; justify-content: space-between; min-height: 86px; }
+.activity-summary span { color: var(--root-muted); font-size: 14px; }
+.activity-summary strong { color: var(--root-ink); font-size: 30px; font-weight: 600; }
+.activity-page-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.activity-page-heading strong { color: var(--root-ink); font-size: 17px; }
+.activity-page-heading p { margin: 6px 0 0; color: var(--root-muted); font-size: 13px; }
+.activity-filter-bar { display: grid; grid-template-columns: minmax(260px, 1fr) 156px auto; gap: 10px; margin-bottom: 16px; }
+.activity-filter-bar--wide { grid-template-columns: minmax(180px, .8fr) minmax(240px, 1fr) 156px auto; }
+.activity-drawer-form { padding: 0 4px 24px; }
+.activity-advanced-fields { margin-top: 8px; }
+.drawer-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; width: 100%; }
+.drawer-footer .description-meta { margin: 0 auto 0 0; }
 </style>

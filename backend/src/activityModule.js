@@ -62,6 +62,12 @@ function optionalText(value) {
   return String(value || "").trim();
 }
 
+function maskPhone(value) {
+  const phone = optionalText(value);
+  if (phone.length < 7) return phone;
+  return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
+}
+
 function positiveInteger(value, field) {
   const normalized = Number(value);
   if (!Number.isInteger(normalized) || normalized <= 0) {
@@ -1169,12 +1175,19 @@ function buildAdminProjectionIndex(data) {
     [session.activity_session_id, session]
   )));
   const confirmedBySession = new Map();
+  const usersByRootId = new Map();
+  (Array.isArray(data.users) ? data.users : []).forEach((user) => {
+    const rootUserId = optionalText(user.root_user_id || user.user_id);
+    if (!rootUserId) return;
+    const current = usersByRootId.get(rootUserId);
+    if (!current || (!current.phone && user.phone)) usersByRootId.set(rootUserId, user);
+  });
   collections.enrollments.forEach((enrollment) => {
     if (enrollment.status !== "CONFIRMED") return;
     const current = confirmedBySession.get(enrollment.activity_session_id) || 0;
     confirmedBySession.set(enrollment.activity_session_id, current + 1);
   });
-  return { ...collections, definitionsByVersion, sessionsById, confirmedBySession };
+  return { ...collections, definitionsByVersion, sessionsById, confirmedBySession, usersByRootId };
 }
 
 function definitionForAdminProjection(index, activityVersionId) {
@@ -1269,6 +1282,7 @@ function adminReviewState(session, now) {
 function toAdminEnrollmentPayload(index, enrollment, now) {
   const session = sessionForAdminProjection(index, enrollment.activity_session_id);
   const sessionPayload = toAdminSessionPayload(index, session, now);
+  const user = index.usersByRootId.get(enrollment.root_user_id);
   return {
     enrollmentId: enrollment.activity_enrollment_id,
     sessionId: enrollment.activity_session_id,
@@ -1277,6 +1291,8 @@ function toAdminEnrollmentPayload(index, enrollment, now) {
     activityTitle: sessionPayload.activityTitle,
     city: sessionPayload.city,
     rootUserId: enrollment.root_user_id,
+    memberNickname: optionalText(user && user.nickname) || "Root用户",
+    memberContact: maskPhone(user && user.phone),
     status: enrollment.status,
     reasonCode: enrollment.reason_code || "",
     attemptGeneration: enrollment.attempt_generation,
