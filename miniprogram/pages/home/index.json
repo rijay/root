@@ -2,6 +2,6 @@
   "navigationStyle": "custom",
   "disableScroll": true,
   "usingComponents": {
-    "root-wordmark": "/components/root-wordmark/index"
+    "immersive-header": "/components/immersive-header/index"
   }
 }

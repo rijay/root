@@ -6,7 +6,7 @@
     data-index="{{index}}"
     bindtap="switchTab"
   >
-    <view class="root-tab-bar__icon root-tab-bar__icon--{{index}}" aria-hidden="true"></view>
+    <image class="root-tab-bar__icon-image" src="{{selected === index ? item.activeIcon : item.icon}}" mode="aspectFit" aria-hidden="true" />
     <text class="root-tab-bar__label">{{item.text}}</text>
   </view>
 </view>

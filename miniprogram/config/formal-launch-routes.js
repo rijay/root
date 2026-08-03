@@ -2,10 +2,10 @@ const WELCOME_ROUTE = "pages/welcome/index";
 const WELCOME_STORAGE_KEY = "ROOT_WELCOME_SEEN_V1";
 
 const FORMAL_TABS = Object.freeze([
-  Object.freeze({ pagePath: "pages/home/index", text: "首页" }),
-  Object.freeze({ pagePath: "pages/health/index", text: "健康" }),
-  Object.freeze({ pagePath: "pages/activities/index", text: "活动" }),
-  Object.freeze({ pagePath: "pages/profile/index", text: "我的" }),
+  Object.freeze({ pagePath: "pages/home/index", text: "首页", icon: "/static/icons/tab-home.svg", activeIcon: "/static/icons/tab-home-active.svg" }),
+  Object.freeze({ pagePath: "pages/health/index", text: "健康", icon: "/static/icons/tab-health.svg", activeIcon: "/static/icons/tab-health-active.svg" }),
+  Object.freeze({ pagePath: "pages/activities/index", text: "活动", icon: "/static/icons/tab-activity.svg", activeIcon: "/static/icons/tab-activity-active.svg" }),
+  Object.freeze({ pagePath: "pages/profile/index", text: "我的", icon: "/static/icons/tab-profile.svg", activeIcon: "/static/icons/tab-profile-active.svg" }),
 ]);
 
 const MAIN_ROUTES = Object.freeze([

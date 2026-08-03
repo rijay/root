@@ -23,7 +23,7 @@ function sourceFiles(directory) {
 
 assert.deepEqual(
   app.tabBar.list.map(({ pagePath, text }) => ({ pagePath, text })),
-  routes.FORMAL_TABS,
+  routes.FORMAL_TABS.map(({ pagePath, text }) => ({ pagePath, text })),
   "正式上线 Tab 必须精确为首页、健康、活动、我的",
 );
 assert.equal(app.tabBar.custom, true, "正式上线必须使用批准的四 Tab 自定义导航");

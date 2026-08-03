@@ -1,11 +1,22 @@
 const { executeContentAction } = require("../../../../utils/content-action");
 const { request } = require("../../../../utils/request");
 
+function resolveWordmarkTop() {
+  try {
+    const capsule = wx.getMenuButtonBoundingClientRect && wx.getMenuButtonBoundingClientRect();
+    if (capsule && Number.isFinite(capsule.bottom)) return Math.max(132, Math.round(capsule.bottom + 88));
+  } catch (error) {
+    // 模拟器或低版本环境回退到 Ardot 390 × 844 画板位置。
+  }
+  return 132;
+}
+
 Page({
-  data: { state: "loading", item: null },
+  data: { state: "loading", item: null, wordmarkTop: 132 },
 
   onLoad(options = {}) {
     this.contentId = String(options.contentId || "").trim();
+    this.setData({ wordmarkTop: resolveWordmarkTop() });
     this.loadDetail();
   },
 
