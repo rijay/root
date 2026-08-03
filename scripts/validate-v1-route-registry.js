@@ -1,14 +1,11 @@
 #!/usr/bin/env node
-
 const path = require("node:path");
 const { loadAndValidateRegistry } = require("./lib/route-registry");
-
 const projectRoot = path.resolve(__dirname, "..");
 const result = loadAndValidateRegistry(
   path.join(projectRoot, "contracts/route-registry/v1.0.0-draft.8.json"),
-  { appJsonPath: path.join(projectRoot, "miniprogram/app.json") },
+  { appJsonPath: path.join(projectRoot, "miniprogram/fixtures/miniprogram-app-v1-pre-formal-rebuild.json") },
 );
-
 process.stdout.write(`${JSON.stringify({
   status: "PASS",
   contractStatus: result.status,

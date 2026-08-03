@@ -1,14 +1,19 @@
 {
   "pages": [
-    "pages/welcome/index",
     "pages/home/index",
     "pages/health/index",
     "pages/activities/index",
-    "pages/profile/index",
     "pages/login/index",
-    "pages/register/index",
     "pages/legal/index",
-    "pages/health-consent/index"
+    "pages/health-consent/index",
+    "pages/register/index",
+    "pages/products/index",
+    "pages/product-detail/index",
+    "pages/tasks/index",
+    "pages/rewards/index",
+    "pages/activity/index",
+    "pages/order/match",
+    "pages/profile/index"
   ],
   "subPackages": [
     {
@@ -19,10 +24,38 @@
       ]
     },
     {
+      "root": "subpkg/checkin",
+      "pages": [
+        "pages/today/index",
+        "pages/history/index",
+        "pages/result/index",
+        "pages/questionnaire/index",
+        "pages/share-poster/index"
+      ]
+    },
+    {
+      "root": "subpkg/refund",
+      "pages": [
+        "pages/apply/index",
+        "pages/status/index"
+      ]
+    },
+    {
       "root": "subpkg/profile",
       "pages": [
+        "pages/tags/index",
+        "pages/orders/index",
+        "pages/review/index",
         "pages/about/index",
         "pages/support/index"
+      ]
+    },
+    {
+      "root": "subpkg/task",
+      "pages": [
+        "pages/checkin/index",
+        "pages/questionnaire/index",
+        "pages/progress/index"
       ]
     }
   ],
@@ -32,9 +65,10 @@
     "navigationBarTextStyle": "black",
     "backgroundColor": "#F7F4EC"
   },
-  "usingComponents": {},
+  "usingComponents": {
+    "privacy-consent": "/components/privacy-consent/index"
+  },
   "tabBar": {
-    "custom": true,
     "color": "#8A8172",
     "selectedColor": "#586B3F",
     "backgroundColor": "#FDFBF6",
@@ -53,20 +87,14 @@
         "text": "活动"
       },
       {
+        "pagePath": "pages/tasks/index",
+        "text": "任务"
+      },
+      {
         "pagePath": "pages/profile/index",
         "text": "我的"
       }
     ]
-  },
-  "preloadRule": {
-    "pages/activities/index": {
-      "network": "all",
-      "packages": ["subpkg/activity"]
-    },
-    "pages/profile/index": {
-      "network": "all",
-      "packages": ["subpkg/profile"]
-    }
   },
   "style": "v2",
   "lazyCodeLoading": "requiredComponents",

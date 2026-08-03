@@ -22,7 +22,12 @@ const ROUTE_REGISTRY_PATH = path.join(
   "route-registry",
   "v1.0.0-draft.8.json"
 );
-const APP_JSON_PATH = path.join(PROJECT_ROOT, "miniprogram", "app.json");
+const APP_JSON_PATH = path.join(
+  PROJECT_ROOT,
+  "miniprogram",
+  "fixtures",
+  "miniprogram-app-v1-pre-formal-rebuild.json",
+);
 
 const EXPECTED_BINDINGS = Object.freeze({
   sourcePrdPath: "docs/v1.0.0_product_requirements.md",

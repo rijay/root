@@ -1,95 +1,10 @@
-.health-page {
-  padding-top: 0;
-}
-
-.health-intro {
-  margin: 0 calc(-1 * var(--spacing-md));
-  padding: 72rpx var(--spacing-lg) 64rpx;
-  color: var(--color-root-nav);
-  background: linear-gradient(148deg, #1f271c 0%, var(--color-root-moss) 58%, #819164 100%);
-}
-
-.health-kicker,
-.state-eyebrow {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 2rpx;
-}
-
-.health-kicker {
-  color: rgba(253, 251, 246, 0.66);
-}
-
-.health-title {
-  margin-top: 72rpx;
-  font-size: var(--font-size-2xl);
-  font-weight: 750;
-  line-height: 1.16;
-}
-
-.health-copy {
-  max-width: 620rpx;
-  margin-top: var(--spacing-md);
-  color: rgba(253, 251, 246, 0.78);
-  font-size: var(--font-size-sm);
-  line-height: 1.72;
-}
-
-.state-card {
-  margin-top: var(--spacing-lg);
-}
-
-.state-card--gated {
-  border-color: rgba(88, 107, 63, 0.28);
-}
-
-.state-eyebrow {
-  color: var(--color-root-moss);
-}
-
-.state-title {
-  margin-top: var(--spacing-sm);
-}
-
-.state-copy {
-  margin-top: var(--spacing-sm);
-}
-
-.state-action {
-  width: 100%;
-  margin-top: var(--spacing-lg);
-  padding: 0;
-}
-
-.text-action {
-  width: 100%;
-  margin-top: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  color: var(--color-root-moss);
-  background: transparent;
-  border: 0;
-  font-size: var(--font-size-sm);
-  line-height: 1.5;
-}
-
-.text-action::after {
-  border: 0;
-}
-
-.health-note {
-  display: flex;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-lg);
-  padding: 0 var(--spacing-sm);
-  color: var(--color-root-muted);
-  font-size: var(--font-size-xs);
-  line-height: 1.65;
-}
-
-.health-note-mark {
-  flex: 0 0 24rpx;
-  width: 24rpx;
-  height: 4rpx;
-  margin-top: 17rpx;
-  background: var(--color-root-moss);
-}
+.formal-tab-page { min-height: 100vh; padding: calc(128rpx + env(safe-area-inset-top)) 40rpx calc(160rpx + env(safe-area-inset-bottom)); box-sizing: border-box; background: #fdfbf6; }
+.formal-tab-page__eyebrow { display: block; color: #586b3f; font-size: 22rpx; font-weight: 600; letter-spacing: 3rpx; }
+.formal-tab-page__title { display: block; margin-top: 24rpx; color: #080806; font-size: 54rpx; line-height: 1.25; font-weight: 600; }
+.formal-tab-page__description { display: block; margin-top: 24rpx; color: #6c6457; font-size: 28rpx; line-height: 1.65; }
+.formal-steps { margin-top: 64rpx; padding: 12rpx 32rpx; background: #fff; border-radius: 28rpx; }
+.formal-steps view { display: flex; align-items: center; gap: 24rpx; min-height: 104rpx; color: #433e34; border-bottom: 1rpx solid #e8e0d0; font-size: 28rpx; }
+.formal-steps view:last-child { border-bottom: 0; }
+.formal-steps view text:first-child { color: #8a8172; font-size: 22rpx; }
+.formal-primary { margin-top: 48rpx; height: 92rpx; color: #fff; background: #080806; border-radius: 24rpx; font-size: 28rpx; line-height: 92rpx; }
+.formal-primary::after { border: 0; }

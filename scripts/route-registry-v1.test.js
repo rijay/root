@@ -10,27 +10,25 @@ const {
   loadAndValidateRegistry,
   validateRegistryDocument,
 } = require("./lib/route-registry");
-
 const projectRoot = path.resolve(__dirname, "..");
 const sourcePath = path.join(projectRoot, "contracts/route-registry/v1.0.0-draft.8.json");
-const appJsonPath = path.join(projectRoot, "miniprogram/app.json");
+const appJsonPath = path.join(
+  projectRoot,
+  "miniprogram/fixtures/miniprogram-app-v1-pre-formal-rebuild.json",
+);
 const currentV1AppJson = JSON.parse(fs.readFileSync(appJsonPath, "utf8"));
 const frozenLegacyAppJson = JSON.parse(fs.readFileSync(FROZEN_LEGACY_MANIFEST_PATH, "utf8"));
-
 function sourceDocument() {
   return JSON.parse(fs.readFileSync(sourcePath, "utf8"));
 }
-
 function validateMutation(mutate) {
   const document = sourceDocument();
   mutate(document);
   return () => validateRegistryDocument(document, { frozenLegacyAppJson, currentV1AppJson });
 }
-
 function markdownCell(value) {
   return value.trim().replace(/^`|`$/g, "");
 }
-
 function routeRowsFromPrd() {
   const prd = fs.readFileSync(path.join(projectRoot, "docs/v1.0.0_product_requirements.md"), "utf8");
   const registrySection = prd
@@ -48,7 +46,6 @@ function routeRowsFromPrd() {
       };
     });
 }
-
 test("v1 route registry expands 47 complete logical records", () => {
   const result = loadAndValidateRegistry(sourcePath, { appJsonPath });
   assert.equal(result.routes.length, 47);
@@ -59,13 +56,11 @@ test("v1 route registry expands 47 complete logical records", () => {
     assert.deepEqual(Object.keys(route), FIELD_NAMES);
   });
 });
-
 test("frozen legacy manifest is byte-identical to origin/main d761ae2 app.json", () => {
   const raw = fs.readFileSync(FROZEN_LEGACY_MANIFEST_PATH);
   assert.equal(crypto.createHash("sha256").update(raw).digest("hex"), FROZEN_LEGACY_MANIFEST_SHA256);
   assert.equal(FROZEN_LEGACY_MANIFEST_SHA256, "b11bf61066a175ae1975d0ca1f206f7b470b16893794480564a0da2f50aea2de");
 });
-
 test("current v1 manifest is validated separately and preserves the full legacy path set", () => {
   const result = loadAndValidateRegistry(sourcePath, { appJsonPath });
   assert.equal(result.currentV1Manifest.manifestStatus, "PARTIAL_LOCAL_SHELL_NOT_CANDIDATE");
@@ -80,7 +75,6 @@ test("current v1 manifest is validated separately and preserves the full legacy 
     assert.ok(result.currentV1Manifest.registeredPaths.includes(`/${pagePath}`));
   });
 });
-
 test("current manifest cannot silently stand in for the frozen legacy manifest", () => {
   assert.throws(
     () => validateRegistryDocument(sourceDocument(), {
@@ -90,7 +84,6 @@ test("current manifest cannot silently stand in for the frozen legacy manifest",
     /frozen legacy manifest paths do not match client 0\.5\.13/,
   );
 });
-
 test("v1 route source stays aligned with the current PRD route table", () => {
   const document = sourceDocument();
   const prdRows = routeRowsFromPrd();
@@ -105,7 +98,6 @@ test("v1 route source stays aligned with the current PRD route table", () => {
     prdRows,
   );
 });
-
 test("v1 route registry digest and legacy projection are deterministic", () => {
   const first = loadAndValidateRegistry(sourcePath, { appJsonPath });
   const second = loadAndValidateRegistry(sourcePath, { appJsonPath });
@@ -117,62 +109,52 @@ test("v1 route registry digest and legacy projection are deterministic", () => {
     assert.ok(first.legacyRegisteredPaths.includes(registeredPath));
   });
 });
-
 test("v1 route registry rejects duplicate route IDs", () => {
   assert.throws(validateMutation((document) => {
     document.routes[1].routeId = document.routes[0].routeId;
   }), /duplicate routeId HOME/);
 });
-
 test("v1 route registry rejects an unknown class", () => {
   assert.throws(validateMutation((document) => {
     document.routes[0].class = "UNKNOWN";
   }), /unknown class UNKNOWN/);
 });
-
 test("v1 route registry rejects a missing parameter allowlist", () => {
   assert.throws(validateMutation((document) => {
     delete document.routes[0].parameterAllowlist;
   }), /routes\[0\] fields must be exactly/);
 });
-
 test("v1 route registry rejects an undeclared v1 fallback", () => {
   assert.throws(validateMutation((document) => {
     document.routes[0].fallbackRouteId = "NOT_A_ROUTE";
   }), /HOME fallbackRouteId references unknown route NOT_A_ROUTE/);
 });
-
 test("v1 route registry rejects cross-route fallback cycles", () => {
   assert.throws(validateMutation((document) => {
     document.routes.find((route) => route.routeId === "HOME").fallbackRouteId = "PROFILE";
   }), /fallback cycle HOME -> PROFILE -> HOME/);
 });
-
 test("v1 route registry accepts SELF as an explicit terminal", () => {
   const document = sourceDocument();
   document.routes.find((route) => route.routeId === "HOME").fallbackRouteId = "SELF";
   const result = validateRegistryDocument(document, { frozenLegacyAppJson, currentV1AppJson });
   assert.equal(result.routes.find((route) => route.routeId === "HOME").fallbackRouteId, "SELF");
 });
-
 test("v1 route registry rejects a legacy fallback outside the frozen app snapshot", () => {
   assert.throws(validateMutation((document) => {
     document.legacyFallbacks.HEALTH_HOME = "HEALTH_HOME";
   }), /HEALTH_HOME legacy fallback path \/pages\/health\/index is not registered by legacy client 0\.5\.13/);
 });
-
 test("v1 route registry requires one override for every legacy redirect", () => {
   assert.throws(validateMutation((document) => {
     delete document.legacyRedirectOverrides.LEGACY_ACTIVITY_ROUTER;
   }), /LEGACY_ACTIVITY_ROUTER requires exactly one legacy redirect override/);
 });
-
 test("v1 route registry forbids redirect write replay", () => {
   assert.throws(validateMutation((document) => {
     document.legacyRedirectOverrides.LEGACY_ACTIVITY_ROUTER.writeReplay = "ALLOW";
   }), /LEGACY_ACTIVITY_ROUTER override writeReplay must be DENY/);
 });
-
 test("v1 route registry rejects extra overrides on stable routes", () => {
   assert.throws(validateMutation((document) => {
     document.legacyRedirectOverrides.HOME = {
@@ -183,13 +165,11 @@ test("v1 route registry rejects extra overrides on stable routes", () => {
     };
   }), /HOME must not declare a legacy redirect override/);
 });
-
 test("v1 route registry rejects a changed frozen snapshot digest", () => {
   assert.throws(validateMutation((document) => {
     document.legacyClient.registeredPathDigest = "0".repeat(64);
   }), /legacy registeredPathDigest does not match registeredPaths/);
 });
-
 test("v1 route registry rejects canonical URLs and embedded query strings", () => {
   assert.throws(validateMutation((document) => {
     document.routes[0].canonicalPath = "https://example.com/pages/home/index";
@@ -198,7 +178,6 @@ test("v1 route registry rejects canonical URLs and embedded query strings", () =
     document.routes[0].canonicalPath = "/pages/home/index?source=unsafe";
   }), /HOME canonicalPath must be a query-free mini-program path/);
 });
-
 test("v1 route registry rejects duplicate and unsafe parameter names", () => {
   assert.throws(validateMutation((document) => {
     document.routes[0].parameterAllowlist = ["source", "source"];

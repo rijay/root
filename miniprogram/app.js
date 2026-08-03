@@ -4,10 +4,6 @@ const router = require("./utils/router");
 const { initializeCloudRoute, refreshCloudRoute } = require("./utils/cloud-route");
 const { performanceMonitor } = require("./utils/performance-monitor");
 const { initializePrivacyAuthorization } = require("./utils/privacy-authorization");
-const {
-  clearLegacyTransientHealthStorage,
-  clearTransientHealthData,
-} = require("./utils/transient-health-state");
 
 const appModuleStartedAt = Date.now();
 
@@ -40,8 +36,6 @@ App({
       ...performanceContext(),
     });
     initializeCloudRoute(options, env.envVersion);
-    clearTransientHealthData();
-    clearLegacyTransientHealthStorage();
     initializePrivacyAuthorization();
     if (env.requestAdapter === "cloudContainer" && wx.cloud) {
       const cloudOptions = { traceUser: true };

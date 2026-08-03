@@ -1,107 +1,13 @@
-<view class="root-page activities-page">
-  <view class="activities-head">
-    <view>
-      <view class="activities-kicker">ROOT OFFLINE</view>
-      <view class="activities-title">在线下，和身体重新相遇</view>
-    </view>
-    <button class="enrollments-link" bindtap="openMyEnrollments">我的报名</button>
-  </view>
-
-  <view class="filter-toolbar">
-    <button class="filter-trigger {{activeFilterCount ? 'filter-trigger--active' : ''}}" bindtap="toggleFilters">
-      筛选<text wx:if="{{activeFilterCount}}"> · {{activeFilterCount}}</text>
-    </button>
-    <button wx:if="{{activeFilterCount}}" class="filter-clear-link" bindtap="clearFilters">清除筛选</button>
-  </view>
-
-  <view wx:if="{{filterPanelOpen}}" class="root-card filter-panel">
-    <view class="filter-field">
-      <view class="filter-label">城市</view>
-      <input class="filter-input" value="{{draftFilters.city}}" maxlength="40" placeholder="例如：上海" bindinput="updateCity" />
-    </view>
-    <view class="filter-field">
-      <view class="filter-label">日期</view>
-      <view class="filter-date-row">
-        <picker class="filter-date-picker" mode="date" value="{{draftFilters.date}}" bindchange="updateDate">
-          <view class="filter-input filter-input--picker">{{draftFilters.date || '选择活动日期'}}</view>
-        </picker>
-        <button wx:if="{{draftFilters.date}}" class="filter-date-clear" bindtap="clearDate">移除</button>
-      </view>
-    </view>
-    <view class="filter-field">
-      <view class="filter-label">活动类型</view>
-      <input class="filter-input" value="{{draftFilters.activityType}}" maxlength="60" placeholder="例如：WORKSHOP" bindinput="updateActivityType" />
-      <view class="filter-hint">活动类型由运营发布内容决定，可输入页面中看到的类型。</view>
-    </view>
-    <view class="filter-actions">
-      <button class="root-button root-button--secondary filter-action" bindtap="clearFilters">全部活动</button>
-      <button class="root-button filter-action" bindtap="applyFilters">查看结果</button>
-    </view>
-  </view>
-
-  <view wx:if="{{viewState === 'loading'}}" class="activity-state">
-    <view class="state-line state-line--wide"></view>
-    <view class="state-line"></view>
-    <view class="root-helper-text state-copy">正在读取运营后台已发布活动...</view>
-  </view>
-
-  <view wx:elif="{{viewState === 'error'}}" class="root-card activity-state">
-    <view class="state-label">数据源不可用</view>
-    <view class="root-section-title state-title">活动暂未加载</view>
-    <view class="root-helper-text state-copy">{{errorText}}</view>
-    <button class="root-button root-button--secondary state-action" bindtap="loadActivities">重新加载</button>
-    <button class="text-action" bindtap="openSupport">联系人工协助</button>
-  </view>
-
-  <view wx:elif="{{viewState === 'empty'}}" class="root-card activity-state">
-    <view class="state-label">运营后台已返回</view>
-    <view class="root-section-title state-title">{{activeFilterCount ? '没有符合筛选的活动' : '近期暂无活动'}}</view>
-    <view wx:if="{{activeFilterCount}}" class="root-helper-text state-copy">换一个城市、日期或活动类型，查看其他已发布活动。</view>
-    <view wx:else class="root-helper-text state-copy">这里只展示运营正式发布的真实活动，不会用示例内容代替。你可以先查看已有任务，或稍后再来。</view>
-    <button wx:if="{{activeFilterCount}}" class="root-button root-button--secondary state-action" bindtap="clearFilters">查看全部活动</button>
-    <button wx:else class="root-button root-button--secondary state-action" bindtap="openTasks">查看已有任务</button>
-  </view>
-
-  <view wx:else class="activity-list">
-    <view wx:for="{{activities}}" wx:key="sessionId" class="activity-card" data-session-id="{{item.sessionId}}" bindtap="openDetail">
-      <view class="activity-card__visual">
-        <image
-          wx:if="{{item.heroReady}}"
-          class="activity-card__image"
-          src="{{item.heroAssetUrl}}"
-          mode="aspectFill"
-          lazy-load="true"
-          data-session-id="{{item.sessionId}}"
-          binderror="handleHeroError"
-        />
-        <view class="activity-card__shade"></view>
-        <view class="activity-card__visual-copy">
-          <view class="activity-type">{{item.typeLabel}}</view>
-          <view class="activity-city">{{item.city}}</view>
-        </view>
-      </view>
-      <view class="activity-card__body">
-        <view class="activity-card__topline">
-          <view class="activity-status activity-status--{{item.statusTone}}">{{item.statusLabel}}</view>
-          <view wx:if="{{item.remainingCapacity !== null}}" class="activity-capacity">余 {{item.remainingCapacity}} 个名额</view>
-        </view>
-        <view class="activity-card__title">{{item.title}}</view>
-        <view class="activity-card__meta">{{item.startText}}</view>
-        <view class="activity-card__meta">{{item.venueSummary}}</view>
-        <view class="activity-card__meta">{{item.visibility === 'MEMBER' ? ('会员要求：' + item.memberRequirement) : '公开活动'}}</view>
-        <view wx:if="{{item.enrollment}}" class="activity-card__enrollment">我的报名：{{item.enrollment.label}}</view>
-        <view class="activity-card__arrow">查看详情 →</view>
-      </view>
-    </view>
-
-    <view class="pagination-state">
-      <button wx:if="{{hasMore && !isLoadingMore && !loadMoreError}}" class="load-more" bindtap="loadMore">加载更多活动</button>
-      <view wx:elif="{{isLoadingMore}}" class="root-helper-text">正在加载更多...</view>
-      <view wx:elif="{{loadMoreError}}">
-        <view class="root-helper-text">{{loadMoreError}}</view>
-        <button class="load-more load-more--retry" bindtap="loadMore">重新加载</button>
-      </view>
-      <view wx:elif="{{total !== null && activities.length >= total}}" class="root-helper-text">已显示全部 {{total}} 场活动</view>
+<view class="activity-shell">
+  <text class="activity-shell__eyebrow">ROOT EVENTS</text>
+  <text class="activity-shell__title">活动</text>
+  <text class="activity-shell__date">AUGUST 2026</text>
+  <view class="activity-shell__card">
+    <view class="activity-shell__cover"></view>
+    <view class="activity-shell__content">
+      <text class="activity-shell__tag">线下活动</text>
+      <text class="activity-shell__name">Root 与身体重新合作</text>
+      <text class="activity-shell__meta">活动内容将由运营后台发布</text>
     </view>
   </view>
 </view>

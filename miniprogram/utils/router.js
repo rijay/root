@@ -1,6 +1,7 @@
+const { FORMAL_TABS, REGISTERED_FORMAL_ROUTES } = require("../config/formal-launch-routes");
 const { request, getToken } = require("./request");
 
-const stateRoutes = {
+const stateRoutes = Object.freeze({
   GUEST: "/pages/home/index",
   UNREGISTERED: "/pages/register/index",
   REGISTERED_IDLE: "/pages/home/index",
@@ -8,79 +9,63 @@ const stateRoutes = {
   CHECKIN_COMPLETED: "/pages/home/index",
   CHECKIN_FAILED: "/pages/home/index",
   DAILY_USER: "/pages/home/index",
-};
+});
 
-const routePermissions = {
-  "/pages/home/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/pages/login/index": ["GUEST"],
-  "/pages/register/index": ["UNREGISTERED"],
-  "/pages/health-consent/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/pages/health/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/pages/activities/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/subpkg/activity/pages/detail/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/subpkg/activity/pages/enrollments/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/pages/activity/index": ["REGISTERED_IDLE"],
-  "/pages/order/match": ["REGISTERED_IDLE"],
-  "/pages/products/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/pages/product-detail/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/pages/tasks/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/pages/rewards/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/subpkg/task/pages/checkin/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE"],
-  "/subpkg/task/pages/questionnaire/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/subpkg/task/pages/progress/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/subpkg/checkin/pages/today/index": ["CHECKIN_ACTIVE"],
-  "/subpkg/checkin/pages/history/index": ["CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/subpkg/checkin/pages/result/index": ["CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/subpkg/checkin/pages/share-poster/index": ["CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "DAILY_USER"],
-  "/subpkg/checkin/pages/questionnaire/index": ["CHECKIN_ACTIVE", "CHECKIN_COMPLETED"],
-  "/subpkg/refund/pages/apply/index": ["CHECKIN_COMPLETED"],
-  "/subpkg/refund/pages/status/index": ["CHECKIN_COMPLETED", "DAILY_USER"],
-  "/subpkg/profile/pages/tags/index": ["UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/subpkg/profile/pages/orders/index": ["REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/subpkg/profile/pages/review/index": ["REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/subpkg/profile/pages/about/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/subpkg/profile/pages/support/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-  "/pages/profile/index": ["GUEST", "UNREGISTERED", "REGISTERED_IDLE", "CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED", "DAILY_USER"],
-};
-
-const tabRoutes = [
+const publicRoutes = new Set([
   "/pages/home/index",
-  "/pages/health/index",
   "/pages/activities/index",
-  "/pages/tasks/index",
+  "/pages/login/index",
+  "/pages/legal/index",
   "/pages/profile/index",
-];
+  "/subpkg/activity/pages/detail/index",
+  "/subpkg/profile/pages/about/index",
+  "/subpkg/profile/pages/support/index",
+]);
+const protectedRoutes = new Set([
+  "/pages/health/index",
+  "/pages/register/index",
+  "/pages/health-consent/index",
+  "/subpkg/activity/pages/enrollments/index",
+]);
+const registeredRoutes = new Set(REGISTERED_FORMAL_ROUTES.map((route) => `/${route}`));
+const tabRoutes = Object.freeze(FORMAL_TABS.map((tab) => `/${tab.pagePath}`));
 
 function normalize(route) {
   if (!route) return "";
   return route.startsWith("/") ? route : `/${route}`;
 }
 
-function go(route) {
+function assertRegistered(route) {
+  const pathOnly = normalize(route).split("?")[0];
+  if (!registeredRoutes.has(pathOnly)) {
+    const error = new Error("页面暂不可用");
+    error.code = "FORMAL_ROUTE_NOT_REGISTERED";
+    throw error;
+  }
+  return pathOnly;
+}
+
+function navigate(method, route) {
   const url = normalize(route);
-  const pathOnly = url.split("?")[0];
+  const pathOnly = assertRegistered(url);
   if (tabRoutes.includes(pathOnly)) {
     wx.switchTab({ url: pathOnly });
     return;
   }
-  wx.redirectTo({ url });
+  wx[method]({ url });
+}
+
+function go(route) {
+  navigate("redirectTo", route);
 }
 
 function open(route) {
-  const url = normalize(route);
-  const pathOnly = url.split("?")[0];
-  if (tabRoutes.includes(pathOnly)) {
-    wx.switchTab({ url: pathOnly });
-    return;
-  }
-  wx.navigateTo({ url });
+  navigate("navigateTo", route);
 }
 
 async function fetchState() {
-  if (!getToken()) {
-    return { user: { state: "GUEST" }, route: stateRoutes.GUEST };
-  }
-  return request({ url: "/api/v1/user/state" });
+  if (!getToken()) return { user: { state: "GUEST" }, route: stateRoutes.GUEST };
+  return request({ url: "/api/v1/user/state", method: "GET", scope: "session-state" });
 }
 
 async function decideHomeRoute() {
@@ -95,29 +80,24 @@ async function decideHomeRoute() {
 }
 
 async function routeGuard(route) {
-  const currentRoute = normalize(route);
-  try {
-    const state = await fetchState();
-    const userState = state.user.state;
-    const allowed = routePermissions[currentRoute] || [];
-    if (!allowed.includes(userState)) {
-      go(state.route || stateRoutes[userState] || stateRoutes.GUEST);
-      return false;
-    }
-    return true;
-  } catch (error) {
-    if (currentRoute !== stateRoutes.GUEST) go(stateRoutes.GUEST);
-    return currentRoute === stateRoutes.GUEST;
+  const pathOnly = assertRegistered(route);
+  if (publicRoutes.has(pathOnly)) return true;
+  if (!protectedRoutes.has(pathOnly)) return false;
+  if (!getToken()) {
+    open(`/pages/login/index?intent=${encodeURIComponent(pathOnly)}`);
+    return false;
   }
+  return true;
 }
 
 module.exports = {
+  assertRegistered,
   decideHomeRoute,
   fetchState,
   go,
   open,
+  publicRoutes,
   routeGuard,
-  routePermissions,
   stateRoutes,
   tabRoutes,
 };

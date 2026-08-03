@@ -105,49 +105,30 @@ test("release smoke: Day4, Day8, refund, coupon, and completed state stay connec
   assert.equal(couponTask.status, "DONE");
 });
 
-test("release smoke: canonical mini-program routes point to subpackages", () => {
+test("release smoke: formal mini-program exposes only the approved four-Tab scope", () => {
   const appJsonPath = path.join(__dirname, "..", "..", "miniprogram", "app.json");
   const appJson = JSON.parse(fs.readFileSync(appJsonPath, "utf8"));
   const miniprogramRoot = path.join(__dirname, "..", "..", "miniprogram");
-  const ordersPage = fs.readFileSync(path.join(miniprogramRoot, "subpkg/profile/pages/orders/index.wxml"), "utf8");
-  const ordersScript = fs.readFileSync(path.join(miniprogramRoot, "subpkg/profile/pages/orders/index.js"), "utf8");
   const supportPage = fs.readFileSync(path.join(miniprogramRoot, "subpkg/profile/pages/support/index.wxml"), "utf8");
-  const supportScript = fs.readFileSync(path.join(miniprogramRoot, "subpkg/profile/pages/support/index.js"), "utf8");
-  const checkinPackage = appJson.subPackages.find((item) => item.root === "subpkg/checkin");
-  const refundPackage = appJson.subPackages.find((item) => item.root === "subpkg/refund");
+  const activityPackage = appJson.subPackages.find((item) => item.root === "subpkg/activity");
   const profilePackage = appJson.subPackages.find((item) => item.root === "subpkg/profile");
-  const taskPackage = appJson.subPackages.find((item) => item.root === "subpkg/task");
 
-  assert.ok(checkinPackage);
-  assert.ok(refundPackage);
+  assert.equal(appJson.pages[0], "pages/welcome/index");
+  assert.equal(appJson.tabBar.custom, true);
+  assert.ok(activityPackage);
   assert.ok(profilePackage);
-  assert.ok(taskPackage);
   assert.deepEqual(
     appJson.tabBar.list.map((item) => item.pagePath),
     [
       "pages/home/index",
       "pages/health/index",
       "pages/activities/index",
-      "pages/tasks/index",
       "pages/profile/index",
     ]
   );
-  assert.deepEqual(
-    checkinPackage.pages.sort(),
-    ["pages/history/index", "pages/questionnaire/index", "pages/result/index", "pages/share-poster/index", "pages/today/index"].sort()
-  );
-  assert.deepEqual(refundPackage.pages.sort(), ["pages/apply/index", "pages/status/index"].sort());
-  assert.deepEqual(
-    profilePackage.pages.sort(),
-    ["pages/about/index", "pages/orders/index", "pages/review/index", "pages/support/index", "pages/tags/index"].sort()
-  );
-  assert.deepEqual(taskPackage.pages.sort(), ["pages/checkin/index", "pages/progress/index", "pages/questionnaire/index"].sort());
-  assert.match(ordersPage, /同步说明/);
-  assert.match(ordersPage, /查看商品/);
-  assert.match(ordersScript, /\/api\/v1\/user\/orders/);
-  assert.match(ordersScript, /\/subpkg\/profile\/pages\/support\/index/);
-  assert.match(supportPage, /跟进状态/);
-  assert.match(supportScript, /\/api\/v1\/user\/consultations/);
+  assert.deepEqual(activityPackage.pages.sort(), ["pages/detail/index", "pages/enrollments/index"].sort());
+  assert.deepEqual(profilePackage.pages.sort(), ["pages/about/index", "pages/support/index"].sort());
+  assert.match(supportPage, /open-type="contact"/);
 });
 
 test("release smoke: no-order settlement creates reward and review records", async () => {

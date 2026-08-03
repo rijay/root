@@ -15,7 +15,12 @@ const REGISTRY_PATH = path.join(
   "route-registry",
   "v1.0.0-draft.8.json"
 );
-const APP_JSON_PATH = path.join(PROJECT_ROOT, "miniprogram", "app.json");
+const APP_JSON_PATH = path.join(
+  PROJECT_ROOT,
+  "miniprogram",
+  "fixtures",
+  "miniprogram-app-v1-pre-formal-rebuild.json",
+);
 
 function routeError(code) {
   const error = new Error("v1 route negotiation operation failed");

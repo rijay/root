@@ -1,5 +1,5 @@
 <view class="root-page profile-subpage about-page">
-  <image class="about-logo" src="/static/brand/root-logo-horizontal.png" mode="aspectFit" />
+  <view class="about-logo-crop"><image class="about-logo" src="/static/brand/root-logo-horizontal.png" mode="heightFix" /></view>
   <view class="root-card section">
     <view class="eyebrow">关于 ROOT</view>
     <view class="h1">身体 自有其序</view>

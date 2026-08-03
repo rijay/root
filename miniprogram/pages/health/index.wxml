@@ -1,48 +1,11 @@
-<view class="root-page health-page">
-  <view class="health-intro">
-    <view class="health-kicker">MY HEALTH · ROOT</view>
-    <view class="health-title">从了解当下开始</view>
-    <view class="health-copy">健康页只承载经过审核的健康旅程，不以一次填写替代诊断；在内容来源、适用范围与隐私说明确认前，也不会收集新的健康答案。</view>
+<view class="formal-tab-page">
+  <text class="formal-tab-page__eyebrow">ROOT4U</text>
+  <text class="formal-tab-page__title">找到你的健康起点</text>
+  <text class="formal-tab-page__description">先完成一次初始化建档，再获取适合你的生活方式建议。</text>
+  <view class="formal-steps">
+    <view><text>01</text><text>确定人群分类</text></view>
+    <view><text>02</text><text>完成基础状态评测</text></view>
+    <view><text>03</text><text>选择适合自己的健康评测</text></view>
   </view>
-
-  <view wx:if="{{viewState === 'loading'}}" class="root-card state-card">
-    <view class="state-eyebrow">正在确认</view>
-    <view class="root-section-title state-title">正在读取你的账号状态</view>
-    <view class="root-helper-text state-copy">此过程不会创建健康记录。</view>
-  </view>
-
-  <view wx:elif="{{viewState === 'guest'}}" class="root-card state-card">
-    <view class="state-eyebrow">需要登录</view>
-    <view class="root-section-title state-title">登录后查看健康旅程</view>
-    <view class="root-helper-text state-copy">未登录时仍可浏览首页、商品与公开活动；登录不会自动开启健康评测。</view>
-    <button class="root-button state-action" bindtap="goLogin">微信身份进入</button>
-  </view>
-
-  <view wx:elif="{{viewState === 'accountRequired'}}" class="root-card state-card">
-    <view class="state-eyebrow">需要完成账号资料</view>
-    <view class="root-section-title state-title">先完成账号资料</view>
-    <view class="root-helper-text state-copy">账号资料与健康信息分开处理。完成账号资料后，仍需单独确认适用资格与健康信息说明。</view>
-    <button class="root-button state-action" bindtap="goRegister">继续完善账号</button>
-  </view>
-
-  <view wx:elif="{{viewState === 'contentGated'}}" class="root-card state-card state-card--gated">
-    <view class="state-eyebrow">开放前核验中</view>
-    <view class="root-section-title state-title">健康旅程暂不收集新信息</view>
-    <view class="root-helper-text state-copy">基础评测、主题问卷与生活方式建议需完成来源授权、专家审核、适用范围和保存期限确认。正式开放前，本页不会展示空壳问卷或启动健康写入。</view>
-    <button class="root-button root-button--secondary state-action" bindtap="openPrivacy">查看隐私说明</button>
-    <button class="text-action" bindtap="openSupport">需要帮助，联系人工协助</button>
-  </view>
-
-  <view wx:else class="root-card state-card">
-    <view class="state-eyebrow">读取失败</view>
-    <view class="root-section-title state-title">账号状态暂未确认</view>
-    <view class="root-helper-text state-copy">{{errorText}}</view>
-    <button class="root-button root-button--secondary state-action" bindtap="loadShell">重新加载</button>
-    <button class="text-action" bindtap="openSupport">联系人工协助</button>
-  </view>
-
-  <view class="health-note">
-    <view class="health-note-mark"></view>
-    <view>本页不提供疾病诊断、治疗方案或紧急医疗处置。如有明显或持续不适，请及时寻求专业帮助。</view>
-  </view>
+  <button class="formal-primary" bindtap="startAssessment">开始健康起点评测</button>
 </view>

@@ -2,11 +2,18 @@
   padding-top: 44rpx;
 }
 
-.about-logo {
+.about-logo-crop {
   display: block;
-  width: 310rpx;
+  width: 250rpx;
   height: 58rpx;
   margin: var(--spacing-xl) auto var(--spacing-lg);
+  overflow: hidden;
+}
+
+.about-logo {
+  width: 300rpx;
+  height: 58rpx;
+  margin-left: -72rpx;
 }
 
 .about-page .h1 {
