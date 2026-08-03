@@ -6,6 +6,10 @@
 >
 > 产品与 UED 依据：`docs/superpowers/specs/2026-08-03-myroot-formal-launch-design.md`
 >
+> 小程序性能依据：`docs/superpowers/specs/2026-08-03-myroot-miniprogram-performance-design.md`
+>
+> 运营后台性能：待完成独立设计与批准后补充；本次修订不宣称后台性能 Gate 已完成
+>
 > Git 基线：`origin/main@aecbb1b718ab0aae1072fc8919571e80cab38bab`
 >
 > 计划起点：`codex/rebuild-main-20260802@339651e56c2cce37d7d05873522620b947c8de33`
@@ -19,7 +23,7 @@
 - 活动：线下活动浏览、报名和权威状态；
 - 我的：资料、会员中心固定跳转、隐私与支持。
 
-实施不为未正式投入真实环境的旧功能建设兼容层。旧功能按完整产品切片删除，身份可信、隐私同意、幂等、事务、审计、结果未知恢复、健康检查、就绪检查和发布 Gate 继续保留。
+实施不为未正式投入真实环境的旧功能建设兼容层。旧功能按完整产品切片删除，身份可信、隐私同意、幂等、事务、审计、结果未知恢复、健康检查、就绪检查和发布 Gate 继续保留。小程序的包体、素材、请求、渲染、内存和核心旅程必须满足已批准的性能预算；性能验收不得等到功能完成后才开始。Element Plus Admin 的功能与高保真实施可以按本计划推进，但其性能验收必须等待独立规格批准后补齐。
 
 ## 2. 当前可复核基线
 
@@ -31,6 +35,7 @@
 - Backend、Element Plus Admin、Mini Program、Route Registry 与 HTTP Interface smoke 均通过；
 - Admin 继续使用 Vue `3.5.x`、Vite `6.3.x` 与当前 lockfile 实际解析的 Element Plus `2.14.2`，本轮不升级前端框架；
 - 当前通过证明旧版本在本地自洽，不证明新产品已经实现，也不证明部署、审核、发布或线上流量状态。
+- 当前验证没有形成新产品的包体、P75/P95、弱网、内存或真机性能基线；旧链路数据只能帮助识别工具问题，不作为正式上线目标，也不投入时间优化。
 
 当前代码与目标之间的主要差异：
 
@@ -56,7 +61,7 @@
 2. 提取画板中的准确文案、层级、尺寸、间距、字体、颜色、圆角、图标、状态和滚动方式；
 3. 优先复用当前小程序原生能力、WXML/WXSS 和现有 Vue 3 + Element Plus，不引入新的前端框架；
 4. 实现后先通过行为测试，再在与画板一致的视口生成截图；
-5. 小程序以 `390 × 844` 为主对照，并补充 375px 小屏、常见 iOS 与 Android 真机；后台以画板中的 `1240 × 820` 内容区为主对照，并检查常见桌面宽度；
+5. 小程序以 `390 × 844` 为主对照，并补充 375px 小屏、常见 iOS 与 Android 真机；同一轮验收同时记录页面性能、网络档位和设备信息。后台以画板中的 `1240 × 820` 内容区为主对照，并检查常见桌面宽度；
 6. 对照检查文字、Logo、安全区、对齐、间距、颜色、圆角、图标、遮挡、溢出、空态、错误态和加载态；
 7. 未达到高保真图时不得把该任务标为完成；如果画板与正式规格冲突，停止该任务并请求产品决定，不自行创造第三种方案。
 
@@ -93,8 +98,58 @@
 5. **历史 migration 不改写**：新增 forward migration；表归档或删除必须晚于运行入口停止、只读盘点、快照和单独批准。
 6. **发布状态分离**：内容发布、代码构建、后端候选版本、数据迁移、微信上传、审核、正式发布和线上流量分别留证。
 7. **默认不触碰生产**：本计划只授权本地代码、测试、构建、截图和本地提交；不授权部署、生产迁移、微信送审、发布或切流。
+8. **性能属于 Interface**：启动、响应、错误模式和资源特征都是 Module Interface 的一部分；每个正式上线切片必须同时交付功能、异常恢复和性能预算证据。
 
 ## 5. 分阶段实施任务
+
+### R0. 建立小程序性能预算与测量基础
+
+**目标：** 在正式页面开发前建立机器可读预算、隐私安全的性能监测 Module 和证据格式；只测量旧版本，不优化即将删除的旧链路。
+
+**性能规格：** `docs/superpowers/specs/2026-08-03-myroot-miniprogram-performance-design.md` 全文。
+
+**修改：**
+
+- `miniprogram/project.config.json`
+- `miniprogram/package.json`
+- `miniprogram/utils/request.js`
+- `miniprogram/scripts/request.test.js`
+- `backend/src/app.js`
+- `scripts/final-verification.js`
+
+**新增：**
+
+- `miniprogram/config/performance-budgets.json`
+- `miniprogram/utils/performance-monitor.js`
+- `miniprogram/scripts/performance-budget.test.js`
+- `miniprogram/scripts/performance-monitor.test.js`
+- `backend/src/performanceMetricsModule.js`
+- `backend/tests/performance_metrics_module.test.js`
+- `scripts/miniprogram-performance-report.js`
+- `docs/evidence/performance-r0/README.md`
+
+**步骤：**
+
+1. 根据正式上线依赖的微信能力锁定最低基础库版本，并记录最低版本与验收时稳定版本；
+2. 把主包、单分包、总包、图片、响应体、`setData`、节点、请求、内存和页面旅程阈值写入一个机器可读配置，`1KB = 1,024 bytes`；
+3. 建立静态 Gate：检查代码包、素材、分包结构、全局低频依赖和单次体积增长；
+4. 建立 `Performance Monitoring Module`，其 Interface 统一记录启动、页面、请求、图片、分包、关键写入、卡顿与内存告警；Implementation 汇总微信性能能力和业务计时，不让页面理解采样与上报细节；
+5. 收窄共享请求 Interface：并行请求通常不超过 4 个；合并相同读取；页面离开时取消失效请求；`onShow` 去重；读取 8 秒明确失败，写入 12 秒进入结果未知恢复；
+6. 后端性能接收只接受允许字段并限制体积与频率；拒绝手机号、昵称、头像、微信身份原值、健康答案、健康结论和会员资产；
+7. 接收后的事件通过现有结构化技术日志路径进入候选报告，不新增性能业务表；日志保留遵循批准的技术日志规则，若当前路径无法支持 72 小时观察，则正式环境性能 Gate 保持阻断；
+8. 候选版本 100% 采集；正式环境普通性能事件默认 10%，崩溃、内存告警和关键动作失败 100%；正式环境上报开关默认关闭，启用必须随发布另行批准；
+9. 对旧版本只生成“非正式基线”测量记录，用于证明脚本可工作，不为旧页面、旧请求或旧 Job 做性能重构；
+10. 固定证据字段：版本、平台、系统、微信版本、基础库、设备档位、网络、入口、代码包状态、样本数、P75、P95 和差异结论。
+
+**验证：**
+
+- `node miniprogram/scripts/performance-budget.test.js`
+- `node miniprogram/scripts/performance-monitor.test.js`
+- `node miniprogram/scripts/request.test.js`
+- `node --test backend/tests/performance_metrics_module.test.js`
+- 伪造敏感字段、超大事件、重复事件和高频事件均被拒绝；
+- 关闭监测、监测上报失败或正式环境未授权时不影响核心用户旅程；
+- 非正式基线明确标记为旧产品数据，不得成为新产品上线 Gate 的通过证据。
 
 ### R1. 锁定正式上线范围并删除旧前端入口
 
@@ -138,14 +193,19 @@
 1. 先写失败测试：要求 Tab 精确为首页、健康、活动、我的，并拒绝旧页面与分包路径；
 2. 将欢迎页设为首次启动入口，本机记录只控制欢迎页，不触发登录或健康读取；
 3. 建立四 Tab 自定义导航，确保图标、文字、激活态和安全区与高保真图一致；
-4. 删除旧前端完整切片，不保留隐藏路由或分享入口；
-5. 更新小程序校验脚本，使旧路径再次出现时直接失败。
+4. 四个 Tab 入口页保留在主包；初始化建档/评测/结果、活动详情/报名确认、关于/隐私/注销按批准结构进入分包；
+5. 启用 `lazyCodeLoading: requiredComponents` 和下一旅程分包预下载，禁止把低频 UI 声明为全局依赖；
+6. 删除旧前端完整切片，不保留隐藏路由或分享入口；
+7. 更新小程序校验脚本，使旧路径再次出现或包体超预算时直接失败。
 
 **验证：**
 
 - `node miniprogram/scripts/formal-launch-scope.test.js`
+- `node miniprogram/scripts/performance-budget.test.js`
 - `npm run check --prefix miniprogram`
 - 全仓 `rg` 不得出现已删除的页面路径；
+- 主包目标 ≤ 1.3MB、硬上限 1.5MB；单分包目标 ≤ 800KB、硬上限 1.2MB；总包目标 ≤ 6MB、硬上限 8MB；主包本地媒体目标 ≤ 200KB、硬上限 300KB；
+- 相比最近批准基线增长超过 50KB 预警，超过 100KB 必须说明并重新批准；
 - 微信开发者工具中四 Tab、冷启动、热启动和欢迎页跳过路径通过。
 
 ### R2. 建立共享视觉基础并完成欢迎页
@@ -173,13 +233,17 @@
 2. 从官方 Logo master 裁切文字字形，禁止使用左侧器皿或系统字体；
 3. 实现两屏全屏 swiper、导航点、长文渐变保护和右下角“跳过”；
 4. 处理小屏文字滚动、横向滑动冲突、胶囊安全区和底部安全区；
-5. 只在正式商业素材未提供时使用明确标记的开发占位图，发布 Gate 必须拒绝占位图。
+5. 首屏使用不超过主包媒体预算的轻量回退视觉，高清欢迎图由 CDN 按设备尺寸输出，第二屏延迟加载；
+6. 单张欢迎图目标 300–450KB、硬上限 600KB，首屏同时图片下载总量不超过 800KB；
+7. Logo 与 Tab 图标单个目标 ≤ 20KB、硬上限 40KB；主要过渡使用 `transform`/`opacity`，时长 200–350ms；
+8. 只在正式商业素材未提供时使用明确标记的开发占位图，发布 Gate 必须拒绝占位图。
 
 **验证：**
 
 - 欢迎页文案逐字比对规格；
 - `390 × 844`、375px 小屏、iOS 与 Android 截图对照；
 - 首次进入、跳过、看完、清除本地数据后重现四条路径通过；
+- 首个可理解内容真机 P75：iOS ≤ 0.9 秒、Android ≤ 1.4 秒；无业务数据请求，高清资源失败不白屏；
 - Logo 资产检查确认无器皿图形和系统字体替代。
 
 ### R3. 重写 Session 与 Profile Module
@@ -226,12 +290,16 @@
 5. 实现头像、昵称、生日、性别表单，手机号只读；必填缺失提示“必填项未填写”；
 6. 未授权头像昵称时使用“Root用户”和文字字标头像；
 7. 建立通用原目标记录，覆盖健康、活动、我的订单、优惠券和资料入口，不再只处理活动回跳；
-8. 重复点击、超时和结果未知不得重复创建用户。
+8. 重复点击、超时和结果未知不得重复创建用户；
+9. 登录和注册点击 100ms 内反馈、200ms 内进入明确状态；微信流程 3 秒显示等待说明、15 秒提供重试，按钮不得永久锁死；
+10. 用户资料压缩响应 ≤ 30KB，头像目标 ≤ 80KB、硬上限 150KB；
+11. 登录后读取 P75 ≤ 800ms、P95 ≤ 1.5 秒；注册写入 P75 ≤ 1 秒、P95 ≤ 2 秒，12 秒后进入结果未知恢复。
 
 **验证：**
 
 - 新用户、已注册 myRoot、既有 Root 会员、资料不完整、身份冲突五类测试；
 - 隐私拒绝、手机号拒绝、超时、重试、重复提交与原目标恢复测试；
+- 标准 4G、弱网和离线恢复下验证输入内容保留、重复注册防护与原目标恢复；
 - `node --test backend/tests/session_module.test.js backend/tests/profile_module.test.js`
 - `node miniprogram/scripts/formal-launch-login.test.js`
 - 登录、隐私弹层和注册页逐屏截图对照。
@@ -269,16 +337,19 @@
 1. 建立内容、内容版本、图片、热点区域、投放位和发布记录；
 2. Content Module Interface 只暴露草稿、校验、预览、复制草稿、发布、下线和读取当前版本；
 3. 校验图片格式/尺寸/安全区、两至三行文字预设、热点坐标、跳转类型与白名单；
-4. 发布一次只生成一个不可变版本；失败保留上一已发布版本；
-5. 首页实现全屏轮播、指示器、文字切换动画和点击详情；首屏不等待会员或健康请求；
-6. 首页和活动共用同一个图片详情页；图片热点只做跳转，不承担报名事实；
-7. 管理后台实现欢迎页、首页轮播、共用详情三个入口和小程序预览。
+4. 后台上传前执行素材硬限制：首张轮播目标 300–450KB、硬上限 600KB；后续轮播目标 ≤ 350KB、硬上限 500KB；详情单图目标 ≤ 400KB、硬上限 600KB；
+5. 发布一次只生成一个不可变版本；失败保留上一已发布版本；已撤下、到期或失效内容从缓存移除；
+6. 首页实现全屏轮播、指示器、文字切换动画和点击详情；首屏最多一个内容请求，不等待会员或健康请求；
+7. 首页响应压缩后 ≤ 100KB，公共读取 P75 ≤ 600ms、P95 ≤ 1.2 秒；本地缓存 ≤ 300ms；
+8. 首页和活动共用同一个图片详情页；图片热点只做跳转，不承担报名事实；
+9. 管理后台实现欢迎页、首页轮播、共用详情三个入口和小程序预览。
 
 **验证：**
 
 - 非法素材、任意 CSS、任意脚本、非白名单域名和无效小程序路径均无法发布；
 - 已发布版本不可原地修改，复制草稿后可再次发布；
 - 首页空态、上一版本降级、轮播切换和共用详情测试；
+- 首页首张主视觉真机 P75：iOS ≤ 1.8 秒、Android ≤ 2.5 秒；详情框架 ≤ 300ms；
 - `node --test backend/tests/content_module.test.js backend/tests/content_http.test.js`
 - `node miniprogram/scripts/content-presenter.test.js`
 - `npm run check --prefix admin && npm run build --prefix admin`
@@ -321,13 +392,17 @@
 3. 列表改为 Today 风格卡片，显示权威报名状态；
 4. 详情使用共用图片详情，底部固定报名状态栏；
 5. 报名确认弹层、重复点击、弱网和结果未知恢复沿用现有幂等事实；
-6. 后台拆成活动管理和报名记录；报名记录手机号脱敏，导出留审计；
-7. Root 会员中心和公众号跳转不得创建第二套报名记录。
+6. 活动列表每页 10–20 条、压缩响应 ≤ 100KB；游客只返回公共内容，登录用户报名状态由同一响应批量返回；
+7. 活动列表封面目标 ≤ 120KB、硬上限 180KB，屏外图片懒加载并固定比例；
+8. 后台拆成活动管理和报名记录；报名记录手机号脱敏，导出留审计；
+9. Root 会员中心和公众号跳转不得创建第二套报名记录。
 
 **验证：**
 
 - 并发名额、重复报名、重复取消、截止时间、已满、已结束和结果未知恢复；
 - 首页活动详情与活动 Tab 详情确实共用 Content Module；
+- 活动列表与加载更多 P75 ≤ 800ms；详情首图标准 4G ≤ 1.2 秒、弱网 ≤ 2 秒；
+- 报名点击 100ms 内反馈；写入 P75 ≤ 1 秒、P95 ≤ 2 秒，超时后通过权威查询恢复；
 - `npm run v1:activity:check`
 - 现有活动恢复测试与新增内容引用测试通过；
 - 三个小程序状态画板和两个后台页面截图对照。
@@ -370,8 +445,9 @@
 4. 推荐规则只允许“主分类/辅助标签 → 明确已发布量表版本”；
 5. 生活方式建议只发送最少健康字段，不发送手机号、昵称、UnionID 或 OpenID；
 6. 模型输出经过结构、禁用表达和安全检查后进入建议池；资料或评测变化才重新生成；
-7. 模型失败、超时或不合格时使用固定内容 Adapter；后台只选择已批准配置，不显示或输入密钥；
-8. 后台真实数据启用前要求内容、隐私、技术三方签署。
+7. 模型生成不得阻塞健康首页或结果页首次展示；状态与建议压缩响应 ≤ 80KB；
+8. 模型失败、超时或不合格时使用固定内容 Adapter；后台只选择已批准配置，不显示或输入密钥；
+9. 后台真实数据启用前要求内容、隐私、技术三方签署。
 
 **验证：**
 
@@ -412,11 +488,16 @@
 3. 实现单题答题、进度、返回、必填、恢复和提交状态；
 4. 结果页展示主分类、辅助标签、三个 tips 和推荐量表；
 5. 风险页只展示批准的求助/就医或谨慎指引，不显示普通 tips；
-6. 每次进入轮换三条建议，不在页面打开时实时调用模型。
+6. 每次进入轮换三条建议，不在页面打开时实时调用模型；
+7. 问卷答案保留在非渲染状态，只把当前题和必要进度送入 `setData`；下一题切换 ≤ 100ms；
+8. 当前进度本地暂存，恢复网络后统一提交；提交超时进入“结果确认中”，不得重复生成记录；
+9. 单次普通 `setData` 目标 ≤ 20KB、硬上限 64KB；首次渲染目标 ≤ 3 批、硬上限 5 批；单页节点 ≤ 1,200、深度 ≤ 20。
 
 **验证：**
 
 - 访客、未成年、拒绝同意、普通完成、风险完成、断网恢复六条旅程；
+- 评测分包首次进入标准网络 ≤ 1.5 秒；提交 P75 ≤ 1 秒、P95 ≤ 2 秒；
+- 中端 Android 完整健康旅程无超过 200ms 持续冻结、无内存告警；
 - `node miniprogram/scripts/assessment-presenter.test.js`
 - `npm run check --prefix miniprogram`
 - 四个手机画板逐屏截图对照并完成真机滚动、键盘和安全区检查。
@@ -452,7 +533,8 @@
 4. 两个入口只能使用代码中批准的白名单路径；后台不开放任意路径配置；
 5. 跳转失败停留当前页，显示重试，不制造成功；
 6. 退出只清会话和受保护缓存，不清欢迎页状态；
-7. 注销位于“关于 Root → 隐私与账号”，完成范围说明、二次确认、会话失效、状态查询和客服入口。
+7. 注销位于“关于 Root → 隐私与账号”，完成范围说明、二次确认、会话失效、状态查询和客服入口；
+8. 游客页面不发私密请求且 ≤ 500ms；登录资料 P75 ≤ 800ms；会员中心入口点击 100ms 内反馈，外部跳转失败后当前页面可恢复。
 
 **验证：**
 
@@ -550,8 +632,9 @@
 2. 用 `rg` 与依赖引用检查找出真正死代码；
 3. 按完整切片删除，不把旧 `domain.js` 分支迁移成新抽象；
 4. 更新 Route Registry、HTTP smoke、Admin 校验与 Mini Program 校验；
-5. 删除只证明废弃产品行为的测试，保留并迁移通用可靠性测试；
-6. 如删除影响身份、隐私、活动权威事实、审计或发布 Gate，停止该项并迁移最小必要事实。
+5. 更新包体基线，证明旧代码和旧资源从主包、分包及构建产物完整退出；
+6. 删除只证明废弃产品行为的测试，保留并迁移通用可靠性测试；
+7. 如删除影响身份、隐私、活动权威事实、审计或发布 Gate，停止该项并迁移最小必要事实。
 
 **验证：**
 
@@ -600,6 +683,9 @@
 
 - `docs/evidence/ued-r0/screen-index.json`：20 个 Section Node、具体画板 Node、实现页面、视口和截图摘要；
 - `docs/evidence/ued-r0/visual-review.json`：每个画板的通过/差异/责任人/复核时间；
+- `docs/evidence/performance-r0/package-budget.json`：主包、分包、总包、素材与相对基线增长；
+- `docs/evidence/performance-r0/real-device-results.json`：设备、网络、入口、代码包状态、30 次样本、P75/P95；
+- `docs/evidence/performance-r0/regression-review.md`：绝对阈值、5% 预警、10% 阻断和例外失效版本；
 - 更新 UED handoff 证据，使 `screenCount=20`、`archivedPagesExcluded=true`、`allCanonicalStatesCovered=true` 只有在真实证据齐全时成立。
 
 **自动验证：**
@@ -609,6 +695,9 @@
 - `npm run build --prefix admin`
 - `npm test --prefix backend`
 - `npm run v1:routes:check`
+- `node miniprogram/scripts/performance-budget.test.js`
+- `node miniprogram/scripts/performance-monitor.test.js`
+- `node scripts/miniprogram-performance-report.js --candidate`
 - `npm run verify`
 - `git diff --check`
 - secret、敏感原值、旧路由、旧菜单和旧 Job 扫描。
@@ -622,12 +711,18 @@
 - “我的”访客/登录、订单/优惠券跳转失败、退出与注销；
 - 20 张 Ardot 画板对应截图；
 - 375px 小屏、常见 iOS/Android、弱网、键盘、安全区和长文；
+- iOS 基准/主流设备、Android 4GB 基准/8GB 主流设备；最低基础库与验收时稳定版本；本地包、首次下载和版本更新；
+- 每个核心旅程至少 30 次，P75 为主要结论并记录 P95；连续切换四 Tab 10 轮、详情开关 10 次、完整旅程 15 分钟；
 - 后台 12 张画板对应桌面截图及表格溢出检查。
 
 **完成条件：**
 
 - 新首发旅程全部通过；
 - 高保真差异清单为零，或每一项都有用户明确批准；
+- 静态资源、自动化、真机性能和产品体验四层 Gate 全部通过；任何硬上限失败或相对批准基线退化 ≥ 10% 均保持阻断；
+- 本地包冷启动 `appLaunch` P75：iOS ≤ 1.2 秒、Android ≤ 2.6 秒；下载或更新包：iOS ≤ 1.8 秒、Android ≤ 3.7 秒；
+- 已加载 Tab 切换 P75：iOS ≤ 400ms、Android ≤ 600ms；首次分包标准网络 iOS ≤ 1.2 秒、Android ≤ 1.5 秒，弱网 iOS ≤ 2 秒、Android ≤ 2.5 秒；
+- 中端 Android 稳定内存建议值 ≤ 120MB、峰值 ≤ 180MB，滚动流畅度 P75 ≥ 50 FPS；
 - 旧任务、打卡、奖励、内部订单、退款和结算在页面、路由、后端运行注册、后台菜单、Job、测试与配置中均不可达；
 - 正式素材、会员中心路径、健康内容签署或模型生产配置未齐全时，对应发布 Gate 继续保持阻断；
 - 本地完成不自动进入部署、微信上传、审核、发布或切流。
@@ -636,17 +731,18 @@
 
 每个提交只包含一个可独立验证的产品切片，建议顺序：
 
-1. `refactor: remove legacy mini-program entry points`
-2. `feat: build approved welcome and navigation shell`
-3. `feat: rebuild trusted login and profile flow`
-4. `feat: add versioned content publishing`
-5. `feat: align activity flow with shared content`
-6. `feat: add Root4U assessment and advice modules`
-7. `feat: build Root4U approved mini-program screens`
-8. `feat: rebuild profile and member center links`
-9. `feat: rebuild formal launch admin workbench`
-10. `refactor: remove legacy backend routes and jobs`
-11. `chore: add formal launch verification evidence`
+1. `chore: add mini-program performance budgets and monitoring`
+2. `refactor: remove legacy mini-program entry points`
+3. `feat: build approved welcome and navigation shell`
+4. `feat: rebuild trusted login and profile flow`
+5. `feat: add versioned content publishing`
+6. `feat: align activity flow with shared content`
+7. `feat: add Root4U assessment and advice modules`
+8. `feat: build Root4U approved mini-program screens`
+9. `feat: rebuild profile and member center links`
+10. `feat: rebuild formal launch admin workbench`
+11. `refactor: remove legacy backend routes and jobs`
+12. `chore: add formal launch performance and verification evidence`
 
 每次提交前运行该切片的专用测试与 `git diff --check`。跨切片修改不得混入同一提交；不使用 `git add -A`，避免带入当前工作树中已有的其他文档改动。
 
@@ -659,6 +755,8 @@
 - Root 会员中心正式小程序路径或真实测试账号缺失，且任务准备关闭跨小程序验收；
 - 12 问、风险话术、量表或固定 tips 未完成责任人签署，且任务准备处理真实健康数据；
 - 生产模型供应方、处理地区、保留规则或合同未确认，且任务准备启用模型 Adapter；
+- 最低基础库、基准设备或网络档位无法锁定，且任务准备关闭真机性能 Gate；
+- 任一性能硬上限失败，或相对最近批准基线退化 10% 以上；
 - 删除目标仍被线上版本、保留 Module 或真实业务数据使用；
 - 需要部署、生产 migration、微信上传、审核、发布或切流。
 
@@ -676,6 +774,10 @@
 6. **后台重新长出旧能力**：任何任务、奖励、结算、内部订单、售后、Adapter 校准或会员资产菜单都应使校验失败。
 7. **为旧测试保留旧产品**：测试服务于已批准产品；仅保留能证明通用可靠性或首发行为的测试。
 8. **为了快速删表而改历史 migration**：历史文件保持不可变，旧表只在运行停止、盘点、快照、批准和恢复验证后由新 migration 处理。
+9. **最后才补性能**：每个切片必须带预算、异常恢复和测量；R12 只汇总证据，不替前面补做设计。
+10. **用开发者工具代替真机**：最终结论必须包含 iOS、Android、代码包状态、网络档位、30 次样本、P75 和 P95。
+11. **通过删除体验伪造达标**：性能优化不得删除批准文案、主要动画、内容层级或健康安全表达。
+12. **缓存制造错误成功**：登录、注册、健康结果和报名状态必须来自可信身份与权威查询，弱网只允许进入等待或结果未知恢复。
 
 ## 9. 计划完成后的状态定义
 
@@ -683,4 +785,4 @@
 
 `FORMAL_LAUNCH_IMPLEMENTATION_LOCAL_COMPLETE / EXTERNAL_RELEASE_GATES_PENDING`
 
-该状态表示本地代码、自动验证、真机旅程和高保真一致性证据已完成。它不表示 CloudBase 已部署、生产数据库已迁移、微信版本已上传或审核、正式版本已发布，也不表示线上流量已切换。
+该状态表示本地代码、自动验证、四层小程序性能 Gate、真机旅程和高保真一致性证据已完成。它不表示 CloudBase 已部署、生产数据库已迁移、微信版本已上传或审核、正式版本已发布，也不表示线上流量已切换。
