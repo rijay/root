@@ -67,7 +67,6 @@ const releaseSignoff = require("./releaseSignoff");
 const rootMemberCenterJumpProof = require("./rootMemberCenterJumpProof");
 const sessionModule = require("./sessionModule");
 const refundWorkItem = require("./refundWorkItem");
-const taskProgress = require("./taskProgress");
 const { fetchWechatJson } = require("./wechatHttp");
 const { resolveWechatAccessToken } = require("./wechatAccessToken");
 const weworkTouch = require("./weworkTouch");
@@ -1131,49 +1130,22 @@ function cancelActivitySession(data, body = {}, context = {}) {
   return response({ session, audit });
 }
 
-function recordUserTaskEvent(data, token, body = {}, context = {}) {
+function recordUserConsultation(data, token, body = {}) {
   const user = requireUser(data, token);
   const rootUserId = user.root_user_id || user.user_id;
-  const taskType = String(body.taskType || body.task_type || "").trim().toUpperCase();
-  if (["CHECKIN", "QUESTIONNAIRE"].includes(taskType)) {
-    privacyConsent.requireHealthConsent(data, rootUserId, context);
-  }
-  const result = taskProgress.recordTaskEvent(data, {
-    ...body,
-    rootUserId,
-  }, {
-    ...context,
-    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_TASK",
-  });
+  const result = consultationFollowup.recordConsultation(data, user, body);
   if (result.created) {
-    recordLifecycleEvent(data, rootUserId, "TASK_EVENT_RECORDED", {
-      sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_TASK",
+    recordLifecycleEvent(data, rootUserId, "CONSULTATION_FOLLOW_CREATED", {
+      sourceChannel: result.item.sourceChannel,
       appCode: user.app_code || "MYROOT",
       metadata: {
-        campaignId: result.event.campaign_id,
-        taskType: result.event.task_type,
-        taskEventId: result.event.task_event_id,
-        created: true,
+        consultationId: result.item.consultationId,
+        operationTaskId: result.task.task_id,
+        consultationType: result.item.consultationType,
       },
     });
   }
-  let followUp = null;
-  if (result.event.task_type === "CONSULTATION") {
-    followUp = consultationFollowup.createFollowTaskForEvent(data, user, result.event);
-    if (result.created && followUp && followUp.created) {
-      recordLifecycleEvent(data, rootUserId, "CONSULTATION_FOLLOW_CREATED", {
-        sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_TASK",
-        appCode: user.app_code || "MYROOT",
-        metadata: {
-          campaignId: result.event.campaign_id,
-          taskEventId: result.event.task_event_id,
-          operationTaskId: followUp.task.task_id,
-          consultationType: followUp.item.consultationType,
-        },
-      });
-    }
-  }
-  return response({ ...result, followUp });
+  return response(result);
 }
 
 function getUserConsultations(data, token) {
@@ -1686,23 +1658,6 @@ function submitCheckin(data, token, body, dateText = todayISO(), context = {}) {
     is_makeup: dayIndex < currentDayIndex,
   };
   data.checkinRecords.push(record);
-  taskProgress.recordTaskEvent(data, {
-    rootUserId: user.root_user_id || user.user_id,
-    taskType: "CHECKIN",
-    taskDate: dateText,
-    payload: {
-      source: "LEGACY_CHECKIN",
-      sessionId: session.session_id,
-      dayIndex,
-      tookProduct: record.took_product,
-      hadStool: record.had_stool,
-      stoolType: record.stool_type,
-      taskDate: dateText,
-    },
-    idempotencyKey: `legacy-checkin:${session.session_id}:${dayIndex}`,
-  }, {
-    sourceChannel: "LEGACY_CHECKIN",
-  });
   let nextAction = "";
   let couponStatus = null;
 
@@ -1812,20 +1767,6 @@ function trackEvent(data, token, body = {}) {
     created_at: nowISO(),
   };
   data.eventsTrack.push(event);
-  if (["SHARE", "CONSULTATION", "PURCHASE"].includes(String(body.taskType || body.task_type || "").toUpperCase())) {
-    taskProgress.recordTaskEvent(data, {
-      rootUserId: user.root_user_id || user.user_id,
-      taskType: body.taskType || body.task_type,
-      taskDate: body.taskDate || body.task_date || todayISO(),
-      payload: {
-        eventName: event.event_name,
-        ...(body.payload || {}),
-      },
-      idempotencyKey: body.idempotencyKey || body.idempotency_key || `track:${event.event_id}`,
-    }, {
-      sourceChannel: body.sourceChannel || body.source_channel || "EVENT_TRACK",
-    });
-  }
   return response({ success: true, eventId: event.event_id });
 }
 
@@ -1861,20 +1802,6 @@ function submitQuestionnaire(data, token, body, dateText = todayISO(), context =
   privacyConsent.requireHealthConsent(data, user.root_user_id || user.user_id, context);
   const session = currentSessionForUser(data, user.user_id);
   const result = questionnaire.submitQuestionnaire(data, user, session, body);
-  taskProgress.recordTaskEvent(data, {
-    rootUserId: user.root_user_id || user.user_id,
-    taskType: "QUESTIONNAIRE",
-    taskDate: dateText,
-    payload: {
-      source: "LEGACY_QUESTIONNAIRE",
-      questionnaireType: result.response.questionnaire_type,
-      responseId: result.response.response_id,
-      sessionId: session.session_id,
-    },
-    idempotencyKey: `legacy-questionnaire:${result.response.response_id}`,
-  }, {
-    sourceChannel: "LEGACY_QUESTIONNAIRE",
-  });
   if (result.response.needs_follow) {
     operationTask.createOperationTaskOnce(data, {
       task_type: "QUESTIONNAIRE_FOLLOW",
@@ -3157,7 +3084,7 @@ module.exports = {
   recordRootMemberCenterJumpProof,
   recordProductJump,
   recordHealthConsentDecision,
-  recordUserTaskEvent,
+  recordUserConsultation,
   requestActivityChanges,
   reviewActivityEnrollment,
   rollbackExternalAdapterRun,

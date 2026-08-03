@@ -214,7 +214,7 @@ function consultationSlaEscalationAlertTargets(data, query = {}, context = {}) {
       label: `${item.escalationLabel}：咨询待办 ${item.taskId} 已超时 ${item.overdueMinutes} 分钟`,
       count: 1,
       consultationTaskId: item.taskId,
-      consultationTaskEventId: item.taskEventId,
+      consultationId: item.consultationId,
       rootUserId: item.rootUserId,
       userId: item.userId,
       userLabel: item.userLabel,

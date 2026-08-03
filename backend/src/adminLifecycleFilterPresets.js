@@ -5,11 +5,8 @@ const FILTER_KEYS = [
   "keyword",
   "unionidStatus",
   "state",
-  "campaignId",
-  "taskProgress",
   "consultationStatus",
-  "settlementStatus",
-  "rewardStatus",
+  "activityStatus",
   "openTasks",
   "severity",
   "blockage",
@@ -18,11 +15,8 @@ const FILTER_KEYS = [
 
 const FILTER_ALIASES = {
   unionid_status: "unionidStatus",
-  campaign_id: "campaignId",
-  task_progress: "taskProgress",
   consultation_status: "consultationStatus",
-  settlement_status: "settlementStatus",
-  reward_status: "rewardStatus",
+  activity_status: "activityStatus",
   open_tasks: "openTasks",
   current_blockage: "blockage",
 };

@@ -1,7 +1,6 @@
 const { nowISO } = require("./dates");
 const { createId } = require("./seed");
 const campaign = require("./campaign");
-const taskProgress = require("./taskProgress");
 const manualReview = require("./manualReview");
 
 const SOURCE_INVALIDATION_SOURCE_TYPE = "TASK_SOURCE_INVALIDATION";
@@ -400,7 +399,6 @@ function missingConditionsFor(node) {
 }
 
 function buildSettlementResult(data, rootUserId, campaignId, ruleVersion) {
-  const progress = taskProgress.computeTaskProgress(data, rootUserId, campaignId);
   const conditionTree = evaluateConditionNode(data, rootUserId, campaignId, ruleVersion.conditions_json);
   const leafConditions = flattenLeafConditions(conditionTree);
   const conditions = conditionTree.implicit ? leafConditions : [conditionTree];
@@ -410,7 +408,6 @@ function buildSettlementResult(data, rootUserId, campaignId, ruleVersion) {
     qualified,
     conditions,
     conditionTree,
-    progress,
     missingConditions,
     evaluatedAt: nowISO(),
   };

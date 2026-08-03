@@ -64,7 +64,6 @@ function createSeedData() {
     activityEnrollmentEvents: [],
     taskDefinitions: [],
     taskEvents: [],
-    taskProgressSnapshots: [],
     notificationTemplates: [],
     notificationSubscriptions: [],
     notificationSubscriptionGrants: [],

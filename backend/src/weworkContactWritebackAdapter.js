@@ -78,15 +78,14 @@ function applyToken(env, url, headers, params) {
 function writebackPayloadFor(context = {}) {
   const body = objectValue(context.body);
   const task = objectValue(context.task);
-  const event = objectValue(context.event);
   return {
     ...parseJsonEnv(context.env && context.env.WEWORK_CONTACT_WRITEBACK_EXTRA_PARAMS, {}),
     taskId: task.task_id || body.taskId || body.task_id || "",
-    taskEventId: (task.metadata && task.metadata.taskEventId) || event.task_event_id || body.taskEventId || body.task_event_id || "",
-    rootUserId: (task.metadata && task.metadata.rootUserId) || event.root_user_id || body.rootUserId || body.root_user_id || "",
+    consultationId: (task.metadata && task.metadata.consultationId) || body.consultationId || body.consultation_id || "",
+    rootUserId: (task.metadata && task.metadata.rootUserId) || body.rootUserId || body.root_user_id || "",
     userId: task.user_id || body.userId || body.user_id || "",
-    campaignId: (task.metadata && task.metadata.campaignId) || event.campaign_id || body.campaignId || body.campaign_id || "",
-    consultationType: (task.metadata && task.metadata.consultationType) || (event.payload_json && (event.payload_json.consultationType || event.payload_json.consultation_type)) || "",
+    campaignId: (task.metadata && task.metadata.campaignId) || body.campaignId || body.campaign_id || "",
+    consultationType: (task.metadata && task.metadata.consultationType) || "",
     externalContactId: text(body.externalContactId || body.external_contact_id || context.externalContactId),
     external_userid: text(body.externalContactId || body.external_contact_id || context.externalContactId),
     result: text(body.result || body.followResult || body.follow_result, "WEWORK_CONTACTED"),

@@ -2173,36 +2173,44 @@ test("admin user detail aggregates feedback and can create follow tasks", () => 
   assert.equal(nextDetail.operationTasks.some((task) => task.taskType === "FEEDBACK_FOLLOW"), true);
 });
 
-test("consultation events create user-visible follow-up status", () => {
+test("consultations create user-visible follow-up status without legacy task progress", () => {
   const store = domain.createStore();
   const token = register(store, "13800000886");
 
-  const recorded = domain.recordUserTaskEvent(store, token, {
-    taskType: "CONSULTATION",
+  const recorded = domain.recordUserConsultation(store, token, {
     taskDate: "2026-06-19",
     sourceChannel: "MINIPROGRAM_SUPPORT",
-    payload: { taskDate: "2026-06-19", consultationType: "REWARD", scene: "SUPPORT_PAGE" },
-    idempotencyKey: "domain-consultation-followup-reward",
+    payload: { taskDate: "2026-06-19", consultationType: "PRODUCT", scene: "SUPPORT_PAGE" },
+    idempotencyKey: "domain-consultation-followup-product",
   }).data;
-  const repeated = domain.recordUserTaskEvent(store, token, {
-    taskType: "CONSULTATION",
+  const repeated = domain.recordUserConsultation(store, token, {
     taskDate: "2026-06-19",
     sourceChannel: "MINIPROGRAM_SUPPORT",
-    payload: { taskDate: "2026-06-19", consultationType: "REWARD", scene: "SUPPORT_PAGE" },
-    idempotencyKey: "domain-consultation-followup-reward",
+    payload: { taskDate: "2026-06-19", consultationType: "PRODUCT", scene: "SUPPORT_PAGE" },
+    idempotencyKey: "domain-consultation-followup-product",
   }).data;
+  assert.throws(() => domain.recordUserConsultation(store, token, {
+    taskDate: "2026-06-20",
+    sourceChannel: "MINIPROGRAM_SUPPORT",
+    payload: { taskDate: "2026-06-20", consultationType: "ORDER", scene: "ORDER_PAGE" },
+    idempotencyKey: "domain-consultation-followup-product",
+  }), {
+    code: 40901,
+    status: 409,
+  });
   const pendingView = domain.getUserConsultations(store, token).data;
 
   assert.equal(recorded.created, true);
-  assert.equal(recorded.followUp.created, true);
-  assert.equal(recorded.followUp.task.task_type, "CONSULTATION_FOLLOW");
+  assert.equal(recorded.task.task_type, "CONSULTATION_FOLLOW");
   assert.equal(repeated.created, false);
-  assert.equal(repeated.followUp.created, false);
   assert.equal(pendingView.summary.pendingCount, 1);
-  assert.equal(pendingView.consultations[0].consultationTypeLabel, "奖励与复核");
+  assert.equal(pendingView.consultations[0].consultationTypeLabel, "产品使用");
   assert.equal(pendingView.consultations[0].status, "PENDING");
+  assert.equal(store.taskEvents.length, 0);
+  assert.equal(store.operationTasks.filter((task) => task.task_type === "CONSULTATION_FOLLOW").length, 1);
+  assert.equal(Object.hasOwn(store, "taskProgressSnapshots"), false);
 
-  domain.completeOperationTask(store, recorded.followUp.task.task_id, { result: "WEWORK_CONTACTED", note: "已通过企微联系" });
+  domain.completeOperationTask(store, recorded.task.task_id, { result: "WEWORK_CONTACTED", note: "已通过企微联系" });
   const doneView = domain.getUserConsultations(store, token).data;
   const lifecycle = domain.getAdminLifecycleWorkbench(store).data;
 
@@ -2217,14 +2225,13 @@ test("WeWork touch planning queues follow-up tasks and reactivates after contact
   const store = domain.createStore();
   const token = register(store, "13800000888");
 
-  const recorded = domain.recordUserTaskEvent(store, token, {
-    taskType: "CONSULTATION",
+  const recorded = domain.recordUserConsultation(store, token, {
     taskDate: "2026-06-20",
     sourceChannel: "MINIPROGRAM_SUPPORT",
     payload: { taskDate: "2026-06-20", consultationType: "BODY_FEEDBACK", scene: "SUPPORT_PAGE" },
     idempotencyKey: "domain-wework-touch-consultation",
   }).data;
-  const taskId = recorded.followUp.task.task_id;
+  const taskId = recorded.task.task_id;
   const blockedPlan = domain.planWeWorkTouches(store, {
     dryRun: false,
     taskTypes: ["CONSULTATION_FOLLOW"],
@@ -2240,7 +2247,7 @@ test("WeWork touch planning queues follow-up tasks and reactivates after contact
 
   store.leadProfiles.push({
     lead_id: "lead_wework_touch_001",
-    user_id: recorded.followUp.task.user_id,
+    user_id: recorded.task.user_id,
     external_contact_id: "wm_touch_001",
     wechat_remark_name: "ROOT自动触达用户",
     receiver_phone: "",
@@ -2292,8 +2299,7 @@ test("consultation WeWork writeback records contact evidence and closes follow t
   const token = register(store, "13800000887");
   const calls = [];
 
-  const recorded = domain.recordUserTaskEvent(store, token, {
-    taskType: "CONSULTATION",
+  const recorded = domain.recordUserConsultation(store, token, {
     taskDate: "2026-06-20",
     sourceChannel: "MINIPROGRAM_SUPPORT",
     payload: { taskDate: "2026-06-20", consultationType: "BODY_FEEDBACK", scene: "SUPPORT_PAGE" },
@@ -2301,7 +2307,7 @@ test("consultation WeWork writeback records contact evidence and closes follow t
   }).data;
   store.leadProfiles.push({
     lead_id: "lead_consultation_writeback_001",
-    user_id: recorded.followUp.task.user_id,
+    user_id: recorded.task.user_id,
     external_contact_id: "wm_consultation_001",
     wechat_remark_name: "ROOT测试用户",
     receiver_phone: "",
@@ -2315,7 +2321,7 @@ test("consultation WeWork writeback records contact evidence and closes follow t
   });
 
   const writeback = await domain.recordConsultationWeworkWriteback(store, {
-    taskId: recorded.followUp.task.task_id,
+    taskId: recorded.task.task_id,
     adapterMode: "WEWORK_CONTACT_WRITEBACK",
     note: "已通过企微确认身体反馈 token=secret-token",
     requestId: "domain-consultation-wework-writeback-1",
@@ -2336,11 +2342,11 @@ test("consultation WeWork writeback records contact evidence and closes follow t
     },
   });
   const repeated = await domain.recordConsultationWeworkWriteback(store, {
-    taskId: recorded.followUp.task.task_id,
+    taskId: recorded.task.task_id,
     requestId: "domain-consultation-wework-writeback-1",
   });
   const doneView = domain.getUserConsultations(store, token).data;
-  const writebacks = domain.listConsultationWeworkWritebacks(store, { userId: recorded.followUp.task.user_id }).data;
+  const writebacks = domain.listConsultationWeworkWritebacks(store, { userId: recorded.task.user_id }).data;
 
   assert.equal(writeback.data.success, true);
   assert.equal(writeback.data.writeback.status, "DELIVERED");
@@ -2355,7 +2361,7 @@ test("consultation WeWork writeback records contact evidence and closes follow t
   assert.equal(store.auditLogs.some((log) => log.action === "CONSULTATION_WEWORK_WRITEBACK"), true);
   assert.equal(calls[0].url, "https://wework.example/writeback?access_token=wework-writeback-token");
   const requestBody = JSON.parse(calls[0].init.body);
-  assert.equal(requestBody.taskId, recorded.followUp.task.task_id);
+  assert.equal(requestBody.taskId, recorded.task.task_id);
   assert.equal(requestBody.externalContactId, "wm_consultation_001");
   assert.equal(validateSnapshot(store).valid, true);
 });
@@ -2364,48 +2370,46 @@ test("consultation advisor assignment records owner and supports automatic routi
   const store = domain.createStore();
   const token = register(store, "13800000889");
 
-  const first = domain.recordUserTaskEvent(store, token, {
-    taskType: "CONSULTATION",
+  const first = domain.recordUserConsultation(store, token, {
     taskDate: "2026-06-20",
     sourceChannel: "MINIPROGRAM_SUPPORT",
     payload: { taskDate: "2026-06-20", consultationType: "ORDER", scene: "SUPPORT_PAGE" },
     idempotencyKey: "domain-consultation-advisor-assignment-1",
   }).data;
   const manual = domain.recordConsultationAdvisorAssignment(store, {
-    taskId: first.followUp.task.task_id,
+    taskId: first.task.task_id,
     advisorId: "advisor-a",
     advisorName: "顾问A",
     requestId: "domain-consultation-advisor-assignment-manual",
     operatorId: "ops-consultation",
   }).data;
   const repeated = domain.recordConsultationAdvisorAssignment(store, {
-    taskId: first.followUp.task.task_id,
+    taskId: first.task.task_id,
     requestId: "domain-consultation-advisor-assignment-manual",
   }).data;
 
-  const second = domain.recordUserTaskEvent(store, token, {
-    taskType: "CONSULTATION",
+  const second = domain.recordUserConsultation(store, token, {
     taskDate: "2026-06-21",
     sourceChannel: "MINIPROGRAM_SUPPORT",
-    payload: { taskDate: "2026-06-21", consultationType: "REWARD", scene: "SUPPORT_PAGE" },
+    payload: { taskDate: "2026-06-21", consultationType: "PRODUCT", scene: "SUPPORT_PAGE" },
     idempotencyKey: "domain-consultation-advisor-assignment-2",
   }).data;
   const automatic = domain.recordConsultationAdvisorAssignment(store, {
-    taskId: second.followUp.task.task_id,
+    taskId: second.task.task_id,
     assignmentMode: "AUTO",
     advisors: "advisor-a:顾问A,advisor-b:顾问B",
     requestId: "domain-consultation-advisor-assignment-auto",
     operatorId: "ops-consultation",
   }).data;
   const view = domain.getUserConsultations(store, token).data;
-  const assignments = domain.listConsultationAdvisorAssignments(store, { userId: first.followUp.task.user_id }).data;
+  const assignments = domain.listConsultationAdvisorAssignments(store, { userId: first.task.user_id }).data;
 
   assert.equal(manual.assignment.advisorId, "advisor-a");
   assert.equal(manual.task.metadata.assignedAdvisorName, "顾问A");
   assert.equal(repeated.idempotent, true);
   assert.equal(automatic.assignment.assignmentMode, "AUTO");
   assert.equal(automatic.assignment.advisorId, "advisor-b");
-  assert.equal(view.consultations.find((item) => item.consultationId === second.event.task_event_id).assignedAdvisorName, "顾问B");
+  assert.equal(view.consultations.find((item) => item.consultationId === second.item.consultationId).assignedAdvisorName, "顾问B");
   assert.equal(assignments.assignments.length, 2);
   assert.equal(store.auditLogs.some((log) => log.action === "CONSULTATION_ADVISOR_ASSIGN"), true);
   assert.equal(validateSnapshot(store).valid, true);
@@ -2416,30 +2420,28 @@ test("consultation advisor workbench groups workload by advisor and SLA", () => 
   const firstToken = register(store, "13800000891");
   const secondToken = register(store, "13800000892");
 
-  const first = domain.recordUserTaskEvent(store, firstToken, {
-    taskType: "CONSULTATION",
+  const first = domain.recordUserConsultation(store, firstToken, {
     taskDate: "2026-06-20",
     sourceChannel: "MINIPROGRAM_SUPPORT",
     payload: { taskDate: "2026-06-20", consultationType: "ORDER", scene: "SUPPORT_PAGE" },
     idempotencyKey: "domain-consultation-advisor-workbench-1",
   }).data;
-  store.operationTasks.find((task) => task.task_id === first.followUp.task.task_id).created_at = "2026-01-01T08:00:00+08:00";
+  store.operationTasks.find((task) => task.task_id === first.task.task_id).created_at = "2026-01-01T08:00:00+08:00";
   domain.recordConsultationAdvisorAssignment(store, {
-    taskId: first.followUp.task.task_id,
+    taskId: first.task.task_id,
     advisorId: "advisor-a",
     advisorName: "顾问A",
     requestId: "domain-consultation-workbench-advisor-a",
     operatorId: "ops-consultation",
   });
 
-  const second = domain.recordUserTaskEvent(store, secondToken, {
-    taskType: "CONSULTATION",
+  const second = domain.recordUserConsultation(store, secondToken, {
     taskDate: "2026-06-20",
     sourceChannel: "MINIPROGRAM_SUPPORT",
-    payload: { taskDate: "2026-06-20", consultationType: "REWARD", scene: "SUPPORT_PAGE" },
+    payload: { taskDate: "2026-06-20", consultationType: "PRODUCT", scene: "SUPPORT_PAGE" },
     idempotencyKey: "domain-consultation-advisor-workbench-2",
   }).data;
-  store.operationTasks.find((task) => task.task_id === second.followUp.task.task_id).created_at = "2026-01-01T10:00:00+08:00";
+  store.operationTasks.find((task) => task.task_id === second.task.task_id).created_at = "2026-01-01T10:00:00+08:00";
 
   const workbench = domain.getConsultationAdvisorWorkbench(store, {
     slaMinutes: 120,
@@ -2466,7 +2468,7 @@ test("consultation advisor workbench groups workload by advisor and SLA", () => 
   assert.equal(unassigned.items.length, 1);
   assert.equal(unassigned.advisors.length, 1);
   assert.equal(unassigned.advisors[0].advisorRole, "UNASSIGNED");
-  assert.equal(unassigned.items[0].taskId, second.followUp.task.task_id);
+  assert.equal(unassigned.items[0].taskId, second.task.task_id);
   assert.equal(validateSnapshot(store).valid, true);
 });
 
@@ -2474,16 +2476,15 @@ test("consultation SLA marks overdue follow tasks and feeds operational alerts",
   const store = domain.createStore();
   const token = register(store, "13800000890");
 
-  const recorded = domain.recordUserTaskEvent(store, token, {
-    taskType: "CONSULTATION",
+  const recorded = domain.recordUserConsultation(store, token, {
     taskDate: "2026-06-20",
     sourceChannel: "MINIPROGRAM_SUPPORT",
     payload: { taskDate: "2026-06-20", consultationType: "BODY_FEEDBACK", scene: "SUPPORT_PAGE" },
     idempotencyKey: "domain-consultation-sla-overdue",
   }).data;
-  store.operationTasks.find((task) => task.task_id === recorded.followUp.task.task_id).created_at = "2026-01-01T08:00:00+08:00";
+  store.operationTasks.find((task) => task.task_id === recorded.task.task_id).created_at = "2026-01-01T08:00:00+08:00";
   domain.recordConsultationAdvisorAssignment(store, {
-    taskId: recorded.followUp.task.task_id,
+    taskId: recorded.task.task_id,
     advisorId: "advisor-sla",
     advisorName: "SLA顾问",
     requestId: "domain-consultation-sla-advisor",
@@ -2491,12 +2492,12 @@ test("consultation SLA marks overdue follow tasks and feeds operational alerts",
   });
 
   const sla = domain.getConsultationSla(store, {
-    rootUserId: recorded.event.root_user_id,
+    rootUserId: recorded.item.rootUserId,
     slaMinutes: 120,
     now: "2026-01-01T11:30:00+08:00",
   }).data;
   const escalation = domain.getConsultationSlaEscalations(store, {
-    rootUserId: recorded.event.root_user_id,
+    rootUserId: recorded.item.rootUserId,
     slaMinutes: 120,
     now: "2026-01-01T11:30:00+08:00",
   }).data;
@@ -2508,8 +2509,8 @@ test("consultation SLA marks overdue follow tasks and feeds operational alerts",
     requestId: "domain-consultation-sla-alert-job",
     operatorId: "ops-consultation",
   });
-  const notification = store.operationalAlertNotifications.find((item) => item.alert_key === `consultation_sla_overdue_${recorded.followUp.task.task_id}`);
-  const escalationNotification = store.operationalAlertNotifications.find((item) => String(item.alert_key || "").startsWith(`consultation_sla_escalation_${recorded.followUp.task.task_id}_`));
+  const notification = store.operationalAlertNotifications.find((item) => item.alert_key === `consultation_sla_overdue_${recorded.task.task_id}`);
+  const escalationNotification = store.operationalAlertNotifications.find((item) => String(item.alert_key || "").startsWith(`consultation_sla_escalation_${recorded.task.task_id}_`));
 
   assert.equal(sla.summary.overdueCount, 1);
   assert.equal(sla.items[0].status, "OVERDUE");
@@ -2522,9 +2523,9 @@ test("consultation SLA marks overdue follow tasks and feeds operational alerts",
   assert.equal(view.consultations[0].slaStatus, "OVERDUE");
   assert.ok(analytics.alertRules.some((item) => item.alertRuleId === "op_alert_consultation_sla_overdue"));
   assert.ok(analytics.alertRules.some((item) => item.alertRuleId === "op_alert_consultation_sla_escalation"));
-  assert.ok(analytics.alerts.some((item) => item.key === `consultation_sla_overdue_${recorded.followUp.task.task_id}` && item.assignedAdvisorName === "SLA顾问"));
-  assert.ok(analytics.alerts.some((item) => item.key.startsWith(`consultation_sla_escalation_${recorded.followUp.task.task_id}_`) && item.escalationLevel >= 2));
-  assert.ok(job.data.alerts.some((item) => item.consultationTaskId === recorded.followUp.task.task_id));
+  assert.ok(analytics.alerts.some((item) => item.key === `consultation_sla_overdue_${recorded.task.task_id}` && item.assignedAdvisorName === "SLA顾问"));
+  assert.ok(analytics.alerts.some((item) => item.key.startsWith(`consultation_sla_escalation_${recorded.task.task_id}_`) && item.escalationLevel >= 2));
+  assert.ok(job.data.alerts.some((item) => item.consultationTaskId === recorded.task.task_id));
   assert.ok(job.data.alerts.some((item) => item.targetType === "CONSULTATION_SLA_ESCALATION" && item.escalationOwnerRole));
   assert.ok(notification);
   assert.ok(escalationNotification);

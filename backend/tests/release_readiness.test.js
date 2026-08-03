@@ -131,28 +131,25 @@ test("release smoke: formal mini-program exposes only the approved four-Tab scop
   assert.match(supportPage, /open-type="contact"/);
 });
 
-test("release smoke: support consultation records optional task progress", async () => {
+test("release smoke: support consultation stays independent from legacy task progress", async () => {
   const store = domain.createStore();
   const login = await domain.loginWithWechat(store, {
     openid: "release_support_consultation_openid",
     appCode: "MYROOT",
   }, { ROOT_ALLOW_OPENID_LOGIN: "true" });
 
-  const recorded = domain.recordUserTaskEvent(store, login.data.token, {
-    taskType: "CONSULTATION",
+  const recorded = domain.recordUserConsultation(store, login.data.token, {
     taskDate: "2026-06-19",
     sourceChannel: "MINIPROGRAM_SUPPORT",
-    payload: { taskDate: "2026-06-19", consultationType: "REWARD", scene: "SUPPORT_PAGE" },
-    idempotencyKey: "release-support-consultation-reward",
+    payload: { taskDate: "2026-06-19", consultationType: "PRODUCT", scene: "SUPPORT_PAGE" },
+    idempotencyKey: "release-support-consultation-product",
   }).data;
-  const consultation = recorded.progress.tasks.find((task) => task.taskType === "CONSULTATION");
   const status = domain.getUserConsultations(store, login.data.token).data;
 
   assert.equal(recorded.created, true);
-  assert.equal(recorded.followUp.created, true);
-  assert.equal(consultation.status, "DONE");
   assert.equal(status.summary.pendingCount, 1);
   assert.equal(status.consultations[0].status, "PENDING");
   assert.equal(store.operationTasks[0].task_type, "CONSULTATION_FOLLOW");
-  assert.equal(store.taskEvents[0].source_channel, "MINIPROGRAM_SUPPORT");
+  assert.equal(store.taskEvents.length, 0);
+  assert.equal(Object.hasOwn(store, "taskProgressSnapshots"), false);
 });

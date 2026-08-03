@@ -144,7 +144,6 @@ function createEmptyData() {
   data.activityEnrollmentEvents = [];
   data.taskDefinitions = [];
   data.taskEvents = [];
-  data.taskProgressSnapshots = [];
   data.notificationTemplates = [];
   data.notificationSubscriptions = [];
   data.notificationSubscriptionGrants = [];
@@ -258,7 +257,6 @@ function validateSnapshot(snapshot, options = {}) {
     ["activityEnrollmentEvents", "request_id"],
     ["taskDefinitions", "task_definition_id"],
     ["taskEvents", "task_event_id"],
-    ["taskProgressSnapshots", "task_progress_snapshot_id"],
     ["notificationTemplates", "notification_template_id"],
     ["notificationSubscriptions", "notification_subscription_id"],
     ["notificationSubscriptionGrants", "notification_subscription_grant_id"],

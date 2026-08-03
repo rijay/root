@@ -47,7 +47,7 @@ function writebackSummary(record) {
   return {
     writebackId: record.writeback_id,
     taskId: record.task_id,
-    taskEventId: record.task_event_id,
+    consultationId: record.consultation_id,
     rootUserId: record.root_user_id,
     userId: record.user_id,
     campaignId: record.campaign_id,
@@ -91,20 +91,15 @@ function findTask(data, body = {}) {
   return task;
 }
 
-function findEvent(data, task) {
-  const taskEventId = text(task.metadata && task.metadata.taskEventId);
-  return ensureList(data, "taskEvents").find((event) => event.task_event_id === taskEventId) || null;
-}
-
-function findLead(data, task, event) {
-  const rootUserId = text((task.metadata && task.metadata.rootUserId) || (event && event.root_user_id));
+function findLead(data, task) {
+  const rootUserId = text(task.metadata && task.metadata.rootUserId);
   return ensureList(data, "leadProfiles").find((lead) => {
     return lead.user_id === task.user_id || lead.user_id === rootUserId || lead.root_user_id === rootUserId;
   }) || null;
 }
 
-function externalContactIdFor(data, task, event, body = {}) {
-  const lead = findLead(data, task, event);
+function externalContactIdFor(data, task, body = {}) {
+  const lead = findLead(data, task);
   return text(
     body.externalContactId
     || body.external_contact_id
@@ -153,7 +148,7 @@ function manualResult(task, body = {}) {
   };
 }
 
-async function adapterResult(data, task, event, body = {}, context = {}) {
+async function adapterResult(data, task, body = {}, context = {}) {
   const mode = writebackMode(body);
   if (mode === "MANUAL" || shouldFail(body)) return manualResult(task, body);
   const env = context.env || process.env;
@@ -181,9 +176,8 @@ async function adapterResult(data, task, event, body = {}, context = {}) {
       fetchImpl: context.fetchImpl,
       data,
       task,
-      event,
       body,
-      externalContactId: externalContactIdFor(data, task, event, body),
+      externalContactId: externalContactIdFor(data, task, body),
     });
     return {
       ok: Boolean(result && result.ok),
@@ -215,15 +209,14 @@ async function recordConsultationWeworkWriteback(data, body = {}, context = {}) 
   if (existing) return { writeback: writebackSummary(existing), idempotent: true };
 
   const task = findTask(data, body);
-  const event = findEvent(data, task);
-  const rootUserId = text((task.metadata && task.metadata.rootUserId) || (event && event.root_user_id) || task.user_id);
-  const externalContactId = externalContactIdFor(data, task, event, body);
+  const rootUserId = text((task.metadata && task.metadata.rootUserId) || task.user_id);
+  const externalContactId = externalContactIdFor(data, task, body);
   const mode = writebackMode(body);
   if (mode === WRITEBACK_ADAPTER && !externalContactId) {
     throw businessError(400, "企微联系回写缺少 externalContactId", 400);
   }
   const beforeTask = clone(task);
-  const result = await adapterResult(data, task, event, {
+  const result = await adapterResult(data, task, {
     ...body,
     externalContactId,
   }, context);
@@ -231,11 +224,11 @@ async function recordConsultationWeworkWriteback(data, body = {}, context = {}) 
   const record = {
     writeback_id: createId("wwb"),
     task_id: task.task_id,
-    task_event_id: text((task.metadata && task.metadata.taskEventId) || (event && event.task_event_id)),
+    consultation_id: text(task.metadata && task.metadata.consultationId),
     root_user_id: rootUserId,
     user_id: task.user_id || "",
-    campaign_id: text((task.metadata && task.metadata.campaignId) || (event && event.campaign_id)),
-    consultation_type: text((task.metadata && task.metadata.consultationType) || (event && event.payload_json && (event.payload_json.consultationType || event.payload_json.consultation_type))),
+    campaign_id: text(task.metadata && task.metadata.campaignId),
+    consultation_type: text(task.metadata && task.metadata.consultationType),
     adapter_type: mode,
     status: result.ok ? "DELIVERED" : "FAILED",
     external_contact_id: externalContactId,

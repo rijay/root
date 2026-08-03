@@ -295,12 +295,6 @@ const PROJECTIONS = [
     ],
   },
   {
-    table: "task_progress_snapshot",
-    source: "taskProgressSnapshots",
-    id: "task_progress_snapshot_id",
-    columns: ["task_progress_snapshot_id", "root_user_id", "campaign_id", "snapshot_json", "computed_at", "created_at", "updated_at"],
-  },
-  {
     table: "questionnaire_answer",
     source: "questionnaireAnswers",
     id: "questionnaire_answer_id",

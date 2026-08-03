@@ -663,7 +663,7 @@ function evaluateOperationalAlerts(data, analytics = {}, query = {}) {
             deliveryStatus: target.deliveryStatus || "",
             deliveryIssueCount: target.deliveryIssueCount || 0,
             consultationTaskId: target.consultationTaskId || "",
-            consultationTaskEventId: target.consultationTaskEventId || "",
+            consultationId: target.consultationId || "",
             consultationType: target.consultationType || "",
             assignedAdvisorId: target.assignedAdvisorId || "",
             assignedAdvisorName: target.assignedAdvisorName || "",

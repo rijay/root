@@ -8,13 +8,63 @@ const { createCommandRequestDigestCodec } = require("../src/commandRequestDigest
 const domain = require("../src/domain");
 const { PROJECTIONS } = require("../src/mysqlProjection");
 const { createMemoryStore } = require("../src/store");
-const taskProgress = require("../src/taskProgress");
 const {
   inspectTaskEventIdempotencyDeploymentCompatibility,
 } = require("../src/taskEventIdempotencyDeploymentCompatibility");
 const {
+  createTaskEventIdempotencyClaim,
   TASK_EVENT_IDEMPOTENCY_OPERATION,
 } = require("../src/taskEventIdempotency");
+
+let eventSequence = 0;
+
+function recordTaskEvent(data, request = {}, context = {}) {
+  const payload = request.payload || {};
+  const taskType = String(request.taskType || "SHARE").trim().toUpperCase();
+  const taskDate = String(request.taskDate || "2026-07-18").trim();
+  const occurredAtClientSupplied = request.occurredAt !== undefined
+    && request.occurredAt !== null
+    && String(request.occurredAt).trim() !== "";
+  const occurredAt = occurredAtClientSupplied
+    ? String(request.occurredAt).trim()
+    : "2026-07-18T10:00:00+08:00";
+  const claim = createTaskEventIdempotencyClaim({
+    rootUserId: request.rootUserId,
+    idempotencyKey: request.idempotencyKey,
+    request: {
+      campaignId: "ROOT_7D_RESET",
+      taskDefinitionId: `td_test_${taskType.toLowerCase()}`,
+      taskType,
+      eventType: `${taskType}_COMPLETED`,
+      taskDate,
+      payload,
+      sourceChannel: request.sourceChannel || "TEST",
+      occurredAt: occurredAtClientSupplied ? occurredAt : null,
+    },
+  }, context);
+  const matches = data.taskEvents.filter(claim.scopeMatches);
+  if (matches.length > 1) throw new Error("duplicate task event idempotency scope");
+  if (matches[0]) return { event: claim.reconcile(matches[0]), created: false };
+  eventSequence += 1;
+  const event = claim.applyTo({
+    task_event_id: `tev_test_${eventSequence}`,
+    root_user_id: request.rootUserId,
+    campaign_id: "ROOT_7D_RESET",
+    task_definition_id: `td_test_${taskType.toLowerCase()}`,
+    task_type: taskType,
+    event_type: `${taskType}_COMPLETED`,
+    task_date: taskDate,
+    payload_json: payload,
+    idempotency_key: request.idempotencyKey,
+    status: "RECORDED",
+    source_channel: request.sourceChannel || "TEST",
+    occurred_at: occurredAt,
+    occurred_at_client_supplied: occurredAtClientSupplied,
+    created_at: "2026-07-18T10:00:00+08:00",
+  });
+  data.taskEvents.push(event);
+  return { event, created: true };
+}
 
 function input(rootUserId, overrides = {}) {
   const taskType = overrides.taskType || "SHARE";
@@ -52,7 +102,7 @@ test("task event idempotency key rejects Unicode, whitespace normalization and o
   for (const idempotencyKey of ["任务键", " spaced-key ", "x".repeat(129)]) {
     const data = domain.createStore();
     assert.throws(
-      () => taskProgress.recordTaskEvent(data, input("root-idempotency-invalid-key", {
+      () => recordTaskEvent(data, input("root-idempotency-invalid-key", {
         idempotencyKey,
       })),
       (error) => (
@@ -93,8 +143,8 @@ async function login(baseUrl, suffix) {
 
 test("task event idempotency scope never returns another root user's event", () => {
   const data = domain.createStore();
-  const first = taskProgress.recordTaskEvent(data, input("root-idempotency-a"));
-  const second = taskProgress.recordTaskEvent(data, input("root-idempotency-b"));
+  const first = recordTaskEvent(data, input("root-idempotency-a"));
+  const second = recordTaskEvent(data, input("root-idempotency-b"));
 
   assert.equal(first.created, true);
   assert.equal(second.created, true);
@@ -108,19 +158,19 @@ test("task event idempotency scope never returns another root user's event", () 
 
 test("same root, operation and key replays only an equal request digest", () => {
   const data = domain.createStore();
-  const first = taskProgress.recordTaskEvent(data, input("root-idempotency-replay"));
-  const replay = taskProgress.recordTaskEvent(data, input("root-idempotency-replay"));
+  const first = recordTaskEvent(data, input("root-idempotency-replay"));
+  const replay = recordTaskEvent(data, input("root-idempotency-replay"));
 
   assert.equal(replay.created, false);
   assert.equal(replay.event.task_event_id, first.event.task_event_id);
   assert.throws(
-    () => taskProgress.recordTaskEvent(data, input("root-idempotency-replay", {
+    () => recordTaskEvent(data, input("root-idempotency-replay", {
       payload: { taskDate: "2026-07-18", scene: "CHANGED_REQUEST" },
     })),
     (error) => error.code === 40901 && error.status === 409
   );
   assert.throws(
-    () => taskProgress.recordTaskEvent(data, input("root-idempotency-replay", {
+    () => recordTaskEvent(data, input("root-idempotency-replay", {
       taskType: "CONSULTATION",
     })),
     (error) => error.code === 40901 && error.status === 409
@@ -130,7 +180,7 @@ test("same root, operation and key replays only an equal request digest", () => 
 
 test("legacy task events require known occurred-at provenance before digest upgrade", () => {
   const data = domain.createStore();
-  const first = taskProgress.recordTaskEvent(data, input("root-idempotency-legacy"));
+  const first = recordTaskEvent(data, input("root-idempotency-legacy"));
   delete first.event.idempotency_operation;
   delete first.event.request_canonical_version;
   delete first.event.request_digest;
@@ -139,7 +189,7 @@ test("legacy task events require known occurred-at provenance before digest upgr
   delete first.event.occurred_at_client_supplied;
 
   assert.throws(
-    () => taskProgress.recordTaskEvent(data, input("root-idempotency-legacy")),
+    () => recordTaskEvent(data, input("root-idempotency-legacy")),
     (error) => (
       error.code === "TASK_EVENT_IDEMPOTENCY_PROVENANCE_UNKNOWN"
       && error.status === 503
@@ -148,7 +198,7 @@ test("legacy task events require known occurred-at provenance before digest upgr
   assert.equal(first.event.request_digest, undefined);
 
   first.event.occurred_at_client_supplied = false;
-  const replay = taskProgress.recordTaskEvent(data, input("root-idempotency-legacy"));
+  const replay = recordTaskEvent(data, input("root-idempotency-legacy"));
   assert.equal(replay.created, false);
   assert.equal(replay.event.idempotency_operation, TASK_EVENT_IDEMPOTENCY_OPERATION);
   assert.match(replay.event.request_digest, /^[a-f0-9]{64}$/);
@@ -158,7 +208,7 @@ test("legacy task events require known occurred-at provenance before digest upgr
   delete replay.event.request_digest_scheme;
   delete replay.event.request_digest_key_id;
   assert.throws(
-    () => taskProgress.recordTaskEvent(data, input("root-idempotency-legacy", {
+    () => recordTaskEvent(data, input("root-idempotency-legacy", {
       payload: { taskDate: "2026-07-18", scene: "LEGACY_DRIFT" },
     })),
     (error) => error.code === 40901 && error.status === 409
@@ -167,7 +217,7 @@ test("legacy task events require known occurred-at provenance before digest upgr
 
 test("legacy client-supplied occurredAt never equals an omitted occurredAt replay", () => {
   const data = domain.createStore();
-  const first = taskProgress.recordTaskEvent(data, input("root-idempotency-legacy-time", {
+  const first = recordTaskEvent(data, input("root-idempotency-legacy-time", {
     idempotencyKey: "legacy-time-key",
     occurredAt: "2026-07-18T09:30:00+08:00",
   }));
@@ -180,7 +230,7 @@ test("legacy client-supplied occurredAt never equals an omitted occurredAt repla
   first.event.occurred_at_client_supplied = null;
 
   assert.throws(
-    () => taskProgress.recordTaskEvent(data, input("root-idempotency-legacy-time", {
+    () => recordTaskEvent(data, input("root-idempotency-legacy-time", {
       idempotencyKey: "legacy-time-key",
     })),
     (error) => error.code === "TASK_EVENT_IDEMPOTENCY_PROVENANCE_UNKNOWN" && error.status === 503
@@ -191,12 +241,12 @@ test("legacy client-supplied occurredAt never equals an omitted occurredAt repla
 test("previous task-event request digest verifies and rotates to the current key", () => {
   const data = domain.createStore();
   const request = input("root-idempotency-rotation", { idempotencyKey: "rotation-key" });
-  const first = taskProgress.recordTaskEvent(data, request, {
+  const first = recordTaskEvent(data, request, {
     taskEventRequestDigestCodec: createCommandRequestDigestCodec(PREVIOUS_DIGEST_ENV),
   });
   assert.equal(first.event.request_digest_key_id, "task-event-request-previous-v1");
 
-  const replay = taskProgress.recordTaskEvent(data, request, {
+  const replay = recordTaskEvent(data, request, {
     taskEventRequestDigestCodec: createCommandRequestDigestCodec(CURRENT_DIGEST_ENV),
   });
   assert.equal(replay.created, false);
@@ -206,8 +256,8 @@ test("previous task-event request digest verifies and rotates to the current key
 
 test("snapshot validation permits cross-user key reuse and rejects scoped duplicates or partial digests", () => {
   const data = domain.createStore();
-  const first = taskProgress.recordTaskEvent(data, input("root-snapshot-a"));
-  taskProgress.recordTaskEvent(data, input("root-snapshot-b"));
+  const first = recordTaskEvent(data, input("root-snapshot-a"));
+  recordTaskEvent(data, input("root-snapshot-b"));
   const adapter = createMemoryStore(data, { seedSampleData: false });
   assert.equal(adapter.validateSnapshot().valid, true);
 

@@ -2604,7 +2604,7 @@ test("questionnaire answer HTTP Interface stores independently from retired task
   assert.equal(server.store.operationTasks.some((task) => task.task_type === "QUESTIONNAIRE_FOLLOW"), true);
 });
 
-test("consultation follow-up HTTP Interface links support events to admin tasks", async (t) => {
+test("consultation follow-up HTTP Interface records support consultations as admin tasks", async (t) => {
   const server = createApp({
     env: {
       ROOT_ALLOW_OPENID_LOGIN: "true",
@@ -2618,8 +2618,7 @@ test("consultation follow-up HTTP Interface links support events to admin tasks"
     body: JSON.stringify({ openid: "http_consultation_followup_openid", appCode: "MYROOT" }),
   });
   const auth = { Authorization: `Bearer ${login.data.token}` };
-  const recorded = domain.recordUserTaskEvent(server.store, login.data.token, {
-    taskType: "CONSULTATION",
+  const recorded = domain.recordUserConsultation(server.store, login.data.token, {
     taskDate: "2026-06-19",
     sourceChannel: "MINIPROGRAM_SUPPORT",
     payload: { taskDate: "2026-06-19", consultationType: "BODY_FEEDBACK", scene: "SUPPORT_PAGE" },
@@ -2629,13 +2628,13 @@ test("consultation follow-up HTTP Interface links support events to admin tasks"
   const lifecycle = await request(baseUrl, "/api/v1/admin/lifecycle-users");
 
   assert.equal(recorded.code, 0);
-  assert.equal(recorded.data.followUp.created, true);
-  assert.equal(recorded.data.followUp.task.task_type, "CONSULTATION_FOLLOW");
+  assert.equal(recorded.data.created, true);
+  assert.equal(recorded.data.task.task_type, "CONSULTATION_FOLLOW");
   assert.equal(pending.data.summary.pendingCount, 1);
   assert.equal(pending.data.consultations[0].consultationTypeLabel, "身体反馈");
   assert.equal(lifecycle.data.metrics.pendingConsultations, 1);
 
-  const taskId = recorded.data.followUp.task.task_id;
+  const taskId = recorded.data.task.task_id;
   const assignment = await request(baseUrl, "/api/v1/admin/consultation-advisor-assignments", {
     method: "POST",
     headers: { "X-Request-Id": "http-consultation-advisor-assignment-1" },

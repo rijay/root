@@ -115,12 +115,6 @@ function taskFor(data, taskId) {
   return task;
 }
 
-function eventForTask(data, task) {
-  const metadata = task.metadata || {};
-  const taskEventId = metadata.taskEventId || "";
-  return ensureList(data, "taskEvents").find((item) => item.task_event_id === taskEventId) || null;
-}
-
 function activeAssignmentForTask(data, taskId) {
   return ensureList(data, "consultationAdvisorAssignments")
     .filter((item) => item.task_id === taskId && item.status === "ACTIVE")
@@ -131,7 +125,7 @@ function assignmentSummary(record = {}) {
   return {
     assignmentId: record.assignment_id || "",
     taskId: record.task_id || "",
-    taskEventId: record.task_event_id || "",
+    consultationId: record.consultation_id || "",
     rootUserId: record.root_user_id || "",
     userId: record.user_id || "",
     campaignId: record.campaign_id || "",
@@ -187,7 +181,6 @@ function recordConsultationAdvisorAssignment(data, body = {}, context = {}) {
   const taskId = text(body.taskId || body.task_id);
   if (!taskId) throw businessError(400, "顾问分配 task_id 必填", 400);
   const task = taskFor(data, taskId);
-  const event = eventForTask(data, task);
   const metadata = task.metadata || {};
   const mode = assignmentMode(body);
   const advisor = mode === ASSIGNMENT_MODE_AUTO ? chooseAutoAdvisor(data, body, context) : manualAdvisor(body);
@@ -203,10 +196,10 @@ function recordConsultationAdvisorAssignment(data, body = {}, context = {}) {
   const record = {
     assignment_id: createId("caa"),
     task_id: task.task_id,
-    task_event_id: event ? event.task_event_id : metadata.taskEventId || "",
-    root_user_id: metadata.rootUserId || (event ? event.root_user_id : ""),
+    consultation_id: metadata.consultationId || "",
+    root_user_id: metadata.rootUserId || "",
     user_id: task.user_id || "",
-    campaign_id: metadata.campaignId || (event ? event.campaign_id : ""),
+    campaign_id: metadata.campaignId || "",
     consultation_type: metadata.consultationType || "",
     assignment_mode: mode,
     advisor_id: advisor.advisorId,

@@ -88,26 +88,19 @@ function userForTask(data, task) {
   return ensureList(data, "users").find((user) => user.user_id === task.user_id) || null;
 }
 
-function eventForTask(data, task) {
-  const metadata = taskMetadata(task);
-  const taskEventId = text(metadata.taskEventId);
-  return ensureList(data, "taskEvents").find((event) => event.task_event_id === taskEventId) || null;
-}
-
 function publicItem(data, task, query = {}, context = {}) {
   const metadata = taskMetadata(task);
-  const event = eventForTask(data, task);
   const user = userForTask(data, task);
   const sla = taskSlaView(task, query, context);
   const advisorId = text(metadata.assignedAdvisorId);
   const advisorName = text(metadata.assignedAdvisorName, advisorId);
   return {
     taskId: task.task_id,
-    taskEventId: text(metadata.taskEventId || (event && event.task_event_id)),
-    rootUserId: text(metadata.rootUserId || (event && event.root_user_id) || (user && (user.root_user_id || user.user_id))),
+    consultationId: text(metadata.consultationId),
+    rootUserId: text(metadata.rootUserId || (user && (user.root_user_id || user.user_id))),
     userId: task.user_id || "",
     userLabel: user ? user.nickname || user.phone || user.user_id : task.user_id || "",
-    campaignId: text(metadata.campaignId || (event && event.campaign_id)),
+    campaignId: text(metadata.campaignId),
     consultationType: text(metadata.consultationType),
     scene: text(metadata.scene),
     sourceChannel: text(metadata.sourceChannel || task.source_channel),
@@ -197,7 +190,7 @@ function consultationSlaAlertTargets(data, query = {}, context = {}) {
         : `咨询待办 ${item.taskId} 已超过 SLA（未分配顾问）`,
       count: 1,
       consultationTaskId: item.taskId,
-      consultationTaskEventId: item.taskEventId,
+      consultationId: item.consultationId,
       rootUserId: item.rootUserId,
       userId: item.userId,
       userLabel: item.userLabel,
