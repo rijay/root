@@ -58,7 +58,7 @@
           binderror="handleImageError"
         />
         <text wx:if="{{!item.heroReady}}" class="activity-card__visual-mark">ROOT OFFLINE</text>
-        <text class="activity-card__status activity-card__status--{{item.statusTone}}">{{item.enrollmentLabel || item.statusLabel}}</text>
+        <text wx:if="{{item.featured}}" class="activity-card__status activity-card__status--hero activity-card__status--{{item.statusTone}}">{{item.enrollmentLabel || item.statusLabel}}</text>
       </view>
       <view class="activity-card__body">
         <text class="activity-card__title">{{item.title}}</text>
@@ -69,6 +69,7 @@
           </view>
           <text class="activity-card__arrow">→</text>
         </view>
+        <text wx:if="{{!item.featured}}" class="activity-card__compact-status activity-card__compact-status--{{item.statusTone}}">{{item.enrollmentLabel || item.statusLabel}}</text>
       </view>
     </view>
   </view>
