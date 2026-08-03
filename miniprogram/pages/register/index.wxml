@@ -6,9 +6,11 @@
       <text class="register-page__subtitle">{{subtitle}}</text>
 
       <view class="register-page__avatar-row">
-        <button class="register-page__avatar" open-type="chooseAvatar" loading="{{avatarUploading}}" disabled="{{avatarUploading}}" bindchooseavatar="chooseAvatar" aria-label="选择我的头像">
+        <button class="register-page__avatar" style="width: 72px;" open-type="chooseAvatar" loading="{{avatarUploading}}" disabled="{{avatarUploading}}" bindchooseavatar="chooseAvatar" aria-label="选择我的头像">
           <image wx:if="{{avatarUrl}}" class="register-page__avatar-image" src="{{avatarUrl}}" mode="aspectFill" />
-          <view wx:else class="register-page__avatar-default"><root-wordmark tone="dark" /></view>
+          <view wx:else class="register-page__avatar-default">
+            <image class="register-page__avatar-wordmark" src="/static/brand/root-logo-horizontal.png" mode="heightFix" />
+          </view>
         </button>
         <text class="register-page__avatar-copy">我的头像（选填）\n使用微信头像、上传或拍照</text>
       </view>
@@ -39,14 +41,14 @@
       <view class="register-field register-field--gender">
         <text class="register-field__label">性别 *</text>
         <view class="register-gender">
-          <button class="register-gender__option {{gender === 'MALE' ? 'is-active' : ''}}" data-gender="MALE" bindtap="selectGender">男</button>
-          <button class="register-gender__option {{gender === 'FEMALE' ? 'is-active' : ''}}" data-gender="FEMALE" bindtap="selectGender">女</button>
+          <button class="register-gender__option {{gender === 'MALE' ? 'is-active' : ''}}" style="width: 142px;" data-gender="MALE" bindtap="selectGender">男</button>
+          <button class="register-gender__option {{gender === 'FEMALE' ? 'is-active' : ''}}" style="width: 142px;" data-gender="FEMALE" bindtap="selectGender">女</button>
         </view>
       </view>
 
       <text class="register-page__hint">手机号、生日、性别为必填项\n头像和昵称未授权时将使用默认值</text>
-      <button class="register-page__submit" loading="{{loading}}" disabled="{{loading || avatarUploading}}" bindtap="submitProfile">登录</button>
+      <button class="register-page__submit" style="width: 350px;" loading="{{loading}}" disabled="{{loading || avatarUploading}}" bindtap="submitProfile">登录</button>
     </view>
   </scroll-view>
-  <privacy-consent />
+  <privacy-consent id="root-privacy-consent" />
 </view>

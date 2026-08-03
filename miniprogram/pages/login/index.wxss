@@ -29,6 +29,7 @@ page {
   margin-left: 4px;
   color: var(--root-moss);
   font-size: 11px;
+  line-height: 18px;
   font-weight: 600;
   letter-spacing: 1px;
 }
@@ -36,7 +37,7 @@ page {
 .login-page__title {
   display: flex;
   flex-direction: column;
-  margin: 14px 4px 0;
+  margin: 18px 4px 0;
   font-size: 30px;
   line-height: 40px;
   font-weight: 600;
@@ -44,10 +45,13 @@ page {
 }
 
 .login-page__button {
-  width: 100%;
+  width: 350px;
+  max-width: calc(100vw - 40px);
   height: 56px;
   min-height: 56px;
-  margin: 176px 0 0;
+  margin: 184px 0 0;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
   padding: 0;
   color: #fff;
   background: var(--root-moss);
@@ -78,7 +82,7 @@ page {
 }
 
 .login-page__privacy {
-  margin: 16px 10px 0;
+  margin: 20px 10px 0;
   color: var(--root-muted);
   font-size: 11px;
   line-height: 18px;

@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 
@@ -102,8 +103,27 @@ assert.match(tabWxss, /height:\s*84px/);
 const navigationWxml = read("components/page-navigation/index.wxml");
 const navigationScript = read("components/page-navigation/index.js");
 assert.match(navigationWxml, /style="top: \{\{top\}\}px;"/);
-assert.match(navigationScript, /getMenuButtonBoundingClientRect/);
-assert.match(navigationScript, /capsule\.bottom \+ 22/);
+assert.match(navigationScript, /statusBarHeight/);
+assert.match(navigationScript, /statusBarHeight \+ 19/);
+assert.match(navigationScript, /Math\.min\(76, Math\.max\(52/);
+assert.doesNotMatch(navigationScript, /capsule\.bottom \+ 22/);
+
+function navigationTopFor(wxMock) {
+  let definition = null;
+  vm.runInNewContext(navigationScript, {
+    Component(value) { definition = value; },
+    getCurrentPages() { return []; },
+    wx: wxMock,
+  });
+  let top = null;
+  definition.lifetimes.attached.call({ setData(value) { top = value.top; } });
+  return top;
+}
+
+assert.equal(navigationTopFor({ getWindowInfo: () => ({ statusBarHeight: 47 }) }), 66);
+assert.equal(navigationTopFor({ getWindowInfo: () => ({ statusBarHeight: 20 }) }), 52);
+assert.equal(navigationTopFor({ getWindowInfo: () => ({ statusBarHeight: 100 }) }), 76);
+assert.equal(navigationTopFor({ getWindowInfo: () => { throw new Error("unavailable"); } }), 66);
 
 const detailWxml = read("subpkg/content/pages/detail/index.wxml");
 const detailWxss = read("subpkg/content/pages/detail/index.wxss");

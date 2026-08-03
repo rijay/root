@@ -43,7 +43,7 @@ page {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin: 24px 4px;
+  margin: 26px 4px 0;
 }
 
 .register-page__avatar {
@@ -52,6 +52,8 @@ page {
   height: 72px;
   min-height: 72px;
   margin: 0;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
   padding: 0;
   overflow: hidden;
   background: var(--root-primary-tint);
@@ -69,13 +71,17 @@ page {
 }
 
 .register-page__avatar-default {
-  display: flex;
-  align-items: center;
   width: 48px;
-  height: 72px;
+  height: 13px;
+  margin: 29px auto 0;
   overflow: hidden;
-  transform: scale(0.58);
-  transform-origin: left center;
+}
+
+.register-page__avatar-wordmark {
+  display: block;
+  width: 65px;
+  height: 13px;
+  margin-left: -16px;
 }
 
 .register-page__avatar-copy {
@@ -92,6 +98,10 @@ page {
   box-sizing: border-box;
   background: var(--root-surface);
   border-radius: 12px;
+}
+
+.register-page__avatar-row + .register-field {
+  margin-top: 24px;
 }
 
 .register-field__label {
@@ -145,15 +155,18 @@ page {
 
 .register-gender {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 142px 142px;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
 .register-gender__option {
+  width: 142px;
   height: 30px;
   min-height: 30px;
   margin: 0;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
   padding: 0;
   color: var(--root-copy);
   background: var(--root-primary-tint);
@@ -174,7 +187,7 @@ page {
 }
 
 .register-page__hint {
-  margin: 20px 4px 0;
+  margin: 22px 4px 0;
   color: var(--root-muted);
   font-size: 11px;
   line-height: 17px;
@@ -182,10 +195,13 @@ page {
 }
 
 .register-page__submit {
-  width: 100%;
+  width: 350px;
+  max-width: calc(100vw - 40px);
   height: 56px;
   min-height: 56px;
-  margin: 34px 0 0;
+  margin: 40px 0 0;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
   padding: 0;
   color: #fff;
   background: var(--root-moss);
@@ -202,4 +218,14 @@ page {
 
 .register-page__submit[disabled] {
   opacity: 0.72;
+}
+
+@media (max-width: 359px) {
+  .register-gender {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .register-gender__option {
+    width: 100% !important;
+  }
 }

@@ -4,8 +4,13 @@ function goHome() {
 
 function resolveNavigationTop() {
   try {
-    const capsule = wx.getMenuButtonBoundingClientRect && wx.getMenuButtonBoundingClientRect();
-    if (capsule && Number.isFinite(capsule.bottom)) return Math.max(66, Math.round(capsule.bottom + 22));
+    const windowInfo = typeof wx.getWindowInfo === "function"
+      ? wx.getWindowInfo()
+      : (typeof wx.getSystemInfoSync === "function" ? wx.getSystemInfoSync() : {});
+    const statusBarHeight = Number(windowInfo && windowInfo.statusBarHeight);
+    if (Number.isFinite(statusBarHeight) && statusBarHeight > 0) {
+      return Math.round(Math.min(76, Math.max(52, statusBarHeight + 19)));
+    }
   } catch (error) {
     // 模拟器或低版本环境回退到 Ardot 390 × 844 画板位置。
   }

@@ -16,6 +16,7 @@
 
     <button
       class="login-page__button"
+      style="width: 350px;"
       open-type="getPhoneNumber"
       loading="{{loading}}"
       disabled="{{loading}}"
@@ -31,5 +32,5 @@
       <text>\n手机号授权将在隐私保护提示后发起</text>
     </view>
   </view>
-  <privacy-consent />
+  <privacy-consent id="root-privacy-consent" />
 </view>

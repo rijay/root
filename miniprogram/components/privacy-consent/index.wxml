@@ -1,18 +1,19 @@
 <view wx:if="{{visible}}" class="privacy-overlay" catchtouchmove="preventTouchMove">
   <view class="privacy-dialog" role="dialog" aria-label="隐私保护提示">
     <view class="privacy-handle"></view>
-    <view class="privacy-platform-tag">微信平台隐私保护提示</view>
+    <view class="privacy-platform-tag">微信平台隐私保护提示 · 流程示意</view>
     <view class="privacy-title">继续前，请先了解我们如何使用信息</view>
-    <view class="privacy-copy">为完成{{purpose}}，myRoot 将在你同意后申请使用必要信息。头像与昵称可稍后选择，拒绝不会影响公开内容浏览。</view>
-    <view class="privacy-link" bindtap="openPrivacyContract">阅读《{{contractName}}》</view>
+    <view class="privacy-copy">{{privacyCopy}}</view>
+    <view wx:if="{{showContractLink}}" class="privacy-link" bindtap="openPrivacyContract">阅读《{{contractName}}》</view>
     <view class="privacy-actions">
       <button
         id="root-privacy-agree"
         class="privacy-button privacy-button--primary"
+        style="width: 350px;"
         open-type="agreePrivacyAuthorization"
         bindagreeprivacyauthorization="handleAgreePrivacyAuthorization"
       >同意并继续</button>
-      <button class="privacy-button privacy-button--secondary" bindtap="rejectPrivacyAuthorization">暂不</button>
+      <button class="privacy-button privacy-button--secondary" style="width: 350px;" bindtap="rejectPrivacyAuthorization">暂不</button>
     </view>
   </view>
 </view>

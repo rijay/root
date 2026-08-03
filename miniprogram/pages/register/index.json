@@ -2,7 +2,6 @@
   "navigationStyle": "custom",
   "usingComponents": {
     "page-navigation": "/components/page-navigation/index",
-    "privacy-consent": "/components/privacy-consent/index",
-    "root-wordmark": "/components/root-wordmark/index"
+    "privacy-consent": "/components/privacy-consent/index"
   }
 }
