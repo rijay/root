@@ -33,6 +33,13 @@ const RETIRED_ADMIN_ROUTES = Object.freeze([
   "/api/v1/admin/settlement/batch-execute",
   "/api/v1/admin/reward-delivery/execute",
   "/api/v1/admin/reward-delivery/status-query",
+  "/api/v1/admin/config-workbench",
+  "/api/v1/admin/campaigns/upsert",
+  "/api/v1/admin/task-definitions/upsert",
+  "/api/v1/admin/campaign-rules/publish",
+  "/api/v1/admin/manual-reviews/batch-resolve",
+  "/api/v1/admin/manual-reviews/",
+  "/api/v1/admin/settlement-source-invalidations/",
 ]);
 
 const RETIRED_USER_ROUTES = Object.freeze([

@@ -72,7 +72,6 @@ const {
   getActivityDetail,
   getActivityEnrollments,
   getActionAdapterCalibration,
-  getAdminConfigWorkbench,
   getAdminLifecycleExportDeliveryHealth,
   getAdminLifecycleWorkbench,
   getAdminOperationalAnalytics,
@@ -147,7 +146,6 @@ const {
   previewImport,
   planWeWorkTouches,
   publishActivity,
-  publishCampaignRuleVersion,
   recordConsultationAdvisorAssignment,
   recordCheckinReminderSubscription,
   recordConsultationWeworkWriteback,
@@ -162,8 +160,6 @@ const {
   requestActivityChanges,
   rollbackExternalAdapterRun,
   resolveManualReview,
-  resolveAdminManualReview,
-  resolveAdminManualReviewBatch,
   reviewActivityEnrollment,
   runDueExternalAdapterRetries,
   runExternalAdapter,
@@ -192,9 +188,7 @@ const {
   unpublishActivity,
   updateActivitySessionState,
   upsertActivityDraft,
-  upsertCampaign,
   upsertProduct,
-  upsertTaskDefinition,
   uploadImage,
 } = require("./domain");
 
@@ -1420,7 +1414,6 @@ function createApp(options = {}) {
           trustedWechatIdentity,
         }));
       }
-      if (route === "GET /api/v1/admin/config-workbench") return ok(res, getAdminConfigWorkbench(data, runtimeContext));
       if (route === "GET /api/v1/admin/lifecycle-filter-presets") {
         return ok(res, listAdminLifecycleFilterPresets(data, {
           ...Object.fromEntries(url.searchParams),
@@ -1665,10 +1658,6 @@ function createApp(options = {}) {
           requestId,
         }, { ...runtimeContext, requestId })));
       }
-      if (route === "POST /api/v1/admin/campaigns/upsert") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, withIdempotency(data, req, () => upsertCampaign(data, body)));
-      }
       if (route === "POST /api/v1/admin/activities/draft") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_CONTENT_WRITE);
         const command = prepareActivityAdminCommandBody(req, adminPrincipal, body, "活动草稿", "ACTIVITY_DRAFT_UPSERT");
@@ -1795,18 +1784,6 @@ function createApp(options = {}) {
           () => expireActivityEnrollmentReviews(data, command, runtimeContext),
           command.idempotencyKey
         ));
-      }
-      if (route === "POST /api/v1/admin/task-definitions/upsert") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, withIdempotency(data, req, () => upsertTaskDefinition(data, body)));
-      }
-      if (route === "POST /api/v1/admin/campaign-rules/publish") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, withIdempotency(data, req, () => publishCampaignRuleVersion(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId: req.headers["x-request-id"] || body.requestId || body.request_id || "",
-        })));
       }
       if (route === "POST /api/v1/admin/products/upsert") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
@@ -2017,77 +1994,6 @@ function createApp(options = {}) {
         const taskId = url.pathname.split("/").at(-2);
         const commandBody = prepareAdminCommandBody(req, adminPrincipal, body, "人工待办处理", ADMIN_COMMANDS.TASK_RESOLVE);
         return ok(res, withIdempotency(data, req, () => resolveManualReview(data, taskId, commandBody), commandBody.requestId));
-      }
-      if (method === "POST"
-        && url.pathname.startsWith("/api/v1/admin/settlement-source-invalidations/")
-        && url.pathname.endsWith("/resolve")) {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.REVIEW_RESOLVE);
-        const implementation = requestContext.settlementSourceInvalidationResolve;
-        if (!implementation || typeof implementation.resolve !== "function") {
-          throw createClientError(
-            "SETTLEMENT_SOURCE_RESOLUTION_CONFIGURATION_INVALID",
-            "结算来源失效专用处理 Interface 不可用",
-            503
-          );
-        }
-        const candidateId = url.pathname.split("/").at(-2);
-        const rawRequestId = req.headers["x-request-id"]
-          ?? body.requestId
-          ?? body.request_id
-          ?? "";
-        const requestId = typeof rawRequestId === "string"
-          ? rawRequestId.trim()
-          : rawRequestId;
-        const rawResolutionNote = body.resolutionNote
-          ?? body.resolution_note
-          ?? body.note
-          ?? body.reason
-          ?? "";
-        const resolutionNote = typeof rawResolutionNote === "string"
-          ? rawResolutionNote.trim()
-          : rawResolutionNote;
-        const rawPublicNote = body.publicNote ?? body.public_note ?? null;
-        const publicNote = rawPublicNote === null || rawPublicNote === ""
-          ? null
-          : typeof rawPublicNote === "string" ? rawPublicNote.trim() : rawPublicNote;
-        const rawRootUserId = body.rootUserId ?? body.root_user_id ?? "";
-        const rawCampaignId = body.campaignId ?? body.campaign_id ?? "";
-        const rawResolution = body.resolution ?? "";
-        const result = await implementation.resolve({
-          candidateId,
-          rootUserId: typeof rawRootUserId === "string"
-            ? rawRootUserId.trim()
-            : rawRootUserId,
-          campaignId: typeof rawCampaignId === "string"
-            ? rawCampaignId.trim()
-            : rawCampaignId,
-          requestId,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          resolution: typeof rawResolution === "string"
-            ? rawResolution.trim().toUpperCase()
-            : rawResolution,
-          resolutionNote,
-          publicNote,
-        });
-        return ok(res, { code: 0, message: "ok", data: result });
-      }
-      if (route === "POST /api/v1/admin/manual-reviews/batch-resolve") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.REVIEW_RESOLVE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => resolveAdminManualReviewBatch(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        })));
-      }
-      if (method === "POST" && url.pathname.startsWith("/api/v1/admin/manual-reviews/") && url.pathname.endsWith("/resolve")) {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.REVIEW_RESOLVE);
-        const reviewItemId = url.pathname.split("/").at(-2);
-        return ok(res, resolveAdminManualReview(data, reviewItemId, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId: req.headers["x-request-id"] || body.requestId || body.request_id || "",
-        }));
       }
       if (method === "POST" && url.pathname.startsWith("/api/v1/admin/refunds/") && url.pathname.endsWith("/approve")) {
         requireAdminCommandCapability(adminPrincipal, ADMIN_COMMANDS.REFUND_APPROVE);

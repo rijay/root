@@ -228,6 +228,13 @@ test("retired task, settlement and reward HTTP Interfaces return 404", async (t)
     ["POST", "/api/v1/admin/settlement/batch-execute"],
     ["POST", "/api/v1/admin/reward-delivery/execute"],
     ["POST", "/api/v1/admin/reward-delivery/status-query"],
+    ["GET", "/api/v1/admin/config-workbench"],
+    ["POST", "/api/v1/admin/campaigns/upsert"],
+    ["POST", "/api/v1/admin/task-definitions/upsert"],
+    ["POST", "/api/v1/admin/campaign-rules/publish"],
+    ["POST", "/api/v1/admin/manual-reviews/batch-resolve"],
+    ["POST", "/api/v1/admin/manual-reviews/review-retired/resolve"],
+    ["POST", "/api/v1/admin/settlement-source-invalidations/candidate-retired/resolve"],
   ];
   for (const [method, route] of routes) {
     const response = await request(baseUrl, route, {
