@@ -131,53 +131,6 @@ test("release smoke: formal mini-program exposes only the approved four-Tab scop
   assert.match(supportPage, /open-type="contact"/);
 });
 
-test("release smoke: no-order settlement creates reward and review records", async () => {
-  const store = domain.createStore();
-  const login = await domain.loginWithWechat(store, {
-    openid: "release_settlement_openid",
-    appCode: "MYROOT",
-  }, { ROOT_ALLOW_OPENID_LOGIN: "true" });
-
-  domain.joinCampaign(store, login.data.token, { sourceChannel: "ROADSHOW_QR" });
-  for (let day = 0; day < 7; day += 1) {
-    const taskDate = addDays("2026-06-19", day);
-    domain.recordUserTaskEvent(store, login.data.token, {
-      taskType: "CHECKIN",
-      taskDate,
-      payload: { taskDate },
-      idempotencyKey: `release-settlement-checkin-${day + 1}`,
-    });
-  }
-  domain.recordUserTaskEvent(store, login.data.token, {
-    taskType: "QUESTIONNAIRE",
-    taskDate: "2026-06-26",
-    payload: { questionnaireType: "DAY8_SUMMARY" },
-    idempotencyKey: "release-settlement-day8",
-  });
-
-  const settled = domain.evaluateUserSettlement(store, login.data.token, { sourceChannel: "MINIPROGRAM_REWARD" }).data;
-  const pendingStatus = domain.getSettlementStatus(store, login.data.token).data;
-  const reviewId = pendingStatus.manualReviews[0].reviewItemId;
-  domain.resolveAdminManualReview(store, reviewId, {
-    decision: "APPROVED",
-    publicNote: "运营已确认复核通过。",
-    operatorId: "release-ops",
-  });
-  const resolvedStatus = domain.getSettlementStatus(store, login.data.token).data;
-
-  assert.equal(settled.settlementRecord.status, "QUALIFIED");
-  assert.equal(store.rewardGrants.length, 2);
-  assert.equal(store.rewardDeliveryJobs.length, 1);
-  assert.equal(store.manualReviewItems.length, 1);
-  assert.equal(pendingStatus.manualReviews[0].slaHours, 24);
-  assert.match(pendingStatus.manualReviews[0].expectedResolutionAt, /\+08:00$/);
-  assert.equal(pendingStatus.manualReviews[0].explanationTitle, "免单机会复核");
-  assert.equal(pendingStatus.manualReviews[0].evidenceRequired.includes("7 天打卡与 Day8 问卷记录"), true);
-  assert.equal(pendingStatus.manualReviews[0].operatorGuidance, "");
-  assert.equal(resolvedStatus.manualReviews[0].publicNote, "运营已确认复核通过。");
-  assert.equal(resolvedStatus.manualReviews[0].statusCopy, "运营已确认复核通过。");
-});
-
 test("release smoke: support consultation records optional task progress", async () => {
   const store = domain.createStore();
   const login = await domain.loginWithWechat(store, {

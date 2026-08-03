@@ -1153,11 +1153,6 @@ function cancelActivitySession(data, body = {}, context = {}) {
   return response({ session, audit });
 }
 
-function getTaskProgress(data, token, query = {}, context = {}) {
-  const user = requireUser(data, token);
-  return response(taskProgress.getProgressView(data, user.root_user_id || user.user_id, query.campaignId || query.campaign_id || "", context));
-}
-
 function recordUserTaskEvent(data, token, body = {}, context = {}) {
   const user = requireUser(data, token);
   const rootUserId = user.root_user_id || user.user_id;
@@ -1296,32 +1291,9 @@ function upsertTaskDefinition(data, body = {}) {
   return response({ taskDefinition: taskProgress.upsertTaskDefinition(data, body) });
 }
 
-function getSettlementStatus(data, token, query = {}, context = {}) {
-  const user = requireUser(data, token);
-  return response(settlement.getSettlementStatus(data, user.root_user_id || user.user_id, query.campaignId || query.campaign_id || "", context));
-}
-
 function listRewardRecoveryRecords(data, query = {}) {
   return response({
     records: rewardRecovery.listRewardRecoveryRecords(data, query).map(rewardRecovery.toRewardRecoveryPayload),
-  });
-}
-
-function evaluateUserSettlement(data, token, body = {}, context = {}) {
-  const user = requireUser(data, token);
-  const result = settlement.evaluateSettlement(data, user.root_user_id || user.user_id, body.campaignId || body.campaign_id || "", context);
-  recordLifecycleEvent(data, user.root_user_id || user.user_id, "SETTLEMENT_EVALUATED", {
-    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_REWARD",
-    appCode: user.app_code || "MYROOT",
-    metadata: {
-      campaignId: result.campaign.campaignId,
-      settlementRecordId: result.settlementRecord.settlement_record_id,
-      status: result.settlementRecord.status,
-    },
-  });
-  return response({
-    ...result,
-    settlementRecord: settlement.toSettlementRecordPayload(result.settlementRecord),
   });
 }
 
@@ -3272,7 +3244,6 @@ module.exports = {
   getQuestionnaireAnswerStatus,
   getQuestionnaireStatus,
   getReadyToStartUsers,
-  getSettlementStatus,
   getExternalSampleTemplate,
   getImportBatch,
   getExternalAdapters,
@@ -3287,7 +3258,6 @@ module.exports = {
   listProductionCutoverProofs,
   listRootMemberCenterJumpProofs,
   listRewardRecoveryRecords,
-  getTaskProgress,
   getRecordDetail,
   getRecordList,
   getRefundStatus,
@@ -3360,7 +3330,6 @@ module.exports = {
   recordUserTaskEvent,
   requestActivityChanges,
   reviewActivityEnrollment,
-  evaluateUserSettlement,
   rollbackExternalAdapterRun,
   runDueExternalAdapterRetries,
   runDueCheckinReminders,
