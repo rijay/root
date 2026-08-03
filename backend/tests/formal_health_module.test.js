@@ -93,6 +93,75 @@ test("Root4U fails closed for minors, missing answers and safety signals", () =>
   assert.match(safetyResult.categoryTitle, /不继续生成/);
 });
 
+test("every published safety signal reaches fixed guidance through the formal Module", () => {
+  const signals = [
+    "pregnancy", "medical_diet", "major_treatment", "recent_acute",
+    "blood_stool", "acute_digestive", "weight_loss", "self_harm",
+  ];
+  for (const signal of signals) {
+    const result = formalHealthModule.resultFor(answers({ safety: [signal] }));
+    assert.equal(result.adviceSource, "FIXED_SAFETY_CONTENT", signal);
+    assert.equal(result.recommendations.length, 0, signal);
+  }
+});
+
+test("Root4U persists versioned scoring only after safety passes", () => {
+  const standard = fixture();
+  formalHealthModule.submit(
+    standard.data,
+    standard.user,
+    standard.profile,
+    { answers: answers() },
+    { today: "2026-08-03", now: "2026-08-03T08:00:00.000Z" },
+  );
+  const standardTrace = standard.data.questionnaireAnswers[0].answers_json.evaluation;
+  assert.equal(standardTrace.safety.status, "STANDARD_GUIDANCE");
+  assert.equal(standardTrace.assessment.scoringVersion, 1);
+  assert.equal(standardTrace.assessment.categoryCode, "BOWEL");
+
+  const risk = fixture();
+  const submitted = formalHealthModule.submit(
+    risk.data,
+    risk.user,
+    risk.profile,
+    { answers: answers({ safety: ["blood_stool"] }) },
+    { today: "2026-08-03", now: "2026-08-03T08:00:00.000Z" },
+  );
+  const riskTrace = risk.data.questionnaireAnswers[0].answers_json.evaluation;
+  assert.equal(riskTrace.safety.status, "PROFESSIONAL_SUPPORT_RECOMMENDED");
+  assert.equal(riskTrace.assessment, null);
+  assert.equal(submitted.result.adviceSource, "FIXED_SAFETY_CONTENT");
+  assert.equal(submitted.result.recommendations.length, 0);
+});
+
+test("Root4U production writes stay closed until explicitly enabled", () => {
+  const blocked = fixture();
+  assert.throws(
+    () => formalHealthModule.submit(
+      blocked.data,
+      blocked.user,
+      blocked.profile,
+      { answers: answers() },
+      { today: "2026-08-03", env: { NODE_ENV: "production" } },
+    ),
+    { code: "FORMAL_HEALTH_WRITES_DISABLED", status: 503 },
+  );
+  assert.equal(blocked.data.questionnaireAnswers.length, 0);
+
+  const enabled = fixture();
+  const submitted = formalHealthModule.submit(
+    enabled.data,
+    enabled.user,
+    enabled.profile,
+    { answers: answers() },
+    {
+      today: "2026-08-03",
+      env: { NODE_ENV: "production", ROOT_FORMAL_HEALTH_WRITES_ENABLED: "true" },
+    },
+  );
+  assert.equal(submitted.success, true);
+});
+
 test("Root4U admin initialization projection is bounded and never includes user answers", () => {
   const page = formalHealthModule.adminInitializationDefinition({ page: 1, pageSize: 20 });
   assert.equal(page.items.length, 12);
