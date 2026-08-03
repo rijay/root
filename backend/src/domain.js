@@ -7,11 +7,9 @@ const adapterRetryScheduler = require("./adapterRetryScheduler");
 const adapterCalibration = require("./adapterCalibration");
 const actionAdapterCalibration = require("./actionAdapterCalibration");
 const adminAnalyticsPresenter = require("./adminAnalyticsPresenter");
-const adminConfigPresenter = require("./adminConfigPresenter");
 const adminLifecycleFilterPresets = require("./adminLifecycleFilterPresets");
 const adminLifecyclePresenter = require("./adminLifecyclePresenter");
 const adminLifecycleUserExports = require("./adminLifecycleUserExports");
-const adminManualReview = require("./adminManualReview");
 const adminOrderMatching = require("./adminOrderMatching");
 const adminOrderIncrementSync = require("./adminOrderIncrementSync");
 const adminProductSync = require("./adminProductSync");
@@ -72,7 +70,6 @@ const rootMemberCenterJumpProof = require("./rootMemberCenterJumpProof");
 const sessionModule = require("./sessionModule");
 const refundWorkItem = require("./refundWorkItem");
 const rewardRecovery = require("./rewardRecovery");
-const settlement = require("./settlement");
 const taskProgress = require("./taskProgress");
 const { fetchWechatJson } = require("./wechatHttp");
 const { resolveWechatAccessToken } = require("./wechatAccessToken");
@@ -1283,47 +1280,6 @@ async function runDueWeWorkTouches(data, body = {}, context = {}) {
   return response(await weworkTouch.runDueWeWorkTouches(data, body, context));
 }
 
-function upsertCampaign(data, body = {}) {
-  return response({ campaign: campaign.toCampaignPayload(campaign.upsertCampaignDefinition(data, body)) });
-}
-
-function upsertTaskDefinition(data, body = {}) {
-  return response({ taskDefinition: taskProgress.upsertTaskDefinition(data, body) });
-}
-
-function listRewardRecoveryRecords(data, query = {}) {
-  return response({
-    records: rewardRecovery.listRewardRecoveryRecords(data, query).map(rewardRecovery.toRewardRecoveryPayload),
-  });
-}
-
-function publishCampaignRuleVersion(data, body = {}) {
-  const before = data.campaignRuleVersions.filter((item) => item.campaign_id === (body.campaignId || body.campaign_id || campaign.DEFAULT_CAMPAIGN_ID)).map((item) => ({
-    campaign_rule_version_id: item.campaign_rule_version_id,
-    version: item.version,
-    status: item.status,
-  }));
-  const result = settlement.publishRuleVersion(data, body);
-  auditLog.appendAuditLog(data, {
-    action: "PUBLISH_CAMPAIGN_RULE_VERSION",
-    targetType: "CAMPAIGN_RULE_VERSION",
-    targetId: result.ruleVersion.campaign_rule_version_id,
-    operatorId: body.operatorId || body.operator_id || "",
-    reason: body.reason || "发布活动结算规则",
-    before,
-    after: settlement.toRuleVersionPayload(result.ruleVersion),
-    metadata: { created: result.created, requestId: body.requestId || body.request_id || "" },
-  });
-  return response({
-    ruleVersion: settlement.toRuleVersionPayload(result.ruleVersion),
-    created: result.created,
-  });
-}
-
-function getAdminConfigWorkbench(data, context = {}) {
-  return response(adminConfigPresenter.buildConfigWorkbench(data, context));
-}
-
 function getAdminLifecycleWorkbench(data, query = {}, context = {}) {
   return response(adminLifecyclePresenter.buildLifecycleWorkbench(data, query, context));
 }
@@ -1511,14 +1467,6 @@ async function runAdminOperationalAlertJob(data, body = {}, context = {}) {
     },
   });
   return response({ ...result, audit });
-}
-
-function resolveAdminManualReview(data, reviewItemId, body = {}) {
-  return response(adminManualReview.resolveReviewItem(data, reviewItemId, body));
-}
-
-function resolveAdminManualReviewBatch(data, body = {}) {
-  return response(adminManualReview.resolveReviewBatch(data, body));
 }
 
 function listProducts(data, token, query = {}, context = {}) {
@@ -3062,7 +3010,6 @@ function adminDashboard(data, context = {}) {
     summary,
     dailyOpsSummary: buildDailyOpsSummary(data, summary.date),
     opsDashboard: adminOpsPresenter.buildOpsDashboard(data, summary),
-    configWorkbench: adminConfigPresenter.buildConfigWorkbench(data),
     users: data.users.map(publicUser),
     opsUsers: adminUserPresenter.buildAdminUserRows(data),
     orders: data.youzanOrders.map((order) => orderFulfillment.toOrderPayload(data, order)),
@@ -3221,7 +3168,6 @@ module.exports = {
   getActivityDetail,
   getActivityEnrollments,
   getActionAdapterCalibration,
-  getAdminConfigWorkbench,
   getAdminLifecycleWorkbench,
   getAdminOperationalAnalytics,
   getCheckinReminderTemplate,
@@ -3257,7 +3203,6 @@ module.exports = {
   listAdminLegacyDeprecationDecisions,
   listProductionCutoverProofs,
   listRootMemberCenterJumpProofs,
-  listRewardRecoveryRecords,
   getRecordDetail,
   getRecordList,
   getRefundStatus,
@@ -3295,7 +3240,6 @@ module.exports = {
   planWeWorkTouches,
   previewCorrection,
   previewImport,
-  publishCampaignRuleVersion,
   publishActivity,
   confirmAdminOrderMatch,
   confirmImport,
@@ -3303,8 +3247,6 @@ module.exports = {
   importExternalSamples,
   upsertExternalStatusMapping,
   resolveManualReview,
-  resolveAdminManualReview,
-  resolveAdminManualReviewBatch,
   response,
   runDailyAudit,
   startCheckin,
@@ -3343,12 +3285,10 @@ module.exports = {
   updateDisplayProfile,
   updateOrderFulfillment,
   upsertOrderAfterSalesRecord,
-  upsertCampaign,
   upsertActivityDraft,
   submitActivityForReview,
   unpublishActivity,
   updateActivitySessionState,
   upsertProduct,
-  upsertTaskDefinition,
   uploadImage,
 };

@@ -5,6 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 
 const domain = require("../src/domain");
+const campaign = require("../src/campaign");
 const { addDays } = require("../src/dates");
 const { validateSnapshot } = require("../src/store");
 const lifecycleExportDelivery = require("../src/adminLifecycleExportDelivery");
@@ -3027,7 +3028,7 @@ test("check-in reminder configured template data maps tpl10850 fields safely", a
     }),
   };
   const longTitle = "ROOT 这是一个超过二十个字符的打卡活动名称";
-  domain.upsertCampaign(store, {
+  campaign.upsertCampaignDefinition(store, {
     campaignId: "ROOT_LONG_TITLE",
     title: longTitle,
     status: "ACTIVE",

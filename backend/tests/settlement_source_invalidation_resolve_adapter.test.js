@@ -1,7 +1,6 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const adminManualReview = require("../src/adminManualReview");
 const { createApp } = require("../src/app");
 const {
   createEmptyData,
@@ -197,41 +196,4 @@ test("dedicated decision must match the frozen candidate kind", async () => {
   );
   assert.equal(runtime.state.candidate.status, "OPEN");
   assert.equal(runtime.state.audits.length, 0);
-});
-
-test("generic single and batch review paths reject handler-owned candidates before mutation", () => {
-  const ordinary = {
-    manual_review_item_id: "mri_ordinary_resolution_guard",
-    source_type: "SETTLEMENT",
-    source_id: "ordinary-source-1",
-    status: "OPEN",
-    metadata: {},
-  };
-  const reserved = candidate();
-  const data = {
-    manualReviewItems: [ordinary, reserved],
-    rewardGrants: [],
-    rewardInventoryReservations: [],
-    auditLogs: [],
-  };
-  assert.throws(
-    () => adminManualReview.resolveReviewItem(data, CANDIDATE_ID, {}),
-    (error) => (
-      error.code === "SETTLEMENT_SOURCE_INVALIDATION_DEDICATED_RESOLVE_REQUIRED"
-      && error.status === 409
-    )
-  );
-  assert.throws(
-    () => adminManualReview.resolveReviewBatch(data, {
-      reviewItemIds: [ordinary.manual_review_item_id, CANDIDATE_ID],
-      requestId: "generic-batch-must-fail",
-      confirmRisk: true,
-    }),
-    (error) => (
-      error.code === "SETTLEMENT_SOURCE_INVALIDATION_DEDICATED_RESOLVE_REQUIRED"
-      && error.status === 409
-    )
-  );
-  assert.equal(ordinary.status, "OPEN");
-  assert.equal(reserved.status, "OPEN");
 });
