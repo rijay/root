@@ -26,8 +26,8 @@ function closeServer(server) {
   });
 }
 
-async function request(baseUrl, path, headers = {}) {
-  const response = await fetch(`${baseUrl}${path}`, { headers });
+async function request(baseUrl, path, headers = {}, options = {}) {
+  const response = await fetch(`${baseUrl}${path}`, { headers, ...options });
   return { status: response.status, body: await response.json() };
 }
 
@@ -268,7 +268,7 @@ test("Admin Activity Query Module validates bounded pagination and enum filters"
     (error) => error.code === "ACTIVITY_ADMIN_QUERY_INVALID" && error.status === 400
   );
   assert.throws(
-    () => activityModule.listAdminSessions(store, { pageSize: 101 }),
+    () => activityModule.listAdminSessions(store, { pageSize: 51 }),
     (error) => error.code === "ACTIVITY_ADMIN_QUERY_INVALID" && error.status === 400
   );
   assert.throws(
@@ -342,6 +342,13 @@ test("Admin Activity Query HTTP Interface enforces capabilities, filters and exp
 
   const viewerEnrollments = await request(baseUrl, "/api/v1/admin/activity-enrollments", VIEWER_HEADERS);
   assert.equal(viewerEnrollments.status, 403);
+  const viewerEnrollmentQuery = await request(
+    baseUrl,
+    "/api/v1/admin/activity-enrollments/query",
+    { ...VIEWER_HEADERS, "Content-Type": "application/json" },
+    { method: "POST", body: JSON.stringify({ search: "13800138000" }) }
+  );
+  assert.equal(viewerEnrollmentQuery.status, 403);
   const viewerQueue = await request(
     baseUrl,
     "/api/v1/admin/activity-enrollments/review-queue",
@@ -366,6 +373,16 @@ test("Admin Activity Query HTTP Interface enforces capabilities, filters and exp
     "status", "updatedAt",
   ].sort());
 
+  const enrollmentSearch = await request(
+    baseUrl,
+    "/api/v1/admin/activity-enrollments/query",
+    { ...OPERATOR_HEADERS, "Content-Type": "application/json" },
+    { method: "POST", body: JSON.stringify({ search: "13800138000" }) }
+  );
+  assert.equal(enrollmentSearch.status, 200);
+  assert.equal(enrollmentSearch.body.data.pagination.total, 1);
+  assert.equal(enrollmentSearch.body.data.enrollments[0].memberContact, "138****8000");
+
   const readyQueue = await request(
     baseUrl,
     "/api/v1/admin/activity-enrollments/review-queue?reviewState=READY&city=%E4%B8%8A%E6%B5%B7",
@@ -385,6 +402,6 @@ test("Admin Activity Query HTTP Interface enforces capabilities, filters and exp
   assert.equal(unavailableQueue.body.data.pagination.total, 1);
   assert.equal(unavailableQueue.body.data.reviewQueue[0].enrollmentId, "enrollment-manual-canceled-session");
 
-  [definitions.body, sessions.body, enrollments.body, readyQueue.body, unavailableQueue.body]
+  [definitions.body, sessions.body, enrollments.body, enrollmentSearch.body, readyQueue.body, unavailableQueue.body]
     .forEach(assertNoRestrictedActivityFields);
 });

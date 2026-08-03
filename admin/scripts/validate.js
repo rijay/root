@@ -19,7 +19,8 @@ const requiredFiles = [
   "src/modules/content/HomeCarouselPage.vue",
   "src/modules/content/SharedDetailPage.vue",
   "src/modules/content/adminContentApi.js",
-  "src/modules/activities/ActivityWorkbench.vue",
+  "src/modules/activities/ActivityManagementPage.vue",
+  "src/modules/activities/ActivityRegistrationsPage.vue",
   "src/modules/activities/adminActivityApi.js",
   "src/modules/users/UserQueryPage.vue",
   "src/modules/users/adminUserQueryApi.js",
@@ -33,6 +34,7 @@ for (const file of requiredFiles) {
 }
 
 const removedFiles = [
+  "src/modules/activities/ActivityWorkbench.vue",
   "src/modules/config/ConfigWorkbench.vue",
   "src/modules/config/adminConfigApi.js",
   "src/modules/adapters/AdapterRunPage.vue",
@@ -61,7 +63,8 @@ for (const value of [
   "用户查询",
   "操作审计",
   "UserQueryPage",
-  "ActivityWorkbench",
+  "ActivityManagementPage",
+  "ActivityRegistrationsPage",
   "ReleaseWorkbench",
   "WelcomeContentPage",
   "HomeCarouselPage",
@@ -158,17 +161,20 @@ for (const value of ["ROOT_ADMIN_TOKEN", "sessionStorage", "outcomeUnknown", "po
 }
 
 const activityApi = read("src/modules/activities/adminActivityApi.js");
-const activityPage = read("src/modules/activities/ActivityWorkbench.vue");
+const activityPage = read("src/modules/activities/ActivityManagementPage.vue");
+const registrationsPage = read("src/modules/activities/ActivityRegistrationsPage.vue");
 for (const route of [
-  "/api/v1/admin/activities",
-  "/api/v1/admin/activities/draft",
-  "/api/v1/admin/activities/submit-review",
-  "/api/v1/admin/activities/publish",
-  "/api/v1/admin/activity-sessions/create",
-  "/api/v1/admin/activity-enrollments/review",
+  "/api/v1/admin/formal-activities",
+  "/api/v1/admin/formal-activities/draft",
+  "/api/v1/admin/activity-enrollments/query",
+  "/api/v1/admin/activity-enrollments/export",
 ]) assert.equal(activityApi.includes(route), true, `activity query module must include ${route}`);
-for (const value of ["idempotencyKey", "ACTIVITY_PUBLISH", "ACTIVITY_SESSION_CONTROL", "ACTIVITY_ENROLLMENT_REVIEW"]) {
-  assert.equal(`${activityApi}\n${activityPage}`.includes(value), true, `activity implementation must include ${value}`);
+assert.equal(activityApi.includes("postAdminRead"), true, "activity phone search must avoid URL query logging");
+for (const value of ["活动主视觉", "180KB", "报名规则", "发布共用详情", "报名时段", "AbortController"]) {
+  assert.equal(activityPage.includes(value), true, `activity management must include ${value}`);
+}
+for (const value of ["手机号", "默认脱敏", "不显示会员资产或健康答案", "查看状态审计", "导出当前名单", "AbortController"]) {
+  assert.equal(registrationsPage.includes(value), true, `activity registrations must include ${value}`);
 }
 
 const userApi = read("src/modules/users/adminUserQueryApi.js");

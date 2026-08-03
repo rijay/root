@@ -9,7 +9,7 @@ const ENROLLMENT_STATES = Object.freeze(["PENDING", "CONFIRMED", "REJECTED", "CA
 const APPROVAL_MODES = Object.freeze(["AUTO", "MANUAL"]);
 const PUBLICATION_AUTHORIZATION_MAX_AGE_MS = 5 * 60 * 1000;
 const ADMIN_QUERY_DEFAULT_PAGE_SIZE = 20;
-const ADMIN_QUERY_MAX_PAGE_SIZE = 100;
+const ADMIN_QUERY_MAX_PAGE_SIZE = 50;
 const PUBLIC_QUERY_DEFAULT_PAGE_SIZE = 10;
 const PUBLIC_QUERY_MAX_PAGE_SIZE = 50;
 const SESSION_CANCEL_REASONS = Object.freeze(["OPERATOR_CANCELED", "WEATHER", "VENUE", "FORCE_MAJEURE", "OTHER"]);
@@ -1375,6 +1375,7 @@ function adminEnrollmentItems(data, query = {}, context = {}) {
   const sessionId = adminQueryText(query.sessionId || query.session_id, "sessionId");
   const activityId = adminQueryText(query.activityId || query.activity_id, "activityId");
   const rootUserId = adminQueryText(query.rootUserId || query.root_user_id, "rootUserId");
+  const search = adminQueryText(query.search, "search").toLowerCase();
   const attemptGeneration = adminQueryInteger(
     firstAdminQueryValue(query.attemptGeneration, query.attempt_generation),
     "attemptGeneration",
@@ -1384,6 +1385,12 @@ function adminEnrollmentItems(data, query = {}, context = {}) {
     .filter((enrollment) => !status || enrollment.status === status)
     .filter((enrollment) => !sessionId || enrollment.activity_session_id === sessionId)
     .filter((enrollment) => !rootUserId || enrollment.root_user_id === rootUserId)
+    .filter((enrollment) => {
+      if (!search) return true;
+      const user = index.usersByRootId.get(enrollment.root_user_id);
+      return [enrollment.root_user_id, user && user.nickname, user && user.phone]
+        .some((value) => optionalText(value).toLowerCase().includes(search));
+    })
     .map((enrollment) => toAdminEnrollmentPayload(index, enrollment, now))
     .filter((enrollment) => !activityId || enrollment.activityId === activityId)
     .filter((enrollment) => !attemptGeneration || enrollment.attemptGeneration === attemptGeneration)

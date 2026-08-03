@@ -1368,6 +1368,10 @@ function createApp(options = {}) {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_ENROLLMENT_REVIEW);
         return ok(res, listAdminActivityEnrollments(data, Object.fromEntries(url.searchParams), runtimeContext));
       }
+      if (route === "POST /api/v1/admin/activity-enrollments/query") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_ENROLLMENT_REVIEW);
+        return ok(res, listAdminActivityEnrollments(data, body, runtimeContext));
+      }
       if (route === "GET /api/v1/admin/activity-enrollments/review-queue") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_ENROLLMENT_REVIEW);
         return ok(res, listAdminActivityReviewQueue(data, Object.fromEntries(url.searchParams), runtimeContext));

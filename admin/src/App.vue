@@ -77,7 +77,12 @@
           <WelcomeContentPage v-else-if="currentModuleKey === 'welcome'" ref="activeWorkbench" />
           <HomeCarouselPage v-else-if="currentModuleKey === 'home'" ref="activeWorkbench" />
           <SharedDetailPage v-else-if="currentModuleKey === 'details'" ref="activeWorkbench" />
-          <ActivityWorkbench v-else-if="currentModuleKey === 'activities'" ref="activeWorkbench" />
+          <ActivityManagementPage v-else-if="currentModuleKey === 'activities'" ref="activeWorkbench" />
+          <ActivityRegistrationsPage
+            v-else-if="currentModuleKey === 'registrations'"
+            ref="activeWorkbench"
+            @navigate-module="activeModule = $event"
+          />
           <UserQueryPage v-else-if="currentModuleKey === 'users'" ref="activeWorkbench" />
           <AuditLogPage v-else-if="currentModuleKey === 'audit'" ref="activeWorkbench" />
         </div>
@@ -107,6 +112,7 @@ const ADMIN_MODULES = [
       ADMIN_CAPABILITIES.ACTIVITY_ENROLLMENT_REVIEW,
     ],
   },
+  { key: "registrations", label: "报名记录", capabilities: [ADMIN_CAPABILITIES.ACTIVITY_ENROLLMENT_REVIEW] },
   { key: "users", label: "用户查询", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
   { key: "audit", label: "操作审计", capabilities: [ADMIN_CAPABILITIES.AUDIT_READ] },
 ];
@@ -124,7 +130,7 @@ const navigationGroups = [
     label: "活动运营",
     items: [
       { key: "activities", label: "活动管理" },
-      { key: "registrations", label: "报名记录", disabled: true },
+      { key: "registrations", label: "报名记录" },
     ],
   },
   {
@@ -149,7 +155,8 @@ const ReleaseWorkbench = defineAsyncComponent(() => import("./modules/release/Re
 const WelcomeContentPage = defineAsyncComponent(() => import("./modules/content/WelcomeContentPage.vue"));
 const HomeCarouselPage = defineAsyncComponent(() => import("./modules/content/HomeCarouselPage.vue"));
 const SharedDetailPage = defineAsyncComponent(() => import("./modules/content/SharedDetailPage.vue"));
-const ActivityWorkbench = defineAsyncComponent(() => import("./modules/activities/ActivityWorkbench.vue"));
+const ActivityManagementPage = defineAsyncComponent(() => import("./modules/activities/ActivityManagementPage.vue"));
+const ActivityRegistrationsPage = defineAsyncComponent(() => import("./modules/activities/ActivityRegistrationsPage.vue"));
 const UserQueryPage = defineAsyncComponent(() => import("./modules/users/UserQueryPage.vue"));
 const AuditLogPage = defineAsyncComponent(() => import("./modules/audit/AuditLogPage.vue"));
 
