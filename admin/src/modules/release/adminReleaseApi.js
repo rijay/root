@@ -58,18 +58,6 @@ export function recordAdminLegacyDeprecationDecision(input = {}, requestId = "")
   });
 }
 
-export function recordLegacyDataMigrationDecision(input = {}, requestId = "") {
-  return postAdminJson("/api/v1/admin/legacy-data-migration-decisions", input, {
-    headers: requestId ? { "X-Request-Id": requestId } : {},
-  });
-}
-
-export function recordLegacyDataMigrationExecution(input = {}, requestId = "") {
-  return postAdminJson("/api/v1/admin/legacy-data-migration-executions", input, {
-    headers: requestId ? { "X-Request-Id": requestId } : {},
-  });
-}
-
 export function fetchLaunchReadiness(target = "production") {
   return adminRequest(`/api/v1/admin/launch-readiness${queryString({ target })}`);
 }

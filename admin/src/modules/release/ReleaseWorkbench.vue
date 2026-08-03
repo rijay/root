@@ -548,104 +548,6 @@
       </template>
     </el-card>
 
-    <el-card shadow="never">
-      <template #header>
-        <div class="toolbar-title">
-          <span>旧数据迁移评估</span>
-          <el-space wrap>
-            <el-tag v-if="legacyMigrationGate" :type="statusType(legacyMigrationGate.status)" effect="plain">
-              {{ legacyMigrationGate.status }}
-            </el-tag>
-            <el-select v-model="legacyDecisionForm.policy" class="legacy-decision-policy-select">
-              <el-option label="只读归档" value="READ_ONLY_ARCHIVE" />
-              <el-option label="选择性补迁" value="SELECTIVE_BACKFILL" />
-              <el-option label="人工处理" value="MANUAL_REVIEW" />
-              <el-option label="无旧数据" value="NO_LEGACY_DATA" />
-            </el-select>
-            <el-select v-model="legacyDecisionForm.status" class="legacy-decision-status-select">
-              <el-option label="APPROVED" value="APPROVED" />
-              <el-option label="REJECTED" value="REJECTED" />
-            </el-select>
-            <el-input v-model="legacyDecisionForm.snapshotRef" class="legacy-decision-ref-input" clearable placeholder="快照引用" />
-            <el-input v-model="legacyDecisionForm.dryRunRef" class="legacy-decision-ref-input" clearable placeholder="dry-run 引用" />
-            <el-input v-model="legacyDecisionForm.evidenceRef" class="legacy-decision-ref-input" clearable placeholder="证据引用" />
-            <el-input v-model="legacyDecisionForm.note" class="legacy-decision-note-input" clearable placeholder="备注" />
-            <el-button
-              :loading="legacyDecisionLoading"
-              type="primary"
-              @click="submitLegacyDecision"
-            >
-              记录决策
-            </el-button>
-            <el-divider direction="vertical" />
-            <el-select v-model="legacyExecutionForm.action" class="legacy-execution-action-select">
-              <el-option label="无旧数据确认" value="NO_OP_CONFIRMED" />
-              <el-option label="只读归档完成" value="ARCHIVE_CONFIRMED" />
-              <el-option label="选择性补迁完成" value="BACKFILL_EXECUTED" />
-              <el-option label="人工处理完成" value="MANUAL_REVIEW_CONFIRMED" />
-            </el-select>
-            <el-select v-model="legacyExecutionForm.status" class="legacy-decision-status-select">
-              <el-option label="VERIFIED" value="VERIFIED" />
-              <el-option label="FAILED" value="FAILED" />
-            </el-select>
-            <el-input v-model="legacyExecutionForm.executionRef" class="legacy-decision-ref-input" clearable placeholder="执行引用" />
-            <el-input v-model="legacyExecutionForm.evidenceRef" class="legacy-decision-ref-input" clearable placeholder="执行证据" />
-            <el-input v-model="legacyExecutionForm.affectedSessionCount" class="legacy-execution-count-input" clearable placeholder="周期数" />
-            <el-input v-model="legacyExecutionForm.affectedFactCount" class="legacy-execution-count-input" clearable placeholder="事实数" />
-            <el-input v-model="legacyExecutionForm.note" class="legacy-decision-note-input" clearable placeholder="执行备注" />
-            <el-button
-              :loading="legacyExecutionLoading"
-              type="primary"
-              plain
-              @click="submitLegacyExecution"
-            >
-              记录执行
-            </el-button>
-          </el-space>
-        </div>
-      </template>
-
-      <el-empty v-if="!legacyMigrationGate" description="暂无旧数据迁移评估" />
-      <template v-else>
-        <div class="release-summary-grid legacy-migration-summary-grid">
-          <div v-for="item in legacyMigrationSummaryCards" :key="item.key" class="release-summary-tile">
-            <span>{{ item.label }}</span>
-            <strong>{{ item.value }}</strong>
-          </div>
-        </div>
-        <el-row :gutter="16">
-          <el-col :span="15">
-            <div class="evidence-panel">
-              <div class="evidence-panel-title">旧试饮周期</div>
-              <el-table :data="legacyMigrationRows" height="260">
-                <el-table-column prop="sessionId" label="session" min-width="160" />
-                <el-table-column prop="rootUserId" label="root_user" min-width="150" />
-                <el-table-column prop="sessionStatus" label="旧状态" width="100" />
-                <el-table-column label="评估" width="120">
-                  <template #default="{ row }">
-                    <el-tag :type="statusType(row.status)" effect="plain">{{ row.status }}</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="decision" label="建议" min-width="180" />
-                <el-table-column prop="unbridgedCheckinRecords" label="未桥接" width="90" />
-                <el-table-column prop="couponEvents" label="旧券" width="80" />
-                <el-table-column prop="refundWorkItems" label="旧退款" width="90" />
-              </el-table>
-            </div>
-          </el-col>
-          <el-col :span="9">
-            <div class="evidence-panel">
-              <div class="evidence-panel-title">阻塞与动作</div>
-              <el-table :data="legacyMigrationIssues" height="260">
-                <el-table-column prop="type" label="类型" width="90" />
-                <el-table-column prop="message" label="事项" min-width="240" />
-              </el-table>
-            </div>
-          </el-col>
-        </el-row>
-      </template>
-    </el-card>
-
     <el-row :gutter="16">
       <el-col :span="10">
         <el-card shadow="never">
@@ -749,8 +651,6 @@ import {
   fetchReleaseEvidencePack,
   fetchReleaseRecord,
   recordAdminLegacyDeprecationDecision,
-  recordLegacyDataMigrationDecision,
-  recordLegacyDataMigrationExecution,
   recordProductionCutoverProof,
   recordRootMemberCenterJumpProof,
   signReleaseRecord,
@@ -764,8 +664,6 @@ const signoffLoading = ref(false);
 const cutoverProofLoading = ref(false);
 const rootJumpProofLoading = ref(false);
 const adminLegacyDecisionLoading = ref(false);
-const legacyDecisionLoading = ref(false);
-const legacyExecutionLoading = ref(false);
 const probeLoading = ref(false);
 const errorMessage = ref("");
 const archiveNote = ref("");
@@ -803,23 +701,6 @@ const adminLegacyDecisionForm = reactive({
   rollbackRef: "",
   note: "",
 });
-const legacyDecisionForm = reactive({
-  policy: "READ_ONLY_ARCHIVE",
-  status: "APPROVED",
-  snapshotRef: "",
-  dryRunRef: "",
-  evidenceRef: "",
-  note: "",
-});
-const legacyExecutionForm = reactive({
-  action: "ARCHIVE_CONFIRMED",
-  status: "VERIFIED",
-  executionRef: "",
-  evidenceRef: "",
-  affectedSessionCount: "",
-  affectedFactCount: "",
-  note: "",
-});
 
 const releaseEvidencePack = computed(() => releaseEvidenceBundle.value?.pack || null);
 const evidenceArchives = computed(() => releaseEvidenceBundle.value?.archives || []);
@@ -834,7 +715,6 @@ const cutoverProofSubmissionDisabled = computed(() => {
   if (cutoverProofForm.status === "VERIFIED") return !cutoverProofForm.evidenceRef.trim();
   return !cutoverProofForm.evidenceRef.trim() && !cutoverProofForm.note.trim();
 });
-const legacyMigrationGate = computed(() => releaseRecord.value?.evidence?.legacyDataMigration || null);
 const cloudbaseStoreGate = computed(() => releaseRecord.value?.evidence?.cloudbaseStoreReadiness || null);
 const rootMemberCenterGate = computed(() => releaseRecord.value?.evidence?.rootMemberCenterReadiness || null);
 const actionAdapterCalibrationGate = computed(() => {
@@ -855,7 +735,6 @@ const summaryCards = computed(() => {
     { key: "evidenceIntake", label: "证据收口", value: productionEvidenceIntake.value?.status || "-" },
     { key: "admin", label: "Admin 迁移", value: adminTransitionGate.value?.status || "-" },
     { key: "cutover", label: "生产切换", value: productionCutoverGate.value?.status || "-" },
-    { key: "legacyMigration", label: "旧数据", value: legacyMigrationGate.value?.status || "-" },
     { key: "cloudbaseStore", label: "CloudBase Store", value: cloudbaseStoreGate.value?.status || "-" },
     { key: "rootMemberCenter", label: "购买跳转", value: rootMemberCenterGate.value?.status || "-" },
     { key: "identity", label: "身份探针", value: probeResult.value?.status || "-" },
@@ -877,7 +756,6 @@ const evidenceSummaryCards = computed(() => {
     { key: "evidenceIntake", label: "证据收口", value: summary.productionEvidenceIntakeStatus || "-" },
     { key: "admin", label: "Admin", value: summary.adminTransitionStatus || "-" },
     { key: "cutover", label: "切换", value: summary.productionCutoverStatus || "-" },
-    { key: "legacyMigration", label: "旧数据", value: summary.legacyDataMigrationStatus || "-" },
     { key: "cloudbaseStore", label: "CloudBase", value: summary.cloudbaseStoreStatus || "-" },
     { key: "rootMemberCenter", label: "购买跳转", value: summary.rootMemberCenterStatus || "-" },
   ];
@@ -1034,29 +912,6 @@ const selectedRootMemberCenterProduct = computed(() => {
 
 const rootMemberCenterIssues = computed(() => {
   const gate = rootMemberCenterGate.value || {};
-  const blockers = (gate.blockers || []).map((message) => ({ type: "BLOCKED", message }));
-  const warnings = (gate.warnings || []).map((message) => ({ type: "REVIEW", message }));
-  const actions = (gate.nextActions || []).map((message) => ({ type: "ACTION", message }));
-  return blockers.concat(warnings, actions);
-});
-
-const legacyMigrationSummaryCards = computed(() => {
-  const summary = legacyMigrationGate.value?.summary || {};
-  return [
-    { key: "status", label: "Gate", value: legacyMigrationGate.value?.status || "-" },
-    { key: "sessions", label: "旧周期", value: summary.legacySessionCount ?? 0 },
-    { key: "records", label: "旧记录", value: summary.legacyCheckinRecordCount ?? 0 },
-    { key: "unbridged", label: "未桥接", value: summary.unbridgedFactCount ?? 0 },
-    { key: "decision", label: "生产决策", value: legacyMigrationGate.value?.decision?.status || "PENDING" },
-    { key: "execution", label: "执行历史", value: legacyMigrationGate.value?.execution?.status || "PENDING" },
-    { key: "reward", label: "权益确认", value: summary.rewardDecisionCount ?? 0 },
-  ];
-});
-
-const legacyMigrationRows = computed(() => legacyMigrationGate.value?.sessions || []);
-
-const legacyMigrationIssues = computed(() => {
-  const gate = legacyMigrationGate.value || {};
   const blockers = (gate.blockers || []).map((message) => ({ type: "BLOCKED", message }));
   const warnings = (gate.warnings || []).map((message) => ({ type: "REVIEW", message }));
   const actions = (gate.nextActions || []).map((message) => ({ type: "ACTION", message }));
@@ -1306,62 +1161,6 @@ async function submitAdminLegacyDecision() {
   }
 }
 
-async function submitLegacyDecision() {
-  legacyDecisionLoading.value = true;
-  errorMessage.value = "";
-  const requestId = newRequestId("legacy-data-migration-decision");
-  try {
-    await recordLegacyDataMigrationDecision({
-      target: target.value,
-      policy: legacyDecisionForm.policy,
-      status: legacyDecisionForm.status,
-      snapshotRef: legacyDecisionForm.snapshotRef.trim(),
-      dryRunRef: legacyDecisionForm.dryRunRef.trim(),
-      evidenceRef: legacyDecisionForm.evidenceRef.trim(),
-      note: legacyDecisionForm.note.trim(),
-      requestId,
-    }, requestId);
-    legacyDecisionForm.snapshotRef = "";
-    legacyDecisionForm.dryRunRef = "";
-    legacyDecisionForm.evidenceRef = "";
-    legacyDecisionForm.note = "";
-    await load();
-  } catch (error) {
-    errorMessage.value = error.message;
-  } finally {
-    legacyDecisionLoading.value = false;
-  }
-}
-
-async function submitLegacyExecution() {
-  legacyExecutionLoading.value = true;
-  errorMessage.value = "";
-  const requestId = newRequestId("legacy-data-migration-execution");
-  try {
-    await recordLegacyDataMigrationExecution({
-      target: target.value,
-      action: legacyExecutionForm.action,
-      status: legacyExecutionForm.status,
-      executionRef: legacyExecutionForm.executionRef.trim(),
-      evidenceRef: legacyExecutionForm.evidenceRef.trim(),
-      affectedSessionCount: legacyExecutionForm.affectedSessionCount,
-      affectedFactCount: legacyExecutionForm.affectedFactCount,
-      note: legacyExecutionForm.note.trim(),
-      requestId,
-    }, requestId);
-    legacyExecutionForm.executionRef = "";
-    legacyExecutionForm.evidenceRef = "";
-    legacyExecutionForm.affectedSessionCount = "";
-    legacyExecutionForm.affectedFactCount = "";
-    legacyExecutionForm.note = "";
-    await load();
-  } catch (error) {
-    errorMessage.value = error.message;
-  } finally {
-    legacyExecutionLoading.value = false;
-  }
-}
-
 function downloadEvidenceJson() {
   if (!releaseEvidenceBundle.value) return;
   downloadJsonFile(releaseEvidenceBundle.value, `root-release-evidence-${target.value}.json`);
@@ -1420,30 +1219,12 @@ defineExpose({ load });
   width: 130px;
 }
 
-.legacy-decision-policy-select {
-  width: 150px;
-}
-
-.legacy-decision-status-select {
-  width: 130px;
-}
-
-.legacy-execution-action-select {
-  width: 160px;
-}
-
-.legacy-execution-count-input {
-  width: 100px;
-}
-
 .cutover-proof-ref-input,
 .cutover-proof-note-input,
 .root-jump-proof-ref-input,
 .root-jump-proof-note-input,
 .admin-legacy-decision-ref-input,
-.admin-legacy-decision-note-input,
-.legacy-decision-ref-input,
-.legacy-decision-note-input {
+.admin-legacy-decision-note-input {
   width: 180px;
 }
 

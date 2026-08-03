@@ -84,8 +84,6 @@ function createSeedData() {
     adminLegacyDeprecationDecisions: [],
     productionCutoverProofs: [],
     rootMemberCenterJumpProofs: [],
-    legacyDataMigrationDecisions: [],
-    legacyDataMigrationExecutions: [],
     consultationAdvisorAssignments: [],
     consultationWeworkWritebacks: [],
     weworkTouchJobs: [],

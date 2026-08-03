@@ -57,10 +57,8 @@ test("release evidence pack summarizes launch evidence without leaking secrets",
   assert.equal(pack.evidence.adminTransitionReadiness.legacyDeprecationDecision.status, "PENDING");
   assert.equal(pack.summary.productionCutoverStatus, "BLOCKED");
   assert.equal(pack.evidence.productionCutoverReadiness.summary.requiredProofCount, 13);
-  assert.equal(pack.summary.legacyDataMigrationStatus, "READY");
-  assert.equal(pack.evidence.legacyDataMigration.summary.legacySessionCount, 0);
   assert.equal(pack.summary.productionEvidenceIntakeStatus, "BLOCKED");
-  assert.equal(pack.evidence.productionEvidenceIntake.items.length, 13);
+  assert.equal(pack.evidence.productionEvidenceIntake.items.length, 12);
   assert.ok(pack.evidence.productionEvidenceIntake.items.some((item) => item.backlogId === "T-001"));
   assert.equal(pack.summary.cloudbaseStoreStatus, "BLOCKED");
   assert.equal(pack.evidence.cloudbaseStoreReadiness.selectedDecision, "UNDECIDED");
@@ -74,7 +72,6 @@ test("release evidence pack summarizes launch evidence without leaking secrets",
   assert.match(report, /下线决策/);
   assert.match(report, /生产切换 Gate/);
   assert.match(report, /生产证据收口/);
-  assert.match(report, /旧数据迁移评估/);
   assert.match(report, /CloudBase Store 决策/);
   assert.match(report, /Root 会员中心购买跳转/);
   assert.match(report, /脱敏策略/);

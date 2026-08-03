@@ -7,9 +7,6 @@ const adminLifecycleUserExports = require("./adminLifecycleUserExports");
 const cloudbaseStoreReadiness = require("./cloudbaseStoreReadiness");
 const externalPlatformAdapters = require("./externalPlatformAdapters");
 const launchReadiness = require("./launchReadiness");
-const legacyDataMigration = require("./legacyDataMigration");
-const legacyDataMigrationDecision = require("./legacyDataMigrationDecision");
-const legacyDataMigrationExecution = require("./legacyDataMigrationExecution");
 const orderFulfillment = require("./orderFulfillment");
 const operationalAlerts = require("./operationalAlerts");
 const productionCutoverProof = require("./productionCutoverProof");
@@ -34,7 +31,6 @@ function statusFromInputs(
   signoffGate,
   adminTransition,
   productionCutover,
-  legacyMigration,
   cloudbaseStore,
   rootMemberCenter,
 ) {
@@ -47,7 +43,6 @@ function statusFromInputs(
     signoffGate.status === "BLOCKED" ||
     adminTransition.status === "BLOCKED" ||
     productionCutover.status === "BLOCKED" ||
-    legacyMigration.status === "BLOCKED" ||
     cloudbaseStore.status === "BLOCKED" ||
     rootMemberCenter.status === "BLOCKED"
   ) return "BLOCKED";
@@ -60,7 +55,6 @@ function statusFromInputs(
     signoffGate.status === "NEEDS_REVIEW" ||
     adminTransition.status === "NEEDS_REVIEW" ||
     productionCutover.status === "NEEDS_REVIEW" ||
-    legacyMigration.status === "NEEDS_REVIEW" ||
     cloudbaseStore.status === "NEEDS_REVIEW" ||
     rootMemberCenter.status === "NEEDS_REVIEW"
   ) return "NEEDS_REVIEW";
@@ -219,7 +213,6 @@ function releaseEvidence(
   signoffGate,
   adminTransition,
   productionCutover,
-  legacyMigration,
   cloudbaseStore,
   rootMemberCenter,
 ) {
@@ -234,7 +227,6 @@ function releaseEvidence(
     productionCutover,
     cloudbaseStore,
     rootMemberCenter,
-    legacyMigration,
   });
   return {
     storeAdapter: {
@@ -409,21 +401,6 @@ function releaseEvidence(
       blockers: productionCutover.blockers,
       warnings: productionCutover.warnings,
     },
-    legacyDataMigration: {
-      status: legacyMigration.status,
-      recommendedPolicy: legacyMigration.recommendedPolicy,
-      writeMode: legacyMigration.writeMode,
-      decision: legacyMigration.decision,
-      decisions: legacyMigration.decisions,
-      execution: legacyMigration.execution,
-      executions: legacyMigration.executions,
-      summary: legacyMigration.summary,
-      collections: legacyMigration.collections,
-      sessions: legacyMigration.sessions.slice(0, 50),
-      blockers: legacyMigration.blockers,
-      warnings: legacyMigration.warnings,
-      nextActions: legacyMigration.nextActions,
-    },
     cloudbaseStoreReadiness: {
       status: cloudbaseStore.status,
       target: cloudbaseStore.target,
@@ -473,7 +450,6 @@ function buildReleaseChecklist(
   signoffGate,
   adminTransition,
   productionCutover,
-  legacyMigration,
   cloudbaseStore,
   rootMemberCenter,
 ) {
@@ -495,7 +471,6 @@ function buildReleaseChecklist(
   blockers.push(...signoffGate.blockers);
   blockers.push(...adminTransition.blockers);
   blockers.push(...productionCutover.blockers);
-  blockers.push(...legacyMigration.blockers);
   blockers.push(...cloudbaseStore.blockers);
   blockers.push(...rootMemberCenter.blockers);
   if (readiness.target === "production") blockers.push(...signoffGate.warnings);
@@ -516,7 +491,6 @@ function buildReleaseChecklist(
   warnings.push(...externalChannelReadiness.warnings);
   warnings.push(...adminTransition.warnings);
   warnings.push(...productionCutover.warnings);
-  warnings.push(...legacyMigration.warnings);
   warnings.push(...cloudbaseStore.warnings);
   warnings.push(...rootMemberCenter.warnings);
   if (readiness.target !== "production") warnings.push(...signoffGate.warnings);
@@ -526,19 +500,16 @@ function buildReleaseChecklist(
     finalChecks: [
       "确认小程序体验版连接的是 ROOT_PUBLIC_BASE_URL。",
       "确认数据仓库 Adapter 的备份或快照已完成。",
-      "确认 MANUAL_SAMPLE 入口仍可作为真实 Adapter 回滚入口。",
       "确认 production-env 矩阵、CloudBase Job Manifest 和发布校准报告使用同一组生产环境变量。",
       "确认企业微信联系回写的真实动作 Adapter 已完成小批量校准。",
       "确认 CloudBase Store 决策、环境 ID、地域、备份计划和回滚计划已写入发布记录。",
       "确认 myRoot 商品页的 Root 会员中心 appId、购买路径和体验版跳转结果已写入发布记录。",
-      "确认免单退款和 Day8 问卷人工处理负责人在线。",
       "确认外部预警、导出交付和运营负责人路由已写入发布记录。",
       "确认产品、运营、研发签字均绑定到同一轮发布证据包留档。",
       "确认 Element Plus Admin 主入口、backend-only 部署包、/admin-legacy 回退状态和旧后台下线决策已写入发布记录。",
       "确认生产证据收口项中每一条外部证据都有负责人、下一步动作和留档路径。",
       "确认微信开放平台、Root 会员中心 appId、CloudBase unionid、有赞、企微、CloudBase Job、外部通道、导出存储和回滚演练的生产切换证明已写入发布记录。",
       "确认 CloudRun 候选运行、同版本体验版真机、次日提醒真实送达、5% 灰度观察和候选工件追溯证明均已写入发布记录。",
-      "确认旧 7 日试饮历史数据已选择只读归档、选择性补迁或人工处理，并在发布记录中留存评估结果。",
     ],
     statusHint: decisionText(status),
   };
@@ -583,11 +554,6 @@ function buildReleaseRecord(data, options = {}) {
     proofs: productionCutoverProof.latestProductionCutoverProofs(data, { target: readiness.target }),
     runtimeMetadata: context.runtimeMetadata,
   });
-  const legacyMigration = legacyDataMigration.buildLegacyDataMigrationPlan(data, {
-    target: readiness.target,
-    decisions: legacyDataMigrationDecision.latestLegacyDataMigrationDecisions(data, { target: readiness.target }),
-    executions: legacyDataMigrationExecution.latestLegacyDataMigrationExecutions(data, { target: readiness.target }),
-  });
   const status = statusFromInputs(
     readiness,
     actionCalibration,
@@ -597,7 +563,6 @@ function buildReleaseRecord(data, options = {}) {
     signoffGate,
     adminTransition,
     productionCutover,
-    legacyMigration,
     cloudbaseStore,
     rootMemberCenter,
   );
@@ -611,12 +576,11 @@ function buildReleaseRecord(data, options = {}) {
     signoffGate,
     adminTransition,
     productionCutover,
-    legacyMigration,
     cloudbaseStore,
     rootMemberCenter,
   );
   return {
-    title: "ROOT 7日打卡发布记录",
+    title: "myRoot 正式上线发布记录",
     status,
     target: readiness.target,
     generatedAt: nowISO(),
@@ -644,15 +608,14 @@ function buildReleaseRecord(data, options = {}) {
       signoffGate,
       adminTransition,
       productionCutover,
-      legacyMigration,
       cloudbaseStore,
       rootMemberCenter,
     ),
     rollback: [
-      "暂停 YOUZAN_OPEN、YOUZAN_CUSTOMER、FULFILLMENT_PUSH、WEWORK_CONTACT 真实 Adapter。",
-      "继续使用 MANUAL_SAMPLE 和后台手工同步订单/客户/券状态/物流/线索/标签。",
-      "保留当前数据仓库快照，必要时回退到发布前快照。",
-      "在企业微信通知运营改用人工提醒和人工退款审核。",
+      "暂停有赞、物流和企微写入型 Adapter，保留只读查询。",
+      "运营后台改用人工维护商品、内容与活动，客服跟进改为人工记录。",
+      "保留当前 Store 快照，必要时回退到发布前快照。",
+      "通知运营暂停自动触达和外部回写，按人工流程承接用户问题。",
     ],
   };
 }

@@ -47,8 +47,6 @@ const {
 } = require("./identity");
 const launchReadiness = require("./launchReadiness");
 const adminLegacyDeprecationDecision = require("./adminLegacyDeprecationDecision");
-const legacyDataMigrationDecision = require("./legacyDataMigrationDecision");
-const legacyDataMigrationExecution = require("./legacyDataMigrationExecution");
 const manualCorrection = require("./manualCorrection");
 const operationTask = require("./operationTask");
 const orderAfterSales = require("./orderAfterSales");
@@ -2418,30 +2416,6 @@ function recordRootMemberCenterJumpProof(data, input = {}) {
   return response(rootMemberCenterJumpProof.createRootMemberCenterJumpProof(data, input));
 }
 
-function listLegacyDataMigrationDecisions(data, query = {}) {
-  return response({
-    policies: legacyDataMigrationDecision.POLICIES,
-    decisions: legacyDataMigrationDecision.listLegacyDataMigrationDecisions(data, query),
-    latest: legacyDataMigrationDecision.latestLegacyDataMigrationDecisions(data, query),
-  });
-}
-
-function recordLegacyDataMigrationDecision(data, input = {}) {
-  return response(legacyDataMigrationDecision.createLegacyDataMigrationDecision(data, input));
-}
-
-function listLegacyDataMigrationExecutions(data, query = {}) {
-  return response({
-    actions: legacyDataMigrationExecution.ACTIONS,
-    executions: legacyDataMigrationExecution.listLegacyDataMigrationExecutions(data, query),
-    latest: legacyDataMigrationExecution.latestLegacyDataMigrationExecutions(data, query),
-  });
-}
-
-function recordLegacyDataMigrationExecution(data, input = {}) {
-  return response(legacyDataMigrationExecution.createLegacyDataMigrationExecution(data, input));
-}
-
 function getCloudbaseIdentityProbe(context = {}) {
   return response(cloudbaseIdentityProbe.buildCloudbaseIdentityProbe(context));
 }
@@ -3039,8 +3013,6 @@ module.exports = {
   listWeWorkTouchJobs,
   listOperationTasks,
   listAdminYouzanCustomers,
-  listLegacyDataMigrationDecisions,
-  listLegacyDataMigrationExecutions,
   listExternalSampleReviews,
   listFormalHomeContent,
   listImportBatches,
@@ -3078,8 +3050,6 @@ module.exports = {
   recordConsultationAdvisorAssignment,
   recordConsultationWeworkWriteback,
   recordAdminLegacyDeprecationDecision,
-  recordLegacyDataMigrationDecision,
-  recordLegacyDataMigrationExecution,
   recordProductionCutoverProof,
   recordRootMemberCenterJumpProof,
   recordProductJump,

@@ -164,8 +164,6 @@ function createEmptyData() {
   data.adminLegacyDeprecationDecisions = [];
   data.productionCutoverProofs = [];
   data.rootMemberCenterJumpProofs = [];
-  data.legacyDataMigrationDecisions = [];
-  data.legacyDataMigrationExecutions = [];
   data.consultationAdvisorAssignments = [];
   data.consultationWeworkWritebacks = [];
   data.weworkTouchJobs = [];
@@ -283,10 +281,6 @@ function validateSnapshot(snapshot, options = {}) {
     ["productionCutoverProofs", "request_id"],
     ["rootMemberCenterJumpProofs", "proof_id"],
     ["rootMemberCenterJumpProofs", "request_id"],
-    ["legacyDataMigrationDecisions", "decision_id"],
-    ["legacyDataMigrationDecisions", "request_id"],
-    ["legacyDataMigrationExecutions", "execution_id"],
-    ["legacyDataMigrationExecutions", "request_id"],
     ["consultationAdvisorAssignments", "assignment_id"],
     ["consultationAdvisorAssignments", "request_id"],
     ["consultationWeworkWritebacks", "writeback_id"],

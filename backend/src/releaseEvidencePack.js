@@ -85,12 +85,6 @@ function productionCutover(record) {
     : { status: "NEEDS_REVIEW", summary: {}, blockers: ["生产切换 Gate 未生成"], warnings: [] };
 }
 
-function legacyDataMigration(record) {
-  return record && record.evidence && record.evidence.legacyDataMigration
-    ? record.evidence.legacyDataMigration
-    : { status: "NEEDS_REVIEW", summary: {}, blockers: [], warnings: ["旧 7 日试饮历史数据迁移评估未生成"], sessions: [] };
-}
-
 function cloudbaseStoreReadiness(record) {
   return record && record.evidence && record.evidence.cloudbaseStoreReadiness
     ? record.evidence.cloudbaseStoreReadiness
@@ -172,7 +166,6 @@ function buildReleaseEvidencePack(input = {}) {
   const signoffGate = releaseSignoffGate(releaseRecord);
   const adminGate = adminTransition(releaseRecord);
   const cutoverGate = productionCutover(releaseRecord);
-  const legacyMigration = legacyDataMigration(releaseRecord);
   const cloudbaseStore = cloudbaseStoreReadiness(releaseRecord);
   const rootMemberCenter = rootMemberCenterReadiness(releaseRecord);
   const evidenceIntake = productionEvidenceIntake(releaseRecord);
@@ -187,7 +180,6 @@ function buildReleaseEvidencePack(input = {}) {
     ...list(signoffGate.blockers),
     ...list(adminGate.blockers),
     ...list(cutoverGate.blockers),
-    ...list(legacyMigration.blockers),
     ...list(cloudbaseStore.blockers),
     ...list(rootMemberCenter.blockers),
     ...list(evidenceIntake.blockers),
@@ -200,7 +192,6 @@ function buildReleaseEvidencePack(input = {}) {
     ...(signoffGate.status === "BLOCKED" ? [] : list(signoffGate.warnings)),
     ...(adminGate.status === "BLOCKED" ? [] : list(adminGate.warnings)),
     ...(cutoverGate.status === "BLOCKED" ? [] : list(cutoverGate.warnings)),
-    ...(legacyMigration.status === "BLOCKED" ? [] : list(legacyMigration.warnings)),
     ...(cloudbaseStore.status === "BLOCKED" ? [] : list(cloudbaseStore.warnings)),
     ...(rootMemberCenter.status === "BLOCKED" ? [] : list(rootMemberCenter.warnings)),
     ...(evidenceIntake.status === "BLOCKED" ? [] : list(evidenceIntake.warnings)),
@@ -217,7 +208,6 @@ function buildReleaseEvidencePack(input = {}) {
       signoffGate.status,
       adminGate.status,
       cutoverGate.status,
-      legacyMigration.status,
       cloudbaseStore.status,
       rootMemberCenter.status,
       evidenceIntake.status,
@@ -244,7 +234,6 @@ function buildReleaseEvidencePack(input = {}) {
       signoffGateStatus: normalizeStatus(signoffGate.status),
       adminTransitionStatus: normalizeStatus(adminGate.status),
       productionCutoverStatus: normalizeStatus(cutoverGate.status),
-      legacyDataMigrationStatus: normalizeStatus(legacyMigration.status),
       cloudbaseStoreStatus: normalizeStatus(cloudbaseStore.status),
       rootMemberCenterStatus: normalizeStatus(rootMemberCenter.status),
       productionEvidenceIntakeStatus: normalizeStatus(evidenceIntake.status),
@@ -300,21 +289,6 @@ function buildReleaseEvidencePack(input = {}) {
         items: list(cutoverGate.items),
         blockers: list(cutoverGate.blockers),
         warnings: list(cutoverGate.warnings),
-      },
-      legacyDataMigration: {
-        status: legacyMigration.status || "UNKNOWN",
-        recommendedPolicy: legacyMigration.recommendedPolicy || "",
-        writeMode: Boolean(legacyMigration.writeMode),
-        decision: legacyMigration.decision || {},
-        decisions: list(legacyMigration.decisions),
-        execution: legacyMigration.execution || {},
-        executions: list(legacyMigration.executions),
-        summary: legacyMigration.summary || {},
-        collections: list(legacyMigration.collections),
-        sessions: list(legacyMigration.sessions),
-        blockers: list(legacyMigration.blockers),
-        warnings: list(legacyMigration.warnings),
-        nextActions: list(legacyMigration.nextActions),
       },
       cloudbaseStoreReadiness: {
         status: cloudbaseStore.status || "UNKNOWN",
@@ -451,7 +425,6 @@ function buildReleaseEvidencePackReport(pack, validation = { errors: [], warning
     `- 发布签字：${pack.summary.signoffGateStatus}`,
     `- Admin 迁移：${pack.summary.adminTransitionStatus}`,
     `- 生产切换：${pack.summary.productionCutoverStatus}`,
-    `- 旧数据迁移：${pack.summary.legacyDataMigrationStatus}`,
     `- CloudBase Store：${pack.summary.cloudbaseStoreStatus}`,
     `- Root 会员中心购买跳转：${pack.summary.rootMemberCenterStatus}`,
     `- 生产证据收口：${pack.summary.productionEvidenceIntakeStatus}`,
@@ -506,13 +479,6 @@ function buildReleaseEvidencePackReport(pack, validation = { errors: [], warning
       return `${item.groupLabel || item.group}: ${item.label} - ${item.status}`;
     }), "暂无生产切换证明记录"),
     "",
-    "## 旧数据迁移评估",
-    `- 状态：${evidence.legacyDataMigration ? evidence.legacyDataMigration.status : "UNKNOWN"}`,
-    `- 策略：${evidence.legacyDataMigration ? evidence.legacyDataMigration.recommendedPolicy : "-"}`,
-    `- 生产决策：${evidence.legacyDataMigration && evidence.legacyDataMigration.decision ? evidence.legacyDataMigration.decision.status || "PENDING" : "PENDING"}`,
-    `- 执行历史：${evidence.legacyDataMigration && evidence.legacyDataMigration.execution ? evidence.legacyDataMigration.execution.status || "PENDING" : "PENDING"}`,
-    ...formatList(list(evidence.legacyDataMigration && evidence.legacyDataMigration.nextActions), "暂无后续动作"),
-    "",
     "## CloudBase Store 决策",
     `- 状态：${evidence.cloudbaseStoreReadiness ? evidence.cloudbaseStoreReadiness.status : "UNKNOWN"}`,
     `- 决策：${evidence.cloudbaseStoreReadiness ? evidence.cloudbaseStoreReadiness.selectedDecisionLabel : "-"}`,
@@ -563,7 +529,6 @@ function validateReleaseEvidencePack(pack) {
   if (!evidence.signoffGate) errors.push("signoffGate evidence is required");
   if (!evidence.adminTransitionReadiness) errors.push("adminTransitionReadiness evidence is required");
   if (!evidence.productionCutoverReadiness) errors.push("productionCutoverReadiness evidence is required");
-  if (!evidence.legacyDataMigration) errors.push("legacyDataMigration evidence is required");
   if (!evidence.cloudbaseStoreReadiness) errors.push("cloudbaseStoreReadiness evidence is required");
   if (!evidence.rootMemberCenterReadiness) errors.push("rootMemberCenterReadiness evidence is required");
   if (!evidence.productionEvidenceIntake) errors.push("productionEvidenceIntake evidence is required");

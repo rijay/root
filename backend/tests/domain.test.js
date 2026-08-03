@@ -1133,9 +1133,7 @@ test("release record gathers readiness, calibration, runs, and rollback evidence
   assert.ok(missing.evidence.productionCutoverReadiness.blockers.some((item) => item.includes("微信开放平台")));
   assert.equal(missing.evidence.actionAdapterCalibration.status, "BLOCKED");
   assert.equal(missing.evidence.actionAdapterCalibration.actions.length, 1);
-  assert.equal(missing.evidence.legacyDataMigration.status, "READY");
-  assert.equal(missing.evidence.legacyDataMigration.summary.legacySessionCount, 0);
-  assert.equal(missing.evidence.productionEvidenceIntake.items.length, 13);
+  assert.equal(missing.evidence.productionEvidenceIntake.items.length, 12);
   assert.equal(missing.evidence.productionEvidenceIntake.status, "BLOCKED");
   assert.ok(missing.evidence.productionEvidenceIntake.items.some((item) => item.backlogId === "T-009" && item.id === "cloudbase_store_production"));
   assert.deepEqual(
@@ -1150,7 +1148,7 @@ test("release record gathers readiness, calibration, runs, and rollback evidence
   assert.ok(missing.evidence.rootMemberCenterReadiness.blockers.some((item) => item.includes("Root 会员中心 appId")));
   assert.ok(missing.evidence.env.some((item) => item.name === "ROOT_OPERATIONAL_ALERT_WEBHOOK_URL"));
   assert.equal(missing.signoffs.length, 3);
-  assert.ok(missing.rollback.some((item) => item.includes("MANUAL_SAMPLE")));
+  assert.ok(missing.rollback.some((item) => item.includes("Store 快照")));
 
   assert.throws(() => domain.recordProductionCutoverProof(store, {
     target: "production",
@@ -1467,143 +1465,6 @@ test("root member center readiness gates myRoot purchase jumps", () => {
   });
   assert.equal(missingPath.status, "BLOCKED");
   assert.equal(missingPath.summary.missingPathCount, 1);
-});
-
-test("legacy data migration assessment classifies old check-in history for release", () => {
-  const store = domain.createStore();
-  store.users.push({
-    user_id: "legacy_user_1",
-    root_user_id: "legacy_user_1",
-    phone: "13800070001",
-    state: "CHECKIN_COMPLETED",
-    created_at: "2026-04-01T08:00:00+08:00",
-  });
-  store.checkinSessions.push({
-    session_id: "legacy_session_1",
-    user_id: "legacy_user_1",
-    order_id: "ord_legacy_1",
-    start_date: "2026-04-01",
-    end_date: "2026-04-07",
-    status: "COMPLETED",
-    created_at: "2026-04-01T08:00:00+08:00",
-  });
-  store.checkinRecords.push({
-    record_id: "legacy_record_1",
-    session_id: "legacy_session_1",
-    user_id: "legacy_user_1",
-    day_index: 1,
-    checkin_date: "2026-04-01",
-  });
-  store.couponEvents.push({
-    coupon_id: "legacy_coupon_1",
-    session_id: "legacy_session_1",
-    user_id: "legacy_user_1",
-    status: "CLAIMED",
-  });
-
-  const record = domain.getReleaseRecord(store, { env: {}, target: "gray" }).data;
-  const evidence = domain.getReleaseEvidencePack(store, { env: {}, target: "gray", strict: true }).data;
-  const migration = record.evidence.legacyDataMigration;
-
-  assert.equal(migration.status, "NEEDS_REVIEW");
-  assert.equal(migration.summary.legacySessionCount, 1);
-  assert.equal(migration.summary.unbridgedFactCount, 1);
-  assert.equal(migration.summary.bridgeCandidateCount, 1);
-  assert.equal(migration.sessions[0].decision, "CAN_BRIDGE_TASK_EVENTS");
-  assert.ok(record.mustConfirmForGray.some((item) => item.includes("旧 7 日试饮历史数据")));
-  assert.equal(evidence.validation.status, "PASS");
-  assert.equal(evidence.pack.summary.legacyDataMigrationStatus, "NEEDS_REVIEW");
-  assert.equal(evidence.pack.evidence.legacyDataMigration.summary.legacySessionCount, 1);
-
-  const productionWithoutDecision = domain.getReleaseRecord(store, { env: {}, target: "production" }).data;
-  assert.equal(productionWithoutDecision.evidence.legacyDataMigration.status, "BLOCKED");
-  assert.ok(productionWithoutDecision.evidence.legacyDataMigration.blockers.some((item) => item.includes("APPROVED 决策")));
-
-  const decision = domain.recordLegacyDataMigrationDecision(store, {
-    target: "production",
-    policy: "READ_ONLY_ARCHIVE",
-    status: "APPROVED",
-    snapshotRef: "https://root.example.com/snapshots/legacy?token=secret-token",
-    evidenceRef: "https://root.example.com/evidence/legacy?openid=raw-openid",
-    note: "生产只读归档，手机号 13800000000",
-    requestId: "legacy-migration-decision-1",
-    operatorId: "release-engineer",
-  }).data;
-  const repeatedDecision = domain.recordLegacyDataMigrationDecision(store, {
-    target: "production",
-    policy: "READ_ONLY_ARCHIVE",
-    status: "APPROVED",
-    requestId: "legacy-migration-decision-1",
-  }).data;
-  const approvedProduction = domain.getReleaseRecord(store, { env: {}, target: "production" }).data;
-  assert.equal(decision.decision.status, "APPROVED");
-  assert.equal(decision.decision.snapshotRef, "https://root.example.com/snapshots/legacy");
-  assert.equal(decision.decision.evidenceRef, "https://root.example.com/evidence/legacy");
-  assert.equal(JSON.stringify(decision).includes("secret-token"), false);
-  assert.equal(JSON.stringify(decision).includes("raw-openid"), false);
-  assert.equal(JSON.stringify(decision).includes("13800000000"), false);
-  assert.equal(repeatedDecision.idempotent, true);
-  assert.equal(approvedProduction.evidence.legacyDataMigration.status, "BLOCKED");
-  assert.equal(approvedProduction.evidence.legacyDataMigration.decision.policy, "READ_ONLY_ARCHIVE");
-  assert.ok(approvedProduction.evidence.legacyDataMigration.blockers.some((item) => item.includes("ARCHIVE_CONFIRMED")));
-  assert.equal(store.auditLogs[0].action, "LEGACY_DATA_MIGRATION_DECISION_RECORD");
-
-  const execution = domain.recordLegacyDataMigrationExecution(store, {
-    target: "production",
-    action: "ARCHIVE_CONFIRMED",
-    status: "VERIFIED",
-    evidenceRef: "https://root.example.com/evidence/legacy-execution?token=secret-token",
-    note: "旧数据只读归档执行完成 openid=raw-openid 13800000000",
-    affectedSessionCount: 1,
-    affectedFactCount: 2,
-    requestId: "legacy-migration-execution-1",
-    operatorId: "release-engineer",
-  }).data;
-  const repeatedExecution = domain.recordLegacyDataMigrationExecution(store, {
-    target: "production",
-    action: "ARCHIVE_CONFIRMED",
-    status: "VERIFIED",
-    requestId: "legacy-migration-execution-1",
-  }).data;
-  const executedProduction = domain.getReleaseRecord(store, { env: {}, target: "production" }).data;
-  assert.equal(execution.execution.status, "VERIFIED");
-  assert.equal(execution.execution.action, "ARCHIVE_CONFIRMED");
-  assert.equal(execution.execution.snapshotRef, "https://root.example.com/snapshots/legacy");
-  assert.equal(execution.execution.evidenceRef, "https://root.example.com/evidence/legacy-execution");
-  assert.equal(execution.execution.affectedSessionCount, 1);
-  assert.equal(JSON.stringify(execution).includes("secret-token"), false);
-  assert.equal(JSON.stringify(execution).includes("raw-openid"), false);
-  assert.equal(JSON.stringify(execution).includes("13800000000"), false);
-  assert.equal(repeatedExecution.idempotent, true);
-  assert.equal(executedProduction.evidence.legacyDataMigration.status, "READY");
-  assert.equal(executedProduction.evidence.legacyDataMigration.execution.status, "VERIFIED");
-  assert.equal(store.auditLogs[0].action, "LEGACY_DATA_MIGRATION_EXECUTION_RECORD");
-  assert.equal(validateSnapshot(store, { seedSampleData: true }).valid, true);
-
-  domain.recordLegacyDataMigrationDecision(store, {
-    target: "production",
-    policy: "READ_ONLY_ARCHIVE",
-    status: "REJECTED",
-    snapshotRef: "https://root.example.com/snapshots/rejected",
-    evidenceRef: "https://root.example.com/evidence/rejected",
-    note: "等待运营复核",
-    requestId: "legacy-migration-decision-rejected",
-  });
-  const rejectedProduction = domain.getReleaseRecord(store, { env: {}, target: "production" }).data;
-  assert.equal(rejectedProduction.evidence.legacyDataMigration.status, "BLOCKED");
-  assert.equal(rejectedProduction.evidence.legacyDataMigration.decision.status, "REJECTED");
-
-  store.checkinSessions.push({
-    session_id: "legacy_missing_user_session",
-    user_id: "missing_legacy_user",
-    order_id: "",
-    start_date: "2026-04-08",
-    end_date: "2026-04-14",
-    status: "COMPLETED",
-  });
-  const blocked = domain.getReleaseRecord(store, { env: {}, target: "gray" }).data;
-  assert.equal(blocked.evidence.legacyDataMigration.status, "BLOCKED");
-  assert.ok(blocked.mustFixBeforeRelease.some((item) => item.includes("missing_legacy_user") || item.includes("legacy_missing_user_session")));
 });
 
 test("external adapter sample reviews track coverage and unknown status values", () => {

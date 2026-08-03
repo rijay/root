@@ -205,7 +205,7 @@ test("formal Job HTTP Interfaces expose only retention and V1 runtime cycle", as
   assert.equal(runtimeCycle.code, 50351);
 });
 
-test("retired task, settlement, reward and reminder HTTP Interfaces return 404", async (t) => {
+test("retired task, settlement, reward, reminder and legacy-migration HTTP Interfaces return 404", async (t) => {
   const server = createApp({ env: { ROOT_ADMIN_TOKEN: "admin-secret" } });
   const baseUrl = await listen(server);
   t.after(() => server.close());
@@ -237,6 +237,10 @@ test("retired task, settlement, reward and reminder HTTP Interfaces return 404",
     ["POST", "/api/v1/admin/manual-reviews/batch-resolve"],
     ["POST", "/api/v1/admin/manual-reviews/review-retired/resolve"],
     ["POST", "/api/v1/admin/settlement-source-invalidations/candidate-retired/resolve"],
+    ["GET", "/api/v1/admin/legacy-data-migration-decisions"],
+    ["POST", "/api/v1/admin/legacy-data-migration-decisions"],
+    ["GET", "/api/v1/admin/legacy-data-migration-executions"],
+    ["POST", "/api/v1/admin/legacy-data-migration-executions"],
   ];
   for (const [method, route] of routes) {
     const response = await request(baseUrl, route, {
@@ -1785,10 +1789,7 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.ok(releaseRecord.data.evidence.productionCutoverReadiness.items.some((item) => item.proofEnv === "ROOT_CUTOVER_CLOUDBASE_UNIONID_VERIFIED"));
   assert.equal(releaseRecord.data.evidence.actionAdapterCalibration.status, "NEEDS_REVIEW");
   assert.equal(releaseRecord.data.evidence.actionAdapterCalibration.actions.length, 1);
-  assert.equal(releaseRecord.data.evidence.legacyDataMigration.status, "READY");
-  assert.equal(releaseRecord.data.evidence.legacyDataMigration.summary.legacySessionCount, 0);
-  assert.equal(releaseRecord.data.evidence.productionEvidenceIntake.items.length, 13);
-  assert.equal(releaseRecord.data.evidence.productionEvidenceIntake.items.find((item) => item.backlogId === "T-010").status, "READY");
+  assert.equal(releaseRecord.data.evidence.productionEvidenceIntake.items.length, 12);
   assert.equal(releaseRecord.data.evidence.cloudbaseStoreReadiness.status, "NEEDS_REVIEW");
   assert.equal(releaseRecord.data.evidence.cloudbaseStoreReadiness.selectedDecision, "UNDECIDED");
   assert.equal(releaseRecord.data.evidence.rootMemberCenterReadiness.status, "NEEDS_REVIEW");
@@ -1796,7 +1797,7 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.equal(releaseRecord.data.signoffGate.status, "NEEDS_REVIEW");
   assert.equal(releaseRecord.data.signoffGate.summary.pendingCount, 3);
   assert.equal(releaseRecord.data.mustFixBeforeRelease.length, releaseRecord.data.checklist.mustFixBeforeRelease.length);
-  assert.ok(releaseRecord.data.rollback.some((item) => item.includes("MANUAL_SAMPLE")));
+  assert.ok(releaseRecord.data.rollback.some((item) => item.includes("Store 快照")));
 
   const evidencePack = await request(baseUrl, "/api/v1/admin/release-evidence-pack?target=gray&baseUrl=https%3A%2F%2Froot.example.com%3Ftoken%3Dsecret&strict=true");
   assert.equal(evidencePack.code, 0);
@@ -1815,10 +1816,8 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.equal(evidencePack.data.pack.evidence.productionCutoverReadiness.summary.requiredProofCount, 13);
   assert.equal(evidencePack.data.pack.summary.actionAdapterCalibrationStatus, "NEEDS_REVIEW");
   assert.equal(evidencePack.data.pack.evidence.actionAdapterCalibration.actions.length, 1);
-  assert.equal(evidencePack.data.pack.summary.legacyDataMigrationStatus, "READY");
-  assert.equal(evidencePack.data.pack.evidence.legacyDataMigration.summary.legacySessionCount, 0);
   assert.equal(evidencePack.data.pack.summary.productionEvidenceIntakeStatus, "BLOCKED");
-  assert.equal(evidencePack.data.pack.evidence.productionEvidenceIntake.items.length, 13);
+  assert.equal(evidencePack.data.pack.evidence.productionEvidenceIntake.items.length, 12);
   assert.equal(evidencePack.data.pack.summary.cloudbaseStoreStatus, "NEEDS_REVIEW");
   assert.equal(evidencePack.data.pack.evidence.cloudbaseStoreReadiness.selectedDecision, "UNDECIDED");
   assert.equal(evidencePack.data.pack.summary.rootMemberCenterStatus, "NEEDS_REVIEW");
@@ -1969,56 +1968,6 @@ test("serves the REST API and admin dashboard data", async (t) => {
     }),
   });
   const rootJumpProofs = await request(baseUrl, "/api/v1/admin/root-member-center-jump-proofs?target=gray");
-  const legacyDecision = await request(baseUrl, "/api/v1/admin/legacy-data-migration-decisions", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-legacy-data-migration-decision-1" },
-    body: JSON.stringify({
-      target: "gray",
-      policy: "NO_LEGACY_DATA",
-      status: "APPROVED",
-      evidenceRef: "https://root.example.com/legacy/no-data?token=secret",
-      note: "HTTP 无旧数据确认 openid=raw-openid",
-      requestId: "http-legacy-data-migration-decision-1",
-    }),
-  });
-  const legacyDecisionRepeated = await request(baseUrl, "/api/v1/admin/legacy-data-migration-decisions", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-legacy-data-migration-decision-1" },
-    body: JSON.stringify({
-      target: "gray",
-      policy: "NO_LEGACY_DATA",
-      status: "APPROVED",
-      evidenceRef: "https://root.example.com/legacy/no-data?token=secret",
-      note: "HTTP 无旧数据确认 openid=raw-openid",
-      requestId: "http-legacy-data-migration-decision-1",
-    }),
-  });
-  const legacyDecisions = await request(baseUrl, "/api/v1/admin/legacy-data-migration-decisions?target=gray");
-  const legacyExecution = await request(baseUrl, "/api/v1/admin/legacy-data-migration-executions", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-legacy-data-migration-execution-1" },
-    body: JSON.stringify({
-      target: "gray",
-      action: "NO_OP_CONFIRMED",
-      status: "VERIFIED",
-      evidenceRef: "https://root.example.com/legacy/execution?token=secret",
-      note: "HTTP 无旧数据执行确认 openid=raw-openid",
-      requestId: "http-legacy-data-migration-execution-1",
-    }),
-  });
-  const legacyExecutionRepeated = await request(baseUrl, "/api/v1/admin/legacy-data-migration-executions", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-legacy-data-migration-execution-1" },
-    body: JSON.stringify({
-      target: "gray",
-      action: "NO_OP_CONFIRMED",
-      status: "VERIFIED",
-      evidenceRef: "https://root.example.com/legacy/execution?token=secret",
-      note: "HTTP 无旧数据执行确认 openid=raw-openid",
-      requestId: "http-legacy-data-migration-execution-1",
-    }),
-  });
-  const legacyExecutions = await request(baseUrl, "/api/v1/admin/legacy-data-migration-executions?target=gray");
   const signedReleaseRecord = await request(baseUrl, "/api/v1/admin/release-record?target=gray");
   const evidencePackAfterArchive = await request(baseUrl, "/api/v1/admin/release-evidence-pack?target=gray&baseUrl=https%3A%2F%2Froot.example.com&strict=true");
   assert.equal(archivedEvidence.code, 0);
@@ -2057,16 +2006,6 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.equal(rootJumpProof.data.proof.evidenceRef, "https://root.example.com/root-member-center/jump");
   assert.equal(rootJumpProofRepeated.data.proof.proofId, rootJumpProof.data.proof.proofId);
   assert.equal(rootJumpProofs.data.latest.find((item) => item.productId === "ROOT_PREBIOTIC_TRIAL").status, "VERIFIED");
-  assert.equal(legacyDecision.code, 0);
-  assert.equal(legacyDecision.data.decision.status, "APPROVED");
-  assert.equal(legacyDecision.data.decision.evidenceRef, "https://root.example.com/legacy/no-data");
-  assert.equal(legacyDecisionRepeated.data.decision.decisionId, legacyDecision.data.decision.decisionId);
-  assert.equal(legacyDecisions.data.latest[0].policy, "NO_LEGACY_DATA");
-  assert.equal(legacyExecution.code, 0);
-  assert.equal(legacyExecution.data.execution.status, "VERIFIED");
-  assert.equal(legacyExecution.data.execution.evidenceRef, "https://root.example.com/legacy/execution");
-  assert.equal(legacyExecutionRepeated.data.execution.executionId, legacyExecution.data.execution.executionId);
-  assert.equal(legacyExecutions.data.latest[0].action, "NO_OP_CONFIRMED");
   assert.equal(signedReleaseRecord.data.signoffs.find((item) => item.role === "PRODUCT").status, "APPROVED");
   assert.equal(signedReleaseRecord.data.signoffGate.summary.approvedCount, 1);
   assert.equal(signedReleaseRecord.data.signoffGate.summary.pendingCount, 2);
@@ -2075,9 +2014,6 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.equal(signedReleaseRecord.data.evidence.adminTransitionReadiness.summary.deprecationSource, "RECORD");
   assert.equal(signedReleaseRecord.data.evidence.productionEvidenceIntake.items.find((item) => item.backlogId === "T-008").status, "READY");
   assert.equal(signedReleaseRecord.data.evidence.productionCutoverReadiness.items.find((item) => item.id === "cloudbase_unionid").proofSource, "RECORD");
-  assert.equal(signedReleaseRecord.data.evidence.legacyDataMigration.decision.status, "APPROVED");
-  assert.equal(signedReleaseRecord.data.evidence.legacyDataMigration.execution.status, "VERIFIED");
-  assert.equal(JSON.stringify(signedReleaseRecord.data.evidence.legacyDataMigration.execution).includes("raw-openid"), false);
   assert.equal(evidencePackAfterArchive.data.archives.length, 1);
   assert.equal(evidencePackAfterArchive.data.pack.evidence.signoffGate.summary.approvedCount, 1);
   assert.equal(evidencePackAfterArchive.data.pack.evidence.productionCutoverReadiness.summary.readyProofCount, 1);
@@ -2088,8 +2024,6 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.equal(JSON.stringify(rootJumpProof.data).includes("raw-openid"), false);
   assert.equal(JSON.stringify(adminLegacyDecision.data).includes("token=secret"), false);
   assert.equal(JSON.stringify(adminLegacyDecision.data).includes("raw-openid"), false);
-  assert.equal(JSON.stringify(legacyDecision.data).includes("token=secret"), false);
-  assert.equal(JSON.stringify(legacyDecision.data).includes("raw-openid"), false);
 
   const calibration = await request(baseUrl, "/api/v1/admin/adapter-calibration");
   const actionCalibration = await request(baseUrl, "/api/v1/admin/action-adapter-calibration?target=gray");
@@ -2103,7 +2037,7 @@ test("serves the REST API and admin dashboard data", async (t) => {
     launchReadiness: readiness.data,
     externalAdapters: adapters.data,
   });
-  assert.match(calibrationReport, /ROOT 7日打卡发布记录/);
+  assert.match(calibrationReport, /myRoot 正式上线发布记录/);
   assert.match(calibrationReport, /Adapter 校准/);
   assert.match(calibrationReport, /外部通道与负责人/);
   assert.match(calibrationReport, /生产切换 Gate/);

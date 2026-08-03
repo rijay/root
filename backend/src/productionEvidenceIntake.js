@@ -152,7 +152,6 @@ function buildProductionEvidenceIntake(input = {}) {
   const adminDecision = input.adminTransition && input.adminTransition.legacyDeprecationDecision
     ? input.adminTransition.legacyDeprecationDecision
     : {};
-  const legacyMigration = input.legacyMigration || {};
   const rows = [
     item({
       id: "wechat_unionid_probe",
@@ -275,27 +274,6 @@ function buildProductionEvidenceIntake(input = {}) {
         message: check.message,
       })),
       nextAction: "配置 ROOT_CLOUDBASE_STORE_DECISION、CloudBase 环境/地域、备份计划、回滚计划和生产证明引用。",
-    }),
-    item({
-      id: "legacy_data_execution",
-      backlogId: "T-010",
-      group: "data",
-      label: "旧 7 日试饮历史数据真实执行历史",
-      ownerRole: "研发/运营",
-      status: legacyMigration.status,
-      source: "legacyDataMigration",
-      signals: [{
-        id: "decision",
-        label: "生产处置决策",
-        status: legacyMigration.decision && legacyMigration.decision.status || "PENDING",
-        message: legacyMigration.decision && legacyMigration.decision.policy ? legacyMigration.decision.policy : "未录入生产处置决策",
-      }, {
-        id: "execution",
-        label: "执行历史",
-        status: legacyMigration.execution && legacyMigration.execution.status || "PENDING",
-        message: legacyMigration.execution && legacyMigration.execution.action ? legacyMigration.execution.action : "未录入真实执行历史",
-      }],
-      nextAction: "基于生产快照选择只读归档、选择性补迁或人工处理，并录入真实执行截图/链接或 CloudBase 留档。",
     }),
     item({
       id: "cloudrun_candidate_runtime",

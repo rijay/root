@@ -123,7 +123,6 @@ const {
   listImportBatches,
   listAdminLegacyDeprecationDecisions,
   listAdminYouzanCustomers,
-  listLegacyDataMigrationDecisions,
   listAdminLifecycleUserExports,
   listAuditLogs,
   listConsultationWeworkWritebacks,
@@ -132,7 +131,6 @@ const {
   listProducts,
   listProductionCutoverProofs,
   listRootMemberCenterJumpProofs,
-  listLegacyDataMigrationExecutions,
   listOperationTasks,
   markCouponUsed,
   matchOrder,
@@ -148,8 +146,6 @@ const {
   recordConsultationWeworkWriteback,
   recordAdminLegacyDeprecationDecision,
   recordCouponRepurchaseClick,
-  recordLegacyDataMigrationDecision,
-  recordLegacyDataMigrationExecution,
   recordProductionCutoverProof,
   recordRootMemberCenterJumpProof,
   recordProductJump,
@@ -1856,30 +1852,6 @@ function createApp(options = {}) {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
         const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
         return ok(res, withIdempotency(data, req, () => recordRootMemberCenterJumpProof(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }), requestId));
-      }
-      if (route === "GET /api/v1/admin/legacy-data-migration-decisions") {
-        return ok(res, listLegacyDataMigrationDecisions(data, Object.fromEntries(url.searchParams)));
-      }
-      if (route === "POST /api/v1/admin/legacy-data-migration-decisions") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => recordLegacyDataMigrationDecision(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }), requestId));
-      }
-      if (route === "GET /api/v1/admin/legacy-data-migration-executions") {
-        return ok(res, listLegacyDataMigrationExecutions(data, Object.fromEntries(url.searchParams)));
-      }
-      if (route === "POST /api/v1/admin/legacy-data-migration-executions") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => recordLegacyDataMigrationExecution(data, {
           ...body,
           operatorId: adminOperatorId(adminPrincipal, body),
           requestId,
