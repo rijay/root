@@ -15,6 +15,10 @@ const requiredFiles = [
   "src/api/client.js",
   "src/modules/access.js",
   "src/modules/release/ReleaseWorkbench.vue",
+  "src/modules/content/WelcomeContentPage.vue",
+  "src/modules/content/HomeCarouselPage.vue",
+  "src/modules/content/SharedDetailPage.vue",
+  "src/modules/content/adminContentApi.js",
   "src/modules/activities/ActivityWorkbench.vue",
   "src/modules/activities/adminActivityApi.js",
   "src/modules/users/UserQueryPage.vue",
@@ -59,6 +63,9 @@ for (const value of [
   "UserQueryPage",
   "ActivityWorkbench",
   "ReleaseWorkbench",
+  "WelcomeContentPage",
+  "HomeCarouselPage",
+  "SharedDetailPage",
   "AuditLogPage",
 ]) assert.equal(app.includes(value), true, `App must include ${value}`);
 for (const value of [
@@ -97,6 +104,37 @@ for (const value of [
 ]) assert.equal(releasePage.includes(value), false, `release workbench must not expose ${value}`);
 assert.equal(releaseApi.includes("/api/v1/admin/content-release/publish"), true);
 
+const welcomePage = read("src/modules/content/WelcomeContentPage.vue");
+const carouselPage = read("src/modules/content/HomeCarouselPage.vue");
+const detailPage = read("src/modules/content/SharedDetailPage.vue");
+const contentApi = read("src/modules/content/adminContentApi.js");
+for (const value of ["[emptyScreen(1), emptyScreen(2)]", "不支持新增第三屏", "600KB", "安全区", "保存草稿"]) {
+  assert.equal(welcomePage.includes(value), true, `welcome content must include ${value}`);
+}
+for (const value of ["搜索内部名称或展示文案", "关联共用详情", "2 行", "3 行", "600KB", "500KB", "安全区", "AbortController", "300"]) {
+  assert.equal(carouselPage.includes(value), true, `home carousel must include ${value}`);
+}
+for (const value of [
+  "MINIPROGRAM_PAGE",
+  "ROOT_MEMBER_CENTER",
+  "WEBVIEW_ALLOWLIST",
+  "热点只负责内容跳转",
+  "安全区",
+  "AbortController",
+  "startHotspot",
+  "validationStatus !== \"PASS\"",
+]) assert.equal(detailPage.includes(value), true, `shared detail must include ${value}`);
+for (const value of ["script", "style", "javascript:"]) {
+  assert.equal(contentApi.includes(value), false, `content Interface must not expose arbitrary ${value}`);
+}
+for (const route of [
+  "/api/v1/admin/content/welcome",
+  "/api/v1/admin/content/home-carousel",
+  "/api/v1/admin/content/shared-details",
+  "/api/v1/admin/content/targets/validate",
+  "/api/v1/admin/content/assets",
+]) assert.equal(contentApi.includes(route), true, `content Interface must include ${route}`);
+
 const access = read("src/modules/access.js");
 for (const capability of [
   "ADMIN_READ",
@@ -115,7 +153,7 @@ for (const capability of [
 ]) assert.equal(access.includes(capability), false, `access must remove ${capability}`);
 
 const client = read("src/api/client.js");
-for (const value of ["ROOT_ADMIN_TOKEN", "sessionStorage", "outcomeUnknown", "postAdminRead", "readOnly: true"]) {
+for (const value of ["ROOT_ADMIN_TOKEN", "sessionStorage", "outcomeUnknown", "postAdminRead", "postAdminForm", "ADMIN_ABORTED", "readOnly: true"]) {
   assert.equal(client.includes(value), true, `admin request module must include ${value}`);
 }
 

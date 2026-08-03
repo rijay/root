@@ -74,6 +74,9 @@
             ref="activeWorkbench"
             @release-meta="updateReleaseMeta"
           />
+          <WelcomeContentPage v-else-if="currentModuleKey === 'welcome'" ref="activeWorkbench" />
+          <HomeCarouselPage v-else-if="currentModuleKey === 'home'" ref="activeWorkbench" />
+          <SharedDetailPage v-else-if="currentModuleKey === 'details'" ref="activeWorkbench" />
           <ActivityWorkbench v-else-if="currentModuleKey === 'activities'" ref="activeWorkbench" />
           <UserQueryPage v-else-if="currentModuleKey === 'users'" ref="activeWorkbench" />
           <AuditLogPage v-else-if="currentModuleKey === 'audit'" ref="activeWorkbench" />
@@ -90,6 +93,9 @@ import { ADMIN_ACCESS_KEY, ADMIN_CAPABILITIES, createAdminAccess } from "./modul
 
 const ADMIN_MODULES = [
   { key: "release", label: "发布工作台", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
+  { key: "welcome", label: "欢迎页", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
+  { key: "home", label: "首页轮播", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
+  { key: "details", label: "共用详情", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
   {
     key: "activities",
     label: "活动管理",
@@ -109,9 +115,9 @@ const navigationGroups = [
   {
     label: "内容运营",
     items: [
-      { key: "welcome", label: "欢迎页", disabled: true },
-      { key: "home", label: "首页轮播", disabled: true },
-      { key: "details", label: "共用详情", disabled: true },
+      { key: "welcome", label: "欢迎页" },
+      { key: "home", label: "首页轮播" },
+      { key: "details", label: "共用详情" },
     ],
   },
   {
@@ -140,6 +146,9 @@ const navigationGroups = [
 ];
 
 const ReleaseWorkbench = defineAsyncComponent(() => import("./modules/release/ReleaseWorkbench.vue"));
+const WelcomeContentPage = defineAsyncComponent(() => import("./modules/content/WelcomeContentPage.vue"));
+const HomeCarouselPage = defineAsyncComponent(() => import("./modules/content/HomeCarouselPage.vue"));
+const SharedDetailPage = defineAsyncComponent(() => import("./modules/content/SharedDetailPage.vue"));
 const ActivityWorkbench = defineAsyncComponent(() => import("./modules/activities/ActivityWorkbench.vue"));
 const UserQueryPage = defineAsyncComponent(() => import("./modules/users/UserQueryPage.vue"));
 const AuditLogPage = defineAsyncComponent(() => import("./modules/audit/AuditLogPage.vue"));

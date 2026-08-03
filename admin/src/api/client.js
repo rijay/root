@@ -42,23 +42,43 @@ export async function adminRequest(path, options = {}) {
   const adminToken = getAdminToken();
   const method = String(options.method || "GET").toUpperCase();
   const isRead = options.readOnly === true || method === "GET";
-  const { readOnly: _, ...requestOptions } = options;
+  const {
+    readOnly: _,
+    timeoutMs: __,
+    signal: externalSignal,
+    ...requestOptions
+  } = options;
+  const isFormBody = typeof FormData !== "undefined" && requestOptions.body instanceof FormData;
   const controller = new AbortController();
   const timeoutMs = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 15000;
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const abortFromCaller = () => controller.abort();
+  if (externalSignal?.aborted) controller.abort();
+  else externalSignal?.addEventListener("abort", abortFromCaller, { once: true });
+  const cleanup = () => {
+    clearTimeout(timeout);
+    externalSignal?.removeEventListener("abort", abortFromCaller);
+  };
   let response;
   try {
     response = await fetch(path, {
       ...requestOptions,
       signal: controller.signal,
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormBody ? {} : { "Content-Type": "application/json" }),
         ...(adminToken ? { "X-Admin-Token": adminToken } : {}),
         ...(requestOptions.headers || {}),
       },
     });
   } catch (_) {
-    clearTimeout(timeout);
+    cleanup();
+    if (externalSignal?.aborted) {
+      const error = new Error("后台读取已取消");
+      error.code = "ADMIN_ABORTED";
+      error.status = 0;
+      error.outcomeUnknown = false;
+      throw error;
+    }
     const error = new Error(isRead ? "后台连接失败" : "后台写入结果待确认，请先刷新权威记录");
     error.code = "ADMIN_NETWORK_ERROR";
     error.status = 0;
@@ -69,10 +89,17 @@ export async function adminRequest(path, options = {}) {
   try {
     payload = await response.json();
   } catch (_) {
-    clearTimeout(timeout);
+    cleanup();
+    if (externalSignal?.aborted) {
+      const error = new Error("后台读取已取消");
+      error.code = "ADMIN_ABORTED";
+      error.status = 0;
+      error.outcomeUnknown = false;
+      throw error;
+    }
     throw invalidResponseEnvelope(isRead, response.status);
   }
-  clearTimeout(timeout);
+  cleanup();
   if (!payload
     || typeof payload !== "object"
     || Array.isArray(payload)
@@ -117,5 +144,14 @@ export function postAdminRead(path, body, options = {}) {
     readOnly: true,
     headers: options.headers || {},
     body: JSON.stringify(body || {}),
+  });
+}
+
+export function postAdminForm(path, body, options = {}) {
+  return adminRequest(path, {
+    ...options,
+    method: "POST",
+    headers: options.headers || {},
+    body,
   });
 }

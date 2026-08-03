@@ -10,7 +10,7 @@ globalThis.window = {
   },
 };
 
-const { adminRequest, getAdminToken, postAdminRead, setAdminToken } = await import("../src/api/client.js");
+const { adminRequest, getAdminToken, postAdminForm, postAdminRead, setAdminToken } = await import("../src/api/client.js");
 
 function response(payload, { status = 200, ok = status >= 200 && status < 300 } = {}) {
   return { status, ok, async json() { return payload; } };
@@ -56,6 +56,19 @@ test("a POST read failure is definitive and does not leak its body into the URL"
   assert.equal(requestedPath.includes("13800138000"), false);
 });
 
+test("multipart upload lets the runtime supply its content boundary", async () => {
+  let requestOptions;
+  globalThis.fetch = async (_path, options) => {
+    requestOptions = options;
+    return response({ code: 0, data: { assetId: "asset-1" } });
+  };
+  const form = new FormData();
+  form.set("scope", "content");
+  const result = await postAdminForm("/api/v1/admin/content/assets", form);
+  assert.equal(result.assetId, "asset-1");
+  assert.equal(Object.hasOwn(requestOptions.headers, "Content-Type"), false);
+});
+
 test("a stalled POST response body times out as outcome-unknown", async () => {
   globalThis.fetch = async (_path, options) => ({
     status: 200,
@@ -69,6 +82,19 @@ test("a stalled POST response body times out as outcome-unknown", async () => {
   await assert.rejects(
     adminRequest("/write", { method: "POST", timeoutMs: 5 }),
     (error) => error.code === "ADMIN_RESPONSE_INVALID" && error.outcomeUnknown === true,
+  );
+});
+
+test("a caller-cancelled read is definitive and distinguishable from a network failure", async () => {
+  globalThis.fetch = async (_path, options) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+  });
+  const controller = new AbortController();
+  const request = adminRequest("/api/v1/admin/content/home-carousel", { signal: controller.signal });
+  controller.abort();
+  await assert.rejects(
+    request,
+    (error) => error.code === "ADMIN_ABORTED" && error.outcomeUnknown === false,
   );
 });
 
