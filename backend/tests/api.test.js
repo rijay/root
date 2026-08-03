@@ -557,7 +557,6 @@ test("MySQL migrations use a database-scoped advisory lock", async () => {
 test("cloudbase job manifest captures scheduled job Interface and environment seams", () => {
   const manifest = buildCloudbaseJobManifest({
     baseUrl: "https://root.example.com",
-    campaignId: "ROOT_7D_RESET",
   });
   const validation = validateCloudbaseJobManifest(manifest, { strict: true });
   const report = buildCloudbaseJobManifestReport(manifest, validation);
@@ -569,96 +568,40 @@ test("cloudbase job manifest captures scheduled job Interface and environment se
     "ROOT_ADMIN_JOB_TOKEN",
     "ROOT_ADMIN_JOB_TOKENS",
   ]]);
-  assert.deepEqual(manifest.jobs.map((job) => job.id), ["adapter_retry_due", "operational_alerts", "checkin_reminders", "wework_touch_due", "lifecycle_settlement_due", "lifecycle_settlement_cleanup", "lifecycle_users_export", "lifecycle_user_exports_delivery_retry", "lifecycle_user_exports_cleanup", "health_data_retention_cleanup", "youzan_identity_reconcile", "v1_runtime_cycle"]);
+  assert.deepEqual(manifest.jobs.map((job) => job.id), ["health_data_retention_cleanup", "v1_runtime_cycle"]);
   assert.ok(manifest.jobs.every((job) => job.http.method === "POST"));
   assert.ok(manifest.jobs.every((job) => job.http.path.startsWith("/api/v1/jobs/")));
-  assert.match(manifest.jobs[0].executeCommand, /npm run adapter-retry/);
-  assert.match(manifest.jobs[1].executeCommand, /npm run operational-alerts/);
-  assert.match(manifest.jobs[1].dryRunCommand, /ROOT_ALERT_CAMPAIGN_ID=ROOT_7D_RESET/);
-  assert.match(manifest.jobs[2].executeCommand, /npm run checkin-reminders/);
-  assert.equal(manifest.jobs[2].schedule.cron, "*/10 * * * *");
-  assert.equal(manifest.jobs[2].http.path, "/api/v1/jobs/checkin-reminders");
-  assert.equal(manifest.jobs[2].http.body.limit, 50);
-  assert.match(manifest.jobs[3].executeCommand, /npm run wework-touch/);
-  assert.equal(manifest.jobs[3].schedule.cron, "*/10 * * * *");
-  assert.equal(manifest.jobs[3].http.path, "/api/v1/jobs/wework-touch-due");
-  assert.equal(manifest.jobs[3].http.body.cooldownHours, 24);
-  assert.equal(manifest.jobs[3].http.body.adapterMode, "AUTO");
-  assert.match(manifest.jobs[4].executeCommand, /npm run lifecycle-settlement/);
-  assert.equal(manifest.jobs[4].http.path, "/api/v1/jobs/lifecycle-settlement-due");
-  assert.equal(manifest.jobs[4].http.body.batchSize, 20);
-  assert.match(manifest.jobs[5].executeCommand, /npm run lifecycle-settlement-cleanup/);
-  assert.equal(manifest.jobs[5].http.path, "/api/v1/jobs/lifecycle-settlement-cleanup");
-  assert.equal(manifest.jobs[5].http.body.allowCancel, false);
-  assert.match(manifest.jobs[6].executeCommand, /npm run lifecycle-users-export/);
-  assert.match(manifest.jobs[6].executeCommand, /--sensitivity MASKED/);
-  assert.equal(manifest.jobs[6].http.path, "/api/v1/jobs/lifecycle-users-export");
-  assert.equal(manifest.jobs[6].http.body.retentionDays, 7);
-  assert.equal(manifest.jobs[6].http.body.sensitivity, "MASKED");
-  assert.equal(manifest.jobs[6].http.body.approvalRequired, false);
-  assert.equal(manifest.jobs[6].http.body.deliveryEnabled, false);
-  assert.equal(manifest.jobs[6].http.body.deliveryChannel, "NONE");
-  assert.match(manifest.jobs[7].executeCommand, /npm run lifecycle-user-exports-delivery-retry/);
-  assert.equal(manifest.jobs[7].http.path, "/api/v1/jobs/lifecycle-user-exports-delivery-retry");
-  assert.equal(manifest.jobs[7].http.body.deliveryMaxAttempts, 3);
-  assert.match(manifest.jobs[8].executeCommand, /npm run lifecycle-user-exports-cleanup/);
-  assert.equal(manifest.jobs[8].http.path, "/api/v1/jobs/lifecycle-user-exports-cleanup");
-  assert.equal(manifest.jobs[8].http.body.objectCleanup, true);
-  assert.match(manifest.jobs[9].executeCommand, /npm run health-data-retention-cleanup/);
-  assert.equal(manifest.jobs[9].schedule.cron, "15 4 * * *");
-  assert.equal(manifest.jobs[9].http.path, "/api/v1/jobs/health-data-retention-cleanup");
-  assert.equal(manifest.jobs[9].http.body.objectCleanup, true);
-  assert.match(manifest.jobs[10].executeCommand, /npm run youzan-identity-reconcile/);
-  assert.equal(manifest.jobs[10].schedule.cron, "25 * * * *");
-  assert.equal(manifest.jobs[10].http.path, "/api/v1/jobs/youzan-identity-reconcile");
-  assert.equal(manifest.jobs[10].http.body.batchSize, 5);
-  assert.equal(manifest.jobs[11].schedule.cron, "* * * * *");
-  assert.equal(manifest.jobs[11].http.path, "/api/v1/jobs/v1-runtime-cycle");
-  assert.equal(manifest.jobs[11].http.body.dryRun, true);
-  assert.equal(manifest.jobs[11].invocation.mode, "CLOUDBASE_TIMER_ONLY");
-  assert.equal(manifest.jobs[11].invocation.functionName, "myroot-v1-runtime-scheduler");
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_LIMIT"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_CLEANUP_LIMIT"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_SENSITIVITY"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_APPROVAL_REQUIRED"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_CHANNEL"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_URL"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_CHANNEL"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_TEMPLATE"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_TIMEOUT_MS"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_RETRY_BATCH_SIZE"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_MAX_ATTEMPTS"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_RETRY_DELAY_SECONDS"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DOWNLOAD_SECRET"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_SIGNED_DOWNLOAD_ENABLED"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_SIGNED_DOWNLOAD_TTL_SECONDS"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_OBJECT_CLEANUP_ENABLED"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_OBJECT_DIR"), true);
+  assert.match(manifest.jobs[0].executeCommand, /npm run health-data-retention-cleanup/);
+  assert.equal(manifest.jobs[0].schedule.cron, "15 4 * * *");
+  assert.equal(manifest.jobs[0].http.path, "/api/v1/jobs/health-data-retention-cleanup");
+  assert.equal(manifest.jobs[0].http.body.objectCleanup, true);
+  assert.equal(manifest.jobs[1].schedule.cron, "* * * * *");
+  assert.equal(manifest.jobs[1].http.path, "/api/v1/jobs/v1-runtime-cycle");
+  assert.equal(manifest.jobs[1].http.body.dryRun, true);
+  assert.equal(manifest.jobs[1].invocation.mode, "CLOUDBASE_TIMER_ONLY");
+  assert.equal(manifest.jobs[1].invocation.functionName, "myroot-v1-runtime-scheduler");
   assert.equal(manifest.environment.optionalEnv.includes("ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED"), true);
   assert.equal(manifest.environment.optionalEnv.includes("ROOT_HEALTH_DATA_RETENTION_CLEANUP_LIMIT"), true);
   assert.equal(manifest.environment.optionalEnv.includes("ROOT_PRIVACY_CONTROLLER_NAME"), true);
   assert.equal(manifest.environment.optionalEnv.includes("ROOT_PRIVACY_CONTACT"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_CHECKIN_REMINDER_TEMPLATE_ID"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_WEWORK_TOUCH_COOLDOWN_HOURS"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_WEWORK_TOUCH_TEMPLATES"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("WEWORK_TOUCH_SEND_URL"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("WEWORK_TOUCH_ACCESS_TOKEN"), true);
-  assert.match(report, /ROOT CloudBase Job 发布 Manifest/);
-  assert.match(report, /adapter_retry_due/);
-  assert.match(report, /checkin_reminders/);
-  assert.match(report, /wework_touch_due/);
-  assert.match(report, /lifecycle_settlement_due/);
-  assert.match(report, /lifecycle_settlement_cleanup/);
-  assert.match(report, /lifecycle_users_export/);
-  assert.match(report, /lifecycle_user_exports_delivery_retry/);
-  assert.match(report, /lifecycle_user_exports_cleanup/);
+  assert.equal(manifest.environment.optionalEnv.includes("ROOT_V1_RUNTIME_SCHEDULER_DRY_RUN"), true);
+  assert.equal(manifest.environment.optionalEnv.some((name) => /CHECKIN|LIFECYCLE|WEWORK|YOUZAN|ADAPTER_RETRY/.test(name)), false);
+  assert.match(report, /ROOT 正式上线定时任务 Manifest/);
   assert.match(report, /health_data_retention_cleanup/);
   assert.match(report, /v1_runtime_cycle/);
-  assert.equal(parseCloudbaseJobManifestArgs(["--base-url", "https://job.example.com/", "--campaign", "ROOT_CANARY"]).baseUrl, "https://job.example.com");
-  assert.equal(parseCloudbaseJobManifestArgs(["--lifecycle-campaign", "ROOT_LIVE"]).lifecycleCampaignId, "ROOT_LIVE");
-  assert.equal(parseCloudbaseJobManifestArgs(["--lifecycle-export-campaign", "ROOT_EXPORT"]).lifecycleExportCampaignId, "ROOT_EXPORT");
+  assert.equal(parseCloudbaseJobManifestArgs(["--base-url", "https://job.example.com/"]).baseUrl, "https://job.example.com");
   assert.equal(resolveCloudbaseJobBaseUrl({ ROOT_JOB_BASE_URL: "https://job.example.com/", ROOT_PUBLIC_BASE_URL: "https://public.example.com" }), "https://job.example.com");
+  const legacyMutation = JSON.parse(JSON.stringify(manifest));
+  legacyMutation.jobs.push({
+    id: "checkin_reminders",
+    schedule: { cron: "*/10 * * * *" },
+    http: { method: "POST", path: "/api/v1/jobs/checkin-reminders" },
+    requiredEnv: ["ROOT_JOB_BASE_URL"],
+  });
+  assert.equal(validateCloudbaseJobManifest(legacyMutation, { strict: true }).status, "FAIL");
+  const versionMutation = JSON.parse(JSON.stringify(manifest));
+  versionMutation.version = 1;
+  assert.equal(validateCloudbaseJobManifest(versionMutation, { strict: true }).status, "FAIL");
 });
 
 test("Element Plus admin dist can resolve from bundled deploy artifact", (t) => {

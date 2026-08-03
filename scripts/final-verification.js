@@ -339,16 +339,6 @@ function cloudbaseConfigSecretCheck() {
 }
 
 const EXPECTED_CLOUDBASE_TRIGGER_CONTRACTS = Object.freeze([
-  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "adapter_retry_due", type: "timer", cron: "0 */10 * * * * *" },
-  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "operational_alerts", type: "timer", cron: "0 */30 * * * * *" },
-  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "checkin_reminders", type: "timer", cron: "0 */10 * * * * *" },
-  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "wework_touch_due", type: "timer", cron: "0 */10 * * * * *" },
-  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "lifecycle_settlement_due", type: "timer", cron: "0 */15 * * * * *" },
-  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "lifecycle_settlement_cleanup", type: "timer", cron: "0 5 * * * * *" },
-  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "lifecycle_users_export", type: "timer", cron: "0 30 9 * * * *" },
-  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "lifecycle_user_exports_delivery_retry", type: "timer", cron: "0 */20 * * * * *" },
-  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "lifecycle_user_exports_cleanup", type: "timer", cron: "0 45 3 * * * *" },
-  { functionName: "myroot-job-dispatcher", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "youzan_identity_reconcile", type: "timer", cron: "0 25 * * * * *" },
   { functionName: "myroot-health-retention", sourceDir: "cloudfunctions/myroot-job-dispatcher", triggerName: "health_data_retention_cleanup", type: "timer", cron: "0 15 4 * * * *" },
   { functionName: "myroot-v1-runtime-scheduler", sourceDir: "cloudfunctions/myroot-v1-runtime-scheduler", triggerName: "v1_runtime_cycle", type: "timer", cron: "0 * * * * * *" },
 ]);
@@ -389,23 +379,27 @@ function cloudbaseTriggerContractMutationSelfCheck(functions) {
     .triggers.find((trigger) => trigger.name === triggerName);
   return [
     mutate((candidate) => {
-      getTrigger(candidate, "myroot-job-dispatcher", "adapter_retry_due").config = "* * * * * * *";
+      getTrigger(candidate, "myroot-health-retention", "health_data_retention_cleanup").config = "* * * * * * *";
     }),
     mutate((candidate) => {
-      const alerts = getTrigger(candidate, "myroot-job-dispatcher", "operational_alerts");
-      const settlement = getTrigger(candidate, "myroot-job-dispatcher", "lifecycle_settlement_due");
-      [alerts.config, settlement.config] = [settlement.config, alerts.config];
-    }),
-    mutate((candidate) => {
-      getTrigger(candidate, "myroot-job-dispatcher", "checkin_reminders").type = "http";
+      getTrigger(candidate, "myroot-health-retention", "health_data_retention_cleanup").type = "http";
     }),
     mutate((candidate) => {
       candidate.find((fn) => fn.name === "myroot-health-retention").dir = "cloudfunctions/myroot-health-retention";
     }),
     mutate((candidate) => {
-      const runtime = candidate.find((fn) => fn.name === "myroot-v1-runtime-scheduler");
-      const dispatcher = candidate.find((fn) => fn.name === "myroot-job-dispatcher");
-      dispatcher.triggers.push(runtime.triggers.pop());
+      candidate.find((fn) => fn.name === "myroot-health-retention").triggers.push({
+        name: "legacy_job",
+        type: "timer",
+        config: "0 * * * * * *",
+      });
+    }),
+    mutate((candidate) => {
+      candidate.find((fn) => fn.name === "myroot-job-dispatcher").triggers.push({
+        name: "legacy_job",
+        type: "timer",
+        config: "0 * * * * * *",
+      });
     }),
   ].every(Boolean);
 }
@@ -415,7 +409,7 @@ function cloudbaseTriggerTopologyCheck() {
   const configPath = path.join(projectRoot, "cloudbaserc.json");
   const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
   const functions = Array.isArray(config.functions) ? config.functions : [];
-  const primary = functions.find((item) => item.name === "myroot-job-dispatcher");
+  const retiredDispatcher = functions.find((item) => item.name === "myroot-job-dispatcher");
   const retention = functions.find((item) => item.name === "myroot-health-retention");
   const runtimeScheduler = functions.find((item) => item.name === "myroot-v1-runtime-scheduler");
   const triggerGroups = functions.map((item) => ({
@@ -440,14 +434,14 @@ function cloudbaseTriggerTopologyCheck() {
     baseUrl: "https://runtime.example.test",
   }).jobs.map((job) => job.id).sort();
   const configuredFunctionContracts = [
-    [primary, "cloudfunctions/myroot-job-dispatcher", 10],
+    [retiredDispatcher, "cloudfunctions/myroot-job-dispatcher", 0],
     [retention, "cloudfunctions/myroot-job-dispatcher", 1],
     [runtimeScheduler, "cloudfunctions/myroot-v1-runtime-scheduler", 1],
   ];
   const checks = [
     {
-      id: "three_function_topology",
-      status: functions.length === 3 && primary && retention && runtimeScheduler ? "PASS" : "FAIL",
+      id: "three_artifact_two_job_topology",
+      status: functions.length === 3 && retiredDispatcher && retention && runtimeScheduler ? "PASS" : "FAIL",
     },
     {
       id: "per_function_trigger_limit",
@@ -467,8 +461,8 @@ function cloudbaseTriggerTopologyCheck() {
       ))) ? "PASS" : "FAIL",
     },
     {
-      id: "twelve_unique_triggers",
-      status: triggerNames.length === 12 && uniqueTriggerNames.size === 12 &&
+      id: "two_unique_triggers",
+      status: triggerNames.length === 2 && uniqueTriggerNames.size === 2 &&
         expectedTriggerNames.every((name) => uniqueTriggerNames.has(name)) ? "PASS" : "FAIL",
     },
     ...triggerContractChecks,
@@ -484,6 +478,11 @@ function cloudbaseTriggerTopologyCheck() {
       id: "health_retention_isolated",
       status: retention && retention.triggers.length === 1 &&
         retention.triggers[0].name === "health_data_retention_cleanup" ? "PASS" : "FAIL",
+    },
+    {
+      id: "retired_dispatcher_inert",
+      status: retiredDispatcher && retiredDispatcher.triggers.length === 0 &&
+        Object.keys(DISPATCHER_JOBS).every((id) => id === "health_data_retention_cleanup") ? "PASS" : "FAIL",
     },
     {
       id: "v1_runtime_timer_isolated",
@@ -505,15 +504,15 @@ function cloudbaseTriggerTopologyCheck() {
         : "FAIL",
     },
     {
-      id: "shared_dispatcher_source",
-      status: primary && retention && primary.dir === "cloudfunctions/myroot-job-dispatcher" &&
-        retention.dir === primary.dir && fs.existsSync(path.join(projectRoot, primary.dir, "index.js")) ? "PASS" : "FAIL",
+      id: "retention_scheduler_source",
+      status: retention && retention.dir === "cloudfunctions/myroot-job-dispatcher" &&
+        fs.existsSync(path.join(projectRoot, retention.dir, "index.js")) ? "PASS" : "FAIL",
     },
   ];
   const failures = checks.filter((check) => check.status !== "PASS");
   return {
     label: "CloudBase trigger topology",
-    command: "validate 12 Jobs across three CloudBase functions and the 10-trigger-per-function limit",
+    command: "validate two formal-launch Jobs and one inert deployment artifact",
     status: failures.length ? "FAIL" : "PASS",
     code: failures.length ? 1 : 0,
     durationMs: Date.now() - startedAt,
@@ -535,81 +534,6 @@ function cloudbaseJobManifestCheck() {
       status: validation.status === "PASS" ? "PASS" : "FAIL",
     },
     {
-      id: "adapter_retry_job",
-      status: manifest.jobs.some((job) =>
-        job.id === "adapter_retry_due" &&
-        job.schedule.cron === "*/10 * * * *" &&
-        job.executeCommand.includes("npm run adapter-retry") &&
-        job.http.path === "/api/v1/jobs/adapter-retry-due") ? "PASS" : "FAIL",
-    },
-    {
-      id: "operational_alert_job",
-      status: manifest.jobs.some((job) =>
-        job.id === "operational_alerts" &&
-        job.schedule.cron === "*/30 * * * *" &&
-        job.executeCommand.includes("npm run operational-alerts") &&
-        job.http.path === "/api/v1/jobs/operational-alerts") ? "PASS" : "FAIL",
-    },
-    {
-      id: "wework_touch_job",
-      status: manifest.jobs.some((job) =>
-        job.id === "wework_touch_due" &&
-        job.schedule.cron === "*/10 * * * *" &&
-        job.executeCommand.includes("npm run wework-touch") &&
-        job.http.path === "/api/v1/jobs/wework-touch-due" &&
-        job.http.body.cooldownHours === 24 &&
-        job.http.body.adapterMode === "AUTO") ? "PASS" : "FAIL",
-    },
-    {
-      id: "lifecycle_settlement_job",
-      status: manifest.jobs.some((job) =>
-        job.id === "lifecycle_settlement_due" &&
-        job.schedule.cron === "*/15 * * * *" &&
-        job.executeCommand.includes("npm run lifecycle-settlement") &&
-        job.http.path === "/api/v1/jobs/lifecycle-settlement-due" &&
-        job.http.body.batchSize === 20) ? "PASS" : "FAIL",
-    },
-    {
-      id: "lifecycle_settlement_cleanup_job",
-      status: manifest.jobs.some((job) =>
-        job.id === "lifecycle_settlement_cleanup" &&
-        job.schedule.cron === "5 * * * *" &&
-        job.executeCommand.includes("npm run lifecycle-settlement-cleanup") &&
-        job.http.path === "/api/v1/jobs/lifecycle-settlement-cleanup" &&
-        job.http.body.allowCancel === false) ? "PASS" : "FAIL",
-    },
-    {
-      id: "lifecycle_users_export_job",
-      status: manifest.jobs.some((job) =>
-        job.id === "lifecycle_users_export" &&
-        job.schedule.cron === "30 9 * * *" &&
-        job.executeCommand.includes("npm run lifecycle-users-export") &&
-        job.http.path === "/api/v1/jobs/lifecycle-users-export" &&
-        job.http.body.retentionDays === 7 &&
-        job.http.body.sensitivity === "MASKED" &&
-        job.http.body.approvalRequired === false &&
-        job.http.body.deliveryEnabled === false &&
-        job.http.body.deliveryChannel === "NONE") ? "PASS" : "FAIL",
-    },
-    {
-      id: "lifecycle_user_exports_cleanup_job",
-      status: manifest.jobs.some((job) =>
-        job.id === "lifecycle_user_exports_cleanup" &&
-        job.schedule.cron === "45 3 * * *" &&
-        job.executeCommand.includes("npm run lifecycle-user-exports-cleanup") &&
-        job.http.path === "/api/v1/jobs/lifecycle-user-exports-cleanup" &&
-        job.http.body.objectCleanup === true) ? "PASS" : "FAIL",
-    },
-    {
-      id: "lifecycle_user_exports_delivery_retry_job",
-      status: manifest.jobs.some((job) =>
-        job.id === "lifecycle_user_exports_delivery_retry" &&
-        job.schedule.cron === "*/20 * * * *" &&
-        job.executeCommand.includes("npm run lifecycle-user-exports-delivery-retry") &&
-        job.http.path === "/api/v1/jobs/lifecycle-user-exports-delivery-retry" &&
-        job.http.body.deliveryMaxAttempts === 3) ? "PASS" : "FAIL",
-    },
-    {
       id: "health_data_retention_cleanup_job",
       status: manifest.jobs.some((job) =>
         job.id === "health_data_retention_cleanup" &&
@@ -617,15 +541,6 @@ function cloudbaseJobManifestCheck() {
         job.executeCommand.includes("npm run health-data-retention-cleanup") &&
         job.http.path === "/api/v1/jobs/health-data-retention-cleanup" &&
         job.http.body.objectCleanup === true) ? "PASS" : "FAIL",
-    },
-    {
-      id: "youzan_identity_reconcile_job",
-      status: manifest.jobs.some((job) =>
-        job.id === "youzan_identity_reconcile" &&
-        job.schedule.cron === "25 * * * *" &&
-        job.executeCommand.includes("npm run youzan-identity-reconcile") &&
-        job.http.path === "/api/v1/jobs/youzan-identity-reconcile" &&
-        job.http.body.batchSize === 5) ? "PASS" : "FAIL",
     },
     {
       id: "v1_runtime_cycle_job",
@@ -643,29 +558,12 @@ function cloudbaseJobManifestCheck() {
         manifest.environment.anyOfEnv.some((group) =>
           group.includes("ROOT_ADMIN_JOB_TOKEN") && group.includes("ROOT_ADMIN_JOB_TOKENS")) &&
         manifest.environment.optionalEnv.includes("ROOT_JOB_ROUTE_QUERY") &&
-        manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_CLEANUP_LIMIT") &&
-        manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_CHANNEL") &&
-        manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_TEMPLATE") &&
-        manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_TIMEOUT_MS") &&
-        manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_RETRY_BATCH_SIZE") &&
-        manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_MAX_ATTEMPTS") &&
-        manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DELIVERY_RETRY_DELAY_SECONDS") &&
-        manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_DOWNLOAD_SECRET") &&
-        manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_SIGNED_DOWNLOAD_ENABLED") &&
-        manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_SIGNED_DOWNLOAD_TTL_SECONDS") &&
-        manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_OBJECT_CLEANUP_ENABLED") &&
-        manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_OBJECT_PROVIDER") &&
-        manifest.environment.optionalEnv.includes("ROOT_LIFECYCLE_EXPORT_OBJECT_PREFIX") &&
         manifest.environment.optionalEnv.includes("ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED") &&
         manifest.environment.optionalEnv.includes("ROOT_HEALTH_DATA_RETENTION_CLEANUP_LIMIT") &&
         manifest.environment.optionalEnv.includes("ROOT_PRIVACY_CONTROLLER_NAME") &&
         manifest.environment.optionalEnv.includes("ROOT_PRIVACY_CONTACT") &&
-        manifest.environment.optionalEnv.includes("ROOT_YOUZAN_IDENTITY_RECONCILE_ENABLED") &&
-        manifest.environment.optionalEnv.includes("YOUZAN_USER_QUERY_URL") &&
-        manifest.environment.optionalEnv.includes("ROOT_WEWORK_TOUCH_COOLDOWN_HOURS") &&
-        manifest.environment.optionalEnv.includes("ROOT_WEWORK_TOUCH_TEMPLATES") &&
-        manifest.environment.optionalEnv.includes("WEWORK_TOUCH_SEND_URL") &&
-        manifest.environment.optionalEnv.includes("WEWORK_TOUCH_ACCESS_TOKEN") ? "PASS" : "FAIL",
+        manifest.environment.optionalEnv.includes("ROOT_V1_RUNTIME_SCHEDULER_DRY_RUN") &&
+        !manifest.environment.optionalEnv.some((name) => /CHECKIN|LIFECYCLE|WEWORK|YOUZAN|ADAPTER_RETRY/.test(name)) ? "PASS" : "FAIL",
     },
   ];
   const failed = checks.filter((check) => check.status !== "PASS");

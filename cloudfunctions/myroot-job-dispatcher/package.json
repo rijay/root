@@ -1,5 +1,5 @@
 {
-  "name": "myroot-job-dispatcher",
+  "name": "myroot-health-retention",
   "version": "0.5.13",
   "private": true,
   "main": "index.js",
