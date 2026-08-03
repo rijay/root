@@ -3,6 +3,7 @@ const path = require("node:path");
 
 const projectRoot = path.resolve(__dirname, "../..");
 const budgets = require("../config/performance-budgets.json");
+const runtimeBudgets = require("../config/performance-runtime-budgets");
 const projectConfig = require("../project.config.json");
 const {
   buildPackageBudgetReport,
@@ -27,6 +28,10 @@ assert.equal(budgets.network.readTimeoutMs, 8000);
 assert.equal(budgets.network.writeTimeoutMs, 12000);
 assert.equal(budgets.memory.androidStableTargetMiB, 120);
 assert.equal(budgets.memory.androidPeakHardLimitMiB, 180);
+assert.deepEqual(runtimeBudgets, {
+  network: budgets.network,
+  collection: budgets.collection,
+});
 
 assert.deepEqual(evaluateMetric(100, { target: 100, hardLimit: 120 }), {
   status: "PASS",

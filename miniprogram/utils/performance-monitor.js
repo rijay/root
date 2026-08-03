@@ -1,4 +1,4 @@
-const budgets = require("../config/performance-budgets.json");
+const budgets = require("../config/performance-runtime-budgets");
 
 const EVENT_NAMES = new Set([
   "app_launch",

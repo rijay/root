@@ -1,5 +1,5 @@
 const env = require("../config/env");
-const performanceBudgets = require("../config/performance-budgets.json");
+const performanceBudgets = require("../config/performance-runtime-budgets");
 const { appendCloudRoute } = require("./cloud-route");
 const { performanceMonitor } = require("./performance-monitor");
 
