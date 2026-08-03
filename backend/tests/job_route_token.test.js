@@ -9,8 +9,8 @@ const {
 } = require("../src/jobRouteToken");
 const { buildProductionEnvMatrix } = require("../src/productionEnvMatrix");
 
-const CHECKIN_ROUTE = "/api/v1/jobs/checkin-reminders";
-const ALERT_ROUTE = "/api/v1/jobs/operational-alerts";
+const CHECKIN_ROUTE = "/api/v1/jobs/health-data-retention-cleanup";
+const ALERT_ROUTE = "/api/v1/jobs/v1-runtime-cycle";
 const CHECKIN_OLD = "checkin-route-old-secret-2026";
 const CHECKIN_CURRENT = "checkin-route-current-secret-2026";
 const ALERT_CURRENT = "alert-route-current-secret-2026";
@@ -35,7 +35,7 @@ test("scoped Job token rotation authenticates only its exact route", () => {
 });
 
 test("strict scoped mode fails closed without an exact route and never falls back to legacy", () => {
-  const route = "/api/v1/jobs/v1-runtime-cycle";
+  const route = "/api/v1/jobs/unconfigured";
   const env = scopedEnv({
     ROOT_ADMIN_JOB_TOKEN: "legacy-job-secret-2026",
     ROOT_REQUIRE_SCOPED_JOB_TOKENS: "true",

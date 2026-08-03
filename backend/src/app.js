@@ -49,7 +49,6 @@ const {
   confirmAdminOrderMatch,
   confirmImport,
   continueAsDailyUser,
-  cleanupAdminLifecycleUserExports,
   cancelAdminLifecycleSettlementJob,
   cancelActivityEnrollment,
   cancelActivitySession,
@@ -77,7 +76,6 @@ const {
   listAdminLifecycleFilterPresets,
   upsertAdminOperationalAlertRule,
   upsertAdminLifecycleFilterPreset,
-  runAdminOperationalAlertJob,
   getActiveCampaign,
   getActivityDetail,
   getActivityEnrollments,
@@ -185,20 +183,13 @@ const {
   resolveAdminManualReview,
   resolveAdminManualReviewBatch,
   reviewActivityEnrollment,
-  runDueAdminLifecycleExportDeliveries,
   runDueExternalAdapterRetries,
   runAdminLifecycleSettlementJob,
   runExternalAdapter,
-  runDailyAudit,
-  runDueCheckinReminders,
   signReleaseRecord,
   stableRootUserIdForToken,
-  runDueAdminLifecycleSettlementJobs,
   runDueWeWorkTouches,
-  runAdminLifecycleUserExportJob,
   runHealthDataRetentionCleanup,
-  runYouzanIdentityReconciliation,
-  runAdminLifecycleSettlementJobCleanup,
   reviewAdminLifecycleUserExportApproval,
   searchAdminOrderMatching,
   startCheckin,
@@ -1497,7 +1488,6 @@ function createApp(options = {}) {
       if (route === "GET /api/v1/daily/trend") return ok(res, dailyTrend(data, token, url.searchParams.get("range") || "7d"));
       if (route === "POST /api/v1/event/track") return ok(res, trackEvent(data, token, body));
       if (route === "POST /api/v1/upload/image") return ok(res, uploadImage(data, token, body, runtimeContext));
-      if (route === "POST /api/v1/jobs/daily-audit") return ok(res, runDailyAudit(data, body.date));
       if (route === `POST ${V1_RUNTIME_CYCLE_ROUTE}`) {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
         if (!runtimeContext.v1RuntimeControlPlane) {
@@ -1548,142 +1538,12 @@ function createApp(options = {}) {
           },
         });
       }
-      if (route === "POST /api/v1/jobs/checkin-reminders") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        const execute = !(body.dryRun === true || body.dry_run === true);
-        if (execute && !requestId) throw Object.assign(new Error("checkin reminder job request_id 必填"), { code: 400 });
-        // This command owns an external-send checkpoint and has its own durable
-        // grant/job/send-attempt idempotency. It must not be wrapped by the
-        // snapshot command recorder because the checkpoint commits mid-action.
-        return ok(res, await runDueCheckinReminders(data, {
-          ...body,
-          dryRun: !execute,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, {
-          ...runtimeContext,
-          requestId,
-          requireTransactionalCheckpoint: execute,
-          transactionCheckpoint: requestContext.transactionCheckpoint,
-          transactionResume: requestContext.transactionResume,
-        }));
-      }
-      if (route === "POST /api/v1/jobs/adapter-retry-due") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        const execute = !(body.dryRun === true || body.dry_run === true);
-        if (execute && !requestId) throw Object.assign(new Error("adapter retry job request_id 必填"), { code: 400 });
-        return ok(res, await withIdempotency(data, req, () => runDueExternalAdapterRetries(data, {
-          ...body,
-          dryRun: !execute,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/jobs/operational-alerts") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        const execute = !(body.dryRun === true || body.dry_run === true);
-        if (execute && !requestId) throw Object.assign(new Error("operational alert job request_id 必填"), { code: 400 });
-        return ok(res, await withIdempotency(data, req, () => runAdminOperationalAlertJob(data, {
-          ...body,
-          dryRun: !execute,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/jobs/wework-touch-due") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        const execute = !(body.dryRun === true || body.dry_run === true);
-        if (execute && !requestId) throw Object.assign(new Error("wework touch job request_id 必填"), { code: 400 });
-        return ok(res, await withIdempotency(data, req, () => runDueWeWorkTouches(data, {
-          ...body,
-          dryRun: !execute,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/jobs/lifecycle-settlement-due") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.SETTLEMENT_EXECUTE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        const execute = !(body.dryRun === true || body.dry_run === true);
-        if (execute && !requestId) throw Object.assign(new Error("lifecycle settlement job request_id 必填"), { code: 400 });
-        return ok(res, await withIdempotency(data, req, () => runDueAdminLifecycleSettlementJobs(data, {
-          ...body,
-          dryRun: !execute,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/jobs/lifecycle-settlement-cleanup") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.SETTLEMENT_EXECUTE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        const execute = !(body.dryRun === true || body.dry_run === true);
-        if (execute && !requestId) throw Object.assign(new Error("lifecycle settlement cleanup request_id 必填"), { code: 400 });
-        return ok(res, await withIdempotency(data, req, () => runAdminLifecycleSettlementJobCleanup(data, {
-          ...body,
-          dryRun: !execute,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/jobs/lifecycle-users-export") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        const execute = !(body.dryRun === true || body.dry_run === true);
-        if (execute && !requestId) throw Object.assign(new Error("lifecycle users export request_id 必填"), { code: 400 });
-        return ok(res, withIdempotency(data, req, () => runAdminLifecycleUserExportJob(data, {
-          ...body,
-          dryRun: !execute,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, adminPrincipal, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/jobs/lifecycle-user-exports-cleanup") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.DATA_EXPORT_APPROVE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        const execute = !(body.dryRun === true || body.dry_run === true);
-        if (execute && !requestId) throw Object.assign(new Error("lifecycle user exports cleanup request_id 必填"), { code: 400 });
-        return ok(res, await withIdempotency(data, req, () => cleanupAdminLifecycleUserExports(data, {
-          ...body,
-          dryRun: !execute,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, adminPrincipal, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/jobs/lifecycle-user-exports-delivery-retry") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.DATA_EXPORT_APPROVE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        const execute = !(body.dryRun === true || body.dry_run === true);
-        if (execute && !requestId) throw Object.assign(new Error("lifecycle user exports delivery retry request_id 必填"), { code: 400 });
-        return ok(res, await withIdempotency(data, req, () => runDueAdminLifecycleExportDeliveries(data, {
-          ...body,
-          dryRun: !execute,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, adminPrincipal, requestId }), requestId));
-      }
       if (route === "POST /api/v1/jobs/health-data-retention-cleanup") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
         const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
         const execute = !(body.dryRun === true || body.dry_run === true);
         if (execute && !requestId) throw Object.assign(new Error("health data retention cleanup request_id 必填"), { code: 400 });
         return ok(res, await withIdempotency(data, req, () => runHealthDataRetentionCleanup(data, {
-          ...body,
-          dryRun: !execute,
-          execute,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, adminPrincipal, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/jobs/youzan-identity-reconcile") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        const execute = body.execute === true || body.dryRun === false || body.dry_run === false;
-        if (execute && !requestId) throw Object.assign(new Error("youzan identity reconcile job request_id 必填"), { code: 400 });
-        return ok(res, await withIdempotency(data, req, () => runYouzanIdentityReconciliation(data, {
           ...body,
           dryRun: !execute,
           execute,

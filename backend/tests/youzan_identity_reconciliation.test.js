@@ -3,12 +3,6 @@ const test = require("node:test");
 const { createYouzanIdentityImplementation } = require("../src/youzanIdentityResolver");
 const { candidateIdentities, reconcileYouzanIdentities } = require("../src/youzanIdentityReconciliation");
 const { stampVerifiedWechatUnionId } = require("../src/wechatIdentityAuthority");
-const {
-  buildYouzanIdentityReconciliationReport,
-  defaultRequestId,
-  determineExitCode,
-  parseArgs,
-} = require("../scripts/youzan-identity-reconcile");
 
 function response(payload) {
   return { ok: true, status: 200, json: async () => payload };
@@ -169,26 +163,6 @@ test("tampered and unknown-key UnionID provenance cannot enter reconciliation", 
     assert.equal(data.youzanCustomers.length, 0);
   }
   assert.equal(called, false);
-});
-
-test("Youzan identity reconciliation runner is dry-run by default and generates stable execute request id", () => {
-  const preview = parseArgs([], { ROOT_JOB_BASE_URL: "https://root.example.com/" });
-  const execute = parseArgs(["--execute", "--batch-size", "8"], { ROOT_JOB_BASE_URL: "https://root.example.com/" });
-
-  assert.equal(preview.dryRun, true);
-  assert.equal(preview.baseUrl, "https://root.example.com");
-  assert.equal(execute.dryRun, false);
-  assert.equal(execute.batchSize, 8);
-  assert.equal(execute.refreshHours, 168);
-  assert.match(execute.requestId, /^youzan-identity-reconcile-\d{12}$/);
-  assert.equal(defaultRequestId(new Date("2026-07-11T12:34:00Z")), "youzan-identity-reconcile-202607111234");
-  assert.equal(determineExitCode({ ok: true, data: { failedCount: 0 } }), 0);
-  assert.equal(determineExitCode({ ok: true, data: { failedCount: 1 } }), 3);
-  assert.match(buildYouzanIdentityReconciliationReport({
-    ok: true,
-    data: { dryRun: true, candidateCount: 2, config: { ready: false } },
-    request: {},
-  }), /模式：DRY_RUN/);
 });
 
 test("Youzan identity reconciliation links unbound orders and preserves conflicting ownership", async () => {
