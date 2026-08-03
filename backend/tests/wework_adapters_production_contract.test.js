@@ -1,7 +1,6 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const { createWeworkContactImplementation } = require("../src/weworkContactAdapter");
-const { createWeworkTagImplementation } = require("../src/weworkTagAdapter");
 const { createWeworkContactWritebackImplementation } = require("../src/weworkContactWritebackAdapter");
 const { clearWeworkAccessTokenCache } = require("../src/weworkAccessToken");
 
@@ -82,7 +81,7 @@ test("official WeWork contact Adapter rejects errcode returned with HTTP 200", a
   });
 });
 
-test("official WeWork tag and remark Adapters emit native payloads", async () => {
+test("official WeWork remark Adapter emits native payload", async () => {
   clearWeworkAccessTokenCache();
   const calls = [];
   const fetchImpl = async (url, init) => {
@@ -93,23 +92,10 @@ test("official WeWork tag and remark Adapters emit native payloads", async () =>
   const sharedEnv = {
     WEWORK_CORP_ID: "ww-root-action",
     WEWORK_CONTACT_SECRET: "secret-action",
-    WEWORK_TAG_APPLY_URL: "https://qyapi.weixin.qq.com/cgi-bin/externalcontact/mark_tag",
-    WEWORK_TAG_USERID: "advisor-a",
     WEWORK_CONTACT_WRITEBACK_URL: "https://qyapi.weixin.qq.com/cgi-bin/externalcontact/remark",
     WEWORK_CONTACT_WRITEBACK_USERID: "advisor-a",
   };
-  const tag = createWeworkTagImplementation({ fetchImpl });
   const writeback = createWeworkContactWritebackImplementation({ fetchImpl });
-  const tagResult = await tag({
-    env: sharedEnv,
-    grant: {
-      reward_grant_id: "grant-1",
-      root_user_id: "root-1",
-      reward_key: "et_root_member",
-      payload_json: { externalContactId: "wo_root_1" },
-    },
-    body: {},
-  });
   const writebackResult = await writeback({
     env: sharedEnv,
     body: {
@@ -119,16 +105,8 @@ test("official WeWork tag and remark Adapters emit native payloads", async () =>
     },
   });
   const actionCalls = calls.filter((call) => !call.url.includes("gettoken"));
-  const tagBody = JSON.parse(actionCalls[0].init.body);
-  const remarkBody = JSON.parse(actionCalls[1].init.body);
+  const remarkBody = JSON.parse(actionCalls[0].init.body);
 
-  assert.equal(tagResult.status, "DELIVERED");
-  assert.deepEqual(tagBody, {
-    userid: "advisor-a",
-    external_userid: "wo_root_1",
-    add_tag: ["et_root_member"],
-    remove_tag: [],
-  });
   assert.equal(writebackResult.status, "DELIVERED");
   assert.equal(remarkBody.userid, "advisor-a");
   assert.equal(remarkBody.external_userid, "wo_root_1");

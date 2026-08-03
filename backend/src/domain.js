@@ -15,7 +15,6 @@ const adminManualReview = require("./adminManualReview");
 const adminOrderMatching = require("./adminOrderMatching");
 const adminOrderIncrementSync = require("./adminOrderIncrementSync");
 const adminProductSync = require("./adminProductSync");
-const adminSettlementBatch = require("./adminSettlementBatch");
 const adminOpsPresenter = require("./adminOpsPresenter");
 const adminUserPresenter = require("./adminUserPresenter");
 const auditLog = require("./auditLog");
@@ -72,7 +71,6 @@ const releaseSignoff = require("./releaseSignoff");
 const rootMemberCenterJumpProof = require("./rootMemberCenterJumpProof");
 const sessionModule = require("./sessionModule");
 const refundWorkItem = require("./refundWorkItem");
-const rewardDelivery = require("./rewardDelivery");
 const rewardRecovery = require("./rewardRecovery");
 const settlement = require("./settlement");
 const taskProgress = require("./taskProgress");
@@ -1350,28 +1348,6 @@ function publishCampaignRuleVersion(data, body = {}) {
   });
 }
 
-function previewAdminSettlement(data, body = {}, context = {}) {
-  const rootUserId = body.rootUserId || body.root_user_id || body.userId || body.user_id || "";
-  if (!rootUserId) throw businessError(8004, "请选择用户");
-  return response(settlement.previewSettlement(data, rootUserId, body.campaignId || body.campaign_id || "", context));
-}
-
-function previewAdminSettlementBatch(data, body = {}, context = {}) {
-  return response(adminSettlementBatch.previewBatchSettlement(data, body, context));
-}
-
-function executeAdminSettlementBatch(data, body = {}, context = {}) {
-  return response(adminSettlementBatch.executeBatchSettlement(data, body, context));
-}
-
-async function executeAdminRewardDelivery(data, body = {}, context = {}) {
-  return response(await rewardDelivery.executeDeliveryBatch(data, body, { ...context, data }));
-}
-
-async function queryAdminRewardDeliveryStatus(data, body = {}, context = {}) {
-  return response(await rewardDelivery.queryDeliveryStatusBatch(data, body, { ...context, data }));
-}
-
 function getAdminConfigWorkbench(data, context = {}) {
   return response(adminConfigPresenter.buildConfigWorkbench(data, context));
 }
@@ -1426,56 +1402,6 @@ async function cleanupAdminLifecycleUserExports(data, body = {}, context = {}) {
 
 async function runHealthDataRetentionCleanup(data, body = {}, context = {}) {
   return response(await healthDataRetention.cleanupExpiredHealthData(data, body, context));
-}
-
-function lifecycleBatchQuery(body = {}) {
-  const filters = body.filters && typeof body.filters === "object" && !Array.isArray(body.filters)
-    ? body.filters
-    : body;
-  return {
-    ...filters,
-    selectionLimit: body.selectionLimit || body.selection_limit || body.batchLimit || body.batch_limit ||
-      filters.selectionLimit || filters.selection_limit || filters.batchLimit || filters.batch_limit,
-  };
-}
-
-function lifecycleBatchCampaignId(selection, body = {}, query = {}) {
-  return body.campaignId || body.campaign_id || query.campaignId || query.campaign_id ||
-    selection.users[0]?.campaignId || "";
-}
-
-function previewAdminLifecycleSettlementBatch(data, body = {}, context = {}) {
-  const query = lifecycleBatchQuery(body);
-  const selection = adminLifecyclePresenter.buildLifecycleBatchSelection(data, query, context);
-  if (!selection.rootUserIds.length) throw businessError(8010, "筛选结果没有可处理用户");
-  const campaignId = lifecycleBatchCampaignId(selection, body, query);
-  const preview = adminSettlementBatch.previewBatchSettlement(data, {
-    rootUserIds: selection.rootUserIds,
-    campaignId,
-  }, context);
-  return response({
-    ...preview,
-    source: "LIFECYCLE_FILTER",
-    selection,
-  });
-}
-
-function executeAdminLifecycleSettlementBatch(data, body = {}, context = {}) {
-  const query = lifecycleBatchQuery(body);
-  const selection = adminLifecyclePresenter.buildLifecycleBatchSelection(data, query, context);
-  if (!selection.rootUserIds.length) throw businessError(8010, "筛选结果没有可处理用户");
-  const campaignId = lifecycleBatchCampaignId(selection, body, query);
-  const result = adminSettlementBatch.executeBatchSettlement(data, {
-    ...body,
-    rootUserIds: selection.rootUserIds,
-    campaignId,
-    reason: body.reason || "用户生命周期筛选全量批量结算",
-  }, context);
-  return response({
-    ...result,
-    source: "LIFECYCLE_FILTER",
-    selection,
-  });
 }
 
 function listAdminLifecycleFilterPresets(data, query = {}) {
@@ -3298,10 +3224,7 @@ module.exports = {
   dailyStats,
   dailyTrend,
   executeAdminOrderIncrementSync,
-  executeAdminLifecycleSettlementBatch,
-  executeAdminRewardDelivery,
   executeAdminProductSync,
-  executeAdminSettlementBatch,
   enrollActivity,
   expireActivityEnrollmentReviews,
   deleteAdminLifecycleFilterPreset,
@@ -3322,7 +3245,6 @@ module.exports = {
   runAdminOperationalAlertJob,
   runAdminLifecycleUserExportJob,
   runHealthDataRetentionCleanup,
-  queryAdminRewardDeliveryStatus,
   getActiveCampaign,
   getActivityDetail,
   getActivityEnrollments,
@@ -3400,10 +3322,7 @@ module.exports = {
   previewAdminOrderMatch,
   previewAdminOrderIncrementSync,
   previewAdminProductSync,
-  previewAdminLifecycleSettlementBatch,
   planWeWorkTouches,
-  previewAdminSettlement,
-  previewAdminSettlementBatch,
   previewCorrection,
   previewImport,
   publishCampaignRuleVersion,
