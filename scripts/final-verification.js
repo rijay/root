@@ -20,6 +20,14 @@ const RETIRED_JOB_ROUTES = Object.freeze([
   "/api/v1/jobs/youzan-identity-reconcile",
 ]);
 
+const RETIRED_ADMIN_ROUTES = Object.freeze([
+  "/api/v1/admin/lifecycle-settlement-jobs",
+  "/api/v1/admin/lifecycle-settlement-jobs/create",
+  "/api/v1/admin/lifecycle-settlement-jobs/run",
+  "/api/v1/admin/lifecycle-settlement-jobs/cancel",
+  "/api/v1/admin/lifecycle-settlement-jobs/retry-failed",
+]);
+
 const RETIRED_PACKAGE_COMMANDS = Object.freeze([
   "adapter-retry",
   "checkin-reminders",
@@ -50,7 +58,7 @@ function runCommand(label, command, args, cwd = projectRoot) {
   };
 }
 
-function verifyFormalJobSurface() {
+function verifyFormalRouteSurface() {
   const startedAt = Date.now();
   const appSource = fs.readFileSync(path.join(projectRoot, "backend", "src", "app.js"), "utf8");
   const backendPackage = JSON.parse(fs.readFileSync(path.join(projectRoot, "backend", "package.json"), "utf8"));
@@ -58,7 +66,8 @@ function verifyFormalJobSurface() {
     "/api/v1/jobs/health-data-retention-cleanup",
     "POST ${V1_RUNTIME_CYCLE_ROUTE}",
   ].filter((route) => !appSource.includes(route));
-  const remainingRetiredRoutes = RETIRED_JOB_ROUTES.filter((route) => appSource.includes(route));
+  const remainingRetiredRoutes = [...RETIRED_JOB_ROUTES, ...RETIRED_ADMIN_ROUTES]
+    .filter((route) => appSource.includes(route));
   const remainingCommands = RETIRED_PACKAGE_COMMANDS.filter((name) =>
     Object.prototype.hasOwnProperty.call(backendPackage.scripts || {}, name));
 
@@ -67,7 +76,7 @@ function verifyFormalJobSurface() {
   if (remainingRetiredRoutes.length) details.push(`retired routes remain: ${remainingRetiredRoutes.join(", ")}`);
   if (remainingCommands.length) details.push(`retired commands remain: ${remainingCommands.join(", ")}`);
   return {
-    label: "formal Job surface",
+    label: "formal route surface",
     status: details.length ? "FAIL" : "PASS",
     durationMs: Date.now() - startedAt,
     stdout: details.join("\n"),
@@ -81,7 +90,7 @@ function tail(value, lineCount = 30) {
 
 function main() {
   const checks = [
-    verifyFormalJobSurface(),
+    verifyFormalRouteSurface(),
     runCommand("backend tests", "npm", ["test", "--prefix", "backend"]),
     runCommand("miniprogram formal scope and performance", "npm", ["run", "check", "--prefix", "miniprogram"]),
     runCommand("admin checks", "npm", ["run", "check", "--prefix", "admin"]),

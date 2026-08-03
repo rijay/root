@@ -10,7 +10,6 @@ const adminAnalyticsPresenter = require("./adminAnalyticsPresenter");
 const adminConfigPresenter = require("./adminConfigPresenter");
 const adminLifecycleFilterPresets = require("./adminLifecycleFilterPresets");
 const adminLifecyclePresenter = require("./adminLifecyclePresenter");
-const adminLifecycleSettlementJobs = require("./adminLifecycleSettlementJobs");
 const adminLifecycleUserExports = require("./adminLifecycleUserExports");
 const adminManualReview = require("./adminManualReview");
 const adminOrderMatching = require("./adminOrderMatching");
@@ -1477,28 +1476,6 @@ function executeAdminLifecycleSettlementBatch(data, body = {}, context = {}) {
     source: "LIFECYCLE_FILTER",
     selection,
   });
-}
-
-function listAdminLifecycleSettlementJobs(data, query = {}) {
-  return response({
-    jobs: adminLifecycleSettlementJobs.listLifecycleSettlementJobs(data, query),
-  });
-}
-
-function createAdminLifecycleSettlementJob(data, body = {}, context = {}) {
-  return response(adminLifecycleSettlementJobs.createLifecycleSettlementJob(data, body, context));
-}
-
-function runAdminLifecycleSettlementJob(data, body = {}, context = {}) {
-  return response(adminLifecycleSettlementJobs.runLifecycleSettlementJob(data, body, context));
-}
-
-function cancelAdminLifecycleSettlementJob(data, body = {}, context = {}) {
-  return response(adminLifecycleSettlementJobs.cancelLifecycleSettlementJob(data, body, context));
-}
-
-function retryFailedAdminLifecycleSettlementJob(data, body = {}, context = {}) {
-  return response(adminLifecycleSettlementJobs.retryFailedLifecycleSettlementJob(data, body, context));
 }
 
 function listAdminLifecycleFilterPresets(data, query = {}) {
@@ -3313,9 +3290,7 @@ module.exports = {
   continueAsDailyUser,
   cancelActivityEnrollment,
   cancelActivitySession,
-  cancelAdminLifecycleSettlementJob,
   copyAdminLifecycleFilterPreset,
-  createAdminLifecycleSettlementJob,
   createActivitySession,
   createFeedbackFollowTask,
   createStore,
@@ -3411,7 +3386,6 @@ module.exports = {
   listWeWorkTouchJobs,
   listOperationTasks,
   listAdminYouzanCustomers,
-  listAdminLifecycleSettlementJobs,
   listLegacyDataMigrationDecisions,
   listLegacyDataMigrationExecutions,
   listExternalSampleReviews,
@@ -3423,7 +3397,6 @@ module.exports = {
   matchOrder,
   searchAdminOrderMatching,
   publicUser,
-  retryFailedAdminLifecycleSettlementJob,
   previewAdminOrderMatch,
   previewAdminOrderIncrementSync,
   previewAdminProductSync,
@@ -3444,7 +3417,6 @@ module.exports = {
   resolveAdminManualReview,
   resolveAdminManualReviewBatch,
   response,
-  runAdminLifecycleSettlementJob,
   runDailyAudit,
   startCheckin,
   syncManualOrder,

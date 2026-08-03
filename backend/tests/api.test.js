@@ -204,6 +204,30 @@ test("formal Job HTTP Interfaces expose only retention and V1 runtime cycle", as
   });
   assert.equal(runtimeCycle.code, 50351);
 });
+
+test("retired lifecycle settlement queue HTTP Interfaces return 404", async (t) => {
+  const server = createApp({ env: { ROOT_ADMIN_TOKEN: "admin-secret" } });
+  const baseUrl = await listen(server);
+  t.after(() => server.close());
+  const headers = { "X-Admin-Token": "admin-secret" };
+
+  const routes = [
+    ["GET", "/api/v1/admin/lifecycle-settlement-jobs"],
+    ["POST", "/api/v1/admin/lifecycle-settlement-jobs/create"],
+    ["POST", "/api/v1/admin/lifecycle-settlement-jobs/run"],
+    ["POST", "/api/v1/admin/lifecycle-settlement-jobs/cancel"],
+    ["POST", "/api/v1/admin/lifecycle-settlement-jobs/retry-failed"],
+  ];
+  for (const [method, route] of routes) {
+    const response = await request(baseUrl, route, {
+      method,
+      headers,
+      body: method === "POST" ? JSON.stringify({ requestId: "retired-settlement-queue" }) : undefined,
+    });
+    assert.equal(response.code, 404, `${method} ${route}`);
+  }
+});
+
 test("MySQL Store verifier accepts mysql2 JSON object payloads", async () => {
   const snapshot = createEmptyData();
   snapshot.events.push({ event_id: "evt_mysql_verify_object" });

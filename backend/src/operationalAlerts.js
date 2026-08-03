@@ -1,6 +1,5 @@
 const { nowISO } = require("./dates");
 const { createId } = require("./seed");
-const adminLifecycleSettlementJobs = require("./adminLifecycleSettlementJobs");
 const adminLifecycleUserExports = require("./adminLifecycleUserExports");
 const consultationSla = require("./consultationSla");
 const consultationSlaEscalation = require("./consultationSlaEscalation");
@@ -436,19 +435,34 @@ function minutesSince(value, nowText = nowISO()) {
 function lifecycleSettlementJobTargets(data, targetType) {
   const nowText = nowISO();
   return ensureList(data, "adminLifecycleSettlementJobs")
-    .map((job) => adminLifecycleSettlementJobs.toJobPayload(job))
+    .map((job) => {
+      const selectedIds = new Set((job.root_user_ids || []).filter(Boolean));
+      const processedIds = new Set((job.processed_root_user_ids || []).filter(Boolean));
+      const failedIds = new Set((job.failed_root_user_ids || []).filter(Boolean));
+      return {
+        jobId: job.job_id,
+        status: job.status,
+        campaignId: job.campaign_id || "",
+        selectedCount: selectedIds.size,
+        processedCount: processedIds.size,
+        pendingCount: Math.max(0, selectedIds.size - processedIds.size),
+        failedCount: failedIds.size,
+        errorMessage: job.error_message || "",
+        createdAt: job.created_at || "",
+        updatedAt: job.updated_at || "",
+        startedAt: job.started_at || "",
+      };
+    })
     .filter((job) => {
       if (targetType === "LIFECYCLE_SETTLEMENT_JOB_FAILED") {
-        return job.status === "FAILED" || job.status === "COMPLETED_WITH_ERRORS" || Number(job.summary?.failed || 0) > 0;
+        return job.status === "FAILED" || job.status === "COMPLETED_WITH_ERRORS" || job.failedCount > 0;
       }
       if (targetType === "LIFECYCLE_SETTLEMENT_JOB_STALLED") {
-        return ["QUEUED", "RUNNING"].includes(job.status) && Number(job.summary?.pending || 0) > 0;
+        return ["QUEUED", "RUNNING"].includes(job.status) && job.pendingCount > 0;
       }
       return false;
     })
     .map((job) => {
-      const failedCount = Number(job.summary?.failed || 0);
-      const pendingCount = Number(job.summary?.pending || 0);
       const ageMinutes = minutesSince(job.updatedAt || job.startedAt || job.createdAt, nowText);
       return {
         key: job.jobId,
@@ -458,12 +472,12 @@ function lifecycleSettlementJobTargets(data, targetType) {
         campaignId: job.campaignId || "",
         lifecycleJobId: job.jobId,
         lifecycleJobStatus: job.status,
-        failedCount,
-        pendingCount,
-        processedCount: Number(job.summary?.processed || 0),
-        selectedCount: Number(job.summary?.selected || 0),
+        failedCount: job.failedCount,
+        pendingCount: job.pendingCount,
+        processedCount: job.processedCount,
+        selectedCount: job.selectedCount,
         ageMinutes,
-        count: targetType === "LIFECYCLE_SETTLEMENT_JOB_FAILED" ? Math.max(1, failedCount) : pendingCount,
+        count: targetType === "LIFECYCLE_SETTLEMENT_JOB_FAILED" ? Math.max(1, job.failedCount) : job.pendingCount,
         errorMessage: job.errorMessage || "",
         nextAction: targetType === "LIFECYCLE_SETTLEMENT_JOB_FAILED"
           ? "打开用户生命周期队列抽屉，核对失败项后执行重试失败；如为规则或字段问题，先修正配置再重试。"

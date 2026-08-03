@@ -49,12 +49,10 @@ const {
   confirmAdminOrderMatch,
   confirmImport,
   continueAsDailyUser,
-  cancelAdminLifecycleSettlementJob,
   cancelActivityEnrollment,
   cancelActivitySession,
   copyAdminLifecycleFilterPreset,
   createAdminLifecycleUserExport,
-  createAdminLifecycleSettlementJob,
   createActivitySession,
   createFeedbackFollowTask,
   createStore,
@@ -138,7 +136,6 @@ const {
   listAdminYouzanCustomers,
   listLegacyDataMigrationDecisions,
   listAdminLifecycleUserExports,
-  listAdminLifecycleSettlementJobs,
   listAuditLogs,
   listConsultationWeworkWritebacks,
   listOrderAfterSalesRecords,
@@ -176,7 +173,6 @@ const {
   recordHealthConsentDecision,
   recordUserTaskEvent,
   requestActivityChanges,
-  retryFailedAdminLifecycleSettlementJob,
   evaluateUserSettlement,
   rollbackExternalAdapterRun,
   resolveManualReview,
@@ -184,7 +180,6 @@ const {
   resolveAdminManualReviewBatch,
   reviewActivityEnrollment,
   runDueExternalAdapterRetries,
-  runAdminLifecycleSettlementJob,
   runExternalAdapter,
   signReleaseRecord,
   stableRootUserIdForToken,
@@ -1620,9 +1615,6 @@ function createApp(options = {}) {
           "Content-Disposition": `attachment; filename="${result.filename}"`,
         });
       }
-      if (route === "GET /api/v1/admin/lifecycle-settlement-jobs") {
-        return ok(res, listAdminLifecycleSettlementJobs(data, Object.fromEntries(url.searchParams)));
-      }
       if (route === "GET /api/v1/admin/lifecycle-users") {
         return ok(res, getAdminLifecycleWorkbench(data, Object.fromEntries(url.searchParams), runtimeContext));
       }
@@ -1633,42 +1625,6 @@ function createApp(options = {}) {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.SETTLEMENT_EXECUTE);
         const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
         return ok(res, withIdempotency(data, req, () => executeAdminLifecycleSettlementBatch(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/admin/lifecycle-settlement-jobs/create") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.SETTLEMENT_EXECUTE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => createAdminLifecycleSettlementJob(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/admin/lifecycle-settlement-jobs/run") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.SETTLEMENT_EXECUTE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => runAdminLifecycleSettlementJob(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/admin/lifecycle-settlement-jobs/cancel") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.SETTLEMENT_EXECUTE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => cancelAdminLifecycleSettlementJob(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/admin/lifecycle-settlement-jobs/retry-failed") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.SETTLEMENT_EXECUTE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => retryFailedAdminLifecycleSettlementJob(data, {
           ...body,
           operatorId: adminOperatorId(adminPrincipal, body),
           requestId,
