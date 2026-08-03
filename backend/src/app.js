@@ -12,6 +12,10 @@ const { resolveTrustedWechatIdentity } = require("./trustedWechatIdentity");
 const { executeIdempotentCommand } = require("./commandIdempotency");
 const { createCommandRequestDigestCodec } = require("./commandRequestDigest");
 const { createCommandResultCodec } = require("./commandResultProtection");
+const {
+  MAX_BATCH_BYTES: PERFORMANCE_MAX_BATCH_BYTES,
+  createPerformanceMetricsModule,
+} = require("./performanceMetricsModule");
 const { buildTaskEventOutboxEnvelope } = require("./taskEventOutbox");
 const { stageOutboxEnvelope } = require("./eventTransport");
 const campaignModule = require("./campaign");
@@ -219,6 +223,7 @@ const bundledAdminDistDir = path.join(publicDir, "admin-dist");
 const defaultAdminDistDirs = [sourceAdminDistDir, bundledAdminDistDir];
 
 const V1_RUNTIME_CYCLE_ROUTE = "/api/v1/jobs/v1-runtime-cycle";
+const PERFORMANCE_METRICS_ROUTE = "/api/v1/performance/events";
 const V1_RUNTIME_CYCLE_BODY_KEYS = Object.freeze([
   "bridgeLimit",
   "dryRun",
@@ -1017,6 +1022,9 @@ function createApp(options = {}) {
   const commandResultCodec = options.commandResultCodec || createCommandResultCodec(runtimeEnv);
   const responseSecurityPolicy = createHttpResponseSecurityPolicy(runtimeEnv);
   const runtimeMetadata = buildRuntimeMetadata(runtimeEnv);
+  const performanceMetricsModule = options.performanceMetricsModule || createPerformanceMetricsModule({
+    logger: options.performanceLogger || console,
+  });
   const elementAdminDir = resolveElementAdminDir(options.adminDistDir, runtimeEnv);
   const runtimeContext = {
     storeAdapter,
@@ -1237,8 +1245,19 @@ function createApp(options = {}) {
     try {
       const token = getToken(req);
       const adminPrincipal = requiresAdminAccess(url.pathname) ? getAdminPrincipal(req, runtimeContext.env, url.pathname) : null;
-      const body = ["POST", "PUT", "PATCH"].includes(method) ? await readBody(req) : {};
       const route = `${method} ${url.pathname}`;
+      if (route === `POST ${PERFORMANCE_METRICS_ROUTE}`) {
+        const declaredBytes = Number(req.headers["content-length"] || 0);
+        if (Number.isFinite(declaredBytes) && declaredBytes > PERFORMANCE_MAX_BATCH_BYTES) {
+          return send(res, 413, { code: "PERFORMANCE_BATCH_TOO_LARGE", message: "performance batch is too large", data: null });
+        }
+        const performanceBody = await readBody(req);
+        const result = performanceMetricsModule.acceptBatch(performanceBody, {
+          sessionId: req.headers["x-performance-session"],
+        });
+        return send(res, 202, { code: 0, message: "accepted", data: result });
+      }
+      const body = ["POST", "PUT", "PATCH"].includes(method) ? await readBody(req) : {};
       const commandActor = commandActorId(data, token, adminPrincipal, runtimeContext);
       req.commandIdempotencyContext = {
         commandName: `${method}:${url.pathname}`,
@@ -2510,7 +2529,7 @@ function createApp(options = {}) {
         }
       }
       const bypassSnapshotTransaction = method === "POST"
-        && url.pathname === V1_RUNTIME_CYCLE_ROUTE;
+        && [V1_RUNTIME_CYCLE_ROUTE, PERFORMANCE_METRICS_ROUTE].includes(url.pathname);
       if (!url.pathname.startsWith("/api/") || method === "OPTIONS" || bypassSnapshotTransaction) {
         await handleRequest(req, realResponse);
         return;

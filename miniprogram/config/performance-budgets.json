@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "units": {
+    "bytesPerKiB": 1024,
+    "bytesPerMiB": 1048576
+  },
+  "baseLibrary": {
+    "minimum": "2.32.3",
+    "acceptanceStable": "3.15.2",
+    "requiredCapabilities": [
+      { "name": "wx.getPerformance", "minimum": "2.11.0" },
+      { "name": "lazyCodeLoading.requiredComponents", "minimum": "2.11.1" },
+      { "name": "button.open-type.chooseAvatar", "minimum": "2.21.2" },
+      { "name": "wx.requirePrivacyAuthorize", "minimum": "2.32.3" }
+    ]
+  },
+  "packages": {
+    "main": { "targetBytes": 1363148.8, "hardLimitBytes": 1572864 },
+    "singleSubpackage": { "targetBytes": 819200, "hardLimitBytes": 1258291.2 },
+    "total": { "targetBytes": 6291456, "hardLimitBytes": 8388608 },
+    "mainLocalMedia": { "targetBytes": 204800, "hardLimitBytes": 307200 },
+    "releaseGrowth": { "warningBytes": 51200, "approvalRequiredBytes": 102400 }
+  },
+  "images": {
+    "welcomeBackground": { "targetMinBytes": 307200, "targetMaxBytes": 460800, "hardLimitBytes": 614400 },
+    "homeFirstCarousel": { "targetMinBytes": 307200, "targetMaxBytes": 460800, "hardLimitBytes": 614400 },
+    "homeLaterCarousel": { "targetMaxBytes": 358400, "hardLimitBytes": 512000 },
+    "activityCover": { "targetMaxBytes": 122880, "hardLimitBytes": 184320 },
+    "immersiveDetail": { "targetMaxBytes": 409600, "hardLimitBytes": 614400 },
+    "avatar": { "targetMaxBytes": 81920, "hardLimitBytes": 153600 },
+    "logoOrTabIcon": { "targetMaxBytes": 20480, "hardLimitBytes": 40960 },
+    "firstScreenConcurrentDownloadTargetBytes": 819200
+  },
+  "network": {
+    "maxConcurrentRequests": 4,
+    "readTimeoutMs": 8000,
+    "writeTimeoutMs": 12000,
+    "sameReadDedupeWindowMs": 300,
+    "publicReadP75Ms": 600,
+    "publicReadP95Ms": 1200,
+    "protectedReadP75Ms": 800,
+    "protectedReadP95Ms": 1500,
+    "writeP75Ms": 1000,
+    "writeP95Ms": 2000
+  },
+  "responses": {
+    "homeContentBytes": 102400,
+    "activityListBytes": 102400,
+    "sharedDetailBytes": 102400,
+    "profileBytes": 30720,
+    "root4uStateBytes": 81920
+  },
+  "render": {
+    "setData": {
+      "singleUpdateTargetBytes": 20480,
+      "singleUpdateHardLimitBytes": 65536,
+      "updatesPerInteractionTarget": 2,
+      "updatesPerInteractionHardLimit": 3,
+      "updatesPerSecondTarget": 5,
+      "updatesPerSecondHardLimit": 10,
+      "firstRenderBatchTarget": 3,
+      "firstRenderBatchHardLimit": 5
+    },
+    "nodes": {
+      "firstScreenHardLimit": 500,
+      "pageHardLimit": 1200,
+      "depthHardLimit": 20
+    },
+    "mainThread": {
+      "singleTaskHardLimitMs": 50,
+      "androidOnLoadOnShowHardLimitMs": 150,
+      "continuousFreezeHardLimitMs": 200
+    },
+    "animation": {
+      "transitionMinMs": 200,
+      "transitionMaxMs": 350,
+      "interactionFeedbackHardLimitMs": 100,
+      "scrollFpsP75Minimum": 50
+    }
+  },
+  "memory": {
+    "androidStableTargetMiB": 120,
+    "androidPeakHardLimitMiB": 180,
+    "tabCycles": 10,
+    "tabCycleGrowthHardLimitRatio": 0.2,
+    "detailCycles": 10,
+    "detailReturnHardLimitRatio": 0.15,
+    "journeyDurationMinutes": 15,
+    "pageStackRecommendedMaximum": 6
+  },
+  "journeys": {
+    "samplesPerCoreScenario": 30,
+    "localColdLaunchP75Ms": { "ios": 1200, "android": 2600 },
+    "downloadColdLaunchP75Ms": { "ios": 1800, "android": 3700 },
+    "understandableContentP75Ms": { "ios": 900, "android": 1400 },
+    "homeHeroP75Ms": { "ios": 1800, "android": 2500 },
+    "loadedTabSwitchP75Ms": { "ios": 400, "android": 600 },
+    "firstSubpackageP75Ms": { "ios": 1200, "android": 1500 },
+    "weakNetworkSubpackageP75Ms": { "ios": 2000, "android": 2500 }
+  },
+  "regression": {
+    "warningRatio": 0.05,
+    "blockingRatio": 0.1
+  },
+  "collection": {
+    "candidateSampleRate": 1,
+    "releaseOrdinarySampleRate": 0.1,
+    "criticalSampleRate": 1,
+    "releaseUploadEnabledByDefault": false,
+    "maxBatchEvents": 20,
+    "maxQueuedEvents": 200,
+    "maxBatchBytes": 32768,
+    "maxEventsPerMinute": 120
+  },
+  "evidence": {
+    "requiredDimensions": [
+      "version",
+      "platform",
+      "osVersion",
+      "wechatVersion",
+      "baseLibraryVersion",
+      "deviceTier",
+      "networkType",
+      "entry",
+      "packageState",
+      "sampleCount",
+      "p75Ms",
+      "p95Ms",
+      "differenceConclusion"
+    ]
+  }
+}

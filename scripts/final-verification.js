@@ -2886,6 +2886,11 @@ async function runFinalVerification() {
     runCommand("Element Plus admin build", "npm", ["run", "build", "--prefix", adminDir]),
     adminDeployBundleCheck(),
     runCommand("Mini-program validation", "npm", ["run", "check", "--prefix", miniprogramDir]),
+    runCommand(
+      "Mini-program legacy performance baseline",
+      process.execPath,
+      ["scripts/miniprogram-performance-report.js", "--legacy"],
+    ),
     runCommand("v1 Route Registry contract", "npm", ["run", "v1:routes:check"]),
     miniprogramReleaseManifestCheck(),
     runCommand("WeChat trial QR release contract", process.execPath, ["scripts/generate-wechat-trial-qrcode.test.js"]),
