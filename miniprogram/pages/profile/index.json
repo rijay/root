@@ -1,3 +1,6 @@
 {
-  "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "root-wordmark": "/components/root-wordmark/index"
+  }
 }

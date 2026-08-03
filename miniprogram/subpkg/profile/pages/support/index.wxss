@@ -5,3 +5,9 @@
 .support-page__contact { margin-top: 64rpx; height: 92rpx; color: #fff; background: #080806; border-radius: 24rpx; font-size: 28rpx; line-height: 92rpx; }
 .support-page__contact::after { border: 0; }
 .support-page__note { margin-top: 28rpx; color: #8a8172; font-size: 22rpx; line-height: 1.6; text-align: center; }
+.support-faq { margin-top: 48rpx; padding: 0 32rpx; background: #fff; border-radius: 28rpx; }
+.support-faq__item { padding: 34rpx 0; border-bottom: 1rpx solid #e8e0d0; }
+.support-faq__item:last-child { border-bottom: 0; }
+.support-faq__question, .support-faq__answer { display: block; }
+.support-faq__question { color: #080806; font-size: 28rpx; font-weight: 600; }
+.support-faq__answer { margin-top: 16rpx; color: #6c6457; font-size: 24rpx; line-height: 1.65; }

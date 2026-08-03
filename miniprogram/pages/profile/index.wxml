@@ -1,19 +1,28 @@
-<view class="profile-shell">
-  <text class="profile-shell__title">我的</text>
-  <view class="profile-shell__identity" bindtap="openLogin">
-    <view class="profile-shell__avatar">Root</view>
-    <view class="profile-shell__identity-copy">
-      <text>{{loggedIn ? 'Root用户' : '登录 Root 会员'}}</text>
-      <text>{{loggedIn ? '管理个人资料' : '探索更多可能'}}</text>
+<scroll-view class="profile-page" scroll-y enhanced show-scrollbar="false">
+  <view class="profile-page__content">
+    <text class="profile-page__title">我的</text>
+    <view class="profile-identity" bindtap="openLogin">
+      <view class="profile-identity__avatar">
+        <image wx:if="{{loggedIn && profile.avatarUrl}}" src="{{profile.avatarUrl}}" mode="aspectFill" />
+        <view wx:else class="profile-identity__default"><root-wordmark tone="light" /></view>
+      </view>
+      <view class="profile-identity__copy">
+        <text class="profile-identity__name">{{loggedIn ? (profile.nickname || 'Root用户') : '未登录'}}</text>
+        <text class="profile-identity__hint">{{loggedIn ? 'Root Member Club' : '登录后管理个人资料'}}</text>
+      </view>
     </view>
-    <text class="profile-shell__chevron">›</text>
+    <button wx:if="{{!loggedIn}}" class="profile-login" bindtap="openLogin">登录 / 注册</button>
+    <view class="profile-card profile-card--member">
+      <view class="profile-row" data-key="orders" bindtap="openMemberEntry"><text>我的订单</text><view class="profile-row__arrow"></view></view>
+      <view class="profile-row" data-key="coupons" bindtap="openMemberEntry"><text>优惠券</text><view class="profile-row__arrow"></view></view>
+    </view>
+    <view class="profile-card">
+      <view class="profile-row" data-type="faq" bindtap="openSupport"><text>常见问题</text><view class="profile-row__arrow"></view></view>
+      <view class="profile-row" data-type="contact" bindtap="openSupport"><text>联系客服</text><view class="profile-row__arrow"></view></view>
+      <view class="profile-row" data-type="feedback" bindtap="openSupport"><text>建议与反馈</text><view class="profile-row__arrow"></view></view>
+      <view class="profile-row" bindtap="openAbout"><text>关于 Root</text><view class="profile-row__arrow"></view></view>
+    </view>
+    <button wx:if="{{loggedIn}}" class="profile-logout" bindtap="logout">退出登录</button>
+    <text class="profile-version">myRoot v{{version}}</text>
   </view>
-  <view class="profile-shell__menu profile-shell__menu--member">
-    <view data-intent="member-orders" bindtap="openMemberEntry"><text>我的订单</text><text>会员中心　›</text></view>
-    <view data-intent="member-coupons" bindtap="openMemberEntry"><text>优惠券</text><text>会员中心　›</text></view>
-  </view>
-  <view class="profile-shell__menu">
-    <view bindtap="openSupport"><text>联系客服</text><text>›</text></view>
-    <view bindtap="openAbout"><text>关于 Root</text><text>›</text></view>
-  </view>
-</view>
+</scroll-view>

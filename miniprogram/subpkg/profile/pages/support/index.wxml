@@ -1,7 +1,17 @@
 <view class="support-page">
-  <text class="support-page__eyebrow">ROOT SUPPORT</text>
-  <text class="support-page__title">我们能为你做什么？</text>
-  <text class="support-page__copy">如需了解产品、活动、会员权益或提出建议，可以直接联系 Root 客服。</text>
-  <button class="support-page__contact" open-type="contact" bindcontact="onContact">联系客服</button>
-  <view class="support-page__note">客服工作时间与反馈方式将由运营后台统一配置。</view>
+  <text class="support-page__eyebrow">{{view.eyebrow}}</text>
+  <text class="support-page__title">{{view.title}}</text>
+  <text class="support-page__copy">{{view.copy}}</text>
+
+  <view wx:if="{{mode === 'faq'}}" class="support-faq">
+    <view wx:for="{{faqItems}}" wx:key="question" class="support-faq__item">
+      <text class="support-faq__question">{{item.question}}</text>
+      <text class="support-faq__answer">{{item.answer}}</text>
+    </view>
+  </view>
+
+  <button wx:else class="support-page__contact" open-type="contact" bindcontact="onContact">
+    {{mode === 'feedback' ? '提交建议与反馈' : '联系客服'}}
+  </button>
+  <view wx:if="{{mode !== 'faq'}}" class="support-page__note">客服工作时间与反馈方式由运营统一维护。</view>
 </view>
