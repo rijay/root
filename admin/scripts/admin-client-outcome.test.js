@@ -10,7 +10,7 @@ globalThis.window = {
   },
 };
 
-const { adminRequest, getAdminToken, setAdminToken } = await import("../src/api/client.js");
+const { adminRequest, getAdminToken, postAdminRead, setAdminToken } = await import("../src/api/client.js");
 
 function response(payload, { status = 200, ok = status >= 200 && status < 300 } = {}) {
   return { status, ok, async json() { return payload; } };
@@ -40,6 +40,20 @@ test("a structured 5xx write response remains outcome-unknown", async () => {
     adminRequest("/write", { method: "POST" }),
     (error) => error.code === 50001 && error.outcomeUnknown === true,
   );
+});
+
+test("a POST read failure is definitive and does not leak its body into the URL", async () => {
+  let requestedPath = "";
+  globalThis.fetch = async (path) => {
+    requestedPath = path;
+    throw new Error("network failed");
+  };
+  await assert.rejects(
+    postAdminRead("/api/v1/admin/formal-users/query", { phone: "13800138000" }),
+    (error) => error.code === "ADMIN_NETWORK_ERROR" && error.outcomeUnknown === false,
+  );
+  assert.equal(requestedPath, "/api/v1/admin/formal-users/query");
+  assert.equal(requestedPath.includes("13800138000"), false);
 });
 
 test("a stalled POST response body times out as outcome-unknown", async () => {

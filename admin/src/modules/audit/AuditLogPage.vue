@@ -15,13 +15,7 @@
           <el-space>
             <el-input v-model="filters.q" clearable placeholder="搜索操作/对象/request_id" @keyup.enter="load" />
             <el-input v-model="filters.operatorId" clearable placeholder="操作人" @keyup.enter="load" />
-            <el-select v-model="filters.action" clearable placeholder="动作">
-              <el-option label="单条复核" value="RESOLVE_MANUAL_REVIEW" />
-              <el-option label="批量复核" value="BATCH_MANUAL_REVIEW_RESOLVE" />
-              <el-option label="批量结算" value="BATCH_SETTLEMENT_EXECUTE" />
-              <el-option label="奖励发放" value="REWARD_DELIVERY_BATCH_EXECUTE" />
-              <el-option label="规则发布" value="PUBLISH_CAMPAIGN_RULE_VERSION" />
-            </el-select>
+            <el-input v-model="filters.action" clearable placeholder="动作" @keyup.enter="load" />
             <el-button type="primary" @click="load">查询</el-button>
           </el-space>
         </div>

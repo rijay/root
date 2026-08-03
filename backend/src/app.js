@@ -23,6 +23,7 @@ const { authenticateJobRouteToken } = require("./jobRouteToken");
 const { atomicWriteFailure, isAtomicWriteError } = require("./atomicWriteError");
 const { clientErrorResponse, createClientError } = require("./clientError");
 const sessionModule = require("./sessionModule");
+const adminFormalUserQuery = require("./adminFormalUserQuery");
 
 function safeAggregateCount(value) {
   return Number.isSafeInteger(value) && value >= 0 ? value : 0;
@@ -1896,6 +1897,14 @@ function createApp(options = {}) {
         return ok(res, adminLaunchReadiness(data, { ...runtimeContext, target: url.searchParams.get("target") || "production" }));
       }
       if (route === "GET /api/v1/admin/ready-to-start") return ok(res, getReadyToStartUsers(data, url.searchParams.get("date") || undefined));
+      if (route === "POST /api/v1/admin/formal-users/query") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
+        return ok(res, {
+          code: 0,
+          message: "ok",
+          data: adminFormalUserQuery.queryByPhone(data, body),
+        });
+      }
       if (route === "GET /api/v1/admin/tasks") return ok(res, listOperationTasks(data, Object.fromEntries(url.searchParams)));
       if (route === "GET /api/v1/admin/order-matching/search") return ok(res, searchAdminOrderMatching(data, Object.fromEntries(url.searchParams)));
       if (route === "POST /api/v1/admin/order-matching/preview") return ok(res, previewAdminOrderMatch(data, body));

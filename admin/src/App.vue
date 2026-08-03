@@ -45,46 +45,22 @@
           type="error"
         />
         <el-empty v-if="!profileLoading && !visibleModules.length" description="暂无可访问模块" />
-        <ConfigWorkbench v-else-if="currentModuleKey === 'config'" ref="activeWorkbench" />
-        <UserLifecycle v-else-if="currentModuleKey === 'users'" ref="activeWorkbench" />
-        <AuditLogPage v-else-if="currentModuleKey === 'audit'" ref="activeWorkbench" />
-        <AdapterRunPage v-else-if="currentModuleKey === 'adapters'" ref="activeWorkbench" />
-        <OperationalAnalytics v-else-if="currentModuleKey === 'analytics'" ref="activeWorkbench" />
-        <ActivityWorkbench v-else-if="currentModuleKey === 'activities'" ref="activeWorkbench" />
         <ReleaseWorkbench v-else-if="currentModuleKey === 'release'" ref="activeWorkbench" />
+        <ActivityWorkbench v-else-if="currentModuleKey === 'activities'" ref="activeWorkbench" />
+        <UserQueryPage v-else-if="currentModuleKey === 'users'" ref="activeWorkbench" />
+        <AuditLogPage v-else-if="currentModuleKey === 'audit'" ref="activeWorkbench" />
       </section>
     </main>
   </el-config-provider>
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, provide, ref, watch } from "vue";
-import AdapterRunPage from "./modules/adapters/AdapterRunPage.vue";
-import OperationalAnalytics from "./modules/analytics/OperationalAnalytics.vue";
-import AuditLogPage from "./modules/audit/AuditLogPage.vue";
-import ActivityWorkbench from "./modules/activities/ActivityWorkbench.vue";
-import ConfigWorkbench from "./modules/config/ConfigWorkbench.vue";
-import ReleaseWorkbench from "./modules/release/ReleaseWorkbench.vue";
-import UserLifecycle from "./modules/users/UserLifecycle.vue";
+import { computed, defineAsyncComponent, nextTick, onMounted, provide, ref, watch } from "vue";
 import { fetchAdminProfile, getAdminToken, setAdminToken } from "./api/client";
 import { ADMIN_ACCESS_KEY, ADMIN_CAPABILITIES, createAdminAccess } from "./modules/access";
 
 const ADMIN_MODULES = [
-  {
-    key: "config",
-    label: "运营配置",
-    title: "运营配置工作台",
-    capabilities: [
-      ADMIN_CAPABILITIES.CONFIG_WRITE,
-      ADMIN_CAPABILITIES.REVIEW_RESOLVE,
-      ADMIN_CAPABILITIES.REWARD_DELIVERY_WRITE,
-      ADMIN_CAPABILITIES.SETTLEMENT_EXECUTE,
-    ],
-  },
-  { key: "users", label: "用户生命周期", title: "用户生命周期", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
-  { key: "audit", label: "审计记录", title: "审计记录", capabilities: [ADMIN_CAPABILITIES.AUDIT_READ] },
-  { key: "adapters", label: "Adapter 运行", title: "Adapter 运行", capabilities: [ADMIN_CAPABILITIES.CONFIG_WRITE] },
-  { key: "analytics", label: "运营数据", title: "运营数据", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
+  { key: "release", label: "发布工作台", title: "发布工作台", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
   {
     key: "activities",
     label: "活动运营",
@@ -97,12 +73,18 @@ const ADMIN_MODULES = [
       ADMIN_CAPABILITIES.ACTIVITY_ENROLLMENT_REVIEW,
     ],
   },
-  { key: "release", label: "开发发布", title: "开发发布", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
+  { key: "users", label: "用户查询", title: "用户查询", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
+  { key: "audit", label: "操作审计", title: "操作审计", capabilities: [ADMIN_CAPABILITIES.AUDIT_READ] },
 ];
+
+const ReleaseWorkbench = defineAsyncComponent(() => import("./modules/release/ReleaseWorkbench.vue"));
+const ActivityWorkbench = defineAsyncComponent(() => import("./modules/activities/ActivityWorkbench.vue"));
+const UserQueryPage = defineAsyncComponent(() => import("./modules/users/UserQueryPage.vue"));
+const AuditLogPage = defineAsyncComponent(() => import("./modules/audit/AuditLogPage.vue"));
 
 function initialModule() {
   const module = new URLSearchParams(window.location.search).get("module") || "";
-  return ADMIN_MODULES.some((item) => item.key === module) ? module : "config";
+  return ADMIN_MODULES.some((item) => item.key === module) ? module : "release";
 }
 
 const activeModule = ref(initialModule());

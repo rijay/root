@@ -1199,6 +1199,13 @@ async function httpSmoke() {
     const adminAssetPath = (adminHtml.match(/\/admin\/assets\/[^"]+\.js/) || [])[0] || "";
     const adminAssetResponse = adminAssetPath ? await fetch(`${baseUrl}${adminAssetPath}`) : null;
     const adminAssetJs = adminAssetResponse ? await adminAssetResponse.text() : "";
+    const adminUserQueryAssetName = (adminAssetJs.match(/UserQueryPage-[A-Za-z0-9_-]+\.js/) || [])[0] || "";
+    const adminUserQueryAssetResponse = adminUserQueryAssetName
+      ? await fetch(`${baseUrl}/admin/assets/${adminUserQueryAssetName}`)
+      : null;
+    const adminUserQueryAssetJs = adminUserQueryAssetResponse
+      ? await adminUserQueryAssetResponse.text()
+      : "";
     checks.push({
       id: "element_plus_admin_entry",
       status: adminHtmlResponse.status === 200 &&
@@ -1206,9 +1213,14 @@ async function httpSmoke() {
         adminHtml.includes("/admin/assets/") &&
         adminAssetResponse &&
         adminAssetResponse.status === 200 &&
-        adminAssetJs.includes("/api/v1/jobs/lifecycle-user-exports-cleanup") &&
-        adminAssetJs.includes("/api/v1/admin/lifecycle-user-exports/delivery-health") &&
-        adminAssetJs.includes("过期清理") ? "PASS" : "FAIL",
+        adminAssetJs.includes("发布工作台") &&
+        adminAssetJs.includes("活动运营") &&
+        adminAssetJs.includes("用户查询") &&
+        adminAssetJs.includes("操作审计") &&
+        adminUserQueryAssetResponse &&
+        adminUserQueryAssetResponse.status === 200 &&
+        adminUserQueryAssetJs.includes("/api/v1/admin/formal-users/query") &&
+        !adminAssetJs.includes("用户生命周期") ? "PASS" : "FAIL",
     });
     const legacyAdminResponse = await fetch(`${baseUrl}/admin-legacy`);
     const legacyAdminHtml = await legacyAdminResponse.text();
