@@ -219,6 +219,20 @@ function candidateSpecs() {
       },
     },
     {
+      kind: "HEALTH_SCALE_RESPONSE",
+      collection: "healthScaleResponses",
+      id: (item) => item.health_scale_response_id,
+      time: (item) => item.submitted_at || item.created_at,
+      media: () => [],
+      redact(item, redactedAt) {
+        item.answers_json = {};
+        item.result_json = {};
+        item.score = null;
+        item.result_level_id = "";
+        markRedaction(item, redactedAt);
+      },
+    },
+    {
       kind: "CHECKIN_RECORD",
       collection: "checkinRecords",
       id: (item) => item.record_id,

@@ -145,6 +145,20 @@ test("Root4U submission freezes published recommendation versions into the user 
     audience: "ADULT_18_PLUS",
     questionCount: 12,
     resultLevelCount: 3,
+    questions: [{
+      id: "bowel_rhythm",
+      title: "过去一周，你的排便节律稳定吗？",
+      type: "SINGLE",
+      required: true,
+      options: [
+        { value: "steady", label: "比较稳定", score: 0 },
+        { value: "variable", label: "有些波动", score: 1 },
+      ],
+    }],
+    resultLevels: [
+      { id: "steady", minScore: 0, maxScore: 0, title: "节律较稳", summary: "目前节律相对稳定。", tips: ["继续保持记录"] },
+      { id: "variable", minScore: 1, maxScore: 1, title: "留意波动", summary: "近期节律有一些波动。", tips: ["观察饮水与作息"] },
+    ],
     adviceVersionId: "ROOT4U_FIXED_CONTENT_V1",
     approver: "健康内容负责人",
     effectiveAt: "2026-08-03T00:00:00.000Z",

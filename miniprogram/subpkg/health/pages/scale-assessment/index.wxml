@@ -1,0 +1,34 @@
+<scroll-view class="scale-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+  <view class="scale-page" style="min-height: {{contentHeight}}px;">
+    <page-navigation show-home="{{false}}" intercept-back="{{true}}" bind:back="goBack" />
+
+    <view wx:if="{{loading}}" class="scale-state">正在准备评测…</view>
+    <view wx:elif="{{error && !currentQuestion && !result}}" class="scale-state"><text>{{error}}</text><button bindtap="retry">重新加载</button></view>
+
+    <view wx:elif="{{result}}" class="scale-result">
+      <text class="scale-result__eyebrow">评测结果 · {{result.scaleVersionLabel}}</text>
+      <text class="scale-result__name">{{result.scaleName}}</text>
+      <view class="scale-result__score"><text>{{result.score}}</text><text>/ {{result.maximumScore}}</text></view>
+      <text class="scale-result__title">{{result.levelTitle}}</text>
+      <text class="scale-result__summary">{{result.summary}}</text>
+      <view wx:if="{{result.tips.length}}" class="scale-result__tips">
+        <view wx:for="{{result.tips}}" wx:key="*this"><text>0{{index + 1}}</text><text>{{item}}</text></view>
+      </view>
+      <text class="scale-result__notice">结果用于整理日常状态，不构成疾病诊断或治疗建议。</text>
+      <button class="scale-primary" style="width: 350px;" bindtap="returnToHealth">返回健康</button>
+    </view>
+
+    <block wx:elif="{{currentQuestion}}">
+      <text class="scale-progress">{{progressLabel}}</text>
+      <view class="scale-progress__track"><view style="width: {{progressPercent}}%;"></view></view>
+      <text class="scale-eyebrow">{{assessmentName}}</text>
+      <text class="scale-title">{{currentQuestion.title}}</text>
+      <view class="scale-options">
+        <button wx:for="{{currentQuestion.options}}" wx:key="value" class="scale-option {{item.selected ? 'scale-option--selected' : ''}}" data-value="{{item.value}}" bindtap="selectOption" aria-label="{{item.label}}"><text>{{item.label}}</text><view class="scale-option__mark"></view></button>
+      </view>
+      <text wx:if="{{error}}" class="scale-inline-error">{{error}}</text>
+      <button wx:if="{{confirming}}" class="scale-recover" bindtap="recoverResult" loading="{{submitting}}">确认提交结果</button>
+      <view class="scale-next-dock"><button class="scale-primary scale-next" style="width: 350px;" disabled="{{!canContinue || submitting || confirming}}" loading="{{submitting}}" bindtap="next">{{currentIndex === totalQuestions - 1 ? '提交评测' : '下一步'}}</button></view>
+    </block>
+  </view>
+</scroll-view>

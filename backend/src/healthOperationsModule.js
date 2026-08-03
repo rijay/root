@@ -329,17 +329,72 @@ function listInitialization(data, query = {}) {
   };
 }
 
-function scaleContent(input) {
+function scaleQuestion(input, index) {
+  const question = input && typeof input === "object" ? input : {};
+  const id = text(question.id || `question_${index + 1}`, `questions[${index}].id`, 64);
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) throw healthError("HEALTH_CONTENT_INPUT_INVALID", `第 ${index + 1} 题标识格式无效`);
+  const type = String(question.type || "SINGLE").trim().toUpperCase();
+  if (type !== "SINGLE") throw healthError("HEALTH_CONTENT_INPUT_INVALID", "首发量表仅支持单选题");
+  const options = Array.isArray(question.options) ? question.options.map((item, optionIndex) => {
+    const option = item && typeof item === "object" ? item : {};
+    const value = text(option.value || `option_${optionIndex + 1}`, `questions[${index}].options[${optionIndex}].value`, 64);
+    if (!/^[a-zA-Z0-9_-]+$/.test(value)) throw healthError("HEALTH_CONTENT_INPUT_INVALID", `第 ${index + 1} 题选项标识格式无效`);
+    return {
+      value,
+      label: text(option.label, `questions[${index}].options[${optionIndex}].label`, 160),
+      score: integer(option.score, `questions[${index}].options[${optionIndex}].score`, 0, 20),
+    };
+  }) : [];
+  if (new Set(options.map((item) => item.value)).size !== options.length) {
+    throw healthError("HEALTH_CONTENT_INPUT_INVALID", `第 ${index + 1} 题选项标识不能重复`);
+  }
   return {
-    name: text(input.name, "name", 80),
-    questionSummary: text(input.questionSummary, "questionSummary", 2000),
-    scoringSummary: text(input.scoringSummary, "scoringSummary", 2000),
-    audience: ["ADULT_18_PLUS", "SPECIFIC"].includes(input.audience) ? input.audience : "ADULT_18_PLUS",
-    questionCount: integer(input.questionCount, "questionCount", 1, 100),
-    resultLevelCount: integer(input.resultLevelCount, "resultLevelCount", 1, 10),
-    adviceVersionId: text(input.adviceVersionId, "adviceVersionId", 64),
-    approver: text(input.approver, "approver", 80, { required: false }),
-    effectiveAt: optionalInstant(input.effectiveAt, "effectiveAt"),
+    id,
+    title: text(question.title, `questions[${index}].title`, 200),
+    type,
+    required: question.required !== false,
+    options,
+  };
+}
+
+function scaleResultLevel(input, index) {
+  const level = input && typeof input === "object" ? input : {};
+  const id = text(level.id || `level_${index + 1}`, `resultLevels[${index}].id`, 64);
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) throw healthError("HEALTH_CONTENT_INPUT_INVALID", `第 ${index + 1} 个结果等级标识格式无效`);
+  return {
+    id,
+    minScore: integer(level.minScore, `resultLevels[${index}].minScore`, 0, 2000),
+    maxScore: integer(level.maxScore, `resultLevels[${index}].maxScore`, 0, 2000),
+    title: text(level.title, `resultLevels[${index}].title`, 80),
+    summary: text(level.summary, `resultLevels[${index}].summary`, 500),
+    tips: stringList(level.tips || [], `resultLevels[${index}].tips`, 3, 120),
+  };
+}
+
+function scaleContent(input, fallback = {}) {
+  const source = { ...fallback, ...input };
+  const questionsSource = input.questions === undefined ? fallback.questions : input.questions;
+  const levelsSource = input.resultLevels === undefined ? fallback.resultLevels : input.resultLevels;
+  if (questionsSource !== undefined && !Array.isArray(questionsSource)) throw healthError("HEALTH_CONTENT_INPUT_INVALID", "questions格式无效");
+  if (levelsSource !== undefined && !Array.isArray(levelsSource)) throw healthError("HEALTH_CONTENT_INPUT_INVALID", "resultLevels格式无效");
+  const questions = (questionsSource || []).map(scaleQuestion);
+  const resultLevels = (levelsSource || []).map(scaleResultLevel);
+  if (questions.length > 100) throw healthError("HEALTH_CONTENT_INPUT_INVALID", "量表题目不能超过 100 题");
+  if (resultLevels.length > 10) throw healthError("HEALTH_CONTENT_INPUT_INVALID", "结果等级不能超过 10 个");
+  if (new Set(questions.map((item) => item.id)).size !== questions.length) throw healthError("HEALTH_CONTENT_INPUT_INVALID", "题目标识不能重复");
+  if (new Set(resultLevels.map((item) => item.id)).size !== resultLevels.length) throw healthError("HEALTH_CONTENT_INPUT_INVALID", "结果等级标识不能重复");
+  return {
+    name: text(source.name, "name", 80),
+    questionSummary: text(source.questionSummary, "questionSummary", 2000),
+    scoringSummary: text(source.scoringSummary, "scoringSummary", 2000),
+    audience: ["ADULT_18_PLUS", "SPECIFIC"].includes(source.audience) ? source.audience : "ADULT_18_PLUS",
+    questions,
+    resultLevels,
+    questionCount: questions.length,
+    resultLevelCount: resultLevels.length,
+    adviceVersionId: text(source.adviceVersionId, "adviceVersionId", 64),
+    approver: text(source.approver, "approver", 80, { required: false }),
+    effectiveAt: optionalInstant(source.effectiveAt, "effectiveAt"),
   };
 }
 
@@ -353,7 +408,7 @@ function saveScaleDraft(data, input = {}, context = {}) {
     const logicalId = source ? source.logical_id : createId("hscale");
     return createDraft(data, TYPES.SCALE, logicalId, source ? source.content_json : scaleContent(input), context, sourceId);
   });
-  updateDraft(row, scaleContent(input), context);
+  updateDraft(row, scaleContent(input, row.content_json), context);
   return { version: scaleView(row) };
 }
 
@@ -375,6 +430,22 @@ function scaleValidation(row) {
   if (!content.approver) errors.push("健康内容负责人不能为空");
   if (!content.effectiveAt) errors.push("生效时间不能为空");
   if (content.adviceVersionId !== FIXED_CONTENT_VERSION_ID) errors.push("建议内容版本未获批准");
+  if (!Array.isArray(content.questions) || content.questions.length < 1) errors.push("量表至少包含 1 道真实题目");
+  if (!Array.isArray(content.resultLevels) || content.resultLevels.length < 1) errors.push("量表至少包含 1 个结果等级");
+  if (Array.isArray(content.questions) && content.questions.some((question) => (
+    question.type !== "SINGLE" || question.required !== true || !Array.isArray(question.options)
+      || question.options.length < 2 || question.options.length > 10
+  ))) errors.push("每道题必须是包含 2–10 个选项的必答单选题");
+  if (Array.isArray(content.questions) && content.questions.length && Array.isArray(content.resultLevels) && content.resultLevels.length) {
+    const attainableMinimum = content.questions.reduce((sum, question) => sum + Math.min(...question.options.map((option) => option.score)), 0);
+    const attainableMaximum = content.questions.reduce((sum, question) => sum + Math.max(...question.options.map((option) => option.score)), 0);
+    const levels = [...content.resultLevels].sort((left, right) => left.minScore - right.minScore);
+    const continuous = levels[0].minScore === attainableMinimum
+      && levels[levels.length - 1].maxScore === attainableMaximum
+      && levels.every((level, index) => level.minScore <= level.maxScore
+        && (index === 0 || level.minScore === levels[index - 1].maxScore + 1));
+    if (!continuous) errors.push("结果等级必须覆盖全部可得分数，并保持连续且不重叠");
+  }
   return errors;
 }
 
@@ -666,6 +737,22 @@ function resolveInitializationDefinition(data, profile = {}) {
   return definition;
 }
 
+function resolvePublishedScale(data, versionId, context = {}) {
+  const row = rowById(data, String(versionId || "").trim());
+  const asOf = Date.parse(context.now || nowISO());
+  if (!row || row.content_type !== TYPES.SCALE || row.status !== PUBLISHED
+    || !Number.isFinite(asOf) || !effectiveAtOrBefore(row, asOf)) {
+    throw healthError("HEALTH_SCALE_NOT_AVAILABLE", "该健康评测暂不可用", 404);
+  }
+  return {
+    versionId: row.health_content_version_id,
+    logicalId: row.logical_id,
+    version: row.version,
+    versionLabel: `v${row.version}.0`,
+    content: clone(row.content_json),
+  };
+}
+
 module.exports = {
   FIXED_CONTENT_VERSION_ID,
   FIXED_SAFETY_VERSION_ID,
@@ -678,6 +765,7 @@ module.exports = {
   publishLifestyleAdvice,
   publishRecommendationRule,
   publishScale,
+  resolvePublishedScale,
   resolvePublishedLifestylePolicy,
   resolvePublishedRecommendations,
   resolveInitializationDefinition,

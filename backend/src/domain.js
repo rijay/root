@@ -33,6 +33,8 @@ const coupon = require("./coupon");
 const cloudbaseIdentityProbe = require("./cloudbaseIdentityProbe");
 const contentModule = require("./contentModule");
 const formalHealthModule = require("./formalHealthModule");
+const formalHealthAccessPolicy = require("./formalHealthAccessPolicy");
+const healthScaleAssessmentModule = require("./healthScaleAssessmentModule");
 const healthOperationsModule = require("./healthOperationsModule");
 const csvImport = require("./csvImport");
 const externalAdapterSamples = require("./externalAdapterSamples");
@@ -854,6 +856,21 @@ function getFormalHealthInitialAssessment(data, token, context = {}) {
   return response(formalHealthModule.getDefinition(data, profile, context));
 }
 
+function getFormalHealthScale(data, token, scaleVersionId, query = {}, context = {}) {
+  const user = requireUser(data, token);
+  const { profile } = formalHealthContext(data, user, context);
+  privacyConsent.requireHealthConsent(data, user.root_user_id || user.user_id, context);
+  return response(healthScaleAssessmentModule.getDefinition(data, scaleVersionId, profile, query, context));
+}
+
+function getLatestFormalHealthScaleResult(data, token, scaleVersionId, context = {}) {
+  const user = requireUser(data, token);
+  const { profile } = formalHealthContext(data, user, context);
+  privacyConsent.requireHealthConsent(data, user.root_user_id || user.user_id, context);
+  formalHealthAccessPolicy.assertEligible(profile, context);
+  return response({ result: healthScaleAssessmentModule.latestResult(data, user, scaleVersionId) });
+}
+
 function listAdminFormalHealthInitialization(data, query = {}) {
   return response(healthOperationsModule.listInitialization(data, query));
 }
@@ -950,6 +967,22 @@ function submitFormalHealthInitialAssessment(data, token, body = {}, context = {
       answerId: result.answerId,
       questionnaireId: formalHealthModule.QUESTIONNAIRE_ID,
       questionnaireVersion: result.questionnaireVersion,
+    },
+  });
+  return response(result);
+}
+
+function submitFormalHealthScale(data, token, scaleVersionId, body = {}, context = {}) {
+  const user = requireUser(data, token);
+  const { profile } = formalHealthContext(data, user, context);
+  privacyConsent.requireHealthConsent(data, user.root_user_id || user.user_id, context);
+  const result = healthScaleAssessmentModule.submit(data, user, profile, scaleVersionId, body, context);
+  recordLifecycleEvent(data, user.root_user_id || user.user_id, "ROOT4U_SCALE_ASSESSMENT_COMPLETED", {
+    sourceChannel: "MYROOT_ROOT4U",
+    appCode: user.app_code || "MYROOT",
+    metadata: {
+      responseId: result.result.responseId,
+      scaleVersionId: result.result.scaleVersionId,
     },
   });
   return response(result);
@@ -3050,6 +3083,8 @@ module.exports = {
   getHealthConsentStatus,
   getFormalHealthBootstrap,
   getFormalHealthInitialAssessment,
+  getFormalHealthScale,
+  getLatestFormalHealthScaleResult,
   getFormalContentDetail,
   getFormalProfile,
   getPrivacyNotice,
@@ -3136,6 +3171,7 @@ module.exports = {
   submitDailyCheckin,
   submitFormalProfile,
   submitFormalHealthInitialAssessment,
+  submitFormalHealthScale,
   saveAdminFormalHealthInitializationDraft,
   saveAdminFormalHealthLifestyleAdviceDraft,
   saveAdminFormalHealthRecommendationRuleDraft,

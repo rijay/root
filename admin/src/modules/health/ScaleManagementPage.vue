@@ -22,13 +22,37 @@
       </el-table>
       <el-pagination v-if="total > pageSize" v-model:current-page="filters.page" class="content-pagination" :page-size="pageSize" :total="total" layout="prev, pager, next" @current-change="load" />
     </section>
-    <el-drawer v-model="drawerVisible" class="content-edit-drawer health-edit-drawer" size="408px" :show-close="true">
+    <el-drawer v-model="drawerVisible" class="content-edit-drawer health-edit-drawer" size="640px" :show-close="true">
       <template #header><div><h2>{{ draft.sourceVersionId ? '复制量表版本' : draft.id ? '编辑量表版本' : '新建量表' }}</h2><p>题目、计分和结果分层必须作为同一版本保存。</p></div></template>
       <el-form label-position="top">
         <el-form-item label="量表名称 *"><el-input v-model="draft.name" maxlength="80" /></el-form-item>
-        <el-form-item label="题目与选项 *"><el-input v-model="draft.questionSummary" :rows="4" resize="none" type="textarea" placeholder="填写题目数量、题型和预计完成时间" /><p class="field-help">长量表每组最多编辑 20 题，未展开题目不挂载。</p></el-form-item>
-        <el-form-item label="计分与结果分层 *"><el-input v-model="draft.scoringSummary" :rows="3" resize="none" type="textarea" placeholder="填写总分范围、分层阈值和校验方式" /></el-form-item>
-        <el-form-item label="适用与版本"><div class="typography-controls"><el-select v-model="draft.audience"><el-option label="18+" value="ADULT_18_PLUS" /></el-select><el-input-number v-model="draft.questionCount" :min="1" :max="100" controls-position="right" /><el-input-number v-model="draft.resultLevelCount" :min="1" :max="10" controls-position="right" /></div></el-form-item>
+        <el-form-item label="题目说明 *"><el-input v-model="draft.questionSummary" :rows="2" resize="none" type="textarea" placeholder="例如：12 道必答单选题，约 3 分钟完成" /></el-form-item>
+        <div class="scale-editor-section">
+          <div class="scale-editor-heading"><span>真实题目与选项 *</span><el-space><el-button size="small" @click="addQuestion">新增题目</el-button><el-button :disabled="draft.questions.length <= 1" size="small" type="danger" plain @click="removeQuestion">删除当前题</el-button></el-space></div>
+          <div class="scale-question-nav"><el-select v-model="currentQuestionIndex"><el-option v-for="(question, index) in draft.questions" :key="question.id" :label="`第 ${index + 1} 题 · ${question.title || '待填写'}`" :value="index" /></el-select><span>{{ currentQuestionIndex + 1 }} / {{ draft.questions.length }}</span></div>
+          <template v-if="currentQuestion">
+            <el-input v-model="currentQuestion.title" maxlength="200" placeholder="输入题目文案" />
+            <div class="scale-option-list">
+              <div v-for="(option, optionIndex) in currentQuestion.options" :key="option.value" class="scale-option-row">
+                <span>{{ String.fromCharCode(65 + optionIndex) }}</span><el-input v-model="option.label" maxlength="160" placeholder="选项文案" /><el-input-number v-model="option.score" :min="0" :max="20" controls-position="right" /><el-button :disabled="currentQuestion.options.length <= 2" link type="danger" @click="removeOption(optionIndex)">删除</el-button>
+              </div>
+            </div>
+            <el-button :disabled="currentQuestion.options.length >= 10" link type="primary" @click="addOption">+ 新增选项</el-button>
+          </template>
+          <p class="field-help">首发仅支持必答单选；长量表按每组最多 20 题整理，编辑器只展开当前题；分值不会下发到小程序。</p>
+        </div>
+        <el-form-item label="计分说明 *"><el-input v-model="draft.scoringSummary" :rows="2" resize="none" type="textarea" placeholder="说明分数含义与校验方式" /></el-form-item>
+        <div class="scale-editor-section">
+          <div class="scale-editor-heading"><span>计分与结果分层 *</span><el-button :disabled="draft.resultLevels.length >= 10" size="small" @click="addResultLevel">新增等级</el-button></div>
+          <div v-for="(level, index) in draft.resultLevels" :key="level.id" class="scale-result-card">
+            <div class="scale-result-card__heading"><strong>等级 {{ index + 1 }}</strong><el-button :disabled="draft.resultLevels.length <= 1" link type="danger" @click="removeResultLevel(index)">删除</el-button></div>
+            <div class="scale-result-range"><el-input-number v-model="level.minScore" :min="0" :max="2000" controls-position="right" /><span>至</span><el-input-number v-model="level.maxScore" :min="0" :max="2000" controls-position="right" /><el-input v-model="level.title" maxlength="80" placeholder="结果标题" /></div>
+            <el-input v-model="level.summary" :rows="2" resize="none" type="textarea" placeholder="非诊断性的结果说明" />
+            <el-input v-model="level.tipsText" placeholder="生活方式提示，最多三条，用换行分隔" type="textarea" :rows="2" />
+          </div>
+          <p class="field-help">等级需覆盖全部可得分数，区间必须连续且不能重叠。</p>
+        </div>
+        <el-form-item label="适用与版本"><el-select v-model="draft.audience"><el-option label="18 岁及以上" value="ADULT_18_PLUS" /></el-select><p class="field-help">当前 {{ draft.questions.length }} 题 · {{ draft.resultLevels.length }} 个结果等级</p></el-form-item>
         <el-form-item label="建议内容版本 *"><el-select v-model="draft.adviceVersionId" placeholder="选择已批准建议内容版本"><el-option v-for="item in adviceOptions" :key="item.versionId" :label="item.label" :value="item.versionId" /></el-select></el-form-item>
         <el-form-item label="审批与生效"><div class="health-approval-grid"><el-input v-model="draft.approver" placeholder="健康内容负责人" /><el-date-picker v-model="draft.effectiveAt" placeholder="生效时间" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" /></div></el-form-item>
       </el-form>
@@ -38,14 +62,20 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { fetchHealthScales, publishHealthScaleVersion, saveHealthScaleDraft } from "./adminHealthApi";
 
-const emptyDraft = () => ({ id: "", sourceVersionId: "", expectedRevision: 0, name: "", questionSummary: "", scoringSummary: "", audience: "ADULT_18_PLUS", questionCount: 12, resultLevelCount: 3, adviceVersionId: "", approver: "", effectiveAt: "" });
+let localId = 0;
+function nextId(prefix) { localId += 1; return `${prefix}_${Date.now().toString(36)}_${localId}`; }
+function newQuestion() { return { id: nextId("question"), title: "", type: "SINGLE", required: true, options: [{ value: nextId("option"), label: "", score: 0 }, { value: nextId("option"), label: "", score: 1 }] }; }
+function newResultLevel() { return { id: nextId("level"), minScore: 0, maxScore: 1, title: "", summary: "", tipsText: "" }; }
+const emptyDraft = () => ({ id: "", sourceVersionId: "", expectedRevision: 0, name: "", questionSummary: "", scoringSummary: "", audience: "ADULT_18_PLUS", questions: [newQuestion()], resultLevels: [newResultLevel()], adviceVersionId: "", approver: "", effectiveAt: "" });
 const rows = ref([]), total = ref(0), loading = ref(false), saving = ref(false), drawerVisible = ref(false), interfaceUnavailable = ref(false);
 const errorMessage = ref(""), previewPath = ref(""), publishingId = ref(""), adviceOptions = ref([]);
 const draft = reactive(emptyDraft()), filters = reactive({ keyword: "", status: "", audience: "", page: 1 });
+const currentQuestionIndex = ref(0);
+const currentQuestion = computed(() => draft.questions[currentQuestionIndex.value] || null);
 const pageSize = 20;
 let searchTimer = null, loadSequence = 0, loadController = null;
 function sequenceNumber(index) { return String((filters.page - 1) * pageSize + index + 1).padStart(2, "0"); }
@@ -53,13 +83,23 @@ function statusLabel(status) { return ({ PUBLISHED: "已发布", DRAFT: "草稿"
 function statusType(status) { return status === "PUBLISHED" ? "success" : status === "BLOCKED" ? "danger" : status === "DRAFT" ? "warning" : "info"; }
 function scheduleLoad() { clearTimeout(searchTimer); searchTimer = setTimeout(() => { filters.page = 1; load(); }, 300); }
 function resetFilters() { Object.assign(filters, { keyword: "", status: "", audience: "", page: 1 }); load(); }
-function createDraft() { Object.assign(draft, emptyDraft()); drawerVisible.value = true; }
-function editDraft(row) { Object.assign(draft, emptyDraft(), row, { id: row.status === "PUBLISHED" ? "" : row.id, sourceVersionId: row.status === "PUBLISHED" ? row.versionId : row.sourceVersionId || "", expectedRevision: row.status === "DRAFT" ? row.revision : 0 }); drawerVisible.value = true; }
+function normalizeRow(row) { return { ...row, questions: (row.questions || []).map((question) => ({ ...question, options: (question.options || []).map((option) => ({ ...option })) })), resultLevels: (row.resultLevels || []).map((level) => ({ ...level, tipsText: (level.tips || []).join("\n") })) }; }
+function createDraft() { Object.assign(draft, emptyDraft()); currentQuestionIndex.value = 0; drawerVisible.value = true; }
+function editDraft(row) { Object.assign(draft, emptyDraft(), normalizeRow(row), { id: row.status === "PUBLISHED" ? "" : row.id, sourceVersionId: row.status === "PUBLISHED" ? row.versionId : row.sourceVersionId || "", expectedRevision: row.status === "DRAFT" ? row.revision : 0 }); if (!draft.questions.length) draft.questions = [newQuestion()]; if (!draft.resultLevels.length) draft.resultLevels = [newResultLevel()]; currentQuestionIndex.value = 0; drawerVisible.value = true; }
+function addQuestion() { if (draft.questions.length >= 100) return; draft.questions.push(newQuestion()); currentQuestionIndex.value = draft.questions.length - 1; }
+function removeQuestion() { if (draft.questions.length <= 1) return; draft.questions.splice(currentQuestionIndex.value, 1); currentQuestionIndex.value = Math.min(currentQuestionIndex.value, draft.questions.length - 1); }
+function addOption() { if (!currentQuestion.value || currentQuestion.value.options.length >= 10) return; currentQuestion.value.options.push({ value: nextId("option"), label: "", score: currentQuestion.value.options.length }); }
+function removeOption(index) { if (!currentQuestion.value || currentQuestion.value.options.length <= 2) return; currentQuestion.value.options.splice(index, 1); }
+function addResultLevel() { if (draft.resultLevels.length >= 10) return; const previous = draft.resultLevels[draft.resultLevels.length - 1]; draft.resultLevels.push({ ...newResultLevel(), minScore: Number(previous.maxScore) + 1, maxScore: Number(previous.maxScore) + 1 }); }
+function removeResultLevel(index) { if (draft.resultLevels.length <= 1) return; draft.resultLevels.splice(index, 1); }
 function previewOnline() { ElMessage.info(`请在小程序预览：${previewPath.value}`); }
 async function saveDraft() {
-  if (!draft.name.trim() || !draft.questionSummary.trim() || !draft.scoringSummary.trim() || !draft.adviceVersionId) return ElMessage.warning("请完成所有必填项");
+  const invalidQuestion = draft.questions.some((question) => !question.title.trim() || question.options.length < 2 || question.options.some((option) => !option.label.trim()));
+  const invalidLevel = draft.resultLevels.some((level) => !level.title.trim() || !level.summary.trim());
+  if (!draft.name.trim() || !draft.questionSummary.trim() || !draft.scoringSummary.trim() || !draft.adviceVersionId || invalidQuestion || invalidLevel) return ElMessage.warning("请完成所有必填项");
   saving.value = true; errorMessage.value = "";
-  try { await saveHealthScaleDraft({ ...draft, name: draft.name.trim(), questionSummary: draft.questionSummary.trim(), scoringSummary: draft.scoringSummary.trim() }); ElMessage.success("量表草稿已保存"); drawerVisible.value = false; await load(); }
+  const payload = { ...draft, name: draft.name.trim(), questionSummary: draft.questionSummary.trim(), scoringSummary: draft.scoringSummary.trim(), questions: draft.questions.map((question) => ({ ...question, title: question.title.trim(), options: question.options.map((option) => ({ ...option, label: option.label.trim() })) })), resultLevels: draft.resultLevels.map((level) => ({ ...level, title: level.title.trim(), summary: level.summary.trim(), tips: level.tipsText.split("\n").map((item) => item.trim()).filter(Boolean).slice(0, 3) })) };
+  try { await saveHealthScaleDraft(payload); ElMessage.success("量表草稿已保存"); drawerVisible.value = false; await load(); }
   catch (error) { errorMessage.value = error.status === 404 ? "正式量表草稿能力尚未接入，内容未保存" : (error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message); }
   finally { saving.value = false; }
 }
@@ -79,3 +119,18 @@ async function load() {
 }
 onMounted(load); onBeforeUnmount(() => { clearTimeout(searchTimer); loadController?.abort(); }); defineExpose({ load });
 </script>
+
+<style scoped>
+.scale-editor-section { margin: 0 0 22px; padding: 16px; background: #f8f7f3; border: 1px solid #ebe7dd; border-radius: 10px; }
+.scale-editor-heading, .scale-question-nav, .scale-result-card__heading, .scale-result-range, .scale-option-row { display: flex; align-items: center; gap: 10px; }
+.scale-editor-heading, .scale-result-card__heading { justify-content: space-between; margin-bottom: 12px; }
+.scale-question-nav { margin-bottom: 12px; }
+.scale-question-nav .el-select { flex: 1; }
+.scale-question-nav span, .scale-option-row > span { color: #8a8172; font-size: 12px; white-space: nowrap; }
+.scale-option-list { display: grid; gap: 8px; margin-top: 10px; }
+.scale-option-row .el-input { flex: 1; }
+.scale-option-row .el-input-number { width: 110px; }
+.scale-result-card { display: grid; gap: 10px; margin-top: 12px; padding: 14px; background: #fff; border: 1px solid #e8e2d7; border-radius: 8px; }
+.scale-result-range .el-input-number { width: 110px; }
+.scale-result-range .el-input { flex: 1; }
+</style>

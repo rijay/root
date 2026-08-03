@@ -33,6 +33,7 @@ function emptyHealthCollections(data = createSeedData()) {
   data.taskEvents = [];
   data.questionnaireAnswers = [];
   data.questionnaireResponses = [];
+  data.healthScaleResponses = [];
   data.checkinRecords = [];
   data.dailyCheckinRecords = [];
   data.uploads = [];
@@ -136,6 +137,13 @@ test("health retention cleanup redacts expired content and deletes each unshared
     needs_follow: true,
     submitted_at: OLD,
   }];
+  data.healthScaleResponses = [{
+    health_scale_response_id: "scale_response_old",
+    answers_json: { sleep_quality: "private scale answer" },
+    score: 3,
+    result_level_id: "adjust",
+    submitted_at: OLD,
+  }];
   data.checkinRecords = [
     {
       record_id: "checkin_old",
@@ -183,8 +191,8 @@ test("health retention cleanup redacts expired content and deletes each unshared
     },
   });
 
-  assert.equal(result.eligibleCount, 7);
-  assert.equal(result.redactedCount, 6);
+  assert.equal(result.eligibleCount, 8);
+  assert.equal(result.redactedCount, 7);
   assert.equal(result.partialRedactedCount, 0);
   assert.equal(result.removedCount, 1);
   assert.equal(result.failedCount, 0);
@@ -201,6 +209,10 @@ test("health retention cleanup redacts expired content and deletes each unshared
   });
   assert.deepEqual(data.questionnaireAnswers[0].answers_json, {});
   assert.deepEqual(data.questionnaireResponses[0].answers, {});
+  assert.deepEqual(data.healthScaleResponses[0].answers_json, {});
+  assert.deepEqual(data.healthScaleResponses[0].result_json, {});
+  assert.equal(data.healthScaleResponses[0].score, null);
+  assert.equal(data.healthScaleResponses[0].result_level_id, "");
   assert.equal(data.checkinRecords[0].took_product, true);
   assert.equal(data.checkinRecords[0].feedback, "");
   assert.deepEqual(data.checkinRecords[0].image_urls, []);

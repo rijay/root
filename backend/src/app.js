@@ -78,6 +78,8 @@ const {
   getHealthConsentStatus,
   getFormalHealthBootstrap,
   getFormalHealthInitialAssessment,
+  getFormalHealthScale,
+  getLatestFormalHealthScaleResult,
   getFormalContentDetail,
   getFormalProfile,
   getPrivacyNotice,
@@ -177,6 +179,7 @@ const {
   submitDailyCheckin,
   submitFormalProfile,
   submitFormalHealthInitialAssessment,
+  submitFormalHealthScale,
   saveAdminFormalHealthInitializationDraft,
   saveAdminFormalHealthLifestyleAdviceDraft,
   saveAdminFormalHealthRecommendationRuleDraft,
@@ -1216,6 +1219,24 @@ function createApp(options = {}) {
       }
       if (route === "POST /api/v1/health/root4u/initial-assessment") {
         return ok(res, withIdempotency(data, req, () => submitFormalHealthInitialAssessment(data, token, body, runtimeContext)));
+      }
+      const healthScaleMatch = url.pathname.match(/^\/api\/v1\/health\/root4u\/scales\/([a-zA-Z0-9_-]+)$/);
+      if (method === "GET" && healthScaleMatch) {
+        return ok(res, getFormalHealthScale(data, token, healthScaleMatch[1], { group: url.searchParams.get("group") }, runtimeContext));
+      }
+      const healthScaleLatestMatch = url.pathname.match(/^\/api\/v1\/health\/root4u\/scales\/([a-zA-Z0-9_-]+)\/responses\/latest$/);
+      if (method === "GET" && healthScaleLatestMatch) {
+        return ok(res, getLatestFormalHealthScaleResult(data, token, healthScaleLatestMatch[1], runtimeContext));
+      }
+      const healthScaleSubmitMatch = url.pathname.match(/^\/api\/v1\/health\/root4u\/scales\/([a-zA-Z0-9_-]+)\/responses$/);
+      if (method === "POST" && healthScaleSubmitMatch) {
+        return ok(res, withIdempotency(data, req, () => submitFormalHealthScale(
+          data,
+          token,
+          healthScaleSubmitMatch[1],
+          body,
+          runtimeContext,
+        )));
       }
       if (route === "GET /api/v1/user/orders") return ok(res, getUserOrders(data, token));
       if (route === "GET /api/v1/user/consultations") return ok(res, getUserConsultations(data, token));

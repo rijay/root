@@ -20,7 +20,8 @@
     {
       "root": "subpkg/health",
       "pages": [
-        "pages/initial-assessment/index"
+        "pages/initial-assessment/index",
+        "pages/scale-assessment/index"
       ]
     },
     {

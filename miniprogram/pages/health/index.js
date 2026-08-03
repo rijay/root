@@ -89,6 +89,12 @@ Page({
     wx.navigateTo({ url: "/subpkg/health/pages/initial-assessment/index" });
   },
 
+  openRecommendedScale(event) {
+    const versionId = String(event.currentTarget.dataset.versionId || "").trim();
+    if (!versionId) return;
+    wx.navigateTo({ url: `/subpkg/health/pages/scale-assessment/index?versionId=${encodeURIComponent(versionId)}` });
+  },
+
   manageConsent() {
     wx.navigateTo({ url: "/pages/health-consent/index?mode=manage" });
   },

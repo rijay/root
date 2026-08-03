@@ -70,6 +70,7 @@ function createSeedData() {
     notificationJobs: [],
     notificationDeliveries: [],
     questionnaireAnswers: [],
+    healthScaleResponses: [],
     healthContentVersions: [],
     campaignRuleVersions: [],
     settlementRecords: [],

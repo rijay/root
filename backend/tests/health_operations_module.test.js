@@ -33,6 +33,35 @@ function scaleInput(overrides = {}) {
     audience: "ADULT_18_PLUS",
     questionCount: 12,
     resultLevelCount: 3,
+    questions: [
+      {
+        id: "sleep_quality",
+        title: "过去一周，你通常觉得睡眠恢复程度如何？",
+        type: "SINGLE",
+        required: true,
+        options: [
+          { value: "good", label: "恢复较好", score: 0 },
+          { value: "fair", label: "一般", score: 1 },
+          { value: "poor", label: "恢复较差", score: 2 },
+        ],
+      },
+      {
+        id: "sleep_rhythm",
+        title: "过去一周，你的入睡和起床时间规律吗？",
+        type: "SINGLE",
+        required: true,
+        options: [
+          { value: "regular", label: "大多规律", score: 0 },
+          { value: "variable", label: "偶有波动", score: 1 },
+          { value: "irregular", label: "经常不规律", score: 2 },
+        ],
+      },
+    ],
+    resultLevels: [
+      { id: "steady", minScore: 0, maxScore: 1, title: "节律较稳", summary: "目前的睡眠节律相对稳定。", tips: ["继续保持固定起床时间"] },
+      { id: "watch", minScore: 2, maxScore: 2, title: "留意波动", summary: "近期睡眠状态有一些波动。", tips: ["先记录一周睡眠时间"] },
+      { id: "adjust", minScore: 3, maxScore: 4, title: "优先调整", summary: "可以优先从作息节律开始调整。", tips: ["逐步固定入睡与起床时间"] },
+    ],
     adviceVersionId: "ROOT4U_FIXED_CONTENT_V1",
     approver: "健康内容负责人",
     effectiveAt: "2026-08-05T00:00:00.000Z",
@@ -113,6 +142,8 @@ test("scale publishing validates complete metadata and published versions are im
   }, context()).version;
   const published = healthOperations.publishScale(data, publishInput(completed), context()).version;
   assert.equal(published.status, "PUBLISHED");
+  assert.equal(published.questionCount, 2);
+  assert.equal(published.resultLevelCount, 3);
   assert.equal(healthOperations.listScales(data, { status: "PUBLISHED" }).items.length, 1);
   assert.throws(
     () => healthOperations.saveScaleDraft(data, {
@@ -121,6 +152,26 @@ test("scale publishing validates complete metadata and published versions are im
       expectedRevision: published.revision,
     }, context()),
     { code: "HEALTH_CONTENT_PUBLISHED_IMMUTABLE" },
+  );
+});
+
+test("scale publishing rejects gaps, overlaps and incomplete real question definitions", () => {
+  const data = createSeedData();
+  const missingQuestions = healthOperations.saveScaleDraft(data, scaleInput({ questions: [] }), context()).version;
+  assert.throws(
+    () => healthOperations.publishScale(data, publishInput(missingQuestions), context()),
+    (error) => error.code === "HEALTH_CONTENT_VALIDATION_FAILED" && /至少包含 1 道真实题目/.test(error.message),
+  );
+
+  const invalidLevels = healthOperations.saveScaleDraft(data, scaleInput({
+    resultLevels: [
+      { id: "low", minScore: 0, maxScore: 1, title: "较稳", summary: "状态较稳。", tips: [] },
+      { id: "high", minScore: 3, maxScore: 4, title: "需调整", summary: "建议开始调整。", tips: [] },
+    ],
+  }), context()).version;
+  assert.throws(
+    () => healthOperations.publishScale(data, publishInput(invalidLevels), context()),
+    (error) => error.code === "HEALTH_CONTENT_VALIDATION_FAILED" && /连续且不重叠/.test(error.message),
   );
 });
 
@@ -202,8 +253,8 @@ test("published recommendation rules resolve deterministic, versioned scale card
       scaleVersionLabel: scale.versionLabel,
       recommendationRuleVersionId: preferredRule.versionId,
       recommendationRuleVersionLabel: preferredRule.versionLabel,
-      questionCount: 12,
-      estimatedMinutes: 3,
+      questionCount: 2,
+      estimatedMinutes: 1,
       audienceLabel: "18 岁及以上",
     }],
   );
