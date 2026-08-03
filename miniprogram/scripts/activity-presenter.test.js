@@ -47,6 +47,12 @@ assert.equal(safeOpaqueId("https://example.com/session"), "");
 assert.equal(presentActivityList({ activities: [activity] })[0].statusLabel, "可报名");
 assert.equal(presentActivityList({ activities: [activity] })[0].startText, "2026年8月12日 09:00");
 assert.equal(presentActivityList({ activities: [activity] })[0].compactStartText, "8月12日  周三  09:00");
+const listingOnlyActivity = { ...activity };
+["objective", "audience", "agenda", "organizer", "feeDescription", "bringItems", "cancelPolicy", "privacyNoticeText", "photographyNoticeText", "contactDisplay"].forEach((key) => {
+  delete listingOnlyActivity[key];
+});
+assert.equal(presentActivityList({ activities: [listingOnlyActivity] })[0].title, activity.title);
+assert.throws(() => presentActivityDetail({ activity: listingOnlyActivity }), /ACTIVITY_ITEM_PAYLOAD_INVALID/);
 assert.equal(presentActivityList({ activities: [activity] })[0].cancelCloseText, "2026年8月11日 09:00");
 assert.equal(
   presentActivityList({ activities: [activity] })[0].heroAssetUrl,

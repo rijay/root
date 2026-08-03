@@ -229,14 +229,17 @@ test("Activity Module HTTP Interface publishes only authorized operations conten
   assert.equal(publicList.body.code, 0);
   assert.equal(publicList.body.data.activities.length, 1);
   assert.equal(publicList.body.data.activities[0].session.listingState, "AVAILABLE");
-  assert.equal(publicList.body.data.activities[0].objective, draftBody.objective);
-  assert.equal(publicList.body.data.activities[0].cancelPolicy, draftBody.cancelPolicy);
+  assert.equal(publicList.body.data.activities[0].objective, undefined);
+  assert.equal(publicList.body.data.activities[0].cancelPolicy, undefined);
   assert.equal(publicList.body.data.activities[0].session.cancelCloseAt, "2099-01-01T12:00:00.000Z");
+  assert.ok(Buffer.byteLength(JSON.stringify(publicList.body.data), "utf8") <= 100 * 1024);
   const detailByActivity = await request(baseUrl, "/api/v1/activities/detail?activityId=activity_http_001");
   assert.equal(detailByActivity.body.code, 0);
   assert.equal(detailByActivity.body.data.activity.session.sessionId, "activity_http_session_001");
   assert.equal(detailByActivity.body.data.activity.privacyNoticeText, draftBody.privacyNoticeText);
   assert.equal(detailByActivity.body.data.activity.photographyNoticeText, draftBody.photographyNoticeText);
+  assert.equal(detailByActivity.body.data.activity.objective, draftBody.objective);
+  assert.equal(detailByActivity.body.data.activity.cancelPolicy, draftBody.cancelPolicy);
 
   const adminJobDenied = await command(baseUrl, "/api/v1/jobs/activity-review-timeouts", "activity-job-admin-denied", {}, admin);
   assert.equal(adminJobDenied.status, 403);

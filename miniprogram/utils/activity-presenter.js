@@ -70,9 +70,10 @@ function enrollmentStatus(value) {
   return ENROLLMENT_STATUS[safeText(value).toUpperCase()] || { label: "状态待确认", tone: "muted" };
 }
 
-function presentActivity(input) {
+function presentActivity(input, options = {}) {
   const activity = plainObject(input);
   const session = plainObject(activity.session);
+  const requireDetail = options.requireDetail !== false;
   const activityId = safeOpaqueId(activity.activityId);
   const sessionId = safeOpaqueId(session.sessionId);
   const title = safeText(activity.title);
@@ -90,10 +91,11 @@ function presentActivity(input) {
   const privacyNoticeText = safeText(activity.privacyNoticeText);
   const photographyNoticeText = safeText(activity.photographyNoticeText);
   const contactDisplay = safeText(activity.contactDisplay);
-  if (!activityId || !sessionId || !title || !summary || !city || !venueSummary || !activityType
-    || !objective || !audience || !agenda || !organizer || !feeDescription || !bringItems
-    || !cancelPolicy || !privacyNoticeText || !photographyNoticeText || !contactDisplay
-    || !session.sessionStartAt || !session.cancelCloseAt) {
+  const commonInvalid = !activityId || !sessionId || !title || !summary || !city || !venueSummary
+    || !activityType || !session.sessionStartAt || !session.cancelCloseAt;
+  const detailInvalid = !objective || !audience || !agenda || !organizer || !feeDescription
+    || !bringItems || !cancelPolicy || !privacyNoticeText || !photographyNoticeText || !contactDisplay;
+  if (commonInvalid || (requireDetail && detailInvalid)) {
     throw new Error("ACTIVITY_ITEM_PAYLOAD_INVALID");
   }
   const status = listingStatus(session.listingState || session.status);
@@ -154,7 +156,7 @@ function presentActivity(input) {
 function presentActivityList(payload) {
   const data = plainObject(payload);
   if (!Array.isArray(data.activities)) throw new Error("ACTIVITY_LIST_PAYLOAD_INVALID");
-  const activities = data.activities.map(presentActivity);
+  const activities = data.activities.map((activity) => presentActivity(activity, { requireDetail: false }));
   if (activities.some((item) => !item.sessionId)) throw new Error("ACTIVITY_LIST_ITEM_INVALID");
   return activities;
 }

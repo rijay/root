@@ -1134,13 +1134,30 @@ function listVisible(data, query = {}, context = {}, rootUserId = "") {
     .filter(({ definition }) => !activityType || definition.activity_type === activityType)
     .filter(({ session }) => !date || session.session_start_at.slice(0, 10) === date)
     .map(({ definition, session }) => ({
-      ...toDefinitionPayload(definition, context),
+      ...toPublicListingPayload(definition, context),
       session: toSessionPayload(data, session, now),
       enrollment: rootUserId ? toOptionalEnrollmentPayload(enrollmentByUser(data, session.activity_session_id, rootUserId)) : null,
       actions: toUserActivityActions(session, rootUserId
         ? enrollmentByUser(data, session.activity_session_id, rootUserId)
         : null, now),
     }));
+}
+
+function toPublicListingPayload(definition, context = {}) {
+  return {
+    activityVersionId: definition.activity_version_id,
+    activityId: definition.activity_id,
+    version: definition.version,
+    status: definition.status,
+    title: definition.title,
+    summary: definition.summary,
+    city: definition.city,
+    venueSummary: definition.venue_summary,
+    activityType: definition.activity_type,
+    heroAssetUrl: resolvePublicHeroAssetUrl(definition, context),
+    visibility: definition.visibility,
+    memberRequirement: definition.member_requirement || "",
+  };
 }
 
 function toOptionalEnrollmentPayload(enrollment) {
