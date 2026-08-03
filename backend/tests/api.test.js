@@ -912,8 +912,6 @@ test("production environment matrix groups launch and Adapter variables", () => 
     YOUZAN_TOKEN_ROTATION_OWNER: "root-ops",
     YOUZAN_ORDER_LIST_URL: "https://youzan.example.com/orders",
     ROOT_AFTER_SALES_STATUS_MAP: JSON.stringify({ REFUND_SUCCESS: "REFUNDED" }),
-    ROOT_AFTER_SALES_RECOVERY_STATUSES: "REFUNDED,PARTIAL_REFUND",
-    ROOT_AFTER_SALES_FOLLOW_STATUSES: "REQUESTED,APPROVED",
     YOUZAN_CUSTOMER_LIST_URL: "https://youzan.example.com/customers",
     YOUZAN_USER_QUERY_URL: "https://youzan.example.com/users/query",
     ROOT_YOUZAN_IDENTITY_RECONCILE_ENABLED: "true",
@@ -1421,8 +1419,6 @@ test("production environment matrix groups launch and Adapter variables", () => 
   assert.ok(ready.groups.some((group) => group.id === "root_member_center_jump" && group.status === "PASS"));
   assert.ok(ready.groups.some((group) => group.id === "order_after_sales" && group.status === "OPTIONAL"));
   assert.ok(ready.groups.some((group) => group.id === "order_after_sales" && group.optional.some((item) => item.name === "ROOT_AFTER_SALES_STATUS_MAP" && item.present)));
-  assert.ok(ready.groups.some((group) => group.id === "order_after_sales" && group.optional.some((item) => item.name === "ROOT_AFTER_SALES_RECOVERY_STATUSES" && item.present)));
-  assert.ok(ready.groups.some((group) => group.id === "order_after_sales" && group.optional.some((item) => item.name === "ROOT_AFTER_SALES_FOLLOW_STATUSES" && item.present)));
   assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_RETENTION_DAYS")));
   assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_CLEANUP_LIMIT")));
   assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_SENSITIVITY")));
@@ -2859,7 +2855,7 @@ test("admin order matching HTTP Interface searches, previews, and confirms", asy
   assert.equal(confirmed.data.task.task_type, "DELIVERED_NOT_STARTED");
 });
 
-test("admin order after-sales HTTP Interface mirrors refund status and recovery", async (t) => {
+test("admin order after-sales HTTP Interface mirrors status without legacy side effects", async (t) => {
   const server = createApp({ env: directPhoneLoginEnv });
   const baseUrl = await listen(server);
   t.after(() => server.close());
@@ -2879,56 +2875,6 @@ test("admin order after-sales HTTP Interface mirrors refund status and recovery"
       amount: 199,
       deliveryStatus: "DELIVERED",
     }),
-  });
-  server.store.rewardGrants.push({
-    reward_grant_id: "rgr_http_after_sales_001",
-    root_user_id: login.data.user.rootUserId,
-    campaign_id: "ROOT_7D_RESET",
-    settlement_record_id: "stl_http_after_sales_001",
-    order_id: syncedOrder.data.order.orderId,
-    reward_type: "COUPON",
-    reward_key: "http_after_sales_coupon",
-    quota_key: "",
-    quota_limit: 0,
-    inventory_reservation_id: "",
-    title: "HTTP售后追回券",
-    description: "",
-    status: "PENDING_DELIVERY",
-    external_status: "",
-    external_ref: "",
-    recovery_status: "",
-    recovery_reason: "",
-    recovery_record_id: "",
-    recovered_at: "",
-    payload_json: {},
-    idempotency_key: "rgr-http-after-sales-001",
-    created_at: "2026-06-20T10:00:00.000Z",
-    updated_at: "2026-06-20T10:00:00.000Z",
-  });
-  server.store.rewardGrants.push({
-    reward_grant_id: "rgr_http_after_sales_unrelated_001",
-    root_user_id: login.data.user.rootUserId,
-    campaign_id: "ROOT_7D_RESET",
-    settlement_record_id: "stl_http_after_sales_unrelated_001",
-    order_id: "ord_http_after_sales_unrelated_001",
-    reward_type: "COUPON",
-    reward_key: "http_after_sales_unrelated_coupon",
-    quota_key: "",
-    quota_limit: 0,
-    inventory_reservation_id: "",
-    title: "HTTP不相关售后券",
-    description: "",
-    status: "PENDING_DELIVERY",
-    external_status: "",
-    external_ref: "",
-    recovery_status: "",
-    recovery_reason: "",
-    recovery_record_id: "",
-    recovered_at: "",
-    payload_json: {},
-    idempotency_key: "rgr-http-after-sales-unrelated-001",
-    created_at: "2026-06-20T10:00:00.000Z",
-    updated_at: "2026-06-20T10:00:00.000Z",
   });
   server.store.refundWorkItems.push({
     refund_work_item_id: "rwi_http_after_sales_001",
@@ -2987,18 +2933,18 @@ test("admin order after-sales HTTP Interface mirrors refund status and recovery"
   assert.equal(syncedOrder.code, 0);
   assert.equal(requested.code, 0);
   assert.equal(requested.data.record.status, "REQUESTED");
-  assert.equal(requested.data.followTask.task_type, "ORDER_AFTER_SALES_FOLLOW");
+  assert.equal(Object.hasOwn(requested.data, "followTask"), false);
   assert.equal(refunded.code, 0);
   assert.equal(refunded.data.record.status, "REFUNDED");
   assert.equal(refunded.data.refundWorkItem.status, "PAID");
-  assert.equal(refunded.data.rewardRecovery.createdCount, 1);
+  assert.equal(Object.hasOwn(refunded.data, "rewardRecovery"), false);
   assert.equal(batch.code, 0);
   assert.equal(batch.data.total, 1);
   assert.equal(records.code, 0);
   assert.equal(records.data.records.length, 2);
   assert.equal(userOrders.data.orders.some((order) => order.youzanOrderNo === "YZ_HTTP_AFTER_SALES_001" && order.afterSalesStatus === "PARTIAL_REFUND"), true);
-  assert.equal(server.store.rewardGrants.find((grant) => grant.reward_grant_id === "rgr_http_after_sales_001").status, "REVOKED");
-  assert.equal(server.store.rewardGrants.find((grant) => grant.reward_grant_id === "rgr_http_after_sales_unrelated_001").status, "PENDING_DELIVERY");
+  assert.equal(Object.hasOwn(batch.data, "recoveredCount"), false);
+  assert.equal(server.store.operationTasks.some((task) => task.task_type === "ORDER_AFTER_SALES_FOLLOW"), false);
   assert.equal(validateSnapshot(server.store).valid, true);
 });
 

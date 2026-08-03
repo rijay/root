@@ -76,7 +76,6 @@ function createSeedData() {
     rewardInventoryPools: [],
     rewardInventoryReservations: [],
     rewardGrants: [],
-    rewardRecoveryRecords: [],
     rewardDeliveryJobs: [],
     manualReviewItems: [],
     adminLifecycleFilterPresets: [],

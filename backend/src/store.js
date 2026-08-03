@@ -161,7 +161,6 @@ function createEmptyData() {
   data.rewardInventoryPools = [];
   data.rewardInventoryReservations = [];
   data.rewardGrants = [];
-  data.rewardRecoveryRecords = [];
   data.rewardDeliveryJobs = [];
   data.manualReviewItems = [];
   data.adminLifecycleFilterPresets = [];
@@ -282,8 +281,6 @@ function validateSnapshot(snapshot, options = {}) {
     ["rewardInventoryReservations", "reward_inventory_reservation_id"],
     ["rewardInventoryReservations", "idempotency_key"],
     ["rewardGrants", "reward_grant_id"],
-    ["rewardRecoveryRecords", "reward_recovery_record_id"],
-    ["rewardRecoveryRecords", "idempotency_key"],
     ["rewardDeliveryJobs", "reward_delivery_job_id"],
     ["manualReviewItems", "manual_review_item_id"],
     ["adminLifecycleFilterPresets", "preset_id"],

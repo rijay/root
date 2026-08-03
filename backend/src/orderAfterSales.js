@@ -1,12 +1,7 @@
 const auditLog = require("./auditLog");
-const { nowISO, todayISO } = require("./dates");
+const { nowISO } = require("./dates");
 const { createId } = require("./seed");
-const operationTask = require("./operationTask");
 const refundWorkItem = require("./refundWorkItem");
-const rewardRecovery = require("./rewardRecovery");
-
-const DEFAULT_RECOVERY_STATUSES = ["REFUNDED", "PARTIAL_REFUND"];
-const DEFAULT_FOLLOW_STATUSES = ["REQUESTED", "APPROVED", "REFUNDING", "REJECTED"];
 
 const DEFAULT_STATUS_MAP = {
   APPLY: "REQUESTED",
@@ -53,21 +48,6 @@ function numberValue(value, fallback = 0) {
   return Number.isFinite(number) ? number : fallback;
 }
 
-function boolValue(value, fallback = true) {
-  if (value === undefined || value === null || value === "") return fallback;
-  if (typeof value === "boolean") return value;
-  return !["0", "false", "no", "off"].includes(String(value).trim().toLowerCase());
-}
-
-function arrayValue(value, fallback = []) {
-  if (Array.isArray(value)) return value.map((item) => text(item).toUpperCase()).filter(Boolean);
-  if (typeof value === "string") {
-    const items = value.split(/[\s,，;；]+/).map((item) => text(item).toUpperCase()).filter(Boolean);
-    return items.length ? items : fallback;
-  }
-  return fallback;
-}
-
 function clone(value) {
   return value === null || value === undefined ? value : JSON.parse(JSON.stringify(value));
 }
@@ -97,14 +77,6 @@ function statusMapFor(body = {}, env = process.env) {
 function normalizeAfterSalesStatus(rawStatus, body = {}, env = process.env) {
   const raw = text(rawStatus, "REQUESTED").toUpperCase();
   return statusMapFor(body, env)[raw] || raw;
-}
-
-function recoveryStatusesFor(body = {}, env = process.env) {
-  return arrayValue(body.recoveryStatuses || body.recovery_statuses || env.ROOT_AFTER_SALES_RECOVERY_STATUSES, DEFAULT_RECOVERY_STATUSES);
-}
-
-function followStatusesFor(body = {}, env = process.env) {
-  return arrayValue(body.followStatuses || body.follow_statuses || env.ROOT_AFTER_SALES_FOLLOW_STATUSES, DEFAULT_FOLLOW_STATUSES);
 }
 
 function findOrder(data, body = {}) {
@@ -172,7 +144,6 @@ function toAfterSalesPayload(record) {
     createdAt: record.created_at,
     updatedAt: record.updated_at,
     syncedAt: record.synced_at || "",
-    recoveredAt: record.recovered_at || "",
   };
 }
 
@@ -193,47 +164,6 @@ function syncRefundWorkItem(data, order, record) {
     .find((candidate) => candidate.order_id === order.order_id && candidate.status !== "PAID");
   if (!item) return null;
   return refundWorkItem.markRefundPaid(data, item.refund_work_item_id);
-}
-
-function createFollowTask(data, order, record, body = {}) {
-  if (!order || !order.user_id) return null;
-  return operationTask.createOperationTaskOnce(data, {
-    task_type: "ORDER_AFTER_SALES_FOLLOW",
-    user_id: order.user_id,
-    order_id: order.order_id,
-    task_date: text(body.taskDate || body.task_date, todayISO()),
-    dedupe_key: record.after_sales_no || record.order_after_sales_record_id,
-    reason: text(record.reason, `订单售后状态：${record.status}`),
-    suggested_action: "核对 Root 会员中心售后状态、退款金额和关联奖励追回。",
-    metadata: {
-      afterSalesRecordId: record.order_after_sales_record_id,
-      afterSalesStatus: record.status,
-      afterSalesNo: record.after_sales_no,
-      refundAmount: record.refund_amount,
-    },
-  }).task;
-}
-
-function recoverRewardsIfNeeded(data, order, record, body = {}, env = process.env) {
-  if (!order || !order.user_id) return null;
-  if (!recoveryStatusesFor(body, env).includes(record.status)) return null;
-  const recovery = rewardRecovery.recoverRewardsForAfterSales(data, {
-    userId: order.user_id,
-    orderId: order.order_id,
-    sourceType: "ORDER_AFTER_SALES",
-    sourceId: record.order_after_sales_record_id,
-    reason: text(body.recoveryReason || body.recovery_reason, "订单售后或退款状态已确认，追回关联奖励并回补库存"),
-    metadata: {
-      afterSalesNo: record.after_sales_no,
-      status: record.status,
-      refundAmount: record.refund_amount,
-    },
-  });
-  if (recovery.createdCount > 0) {
-    record.recovered_at = nowISO();
-    record.payload_json = { ...(record.payload_json || {}), rewardRecoveryRecordIds: recovery.results.map((item) => item.record && item.record.reward_recovery_record_id).filter(Boolean) };
-  }
-  return recovery;
 }
 
 function upsertOrderAfterSalesRecord(data, body = {}, context = {}) {
@@ -282,8 +212,6 @@ function upsertOrderAfterSalesRecord(data, body = {}, context = {}) {
 
   const updatedOrder = updateOrderMirror(order, base);
   const refundItem = syncRefundWorkItem(data, order, base);
-  const recovery = recoverRewardsIfNeeded(data, order, base, body, env);
-  const followTask = followStatusesFor(body, env).includes(base.status) ? createFollowTask(data, order, base, body) : null;
 
   auditLog.appendAuditLog(data, {
     action: "ORDER_AFTER_SALES_UPSERT",
@@ -297,7 +225,6 @@ function upsertOrderAfterSalesRecord(data, body = {}, context = {}) {
       requestId: text(body.requestId || body.request_id || context.requestId),
       orderId: base.order_id,
       status: base.status,
-      rewardRecoveryCreated: recovery ? recovery.createdCount : 0,
     },
   });
 
@@ -306,8 +233,6 @@ function upsertOrderAfterSalesRecord(data, body = {}, context = {}) {
     created: !existing,
     order: updatedOrder,
     refundWorkItem: refundItem,
-    rewardRecovery: recovery,
-    followTask,
   };
 }
 
@@ -317,8 +242,6 @@ function syncOrderAfterSalesBatch(data, body = {}, context = {}) {
   const results = records.map((record) => upsertOrderAfterSalesRecord(data, {
     ...record,
     statusMap: body.statusMap || body.status_map,
-    recoveryStatuses: body.recoveryStatuses || body.recovery_statuses,
-    followStatuses: body.followStatuses || body.follow_statuses,
     sourceType: body.sourceType || body.source_type || record.sourceType || record.source_type || "BATCH",
     sourceRunId: body.sourceRunId || body.source_run_id || record.sourceRunId || record.source_run_id,
     requestId: body.requestId || body.request_id || context.requestId,
@@ -327,7 +250,6 @@ function syncOrderAfterSalesBatch(data, body = {}, context = {}) {
   return {
     total: results.length,
     createdCount: results.filter((item) => item.created).length,
-    recoveredCount: results.filter((item) => item.rewardRecovery && item.rewardRecovery.createdCount > 0).length,
     records: results.map((item) => item.record),
     results,
   };
@@ -351,7 +273,6 @@ function listOrderAfterSalesRecords(data, query = {}) {
 }
 
 module.exports = {
-  DEFAULT_RECOVERY_STATUSES,
   listOrderAfterSalesRecords,
   normalizeAfterSalesStatus,
   syncOrderAfterSalesBatch,

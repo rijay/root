@@ -384,11 +384,9 @@ const ENV_GROUPS = [
     ownerRole: "研发/运营",
     optional: [
       "ROOT_AFTER_SALES_STATUS_MAP",
-      "ROOT_AFTER_SALES_RECOVERY_STATUSES",
-      "ROOT_AFTER_SALES_FOLLOW_STATUSES",
       "YOUZAN_AFTER_SALES_FIELD_MAP",
     ],
-    action: "确认 Root 会员中心售后原始状态到内部状态的映射、触发奖励追回的状态和需要人工跟进的状态。",
+    action: "确认 Root 会员中心售后原始状态到内部状态的映射。",
     optionalOnly: true,
   },
   {

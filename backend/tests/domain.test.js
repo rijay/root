@@ -2985,7 +2985,7 @@ test("admin can preview and execute Youzan product sync through configurable Ada
 });
 
 
-test("order after-sales sync mirrors refund status and triggers reward recovery", () => {
+test("order after-sales sync mirrors refund status without legacy task or reward side effects", () => {
   const store = domain.createStore();
   register(store, "13800000892");
   const user = store.users.find((item) => item.phone === "13800000892");
@@ -2997,56 +2997,6 @@ test("order after-sales sync mirrors refund status and triggers reward recovery"
     amount: 199,
     deliveryStatus: "DELIVERED",
   }).data.order;
-  store.rewardGrants.push({
-    reward_grant_id: "rgr_after_sales_001",
-    root_user_id: user.root_user_id,
-    campaign_id: "ROOT_7D_RESET",
-    settlement_record_id: "stl_after_sales_001",
-    order_id: order.orderId,
-    reward_type: "COUPON",
-    reward_key: "after_sales_coupon",
-    quota_key: "",
-    quota_limit: 0,
-    inventory_reservation_id: "",
-    title: "售后追回券",
-    description: "",
-    status: "PENDING_DELIVERY",
-    external_status: "",
-    external_ref: "",
-    recovery_status: "",
-    recovery_reason: "",
-    recovery_record_id: "",
-    recovered_at: "",
-    payload_json: {},
-    idempotency_key: "rgr-after-sales-001",
-    created_at: "2026-06-20T10:00:00.000Z",
-    updated_at: "2026-06-20T10:00:00.000Z",
-  });
-  store.rewardGrants.push({
-    reward_grant_id: "rgr_after_sales_unrelated_001",
-    root_user_id: user.root_user_id,
-    campaign_id: "ROOT_7D_RESET",
-    settlement_record_id: "stl_after_sales_unrelated_001",
-    order_id: "ord_unrelated_after_sales_001",
-    reward_type: "COUPON",
-    reward_key: "after_sales_unrelated_coupon",
-    quota_key: "",
-    quota_limit: 0,
-    inventory_reservation_id: "",
-    title: "不相关奖励",
-    description: "",
-    status: "PENDING_DELIVERY",
-    external_status: "",
-    external_ref: "",
-    recovery_status: "",
-    recovery_reason: "",
-    recovery_record_id: "",
-    recovered_at: "",
-    payload_json: {},
-    idempotency_key: "rgr-after-sales-unrelated-001",
-    created_at: "2026-06-20T10:00:00.000Z",
-    updated_at: "2026-06-20T10:00:00.000Z",
-  });
   store.refundWorkItems.push({
     refund_work_item_id: "rwi_after_sales_001",
     session_id: "session_after_sales_001",
@@ -3080,16 +3030,14 @@ test("order after-sales sync mirrors refund status and triggers reward recovery"
 
   assert.equal(requested.created, true);
   assert.equal(requested.record.status, "REQUESTED");
-  assert.equal(requested.followTask.task_type, "ORDER_AFTER_SALES_FOLLOW");
+  assert.equal(Object.hasOwn(requested, "followTask"), false);
   assert.equal(refunded.created, false);
   assert.equal(refunded.record.status, "REFUNDED");
   assert.equal(refunded.order.refund_status, "REFUNDED");
   assert.equal(refunded.refundWorkItem.status, "PAID");
-  assert.equal(refunded.rewardRecovery.createdCount, 1);
+  assert.equal(Object.hasOwn(refunded, "rewardRecovery"), false);
   assert.equal(records.length, 1);
-  assert.equal(store.rewardRecoveryRecords[0].source_type, "ORDER_AFTER_SALES");
-  assert.equal(store.rewardGrants.find((grant) => grant.reward_grant_id === "rgr_after_sales_001").status, "REVOKED");
-  assert.equal(store.rewardGrants.find((grant) => grant.reward_grant_id === "rgr_after_sales_unrelated_001").status, "PENDING_DELIVERY");
+  assert.equal(store.operationTasks.some((task) => task.task_type === "ORDER_AFTER_SALES_FOLLOW"), false);
   assert.equal(store.auditLogs.some((log) => log.action === "ORDER_AFTER_SALES_UPSERT"), true);
   assert.equal(validateSnapshot(store).valid, true);
 });

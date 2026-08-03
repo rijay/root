@@ -367,12 +367,6 @@ const PROJECTIONS = [
     columns: ["reward_grant_id", "root_user_id", "campaign_id", "settlement_record_id", "order_id", "reward_type", "reward_key", "quota_key", "quota_limit", "inventory_reservation_id", "title", "description", "status", "payload_json", "external_ref", "external_status", "external_status_checked_at", "external_status_json", "used_at", "expired_at", "delivered_at", "recovery_status", "recovery_reason", "recovery_record_id", "recovered_at", "idempotency_key", "created_at", "updated_at"],
   },
   {
-    table: "reward_recovery_record",
-    source: "rewardRecoveryRecords",
-    id: "reward_recovery_record_id",
-    columns: ["reward_recovery_record_id", "reward_grant_id", "root_user_id", "campaign_id", "order_id", "source_type", "source_id", "recovery_type", "status", "inventory_released", "reason", "metadata_json", "idempotency_key", "created_at", "updated_at"],
-  },
-  {
     table: "reward_delivery_job",
     source: "rewardDeliveryJobs",
     id: "reward_delivery_job_id",

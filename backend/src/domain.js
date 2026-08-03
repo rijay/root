@@ -67,7 +67,6 @@ const releaseSignoff = require("./releaseSignoff");
 const rootMemberCenterJumpProof = require("./rootMemberCenterJumpProof");
 const sessionModule = require("./sessionModule");
 const refundWorkItem = require("./refundWorkItem");
-const rewardRecovery = require("./rewardRecovery");
 const taskProgress = require("./taskProgress");
 const { fetchWechatJson } = require("./wechatHttp");
 const { resolveWechatAccessToken } = require("./wechatAccessToken");
@@ -2954,18 +2953,6 @@ function approveRefund(data, refundId, body = {}) {
   if (workItem) {
     const before = clone(workItem);
     const paid = refundWorkItem.markRefundPaid(data, refundId);
-    const user = data.users.find((item) => item.user_id === paid.user_id);
-    const recovery = rewardRecovery.recoverRewardsForAfterSales(data, {
-      userId: paid.user_id,
-      orderId: paid.order_id,
-      sourceType: "REFUND_WORK_ITEM",
-      sourceId: paid.refund_work_item_id,
-      reason: "退款已通过，追回关联奖励并回补库存",
-      metadata: {
-        sessionId: paid.session_id,
-        youzanOrderNo: paid.youzan_order_no,
-      },
-    });
     const audit = auditLog.appendAuditLog(data, {
       action: "REFUND_APPROVE",
       targetType: "REFUND_WORK_ITEM",
@@ -2976,7 +2963,7 @@ function approveRefund(data, refundId, body = {}) {
       after: clone(paid),
       metadata: { requestId: body.requestId || body.request_id || "" },
     });
-    return response({ success: true, refund: paid, refundWorkItem: paid, rewardRecovery: recovery, audit });
+    return response({ success: true, refund: paid, refundWorkItem: paid, audit });
   }
   const refund = data.refunds.find((item) => item.refund_id === refundId);
   if (!refund) throw businessError(404, "退款单不存在", 404);
