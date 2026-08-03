@@ -1,6 +1,8 @@
 {
-  "navigationBarTitleText": "注册 Root 会员",
+  "navigationStyle": "custom",
   "usingComponents": {
-    "privacy-consent": "/components/privacy-consent/index"
+    "page-navigation": "/components/page-navigation/index",
+    "privacy-consent": "/components/privacy-consent/index",
+    "root-wordmark": "/components/root-wordmark/index"
   }
 }

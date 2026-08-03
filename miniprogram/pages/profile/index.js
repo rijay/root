@@ -8,10 +8,13 @@ Page({
     syncTabBar(this, 3);
     this.setData({ loggedIn: Boolean(getToken()) });
   },
-  openLogin() { router.open("/pages/login/index?intent=profile"); },
-  openMemberEntry(event) {
-    const intent = event.currentTarget.dataset.intent;
-    if (!this.data.loggedIn) router.open(`/pages/login/index?intent=${intent}`);
+  openLogin() {
+    if (!this.data.loggedIn) {
+      router.open(`/pages/login/index?intent=${encodeURIComponent("/pages/profile/index")}`);
+    }
+  },
+  openMemberEntry() {
+    if (!this.data.loggedIn) router.open(`/pages/login/index?intent=${encodeURIComponent("/pages/profile/index")}`);
     else wx.showToast({ title: "会员中心入口即将开放", icon: "none" });
   },
   openAbout() { router.open("/subpkg/profile/pages/about/index"); },

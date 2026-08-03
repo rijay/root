@@ -65,12 +65,14 @@ const productMirror = require("./productMirror");
 const productionCutoverProof = require("./productionCutoverProof");
 const healthDataRetention = require("./healthDataRetention");
 const privacyConsent = require("./privacyConsent");
+const profileModule = require("./profileModule");
 const questionnaire = require("./questionnaire");
 const releaseEvidenceArchive = require("./releaseEvidenceArchive");
 const releaseEvidencePack = require("./releaseEvidencePack");
 const releaseRecord = require("./releaseRecord");
 const releaseSignoff = require("./releaseSignoff");
 const rootMemberCenterJumpProof = require("./rootMemberCenterJumpProof");
+const sessionModule = require("./sessionModule");
 const refundWorkItem = require("./refundWorkItem");
 const rewardDelivery = require("./rewardDelivery");
 const rewardRecovery = require("./rewardRecovery");
@@ -659,8 +661,13 @@ function loginByPhone(data, body, phone, identityContext = {}) {
   });
   const user = identityResult.user;
   applyUserDisplayProfile(user, body);
+  const formalSession = body.flowVersion === "FORMAL_LAUNCH_V1"
+    ? sessionModule.present({ data, user, created: identityResult.created })
+    : null;
 
-  const autoMatch = orderFulfillment.autoMatchOrdersForUser(data, user, { source: "AUTO_WECHAT_PHONE" });
+  const autoMatch = formalSession
+    ? null
+    : orderFulfillment.autoMatchOrdersForUser(data, user, { source: "AUTO_WECHAT_PHONE" });
   const session = issueToken(data, user.user_id);
   return response({
     token: session.token,
@@ -669,7 +676,8 @@ function loginByPhone(data, body, phone, identityContext = {}) {
     },
     autoMatch,
     user: publicUser(user, data, { env: body.env || process.env }),
-    nextRoute: routeForUser(user, body.env || process.env),
+    nextRoute: formalSession ? formalSession.nextRoute : routeForUser(user, body.env || process.env),
+    ...(formalSession || {}),
     features: {
       myRootRebuildEnabled: isMyRootRebuildEnabled(body.env || process.env),
     },
@@ -721,6 +729,9 @@ async function loginWithWechat(data, body = {}, context = process.env) {
     });
     const user = identityResult.user;
     applyUserDisplayProfile(user, body);
+    const formalSession = body.flowVersion === "FORMAL_LAUNCH_V1"
+      ? sessionModule.present({ data, user, created: identityResult.created })
+      : null;
     const session = issueToken(data, user.user_id);
     return response({
       token: session.token,
@@ -729,7 +740,8 @@ async function loginWithWechat(data, body = {}, context = process.env) {
       },
       autoMatch: null,
       user: publicUser(user, data, { env }),
-      nextRoute: routeForUser(user, env),
+      nextRoute: formalSession ? formalSession.nextRoute : routeForUser(user, env),
+      ...(formalSession || {}),
       features: {
         myRootRebuildEnabled: isMyRootRebuildEnabled(env),
       },
@@ -829,6 +841,21 @@ function getProfile(data, token) {
   const user = requireUser(data, token);
   const profile = data.profiles.find((item) => item.user_id === user.user_id) || null;
   return response({ profile, questions: profileQuestions });
+}
+
+function getFormalProfile(data, token) {
+  const user = requireUser(data, token);
+  return response(profileModule.read(data, user));
+}
+
+function submitFormalProfile(data, token, body = {}) {
+  const user = requireUser(data, token);
+  const result = profileModule.save(data, user, body);
+  syncRootLifecycle(data, user, "FORMAL_PROFILE_COMPLETED", {
+    sourceChannel: "MYROOT_FORMAL_PROFILE",
+    appCode: user.app_code || "MYROOT",
+  });
+  return response(result);
 }
 
 function getUserOrders(data, token) {
@@ -3318,6 +3345,7 @@ module.exports = {
   getCheckinReminderTemplate,
   getCloudbaseIdentityProbe,
   getHealthConsentStatus,
+  getFormalProfile,
   getPrivacyNotice,
   getProfile,
   getAdminUserDetail,
@@ -3407,6 +3435,7 @@ module.exports = {
   syncManualOrder,
   submitCheckin,
   submitDailyCheckin,
+  submitFormalProfile,
   submitProfile,
   submitQuestionnaireAnswer,
   submitQuestionnaire,

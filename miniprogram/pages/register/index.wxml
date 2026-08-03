@@ -1,41 +1,52 @@
-<view class="root-page register-auth-page">
-  <view class="auth-hero root-card--dark">
-    <view class="eyebrow">MYROOT</view>
-    <view class="auth-title">开始 Root 成长任务</view>
-    <view class="auth-copy">授权后可参与打卡、问卷、咨询与活动结算。</view>
-  </view>
+<view class="register-page">
+  <page-navigation />
+  <scroll-view class="register-page__scroll" scroll-y enhanced show-scrollbar="false">
+    <view class="register-page__content">
+      <text class="register-page__title">{{title}}</text>
+      <text class="register-page__subtitle">{{subtitle}}</text>
 
-  <view class="root-card auth-card">
-    <view class="section-title">账号状态</view>
-    <view class="auth-row">
-      <text>小程序身份</text>
-      <text class="auth-row-value">{{hasToken ? '已建立' : '待授权'}}</text>
-    </view>
-    <view class="auth-row">
-      <text>手机号</text>
-      <text class="auth-row-value">{{hasPhone ? '已记录' : '可选'}}</text>
-    </view>
-    <view class="auth-row">
-      <text>跨小程序识别</text>
-      <text class="auth-row-value">{{identity.unionidStatus === 'LINKED' ? '已连通' : '待认证补齐'}}</text>
-    </view>
-  </view>
+      <view class="register-page__avatar-row">
+        <button class="register-page__avatar" open-type="chooseAvatar" loading="{{avatarUploading}}" disabled="{{avatarUploading}}" bindchooseavatar="chooseAvatar" aria-label="选择我的头像">
+          <image wx:if="{{avatarUrl}}" class="register-page__avatar-image" src="{{avatarUrl}}" mode="aspectFill" />
+          <view wx:else class="register-page__avatar-default"><root-wordmark tone="dark" /></view>
+        </button>
+        <text class="register-page__avatar-copy">我的头像（选填）\n使用微信头像、上传或拍照</text>
+      </view>
 
-  <view class="root-card auth-card">
-    <view class="section-title">不强制绑定订单</view>
-    <view class="root-helper-text">你可以先参与打卡、问卷和咨询；如活动规则需要购买条件，系统会在订单同步后自动判断。</view>
-  </view>
+      <view class="register-field">
+        <text class="register-field__label">我的昵称</text>
+        <input class="register-field__input" type="nickname" value="{{nickname}}" placeholder="微信昵称或自行填写" bindinput="changeNickname" />
+      </view>
 
-  <view class="auth-actions">
-    <button wx:if="{{!hasToken}}" class="root-button" loading="{{loading}}" bindtap="authorizeEntry">授权进入</button>
-    <button
-      wx:if="{{hasToken && !hasPhone}}"
-      class="root-button root-button--secondary"
-      loading="{{phoneLoading}}"
-      open-type="getPhoneNumber"
-      bindgetphonenumber="authorizePhone"
-    >授权手机号</button>
-    <button wx:if="{{hasToken}}" class="root-button" bindtap="continueToHome">进入首页</button>
-  </view>
+      <view class="register-field">
+        <text class="register-field__label">手机号 *</text>
+        <view class="register-field__row">
+          <text class="register-field__value {{phone ? '' : 'is-placeholder'}}">{{phone || '等待手机号验证'}}</text>
+          <text class="register-field__verified">{{phone ? '已验证' : '未验证'}}</text>
+        </view>
+      </view>
+
+      <picker mode="date" value="{{birthDate}}" end="{{maxBirthDate}}" bindchange="changeBirthDate">
+        <view class="register-field">
+          <text class="register-field__label">生日 *</text>
+          <view class="register-field__row">
+            <text class="register-field__value {{birthDate ? '' : 'is-placeholder'}}">{{birthDate || '请选择生日'}}</text>
+            <view class="register-field__chevron"></view>
+          </view>
+        </view>
+      </picker>
+
+      <view class="register-field register-field--gender">
+        <text class="register-field__label">性别 *</text>
+        <view class="register-gender">
+          <button class="register-gender__option {{gender === 'MALE' ? 'is-active' : ''}}" data-gender="MALE" bindtap="selectGender">男</button>
+          <button class="register-gender__option {{gender === 'FEMALE' ? 'is-active' : ''}}" data-gender="FEMALE" bindtap="selectGender">女</button>
+        </view>
+      </view>
+
+      <text class="register-page__hint">手机号、生日、性别为必填项\n头像和昵称未授权时将使用默认值</text>
+      <button class="register-page__submit" loading="{{loading}}" disabled="{{loading || avatarUploading}}" bindtap="submitProfile">登录</button>
+    </view>
+  </scroll-view>
+  <privacy-consent />
 </view>
-<privacy-consent />

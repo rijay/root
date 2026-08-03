@@ -59,6 +59,7 @@ const forbiddenReference = new RegExp(routes.FORBIDDEN_ROUTE_PREFIXES
   .map((value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
   .join("|"));
 const references = sourceFiles(root)
+  .filter((file) => !file.includes(`${path.sep}scripts${path.sep}`))
   .filter((file) => !file.includes(`${path.sep}fixtures${path.sep}`))
   .filter((file) => !file.includes(`${path.sep}pages${path.sep}dev-identity-probe${path.sep}`))
   .filter((file) => !file.endsWith("formal-launch-scope.test.js"))

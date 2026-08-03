@@ -4933,6 +4933,58 @@ test("HTTP login rejects direct phone payload when direct phone login is not ena
   assert.match(login.message, /微信手机号授权/);
 });
 
+test("formal launch login and profile HTTP Interface stays outside legacy order matching", async (t) => {
+  const server = createApp({ env: directPhoneLoginEnv });
+  const baseUrl = await listen(server);
+  t.after(() => server.close());
+
+  const firstLogin = await request(baseUrl, "/api/v1/auth/login", {
+    method: "POST",
+    body: JSON.stringify({
+      phone: "13800000991",
+      flowVersion: "FORMAL_LAUNCH_V1",
+      sourceChannel: "MYROOT_FORMAL_LOGIN",
+    }),
+  });
+
+  assert.equal(firstLogin.code, 0);
+  assert.equal(firstLogin.data.sessionOutcome, "NEW_USER");
+  assert.equal(firstLogin.data.nextRoute, "/pages/register/index");
+  assert.equal(firstLogin.data.autoMatch, null);
+  assert.equal(firstLogin.data.profile.phone, "138****0991");
+
+  const saved = await request(baseUrl, "/api/v1/user/formal-profile", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${firstLogin.data.token}` },
+    body: JSON.stringify({
+      nickname: "Root新会员",
+      birthDate: "1992-08-03",
+      gender: "FEMALE",
+    }),
+  });
+
+  assert.equal(saved.code, 0);
+  assert.equal(saved.data.success, true);
+  assert.equal(saved.data.profile.complete, true);
+  assert.equal(saved.data.profile.phone, "138****0991");
+
+  const profile = await request(baseUrl, "/api/v1/user/formal-profile", {
+    headers: { Authorization: `Bearer ${firstLogin.data.token}` },
+  });
+  assert.equal(profile.code, 0);
+  assert.equal(profile.data.profile.nickname, "Root新会员");
+  assert.equal(profile.data.profile.phoneVerified, true);
+
+  const returningLogin = await request(baseUrl, "/api/v1/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ phone: "13800000991", flowVersion: "FORMAL_LAUNCH_V1" }),
+  });
+  assert.equal(returningLogin.code, 0);
+  assert.equal(returningLogin.data.sessionOutcome, "REGISTERED");
+  assert.equal(returningLogin.data.nextRoute, "/pages/home/index");
+  assert.equal(returningLogin.data.autoMatch, null);
+});
+
 test("admin order matching HTTP Interface searches, previews, and confirms", async (t) => {
   const server = createApp({ env: directPhoneLoginEnv });
   const baseUrl = await listen(server);

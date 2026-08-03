@@ -22,6 +22,7 @@ const campaignModule = require("./campaign");
 const { authenticateJobRouteToken } = require("./jobRouteToken");
 const { atomicWriteFailure, isAtomicWriteError } = require("./atomicWriteError");
 const { clientErrorResponse, createClientError } = require("./clientError");
+const sessionModule = require("./sessionModule");
 
 function safeAggregateCount(value) {
   return Number.isSafeInteger(value) && value >= 0 ? value : 0;
@@ -87,6 +88,7 @@ const {
   getCheckinReminderTemplate,
   getCloudbaseIdentityProbe,
   getHealthConsentStatus,
+  getFormalProfile,
   getPrivacyNotice,
   getProfile,
   getAdapterCalibration,
@@ -199,6 +201,7 @@ const {
   syncOrderAfterSalesBatch,
   submitCheckin,
   submitDailyCheckin,
+  submitFormalProfile,
   submitProfile,
   submitQuestionnaireAnswer,
   submitQuestionnaire,
@@ -1299,6 +1302,7 @@ function createApp(options = {}) {
       if (route === "GET /api/v1/privacy/health-consent") return ok(res, getHealthConsentStatus(data, token, runtimeContext));
       if (route === "POST /api/v1/privacy/health-consent") return ok(res, withIdempotency(data, req, () => recordHealthConsentDecision(data, token, body, runtimeContext)));
       if (route === "GET /api/v1/user/profile") return ok(res, getProfile(data, token));
+      if (route === "GET /api/v1/user/formal-profile") return ok(res, getFormalProfile(data, token));
       if (route === "GET /api/v1/user/orders") return ok(res, getUserOrders(data, token));
       if (route === "GET /api/v1/user/consultations") return ok(res, getUserConsultations(data, token));
       if (route === "GET /api/v1/activities") {
@@ -1441,6 +1445,7 @@ function createApp(options = {}) {
       }
       if (route === "POST /api/v1/products/jump") return ok(res, withIdempotency(data, req, () => recordProductJump(data, token, body, runtimeContext)));
       if (route === "POST /api/v1/user/profile") return ok(res, withIdempotency(data, req, () => submitProfile(data, token, body, runtimeContext)));
+      if (route === "POST /api/v1/user/formal-profile") return ok(res, withIdempotency(data, req, () => submitFormalProfile(data, token, body)));
       if (route === "POST /api/v1/user/display-profile") return ok(res, withIdempotency(data, req, () => updateDisplayProfile(data, token, body)));
       if (route === "POST /api/v1/order/match") return ok(res, withIdempotency(data, req, () => matchOrder(data, token, body)));
       if (route === "POST /api/v1/checkin/start") return ok(res, withIdempotency(data, req, () => startCheckin(data, token, body)));
@@ -2487,6 +2492,13 @@ function createApp(options = {}) {
       send(res, 404, { code: 404, message: "接口不存在", data: null });
     } catch (error) {
       if (isAtomicWriteError(error)) throw error;
+      const failedCommandBody = req.commandIdempotencyContext
+        && req.commandIdempotencyContext.request
+        && req.commandIdempotencyContext.request.body || {};
+      if (method === "POST" && url.pathname === "/api/v1/auth/login" && failedCommandBody.flowVersion === "FORMAL_LAUNCH_V1") {
+        const conflict = sessionModule.fromIdentityError(error);
+        if (conflict) return ok(res, conflict);
+      }
       if (req.commandIdempotencyContext && req.commandIdempotencyContext.executor) {
         const response = clientErrorResponse(error, requestCorrelationId(req));
         return send(res, response.status, response.payload);

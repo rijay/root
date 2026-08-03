@@ -16,6 +16,7 @@ function createSeedData() {
     users: [],
     rootUsers: [],
     wechatIdentities: [],
+    formalProfiles: [],
     profiles: [],
     leadProfiles: [],
     identityLinks: [],

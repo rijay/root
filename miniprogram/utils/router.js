@@ -1,4 +1,5 @@
 const { FORMAL_TABS, REGISTERED_FORMAL_ROUTES } = require("../config/formal-launch-routes");
+const { remember: rememberAuthIntent } = require("./auth-intent");
 const { request, getToken } = require("./request");
 
 const stateRoutes = Object.freeze({
@@ -84,6 +85,7 @@ async function routeGuard(route) {
   if (publicRoutes.has(pathOnly)) return true;
   if (!protectedRoutes.has(pathOnly)) return false;
   if (!getToken()) {
+    rememberAuthIntent(pathOnly);
     open(`/pages/login/index?intent=${encodeURIComponent(pathOnly)}`);
     return false;
   }

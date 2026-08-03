@@ -50,6 +50,8 @@ async function authenticateWechat({ request, phoneCode = "", onStage = () => {} 
       appCode: "MYROOT",
       wxCode,
       phoneCode: String(phoneCode || ""),
+      flowVersion: "FORMAL_LAUNCH_V1",
+      sourceChannel: "MYROOT_PHONE_LOGIN",
     },
   });
 }

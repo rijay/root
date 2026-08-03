@@ -1,29 +1,29 @@
 const { request, setToken, stringifyError } = require("../../utils/request");
-const { activityLoginRecoveryUrl, ROUTE_INTENT_STORAGE_KEY } = require("../../utils/activity-actions");
+const { consume: consumeAuthIntent, remember: rememberAuthIntent } = require("../../utils/auth-intent");
 const router = require("../../utils/router");
 const { openLegalPage } = require("../../utils/legal");
-const {
-  authenticateWechat,
-  ensureLoginAgreement,
-  showLoginFailure,
-} = require("../../utils/wechat-login-flow");
+const { authenticateWechat, showLoginFailure } = require("../../utils/wechat-login-flow");
 
-function consumeActivityLoginRecovery() {
-  const value = wx.getStorageSync(ROUTE_INTENT_STORAGE_KEY);
-  const url = activityLoginRecoveryUrl(value, Date.now());
-  if (value) wx.removeStorageSync(ROUTE_INTENT_STORAGE_KEY);
-  return url;
+const REGISTRATION_CONTEXT_STORAGE_KEY = "ROOT_REGISTRATION_CONTEXT_V1";
+
+function decodeIntent(value) {
+  try {
+    return decodeURIComponent(String(value || ""));
+  } catch (error) {
+    return "";
+  }
 }
 
 Page({
   data: {
-    agreed: false,
     loading: false,
     loginStatusText: "",
+    identityConflict: false,
   },
 
-  toggleAgree() {
-    this.setData({ agreed: !this.data.agreed });
+  onLoad(options = {}) {
+    const intent = decodeIntent(options.intent);
+    if (intent) rememberAuthIntent(intent);
   },
 
   openUserAgreement() {
@@ -34,32 +34,51 @@ Page({
     openLegalPage("privacy");
   },
 
-  async loginWithWechat() {
+  async loginWithPhone(event) {
     if (this.data.loading) return;
-    const confirmed = await ensureLoginAgreement(this.data.agreed);
-    if (!confirmed) return;
-    if (!this.data.agreed) this.setData({ agreed: true });
-    return this.submitLogin({});
-  },
+    const detail = (event && event.detail) || {};
+    if (!detail.code || /fail|deny|cancel/i.test(String(detail.errMsg || ""))) {
+      wx.showToast({ title: "未授权手机号，可稍后重试", icon: "none" });
+      return;
+    }
 
-  async submitLogin(detail) {
-    if (this.data.loading) return;
-    this.setData({ loading: true, loginStatusText: "正在连接微信…" });
+    this.setData({ loading: true, loginStatusText: "正在连接微信…", identityConflict: false });
+    const waitingTimer = setTimeout(() => {
+      if (this.data.loading) this.setData({ loginStatusText: "验证仍在进行，请稍候…" });
+    }, 3000);
     try {
       const data = await authenticateWechat({
         request,
-        phoneCode: detail.code || "",
+        phoneCode: detail.code,
         onStage: (loginStatusText) => this.setData({ loginStatusText }),
       });
+      if (data.sessionOutcome === "IDENTITY_CONFLICT") {
+        this.setData({ identityConflict: true, loginStatusText: "" });
+        return;
+      }
+      if (!data.token) throw new Error("手机号验证未完成");
       setToken(data.token);
-      this.setData({ loginStatusText: "身份验证完成，正在进入…" });
-      const nextRoute = String(data.nextRoute || "");
-      const requiresRegistration = nextRoute.split("?")[0] === "/pages/register/index";
-      router.go((requiresRegistration ? "" : consumeActivityLoginRecovery()) || nextRoute || "/pages/home/index");
+      const outcome = data.sessionOutcome || (data.nextRoute === "/pages/register/index" ? "NEW_USER" : "REGISTERED");
+      if (["NEW_USER", "PROFILE_REQUIRED"].includes(outcome)) {
+        wx.setStorageSync(REGISTRATION_CONTEXT_STORAGE_KEY, {
+          outcome,
+          phone: data.user && data.user.phone || "",
+          userId: data.user && data.user.userId || "",
+        });
+        router.go("/pages/register/index");
+        return;
+      }
+      wx.showToast({ title: "手机号已验证", icon: "success" });
+      router.go(consumeAuthIntent() || "/pages/home/index");
     } catch (error) {
-      showLoginFailure(stringifyError(error) || "登录失败，请重试", () => this.submitLogin(detail));
+      if (String(error && error.code || "").includes("IDENTITY") && String(error && error.code || "").includes("CONFLICT")) {
+        this.setData({ identityConflict: true, loginStatusText: "" });
+        return;
+      }
+      showLoginFailure(stringifyError(error) || "登录失败，请重试", () => this.loginWithPhone(event));
     } finally {
-      this.setData({ loading: false, loginStatusText: "" });
+      clearTimeout(waitingTimer);
+      this.setData({ loading: false });
     }
   },
 });
