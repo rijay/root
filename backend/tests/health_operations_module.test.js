@@ -160,6 +160,60 @@ test("recommendation rules publish only against a published scale version", () =
   assert.equal(healthOperations.listRecommendationRules(data, {}).items[0].scaleName, scaleInput().name);
 });
 
+test("published recommendation rules resolve deterministic, versioned scale cards", () => {
+  const data = createSeedData();
+  const scale = healthOperations.publishScale(data, publishInput(
+    healthOperations.saveScaleDraft(data, scaleInput({ effectiveAt: "2026-08-03T00:00:00.000Z" }), context()).version,
+  ), context()).version;
+  const rule = healthOperations.publishRecommendationRule(data, publishInput(
+    healthOperations.saveRecommendationRuleDraft(data, {
+      primaryCategory: "BOWEL",
+      auxiliaryTags: ["饮水偏少"],
+      matchSummary: "饮水偏少时推荐睡眠状态评测用于继续观察",
+      priority: 10,
+      matchMode: "ALL",
+      maxRecommendations: 1,
+      scaleVersionId: scale.versionId,
+      effectiveAt: "2026-08-03T00:00:00.000Z",
+    }, context()).version,
+  ), context()).version;
+  const preferredRule = healthOperations.publishRecommendationRule(data, publishInput(
+    healthOperations.saveRecommendationRuleDraft(data, {
+      primaryCategory: "BOWEL",
+      auxiliaryTags: ["饮水偏少"],
+      matchSummary: "同一量表的更高优先级规则",
+      priority: 5,
+      matchMode: "ALL",
+      maxRecommendations: 1,
+      scaleVersionId: scale.versionId,
+      effectiveAt: "2026-08-03T00:00:00.000Z",
+    }, context()).version,
+  ), context()).version;
+
+  assert.deepEqual(
+    healthOperations.resolvePublishedRecommendations(data, {
+      categoryCode: "BOWEL",
+      tags: ["饮水偏少"],
+    }, context()),
+    [{
+      title: scale.name,
+      availability: "PUBLISHED",
+      scaleVersionId: scale.versionId,
+      scaleVersionLabel: scale.versionLabel,
+      recommendationRuleVersionId: preferredRule.versionId,
+      recommendationRuleVersionLabel: preferredRule.versionLabel,
+      questionCount: 12,
+      estimatedMinutes: 3,
+      audienceLabel: "18 岁及以上",
+    }],
+  );
+  assert.notEqual(rule.versionId, preferredRule.versionId);
+  assert.deepEqual(healthOperations.resolvePublishedRecommendations(data, {
+    categoryCode: "BOWEL",
+    tags: [],
+  }, context()), []);
+});
+
 test("lifestyle policy supports fixed-only launch without model credentials", () => {
   const data = createSeedData();
   const draft = healthOperations.saveLifestyleAdviceDraft(data, {
@@ -180,6 +234,16 @@ test("lifestyle policy supports fixed-only launch without model credentials", ()
   assert.equal(page.items[0].status, "ACTIVE");
   assert.deepEqual(page.modelConfigurations, [{ id: "FIXED_ONLY", label: "首发固定内容（不调用模型）" }]);
   assert.equal(JSON.stringify(page).includes("secret"), false);
+  assert.equal(healthOperations.resolvePublishedLifestylePolicy(data, context()), null);
+  assert.deepEqual(healthOperations.resolvePublishedLifestylePolicy(data, {
+    now: "2026-08-06T08:00:00.000Z",
+    operatorId: "health-operator",
+  }), {
+    advicePolicyVersionId: published.versionId,
+    advicePolicyVersionLabel: published.versionLabel,
+    adviceContentVersionId: "ROOT4U_FIXED_CONTENT_V1",
+    adviceMode: "FIXED_ONLY",
+  });
 });
 
 function listen(server) {

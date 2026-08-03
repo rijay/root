@@ -3,6 +3,7 @@ const test = require("node:test");
 
 const { createApp } = require("../src/app");
 const formalHealthModule = require("../src/formalHealthModule");
+const healthOperations = require("../src/healthOperationsModule");
 const profileModule = require("../src/profileModule");
 const { createSeedData } = require("../src/seed");
 
@@ -132,6 +133,75 @@ test("Root4U persists versioned scoring only after safety passes", () => {
   assert.equal(riskTrace.assessment, null);
   assert.equal(submitted.result.adviceSource, "FIXED_SAFETY_CONTENT");
   assert.equal(submitted.result.recommendations.length, 0);
+});
+
+test("Root4U submission freezes published recommendation versions into the user result", () => {
+  const { data, user, profile } = fixture();
+  const operationsContext = { now: "2026-08-03T08:00:00.000Z", operatorId: "health-publisher" };
+  const scaleDraft = healthOperations.saveScaleDraft(data, {
+    name: "Root 肠道规律评测",
+    questionSummary: "12 道单选题；预计 3 分钟完成",
+    scoringSummary: "总分 0–24；分为三个结果层级",
+    audience: "ADULT_18_PLUS",
+    questionCount: 12,
+    resultLevelCount: 3,
+    adviceVersionId: "ROOT4U_FIXED_CONTENT_V1",
+    approver: "健康内容负责人",
+    effectiveAt: "2026-08-03T00:00:00.000Z",
+  }, operationsContext).version;
+  const scale = healthOperations.publishScale(data, {
+    versionId: scaleDraft.versionId,
+    expectedRevision: scaleDraft.revision,
+    confirmed: true,
+    confirmationText: "确认发布",
+  }, operationsContext).version;
+  const ruleDraft = healthOperations.saveRecommendationRuleDraft(data, {
+    primaryCategory: "BOWEL",
+    auxiliaryTags: ["饮水偏少"],
+    matchSummary: "肠道规律且饮水偏少时继续完成专项评测",
+    priority: 10,
+    matchMode: "ALL",
+    maxRecommendations: 1,
+    scaleVersionId: scale.versionId,
+    effectiveAt: "2026-08-03T00:00:00.000Z",
+  }, operationsContext).version;
+  const rule = healthOperations.publishRecommendationRule(data, {
+    versionId: ruleDraft.versionId,
+    expectedRevision: ruleDraft.revision,
+    confirmed: true,
+    confirmationText: "确认发布",
+  }, operationsContext).version;
+  const policyDraft = healthOperations.saveLifestyleAdviceDraft(data, {
+    name: "Root4U 首发固定建议策略",
+    modelConfigurationId: "FIXED_ONLY",
+    minimumFields: ["PRIMARY_CATEGORY", "AUXILIARY_TAGS", "ASSESSMENT_RESULTS"],
+    regenerationTrigger: "PROFILE_OR_ASSESSMENT_CHANGED",
+    rotationSize: 3,
+    validation: { structure: "REQUIRED", prohibitedLanguage: "REQUIRED", healthSafety: "REQUIRED" },
+    fallbackContentVersionId: "ROOT4U_FIXED_CONTENT_V1",
+    approver: "健康内容负责人",
+    effectiveAt: "2026-08-03T00:00:00.000Z",
+  }, operationsContext).version;
+  const policy = healthOperations.publishLifestyleAdvice(data, {
+    versionId: policyDraft.versionId,
+    expectedRevision: policyDraft.revision,
+    confirmed: true,
+    confirmationText: "确认发布",
+  }, operationsContext).version;
+
+  const submitted = formalHealthModule.submit(data, user, profile, { answers: answers() }, {
+    today: "2026-08-03",
+    now: "2026-08-03T08:30:00.000Z",
+  });
+  assert.equal(submitted.result.recommendations.length, 1);
+  assert.equal(submitted.result.recommendations[0].title, "Root 肠道规律评测");
+  assert.equal(submitted.result.recommendations[0].availability, "PUBLISHED");
+  assert.equal(submitted.result.recommendations[0].scaleVersionId, scale.versionId);
+  assert.equal(submitted.result.recommendations[0].recommendationRuleVersionId, rule.versionId);
+  assert.equal(submitted.result.advicePolicyVersionId, policy.versionId);
+  assert.equal(submitted.result.adviceContentVersionId, "ROOT4U_FIXED_CONTENT_V1");
+  assert.equal(submitted.result.adviceMode, "FIXED_ONLY");
+  assert.deepEqual(data.questionnaireAnswers[0].answers_json.result.recommendations, submitted.result.recommendations);
 });
 
 test("Root4U production writes stay closed until explicitly enabled", () => {

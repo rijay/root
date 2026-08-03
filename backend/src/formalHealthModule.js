@@ -54,12 +54,22 @@ function latest(data, rootUserId) {
     .sort((left, right) => String(right.submitted_at).localeCompare(String(left.submitted_at)))[0] || null;
 }
 
-function evaluateAnswers(answers) {
+function evaluateAnswers(answers, data = null, context = {}) {
   const safety = healthSafetyPolicy.evaluateSafety(answers);
   const assessment = safety.status === "STANDARD_GUIDANCE"
     ? assessmentModule.scoreAssessment(answers)
     : null;
-  const result = lifestyleAdviceModule.buildResult({ assessment, safety });
+  const fixedResult = lifestyleAdviceModule.buildResult({ assessment, safety });
+  const publishedRecommendations = assessment && data
+    ? healthOperationsModule.resolvePublishedRecommendations(data, assessment, context)
+    : [];
+  const publishedPolicy = assessment && data
+    ? healthOperationsModule.resolvePublishedLifestylePolicy(data, context)
+    : null;
+  const recommendedResult = publishedRecommendations.length
+    ? { ...fixedResult, recommendations: publishedRecommendations }
+    : fixedResult;
+  const result = publishedPolicy ? { ...recommendedResult, ...publishedPolicy } : recommendedResult;
   return { safety, assessment, result };
 }
 
@@ -161,7 +171,7 @@ function submit(data, user, profile, input = {}, context = {}) {
   }
   const definition = healthOperationsModule.resolveInitializationDefinition(data, profile);
   const answers = assessmentModule.normalizeAnswers(input.answers, definition);
-  const evaluation = evaluateAnswers(answers);
+  const evaluation = evaluateAnswers(answers, data, context);
   const submittedAt = context.now || nowISO();
   const row = {
     questionnaire_answer_id: createId("qan"),

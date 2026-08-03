@@ -43,10 +43,10 @@
     </view>
 
     <view wx:if="{{result.recommendations.length}}" class="health-result__recommendations">
-      <view wx:for="{{result.recommendations}}" wx:key="title" class="health-result__recommendation">
+      <view wx:for="{{result.recommendations}}" wx:key="viewKey" class="health-result__recommendation">
         <text class="health-result__recommendation-title">{{item.title}}</text>
-        <text class="health-result__recommendation-copy">继续了解自己的日常状态</text>
-        <text class="health-result__recommendation-status">即将开放</text>
+        <text class="health-result__recommendation-copy">{{item.detail}}</text>
+        <text class="health-result__recommendation-status">{{item.statusLabel}}</text>
       </view>
     </view>
     <button class="health-result__consent" bindtap="manageConsent">管理健康信息同意</button>

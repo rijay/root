@@ -463,6 +463,59 @@ function listRecommendationRules(data, query = {}) {
   return { ...paginate(items, query), previewPath: "/pages/health/index", releaseStage: "CANDIDATE" };
 }
 
+function effectiveAtOrBefore(row, asOf) {
+  const effectiveAt = Date.parse(row?.effective_at || row?.content_json?.effectiveAt || "");
+  return Number.isFinite(effectiveAt) && effectiveAt <= asOf;
+}
+
+function ruleMatchesAssessment(content, assessment) {
+  if (!content || content.primaryCategory !== assessment.categoryCode) return false;
+  const expectedTags = Array.isArray(content.auxiliaryTags) ? content.auxiliaryTags : [];
+  if (!expectedTags.length) return true;
+  const actualTags = new Set(Array.isArray(assessment.tags) ? assessment.tags : []);
+  return content.matchMode === "ALL"
+    ? expectedTags.every((tag) => actualTags.has(tag))
+    : expectedTags.some((tag) => actualTags.has(tag));
+}
+
+function resolvePublishedRecommendations(data, assessment = {}, context = {}) {
+  const asOf = Date.parse(context.now || nowISO());
+  if (!Number.isFinite(asOf) || !assessment || !assessment.categoryCode) return [];
+  const matchingRules = rowsOfType(data, TYPES.RECOMMENDATION_RULE)
+    .filter((row) => row.status === PUBLISHED && effectiveAtOrBefore(row, asOf))
+    .filter((row) => ruleMatchesAssessment(row.content_json, assessment))
+    .sort((left, right) => {
+      const priorityDifference = Number(left.content_json.priority) - Number(right.content_json.priority);
+      if (priorityDifference) return priorityDifference;
+      const publishedDifference = String(left.published_at).localeCompare(String(right.published_at));
+      return publishedDifference || left.health_content_version_id.localeCompare(right.health_content_version_id);
+    });
+  if (!matchingRules.length) return [];
+  const resultLimit = Math.min(3, Number(matchingRules[0].content_json.maxRecommendations) || 1);
+  const seenScaleVersions = new Set();
+  const recommendations = [];
+  for (const rule of matchingRules) {
+    const scale = rowById(data, rule.content_json.scaleVersionId);
+    if (!scale || scale.content_type !== TYPES.SCALE || scale.status !== PUBLISHED
+      || !effectiveAtOrBefore(scale, asOf) || seenScaleVersions.has(scale.health_content_version_id)) continue;
+    seenScaleVersions.add(scale.health_content_version_id);
+    const scaleContent = scale.content_json;
+    recommendations.push({
+      title: scaleContent.name,
+      availability: "PUBLISHED",
+      scaleVersionId: scale.health_content_version_id,
+      scaleVersionLabel: `v${scale.version}.0`,
+      recommendationRuleVersionId: rule.health_content_version_id,
+      recommendationRuleVersionLabel: `v${rule.version}.0`,
+      questionCount: scaleContent.questionCount,
+      estimatedMinutes: Math.max(1, Math.ceil(scaleContent.questionCount / 5)),
+      audienceLabel: scaleContent.audience === "ADULT_18_PLUS" ? "18 岁及以上" : "指定人群",
+    });
+    if (recommendations.length >= resultLimit) break;
+  }
+  return recommendations;
+}
+
 function lifestyleContent(input) {
   const modelConfigurationId = String(input.modelConfigurationId || "FIXED_ONLY").trim();
   if (modelConfigurationId !== "FIXED_ONLY") throw healthError("HEALTH_CONTENT_INPUT_INVALID", "首发仅允许固定内容策略");
@@ -538,6 +591,22 @@ function listLifestyleAdvice(data, query = {}) {
   };
 }
 
+function resolvePublishedLifestylePolicy(data, context = {}) {
+  const asOf = Date.parse(context.now || nowISO());
+  if (!Number.isFinite(asOf)) return null;
+  const row = rowsOfType(data, TYPES.LIFESTYLE_ADVICE)
+    .filter((candidate) => candidate.status === PUBLISHED && effectiveAtOrBefore(candidate, asOf))
+    .sort((left, right) => right.version - left.version)[0] || null;
+  if (!row || row.content_json.modelConfigurationId !== "FIXED_ONLY"
+    || row.content_json.fallbackContentVersionId !== FIXED_CONTENT_VERSION_ID) return null;
+  return {
+    advicePolicyVersionId: row.health_content_version_id,
+    advicePolicyVersionLabel: `v${row.version}.0`,
+    adviceContentVersionId: row.content_json.fallbackContentVersionId,
+    adviceMode: "FIXED_ONLY",
+  };
+}
+
 function publish(data, input, type, validate, context = {}) {
   if (input.confirmed !== true || String(input.confirmationText || "").trim() !== "确认发布") {
     throw healthError("HEALTH_CONTENT_PUBLISH_CONFIRMATION_REQUIRED", "请完成二次发布确认", 409);
@@ -609,6 +678,8 @@ module.exports = {
   publishLifestyleAdvice,
   publishRecommendationRule,
   publishScale,
+  resolvePublishedLifestylePolicy,
+  resolvePublishedRecommendations,
   resolveInitializationDefinition,
   saveInitializationDraft,
   saveLifestyleAdviceDraft,

@@ -20,11 +20,21 @@ Page({
   },
 
   applyBootstrap(bootstrap) {
+    const recommendations = bootstrap && bootstrap.result && Array.isArray(bootstrap.result.recommendations)
+      ? bootstrap.result.recommendations.map((item, index) => ({
+        ...item,
+        viewKey: item.scaleVersionId || `${item.title || "assessment"}-${index}`,
+        detail: item.availability === "PUBLISHED"
+          ? `${item.questionCount} 题 · 约 ${item.estimatedMinutes} 分钟`
+          : "继续了解自己的日常状态",
+        statusLabel: item.availability === "PUBLISHED" ? "已为你匹配" : "即将开放",
+      }))
+      : [];
     const result = bootstrap && bootstrap.result ? {
       ...bootstrap.result,
       tags: Array.isArray(bootstrap.result.tags) ? bootstrap.result.tags : [],
       tips: Array.isArray(bootstrap.result.tips) ? bootstrap.result.tips : [],
-      recommendations: Array.isArray(bootstrap.result.recommendations) ? bootstrap.result.recommendations : [],
+      recommendations,
     } : null;
     const safety = Boolean(result && result.safetyStatus !== "STANDARD_GUIDANCE");
     this.setData({ bootstrap, result });
