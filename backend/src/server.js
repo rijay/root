@@ -4,7 +4,6 @@ const { assertRuntimePersistence } = require("./runtimePersistenceGuard");
 const { createCommandRequestDigestCodec } = require("./commandRequestDigest");
 const { createCommandResultCodec } = require("./commandResultProtection");
 const { assertProtectedJobRouteTokenPolicy } = require("./jobRouteToken");
-const { assertWechatSubscriptionSendConfiguration } = require("./wechatSubscribeMessageAdapter");
 
 const port = Number(process.env.PORT || 8787);
 
@@ -32,7 +31,6 @@ async function createConfiguredStore(env = process.env, options = {}) {
 
 async function main() {
   assertProtectedJobRouteTokenPolicy(process.env);
-  assertWechatSubscriptionSendConfiguration(process.env);
   const commandRequestDigestCodec = createCommandRequestDigestCodec(process.env);
   const commandResultCodec = createCommandResultCodec(process.env);
   commandRequestDigestCodec.assertReady();

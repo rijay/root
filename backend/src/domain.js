@@ -18,8 +18,6 @@ const adminUserPresenter = require("./adminUserPresenter");
 const auditLog = require("./auditLog");
 const activityModule = require("./activityModule");
 const campaign = require("./campaign");
-const checkinReminder = require("./checkinReminder");
-const protectedCheckinReminderDelivery = require("./protectedCheckinReminderDelivery");
 const consultationAdvisorAssignment = require("./consultationAdvisorAssignment");
 const consultationAdvisorWorkbench = require("./consultationAdvisorWorkbench");
 const consultationFollowup = require("./consultationFollowup");
@@ -73,7 +71,6 @@ const rewardRecovery = require("./rewardRecovery");
 const taskProgress = require("./taskProgress");
 const { fetchWechatJson } = require("./wechatHttp");
 const { resolveWechatAccessToken } = require("./wechatAccessToken");
-const { wechatSubscribeMessageAdapter } = require("./wechatSubscribeMessageAdapter");
 const weworkTouch = require("./weworkTouch");
 const youzanCustomerMirror = require("./youzanCustomerMirror");
 const { buildProductionEnvMatrix } = require("./productionEnvMatrix");
@@ -472,13 +469,6 @@ async function getWechatPhoneNumber(config, phoneCode) {
   });
   const phoneInfo = payload.phone_info || {};
   return normalizePhone(phoneInfo.phoneNumber || phoneInfo.purePhoneNumber);
-}
-
-async function sendWechatSubscribeMessage(data, payload, context = {}) {
-  if (typeof context.sendSubscribeMessage === "function") return context.sendSubscribeMessage(payload);
-  const env = context.env || process.env;
-  const config = getWechatConfig(env);
-  return wechatSubscribeMessageAdapter.send({ config, env, payload });
 }
 
 async function getCloudbaseWechatPhoneNumber(phoneCode, env) {
@@ -915,25 +905,17 @@ function joinCampaign(data, token, body = {}, context = {}) {
     sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_CAMPAIGN",
     metadata: body.metadata || {},
   });
-  const reminder = result.created
-    ? checkinReminder.scheduleNextDayCheckinReminder(data, rootUserId, result.campaign, {
-      ...context,
-      sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_CAMPAIGN",
-    })
-    : { scheduled: false, reason: "ALREADY_JOINED" };
   recordLifecycleEvent(data, rootUserId, "CAMPAIGN_JOINED", {
     sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_CAMPAIGN",
     appCode: user.app_code || "MYROOT",
     metadata: {
       campaignId: result.campaign.campaign_id,
       created: result.created,
-      reminderScheduled: Boolean(reminder && reminder.scheduled),
     },
   });
   return response({
     campaign: campaign.toCampaignPayload(result.campaign, result.participant),
     created: result.created,
-    reminder,
   });
 }
 
@@ -1164,16 +1146,6 @@ function recordUserTaskEvent(data, token, body = {}, context = {}) {
     ...context,
     sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_TASK",
   });
-  const eventCampaign = ensureList(data, "campaignDefinitions").find((item) => item.campaign_id === result.event.campaign_id) || {
-    campaign_id: result.event.campaign_id,
-    title: "ROOT 身体记录",
-  };
-  const reminder = result.created && result.event.task_type === "CHECKIN"
-    ? checkinReminder.scheduleNextDayCheckinReminder(data, rootUserId, eventCampaign, {
-      ...context,
-      sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_TASK",
-    })
-    : { scheduled: false, reason: result.event.task_type === "CHECKIN" ? "DUPLICATE_TASK_EVENT" : "NOT_CHECKIN_TASK" };
   if (result.created) {
     recordLifecycleEvent(data, rootUserId, "TASK_EVENT_RECORDED", {
       sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_TASK",
@@ -1183,7 +1155,6 @@ function recordUserTaskEvent(data, token, body = {}, context = {}) {
         taskType: result.event.task_type,
         taskEventId: result.event.task_event_id,
         created: true,
-        reminderScheduled: Boolean(reminder && reminder.scheduled),
       },
     });
   }
@@ -1203,52 +1174,7 @@ function recordUserTaskEvent(data, token, body = {}, context = {}) {
       });
     }
   }
-  return response({ ...result, followUp, reminder });
-}
-
-function getCheckinReminderTemplate(data, token, context = {}) {
-  requireUser(data, token);
-  return response(checkinReminder.getCheckinReminderTemplate(data, context));
-}
-
-function recordCheckinReminderSubscription(data, token, body = {}, context = {}) {
-  const user = requireUser(data, token);
-  const rootUserId = user.root_user_id || user.user_id;
-  const operationContext = {
-    ...context,
-    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_SUBSCRIBE",
-  };
-  const finalize = (result) => {
-    const subscription = result.subscription;
-    recordLifecycleEvent(data, rootUserId, "CHECKIN_REMINDER_SUBSCRIPTION_UPDATED", {
-      sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_SUBSCRIBE",
-      appCode: user.app_code || "MYROOT",
-      metadata: {
-        templateKey: subscription.template_key,
-        templateVersion: subscription.template_version,
-        status: subscription.status,
-        campaignId: subscription.campaign_id,
-      },
-    });
-    return response(result);
-  };
-  if (protectedCheckinReminderDelivery.protectedRuntime(operationContext)) {
-    return protectedCheckinReminderDelivery
-      .recordSubscriptionAndSchedule(data, rootUserId, body, operationContext)
-      .then(finalize);
-  }
-  return finalize(checkinReminder.recordSubscription(data, rootUserId, body, operationContext));
-}
-
-async function runDueCheckinReminders(data, body = {}, context = {}) {
-  const operationContext = {
-    ...context,
-    sendSubscribeMessage: (payload) => sendWechatSubscribeMessage(data, payload, context),
-  };
-  const result = protectedCheckinReminderDelivery.protectedRuntime(operationContext)
-    ? await protectedCheckinReminderDelivery.runDueReminders(data, body, operationContext)
-    : await checkinReminder.runDueCheckinReminders(data, body, operationContext);
-  return response(result);
+  return response({ ...result, followUp });
 }
 
 function getUserConsultations(data, token) {
@@ -3170,7 +3096,6 @@ module.exports = {
   getActionAdapterCalibration,
   getAdminLifecycleWorkbench,
   getAdminOperationalAnalytics,
-  getCheckinReminderTemplate,
   getCloudbaseIdentityProbe,
   getHealthConsentStatus,
   getFormalHealthBootstrap,
@@ -3259,7 +3184,6 @@ module.exports = {
   submitQuestionnaireAnswer,
   submitQuestionnaire,
   recordCouponRepurchaseClick,
-  recordCheckinReminderSubscription,
   recordConsultationAdvisorAssignment,
   recordConsultationWeworkWriteback,
   recordAdminLegacyDeprecationDecision,
@@ -3274,7 +3198,6 @@ module.exports = {
   reviewActivityEnrollment,
   rollbackExternalAdapterRun,
   runDueExternalAdapterRetries,
-  runDueCheckinReminders,
   runDueWeWorkTouches,
   runExternalAdapter,
   signReleaseRecord,

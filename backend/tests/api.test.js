@@ -205,7 +205,7 @@ test("formal Job HTTP Interfaces expose only retention and V1 runtime cycle", as
   assert.equal(runtimeCycle.code, 50351);
 });
 
-test("retired task, settlement and reward HTTP Interfaces return 404", async (t) => {
+test("retired task, settlement, reward and reminder HTTP Interfaces return 404", async (t) => {
   const server = createApp({ env: { ROOT_ADMIN_TOKEN: "admin-secret" } });
   const baseUrl = await listen(server);
   t.after(() => server.close());
@@ -216,6 +216,8 @@ test("retired task, settlement and reward HTTP Interfaces return 404", async (t)
     ["POST", "/api/v1/tasks/events"],
     ["GET", "/api/v1/settlement/status"],
     ["POST", "/api/v1/settlement/evaluate"],
+    ["GET", "/api/v1/notifications/checkin-reminder-template"],
+    ["POST", "/api/v1/notifications/subscriptions"],
     ["GET", "/api/v1/admin/lifecycle-settlement-jobs"],
     ["POST", "/api/v1/admin/lifecycle-settlement-jobs/create"],
     ["POST", "/api/v1/admin/lifecycle-settlement-jobs/run"],
@@ -411,20 +413,20 @@ test("MySQL migrations and core relational projection cover production Store fac
     notification_subscription_id: "nts_mysql_projection",
     root_user_id: "usr_mysql_projection",
     campaign_id: "ROOT_7D_RESET",
-    template_key: "CHECKIN_REMINDER_NEXT_DAY",
+    template_key: "ACTIVITY_NOTIFICATION",
     template_id: "tmpl_mysql_projection",
     template_version: "v2026-06-28-test",
-    grant_request_id: "checkin-subscribe-mysql-projection",
+    grant_request_id: "activity-notification-mysql-projection",
     status: "AVAILABLE",
-    idempotency_key: "SUBSCRIPTION_GRANT:usr_mysql_projection:checkin-subscribe-mysql-projection",
+    idempotency_key: "SUBSCRIPTION_GRANT:usr_mysql_projection:activity-notification-mysql-projection",
     source_channel: "MYROOT",
     granted_at: "2026-07-11T10:00:00+08:00",
     created_at: "2026-07-11T10:00:00+08:00",
     updated_at: "2026-07-11T10:00:00+08:00",
     ...freezeWechatRecipientBinding(data, {
       rootUserId: "usr_mysql_projection",
-      grantRequestId: "checkin-subscribe-mysql-projection",
-      templateKey: "CHECKIN_REMINDER_NEXT_DAY",
+      grantRequestId: "activity-notification-mysql-projection",
+      templateKey: "ACTIVITY_NOTIFICATION",
       templateId: "tmpl_mysql_projection",
       templateVersion: "v2026-06-28-test",
     }, { env: verifiedWechatTestEnv }),
@@ -684,7 +686,6 @@ test("production cutover readiness gates live external proof", () => {
     ROOT_CUTOVER_EXTERNAL_CHANNELS_VERIFIED: "done",
     ROOT_CUTOVER_EXPORT_STORAGE_VERIFIED: "done",
     ROOT_CUTOVER_ROLLBACK_DRILL_COMPLETED: "done",
-    ROOT_CUTOVER_WECHAT_REMINDER_DELIVERY_VERIFIED: "done",
     ROOT_CUTOVER_CLOUDRUN_CANDIDATE_VERIFIED: "done",
     ROOT_CUTOVER_MINIPROGRAM_TRIAL_VERIFIED: "done",
     ROOT_CUTOVER_CLOUDRUN_CANARY_VERIFIED: "done",
@@ -693,10 +694,6 @@ test("production cutover readiness gates live external proof", () => {
     WECHAT_APPSECRET: "wechat-secret",
     ROOT_PUBLIC_BASE_URL: "https://root.example.com",
     ROOT_CLOUDBASE_ENV_ID: "root-prod",
-    ROOT_CHECKIN_REMINDER_ENABLED: "true",
-    ROOT_CHECKIN_REMINDER_SEND_ENABLED: "true",
-    ROOT_CHECKIN_REMINDER_TEMPLATE_ID: "reminder-template",
-    ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION: "1",
     ROOT_MEMBER_CENTER_APPID: "wx-root-member",
     YOUZAN_ORDER_LIST_URL: "https://youzan.example.com/orders",
     YOUZAN_CUSTOMER_LIST_URL: "https://youzan.example.com/customers",
@@ -766,24 +763,23 @@ test("production cutover readiness gates live external proof", () => {
   });
 
   assert.equal(blocked.status, "BLOCKED");
-  assert.equal(blocked.summary.requiredProofCount, 15);
-  assert.equal(blocked.summary.blockerCount, 15);
+  assert.equal(blocked.summary.requiredProofCount, 14);
+  assert.equal(blocked.summary.blockerCount, 14);
   assert.ok(blocked.blockers.some((item) => item.includes("微信开放平台")));
   assert.equal(gray.status, "NEEDS_REVIEW");
-  assert.equal(gray.summary.warningCount, 15);
+  assert.equal(gray.summary.warningCount, 14);
   assert.equal(grayReady.status, "READY");
   assert.equal(grayReady.items[0].proofSource, "ENV");
   assert.equal(envOnlyProduction.status, "BLOCKED");
   assert.equal(envOnlyProduction.summary.readyProofCount, 0);
   assert.ok(envOnlyProduction.blockers.every((item) => item.includes("后台 VERIFIED 记录")));
   assert.equal(ready.status, "READY");
-  assert.equal(ready.summary.readyProofCount, 15);
-  assert.equal(ready.summary.releaseScopedProofCount, 5);
-  assert.equal(ready.summary.releaseBoundReadyCount, 5);
+  assert.equal(ready.summary.readyProofCount, 14);
+  assert.equal(ready.summary.releaseScopedProofCount, 4);
+  assert.equal(ready.summary.releaseBoundReadyCount, 4);
   assert.ok(ready.items.every((item) => item.proofSource === "RECORD"));
   assert.ok(ready.items.filter((item) => item.proofScope === "ENVIRONMENT").every((item) => item.proofPolicy === "VERIFIED_RECORD_WITH_EVIDENCE"));
   assert.ok(ready.items.filter((item) => item.proofScope === "RELEASE").every((item) => item.proofPolicy === "VERIFIED_RECORD_WITH_EVIDENCE_AND_RELEASE_BINDING"));
-  assert.equal(ready.items.find((item) => item.id === "wechat_checkin_reminder_delivery").status, "READY");
   assert.equal(ready.items.find((item) => item.id === "cloudrun_candidate_runtime").status, "READY");
   assert.equal(ready.items.find((item) => item.id === "miniprogram_trial_core_flow").status, "READY");
   assert.equal(ready.items.find((item) => item.id === "cloudrun_canary_observation").status, "READY");
@@ -793,7 +789,7 @@ test("production cutover readiness gates live external proof", () => {
   assert.equal(partial.status, "BLOCKED");
   assert.ok(partial.blockers.some((item) => item.includes("Root 会员中心 appId")));
   assert.equal(legacyProofWithoutEvidence.status, "BLOCKED");
-  assert.equal(legacyProofWithoutEvidence.summary.readyProofCount, 14);
+  assert.equal(legacyProofWithoutEvidence.summary.readyProofCount, 13);
   assert.ok(legacyProofWithoutEvidence.blockers.some((item) => item.includes("缺少 evidenceRef")));
   assert.equal(staleRelease.status, "BLOCKED");
   assert.equal(staleRelease.summary.readyProofCount, 10);
@@ -898,14 +894,9 @@ test("production environment matrix groups launch and Adapter variables", () => 
     ROOT_CLOUDBASE_JOB_INVOCATION_POLICY_EVIDENCE: "candidate-timer-only-policy-proof",
     ROOT_REQUIRE_SCOPED_JOB_TOKENS: "true",
     ROOT_ADMIN_JOB_ROUTE_TOKENS: JSON.stringify({
-      "/api/v1/jobs/checkin-reminders": ["checkin-route-secret-with-strong-entropy-2026"],
       "/api/v1/jobs/v1-runtime-cycle": ["runtime-route-secret-with-strong-entropy-2026"],
     }),
     ROOT_ADMIN_JOB_TOKEN: "job-secret-with-strong-entropy-2026",
-    ROOT_CHECKIN_REMINDER_ENABLED: "true",
-    ROOT_CHECKIN_REMINDER_SEND_ENABLED: "true",
-    ROOT_CHECKIN_REMINDER_TEMPLATE_ID: "template-checkin-next-day",
-    ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION: "v2026-06-28-tpl10850",
     MYROOT_NOTIFICATION_DELIVERY_FOUNDATION_ENABLED: "true",
     ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY:
       "test-notification-receipt-hmac-key-with-strong-entropy-2026",
@@ -940,11 +931,8 @@ test("production environment matrix groups launch and Adapter variables", () => 
   const rotatingJobToken = buildProductionEnvMatrix({
     ...readyEnv,
     ROOT_ADMIN_JOB_ROUTE_TOKENS: JSON.stringify({
-      "/api/v1/jobs/checkin-reminders": [
-        "checkin-route-old-secret-with-strong-entropy-2026",
-        "checkin-route-new-secret-with-strong-entropy-2026",
-      ],
       "/api/v1/jobs/v1-runtime-cycle": [
+        "runtime-route-old-secret-with-strong-entropy-2026",
         "runtime-route-secret-with-strong-entropy-2026",
       ],
     }),
@@ -963,26 +951,13 @@ test("production environment matrix groups launch and Adapter variables", () => 
     ...readyEnv,
     ROOT_PRIVACY_CONTACT: "待确认",
   }, { target: "production" });
-  const disabledReminder = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_CHECKIN_REMINDER_ENABLED: "false",
-  }, { target: "production" });
-  const disabledReminderSend = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_CHECKIN_REMINDER_SEND_ENABLED: "false",
-  }, { target: "production" });
   const untrustedWechatOpenApiEndpoint = buildProductionEnvMatrix({
     ...readyEnv,
     ROOT_WECHAT_OPENAPI_BASE_URL: "https://attacker.example",
   }, { target: "production" });
-  const untrustedWechatSubscribeEndpoint = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_WECHAT_SUBSCRIBE_SEND_URL: "https://attacker.example/cgi-bin/message/subscribe/send",
-  }, { target: "production" });
-  const exactWechatEndpoints = buildProductionEnvMatrix({
+  const exactWechatEndpoint = buildProductionEnvMatrix({
     ...readyEnv,
     ROOT_WECHAT_OPENAPI_BASE_URL: "https://api.weixin.qq.com",
-    ROOT_WECHAT_SUBSCRIBE_SEND_URL: "https://api.weixin.qq.com/cgi-bin/message/subscribe/send",
   }, { target: "production" });
   const disabledNotificationDeliveryFoundation = buildProductionEnvMatrix({
     ...readyEnv,
@@ -1258,7 +1233,7 @@ test("production environment matrix groups launch and Adapter variables", () => 
   const whitespaceJobToken = buildProductionEnvMatrix({
     ...readyEnv,
     ROOT_ADMIN_JOB_ROUTE_TOKENS: JSON.stringify({
-      "/api/v1/jobs/checkin-reminders": ["   "],
+      "/api/v1/jobs/v1-runtime-cycle": ["   "],
     }),
   }, { target: "production" });
   const invalidSchedulerOptions = [
@@ -1287,22 +1262,17 @@ test("production environment matrix groups launch and Adapter variables", () => 
   assert.ok(disabledConsent.groups.some((group) => group.id === "privacy_compliance" && group.status === "BLOCKER"));
   assert.ok(invalidRetention.groups.some((group) => group.id === "privacy_compliance" && group.status === "BLOCKER"));
   assert.ok(invalidPrivacyContact.groups.some((group) => group.id === "privacy_compliance" && group.status === "BLOCKER"));
-  assert.ok(disabledReminder.groups.some((group) => group.id === "checkin_reminder_subscription" && group.status === "BLOCKER"));
-  assert.ok(disabledReminderSend.groups.some((group) =>
-    group.id === "checkin_reminder_subscription" && group.status === "BLOCKER"));
-  for (const untrustedEndpoint of [untrustedWechatOpenApiEndpoint, untrustedWechatSubscribeEndpoint]) {
-    assert.ok(untrustedEndpoint.groups.some((group) =>
-      group.id === "checkin_reminder_subscription" && group.status === "BLOCKER"));
-  }
-  assert.ok(exactWechatEndpoints.groups.some((group) =>
-    group.id === "checkin_reminder_subscription" && group.status === "PASS"));
+  assert.ok(untrustedWechatOpenApiEndpoint.groups.some((group) =>
+    group.id === "runtime" && group.status === "BLOCKER"));
+  assert.ok(exactWechatEndpoint.groups.some((group) =>
+    group.id === "runtime" && group.status === "PASS"));
   for (const invalidNotificationDelivery of [
     disabledNotificationDeliveryFoundation,
     weakNotificationReceiptKey,
     invalidNotificationReceiptKeyId,
   ]) {
     assert.ok(invalidNotificationDelivery.groups.some((group) =>
-      group.id === "checkin_reminder_subscription" && group.status === "BLOCKER"));
+      group.id === "v1_runtime_control" && group.status === "BLOCKER"));
   }
   assert.ok(expiredYouzanToken.groups.some((group) => group.id === "youzan_order" && group.status === "BLOCKER"));
   assert.ok(missingPhoneHmacKey.groups.some((group) =>
@@ -1448,7 +1418,6 @@ test("production environment matrix groups launch and Adapter variables", () => 
     group.id === "cloudbase_jobs" &&
     group.status === "PASS" &&
     group.required.some((item) => item.name === "ROOT_ADMIN_JOB_ROUTE_TOKENS" && item.present)));
-  assert.ok(ready.groups.some((group) => group.id === "checkin_reminder_subscription" && group.status === "PASS"));
   assert.ok(ready.groups.some((group) => group.id === "root_member_center_jump" && group.status === "PASS"));
   assert.ok(ready.groups.some((group) => group.id === "order_after_sales" && group.status === "OPTIONAL"));
   assert.ok(ready.groups.some((group) => group.id === "order_after_sales" && group.optional.some((item) => item.name === "ROOT_AFTER_SALES_STATUS_MAP" && item.present)));
@@ -1816,13 +1785,13 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.equal(releaseRecord.data.evidence.adminTransitionReadiness.legacyDeprecationDecision.status, "PENDING");
   assert.equal(releaseRecord.data.evidence.adminTransitionReadiness.summary.deprecationSource, "NONE");
   assert.equal(releaseRecord.data.evidence.productionCutoverReadiness.status, "NEEDS_REVIEW");
-  assert.equal(releaseRecord.data.evidence.productionCutoverReadiness.summary.requiredProofCount, 15);
+  assert.equal(releaseRecord.data.evidence.productionCutoverReadiness.summary.requiredProofCount, 14);
   assert.ok(releaseRecord.data.evidence.productionCutoverReadiness.items.some((item) => item.proofEnv === "ROOT_CUTOVER_CLOUDBASE_UNIONID_VERIFIED"));
   assert.equal(releaseRecord.data.evidence.actionAdapterCalibration.status, "NEEDS_REVIEW");
   assert.equal(releaseRecord.data.evidence.actionAdapterCalibration.actions.length, 4);
   assert.equal(releaseRecord.data.evidence.legacyDataMigration.status, "READY");
   assert.equal(releaseRecord.data.evidence.legacyDataMigration.summary.legacySessionCount, 0);
-  assert.equal(releaseRecord.data.evidence.productionEvidenceIntake.items.length, 15);
+  assert.equal(releaseRecord.data.evidence.productionEvidenceIntake.items.length, 14);
   assert.equal(releaseRecord.data.evidence.productionEvidenceIntake.items.find((item) => item.backlogId === "T-010").status, "READY");
   assert.equal(releaseRecord.data.evidence.cloudbaseStoreReadiness.status, "NEEDS_REVIEW");
   assert.equal(releaseRecord.data.evidence.cloudbaseStoreReadiness.selectedDecision, "UNDECIDED");
@@ -1847,13 +1816,13 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.equal(evidencePack.data.pack.evidence.adminTransitionReadiness.summary.readyModuleCount, 6);
   assert.equal(evidencePack.data.pack.evidence.adminTransitionReadiness.legacyDeprecationDecision.status, "PENDING");
   assert.equal(evidencePack.data.pack.summary.productionCutoverStatus, "NEEDS_REVIEW");
-  assert.equal(evidencePack.data.pack.evidence.productionCutoverReadiness.summary.requiredProofCount, 15);
+  assert.equal(evidencePack.data.pack.evidence.productionCutoverReadiness.summary.requiredProofCount, 14);
   assert.equal(evidencePack.data.pack.summary.actionAdapterCalibrationStatus, "NEEDS_REVIEW");
   assert.equal(evidencePack.data.pack.evidence.actionAdapterCalibration.actions.length, 4);
   assert.equal(evidencePack.data.pack.summary.legacyDataMigrationStatus, "READY");
   assert.equal(evidencePack.data.pack.evidence.legacyDataMigration.summary.legacySessionCount, 0);
   assert.equal(evidencePack.data.pack.summary.productionEvidenceIntakeStatus, "BLOCKED");
-  assert.equal(evidencePack.data.pack.evidence.productionEvidenceIntake.items.length, 15);
+  assert.equal(evidencePack.data.pack.evidence.productionEvidenceIntake.items.length, 14);
   assert.equal(evidencePack.data.pack.summary.cloudbaseStoreStatus, "NEEDS_REVIEW");
   assert.equal(evidencePack.data.pack.evidence.cloudbaseStoreReadiness.selectedDecision, "UNDECIDED");
   assert.equal(evidencePack.data.pack.summary.rootMemberCenterStatus, "NEEDS_REVIEW");

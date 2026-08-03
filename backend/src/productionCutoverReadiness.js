@@ -64,22 +64,6 @@ const CUTOVER_ITEMS = [
     action: "在 CloudBase 控制台创建 Adapter 重试、运营预警、生命周期结算和生命周期导出相关触发器。",
   },
   {
-    id: "wechat_checkin_reminder_delivery",
-    proofScope: "RELEASE",
-    group: "operations",
-    label: "次日打卡订阅提醒真实送达",
-    ownerRole: "研发/运营",
-    proofEnv: "ROOT_CUTOVER_WECHAT_REMINDER_DELIVERY_VERIFIED",
-    supportingEnv: [
-      "WECHAT_APPID",
-      "WECHAT_APPSECRET",
-      "ROOT_CHECKIN_REMINDER_ENABLED",
-      "ROOT_CHECKIN_REMINDER_TEMPLATE_ID",
-      "ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION",
-    ],
-    action: "使用新的独立账号和一次性订阅额度生成一条 SCHEDULED 任务，仅发送一次并核对真机可见、任务状态与额度账本；结果为 UNKNOWN 时禁止重试。",
-  },
-  {
     id: "external_channels_verified",
     group: "operations",
     label: "外部通道与负责人验收",

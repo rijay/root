@@ -315,19 +315,8 @@ function buildProductionEvidenceIntake(input = {}) {
       nextAction: "基于生产快照选择只读归档、选择性补迁或人工处理，并录入真实执行截图/链接或 CloudBase 留档。",
     }),
     item({
-      id: "wechat_checkin_reminder_delivery",
-      backlogId: "T-011",
-      group: "operations",
-      label: "次日打卡订阅提醒真实送达",
-      ownerRole: "研发/运营",
-      status: sourceStatus(cutoverItems, ["wechat_checkin_reminder_delivery"]),
-      source: "productionCutoverReadiness",
-      signals: sourceMessages(cutoverItems, ["wechat_checkin_reminder_delivery"]),
-      nextAction: "使用新的独立账号和一次性额度仅发送一次，核对真机可见、任务终态与额度账本；UNKNOWN 不重试。",
-    }),
-    item({
       id: "cloudrun_candidate_runtime",
-      backlogId: "T-012",
+      backlogId: "T-011",
       group: "release",
       label: "CloudRun 候选运行与默认流量保护",
       ownerRole: "研发",
@@ -338,7 +327,7 @@ function buildProductionEvidenceIntake(input = {}) {
     }),
     item({
       id: "miniprogram_trial_core_flow",
-      backlogId: "T-013",
+      backlogId: "T-012",
       group: "release",
       label: "同版本体验版真机核心流程",
       ownerRole: "产品/研发",
@@ -349,7 +338,7 @@ function buildProductionEvidenceIntake(input = {}) {
     }),
     item({
       id: "cloudrun_canary_observation",
-      backlogId: "T-014",
+      backlogId: "T-013",
       group: "release",
       label: "5% 灰度观察与回滚阈值",
       ownerRole: "研发/运营",
@@ -360,7 +349,7 @@ function buildProductionEvidenceIntake(input = {}) {
     }),
     item({
       id: "release_artifact_traceability",
-      backlogId: "T-015",
+      backlogId: "T-014",
       group: "release",
       label: "候选工件与版本库追溯",
       ownerRole: "研发",

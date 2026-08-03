@@ -75,7 +75,6 @@ const {
   getAdminLifecycleExportDeliveryHealth,
   getAdminLifecycleWorkbench,
   getAdminOperationalAnalytics,
-  getCheckinReminderTemplate,
   getCloudbaseIdentityProbe,
   getHealthConsentStatus,
   getFormalHealthBootstrap,
@@ -147,7 +146,6 @@ const {
   planWeWorkTouches,
   publishActivity,
   recordConsultationAdvisorAssignment,
-  recordCheckinReminderSubscription,
   recordConsultationWeworkWriteback,
   recordAdminLegacyDeprecationDecision,
   recordCouponRepurchaseClick,
@@ -1254,14 +1252,6 @@ function createApp(options = {}) {
       }
       if (route === "GET /api/v1/campaigns/active") return ok(res, getActiveCampaign(data, token, Object.fromEntries(url.searchParams), runtimeContext));
       if (route === "POST /api/v1/campaigns/join") return ok(res, withIdempotency(data, req, () => joinCampaign(data, token, body, runtimeContext)));
-      if (route === "GET /api/v1/notifications/checkin-reminder-template") return ok(res, getCheckinReminderTemplate(data, token, runtimeContext));
-      if (route === "POST /api/v1/notifications/subscriptions") {
-        return ok(res, await withIdempotency(
-          data,
-          req,
-          () => recordCheckinReminderSubscription(data, token, body, runtimeContext)
-        ));
-      }
       if (route === "GET /api/v1/products") return ok(res, listProducts(data, token, Object.fromEntries(url.searchParams), runtimeContext));
       if (method === "GET" && url.pathname.startsWith("/api/v1/products/") && url.pathname !== "/api/v1/products/jump") {
         return ok(res, getProduct(data, token, url.pathname.split("/").pop(), runtimeContext));

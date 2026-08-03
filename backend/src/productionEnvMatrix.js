@@ -6,10 +6,7 @@ const {
 } = require("./keyRotationConfiguration");
 const { parseScopedJobRouteTokens } = require("./jobRouteToken");
 const { calculateV1MysqlConnectionCapacity } = require("./mysqlConnectionCapacity");
-const {
-  resolveWechatOpenApiUrl,
-  resolveWechatSubscribeSendUrl,
-} = require("./wechatOpenApiEndpoint");
+const { resolveWechatOpenApiUrl } = require("./wechatOpenApiEndpoint");
 
 const ENV_GROUPS = [
   {
@@ -49,11 +46,13 @@ const ENV_GROUPS = [
       "ROOT_COMMAND_REQUEST_DIGEST_VERIFICATION_KEYS_JSON",
       "ROOT_COMMAND_RESULT_DECRYPTION_KEYS_JSON",
       "ROOT_INBOX_CONTENT_DECRYPTION_KEYS_JSON",
+      "ROOT_WECHAT_OPENAPI_BASE_URL",
     ],
     optionalRules: {
       ROOT_COMMAND_REQUEST_DIGEST_VERIFICATION_KEYS_JSON: "request_digest_keyring",
       ROOT_COMMAND_RESULT_DECRYPTION_KEYS_JSON: "command_result_keyring",
       ROOT_INBOX_CONTENT_DECRYPTION_KEYS_JSON: "inbox_content_keyring",
+      ROOT_WECHAT_OPENAPI_BASE_URL: "wechat_official_openapi_origin",
     },
     action: "配置正式小程序密钥、HTTPS 域名、唯一候选 ROOT_RELEASE_ID、手机号 HMAC 密钥、命令请求摘要密钥、命令结果加密密钥、Inbox 内容加密密钥及各自 key id，并配置后台访问口令；旧 key 只进入相应有界验证/解密 keyring。",
   },
@@ -122,6 +121,9 @@ const ENV_GROUPS = [
       "MYROOT_OUTBOX_INBOX_BRIDGE_ENABLED",
       "MYROOT_INBOX_WORKER_HARNESS_ENABLED",
       "ROOT_KEY_INVENTORY_READINESS_ENABLED",
+      "MYROOT_NOTIFICATION_DELIVERY_FOUNDATION_ENABLED",
+      "ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY",
+      "ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID",
       "MYSQL_CONNECTION_LIMIT",
     ],
     requiredRules: {
@@ -162,6 +164,9 @@ const ENV_GROUPS = [
       MYROOT_OUTBOX_INBOX_BRIDGE_ENABLED: "exact_true",
       MYROOT_INBOX_WORKER_HARNESS_ENABLED: "exact_true",
       ROOT_KEY_INVENTORY_READINESS_ENABLED: "exact_true",
+      MYROOT_NOTIFICATION_DELIVERY_FOUNDATION_ENABLED: "exact_true",
+      ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY: "strong_key",
+      ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID: "key_id",
       MYSQL_CONNECTION_LIMIT: "integer_3_1024",
     },
     requiredValues: {
@@ -327,48 +332,6 @@ const ENV_GROUPS = [
       ROOT_V1_RUNTIME_WORKER_LIMIT: "integer_1_100",
     },
     action: "在 CloudBase 环境变量或密钥管理中注入 HTTPS Job 域名、可解析的定时任务专用口令轮换配置，并附上仅允许平台 timer 调用函数的策略证据；再配置生命周期结算队列清理阈值、用户生命周期定时导出口径、企微自动触达口径、外部交付通道和签名下载密钥。",
-  },
-  {
-    id: "checkin_reminder_subscription",
-    label: "打卡提醒订阅消息",
-    ownerRole: "产品/运营/研发",
-    required: [
-      "ROOT_CHECKIN_REMINDER_ENABLED",
-      "ROOT_CHECKIN_REMINDER_SEND_ENABLED",
-      "ROOT_CHECKIN_REMINDER_TEMPLATE_ID",
-      "ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION",
-      "MYROOT_NOTIFICATION_DELIVERY_FOUNDATION_ENABLED",
-      "ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY",
-      "ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID",
-    ],
-    requiredValues: {
-      ROOT_CHECKIN_REMINDER_ENABLED: ["true", "1"],
-    },
-    requiredRules: {
-      ROOT_CHECKIN_REMINDER_SEND_ENABLED: "exact_true",
-      MYROOT_NOTIFICATION_DELIVERY_FOUNDATION_ENABLED: "exact_true",
-      ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY: "strong_key",
-      ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID: "key_id",
-    },
-    anyOf: [
-      ["ROOT_WECHAT_APPID", "WECHAT_APPID"],
-      ["ROOT_WECHAT_APPSECRET", "WECHAT_APPSECRET"],
-    ],
-    optional: [
-      "ROOT_CHECKIN_REMINDER_TEMPLATE_TITLE",
-      "ROOT_CHECKIN_REMINDER_HOUR",
-      "ROOT_CHECKIN_REMINDER_PAGE",
-      "ROOT_CHECKIN_REMINDER_MINIPROGRAM_STATE",
-      "ROOT_CHECKIN_REMINDER_TEMPLATE_DATA_JSON",
-      "ROOT_CHECKIN_REMINDER_JOB_LIMIT",
-      "ROOT_WECHAT_OPENAPI_BASE_URL",
-      "ROOT_WECHAT_SUBSCRIBE_SEND_URL",
-    ],
-    optionalRules: {
-      ROOT_WECHAT_OPENAPI_BASE_URL: "wechat_official_openapi_origin",
-      ROOT_WECHAT_SUBSCRIBE_SEND_URL: "wechat_official_subscribe_send_url",
-    },
-    action: "开启次日打卡提醒与持久送达 Foundation，确认微信小程序订阅消息模板、模板版本、跳转页、发送环境、微信凭证，以及独立 provider receipt HMAC key 与 key id。",
   },
   {
     id: "root_member_center_jump",
@@ -748,18 +711,6 @@ function isWechatOfficialOpenApiOrigin(value) {
   }
 }
 
-function isWechatOfficialSubscribeSendUrl(value) {
-  try {
-    const target = resolveWechatSubscribeSendUrl({
-      NODE_ENV: "production",
-      ROOT_WECHAT_SUBSCRIBE_SEND_URL: value,
-    });
-    return target.href === "https://api.weixin.qq.com/cgi-bin/message/subscribe/send";
-  } catch {
-    return false;
-  }
-}
-
 function isNonblankSecret(value) {
   const raw = String(value || "");
   return raw.length >= 16
@@ -894,8 +845,6 @@ function envRows(env, names = [], requiredValues = {}, requiredRules = {}) {
         ? isHttpsEndpoint(raw)
       : rule === "wechat_official_openapi_origin"
         ? isWechatOfficialOpenApiOrigin(raw)
-      : rule === "wechat_official_subscribe_send_url"
-        ? isWechatOfficialSubscribeSendUrl(raw)
       : rule === "privacy_contact"
         ? isValidPrivacyContact(String(env && env[name] || ""))
       : rule === "future_datetime_24h"
@@ -952,7 +901,6 @@ function envRows(env, names = [], requiredValues = {}, requiredRules = {}) {
         : rule === "https_url" ? "无用户信息、查询或片段的 HTTPS origin"
         : rule === "https_endpoint" ? "无用户信息或片段的 HTTPS endpoint"
         : rule === "wechat_official_openapi_origin" ? "精确微信官方 HTTPS origin https://api.weixin.qq.com"
-        : rule === "wechat_official_subscribe_send_url" ? "精确微信官方订阅发送 URL"
         : rule === "privacy_contact" ? "有效邮箱或 7 至 15 位电话"
         : rule === "future_datetime_24h" ? "至少晚于当前时间24小时的有效时间"
         : rule === "min_length_32" ? "至少 32 个字符"

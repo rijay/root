@@ -47,6 +47,8 @@ const RETIRED_USER_ROUTES = Object.freeze([
   "/api/v1/tasks/events",
   "/api/v1/settlement/status",
   "/api/v1/settlement/evaluate",
+  "/api/v1/notifications/checkin-reminder-template",
+  "/api/v1/notifications/subscriptions",
 ]);
 
 const RETIRED_PACKAGE_COMMANDS = Object.freeze([

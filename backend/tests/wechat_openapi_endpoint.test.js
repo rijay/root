@@ -3,9 +3,7 @@ const test = require("node:test");
 
 const {
   DEFAULT_WECHAT_OPENAPI_BASE_URL,
-  assertWechatSubscribeCredentialTarget,
   resolveWechatOpenApiUrl,
-  resolveWechatSubscribeSendUrl,
 } = require("../src/wechatOpenApiEndpoint");
 
 test("WeChat OpenAPI defaults to HTTPS", () => {
@@ -33,67 +31,12 @@ test("WeChat OpenAPI rejects plaintext and credential-bearing endpoints", () => 
   }
 });
 
-test("subscription send endpoint is exact and rejects credential exfiltration targets", () => {
-  assert.equal(
-    resolveWechatSubscribeSendUrl({ NODE_ENV: "production" }).href,
-    "https://api.weixin.qq.com/cgi-bin/message/subscribe/send"
-  );
-  assert.equal(
-    resolveWechatSubscribeSendUrl({
-      NODE_ENV: "production",
-      ROOT_WECHAT_SUBSCRIBE_SEND_URL: "https://api.weixin.qq.com/cgi-bin/message/subscribe/send",
-    }).href,
-    "https://api.weixin.qq.com/cgi-bin/message/subscribe/send"
-  );
-
-  for (const endpoint of [
-    "https://attacker.example/cgi-bin/message/subscribe/send",
-    "https://api.weixin.qq.com/cgi-bin/message/subscribe/send/",
-    "https://api.weixin.qq.com/cgi-bin/message/subscribe/send?redirect=attacker",
-    "https://user:secret@api.weixin.qq.com/cgi-bin/message/subscribe/send",
-  ]) {
-    assert.throws(
-      () => resolveWechatSubscribeSendUrl({
-        NODE_ENV: "production",
-        ROOT_WECHAT_SUBSCRIBE_SEND_URL: endpoint,
-      }),
-      { code: "WECHAT_OPENAPI_ENDPOINT_UNTRUSTED", status: 503 }
-    );
-  }
-});
-
-test("credential-bearing subscription target is revalidated at the network seam", () => {
-  const official = new URL("https://api.weixin.qq.com/cgi-bin/message/subscribe/send");
-  official.searchParams.set("access_token", "opaque-test-token");
-  assert.equal(assertWechatSubscribeCredentialTarget(official, { NODE_ENV: "production" }).href, official.href);
-
-  for (const endpoint of [
-    "https://attacker.example/cgi-bin/message/subscribe/send?access_token=opaque-test-token",
-    "https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token=one&access_token=two",
-    "https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token=one&redirect=attacker",
-    "https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token=",
-  ]) {
-    assert.throws(
-      () => assertWechatSubscribeCredentialTarget(endpoint, { NODE_ENV: "production" }),
-      { code: "WECHAT_OPENAPI_ENDPOINT_UNTRUSTED" }
-    );
-  }
-});
-
 test("WeChat OpenAPI permits explicit loopback HTTP only in test mode", () => {
   const target = resolveWechatOpenApiUrl("/wxa/business/getuserphonenumber", {
     NODE_ENV: "test",
     ROOT_WECHAT_OPENAPI_BASE_URL: "http://127.0.0.1:18080",
   });
   assert.equal(target.href, "http://127.0.0.1:18080/wxa/business/getuserphonenumber");
-
-  assert.throws(
-    () => resolveWechatSubscribeSendUrl({
-      NODE_ENV: "test",
-      ROOT_WECHAT_SUBSCRIBE_SEND_URL: "http://127.0.0.1:18080/cgi-bin/message/subscribe/send",
-    }),
-    { code: "WECHAT_OPENAPI_ENDPOINT_UNTRUSTED" }
-  );
 
   assert.throws(
     () => resolveWechatOpenApiUrl("/wxa/business/getuserphonenumber", {
