@@ -152,34 +152,15 @@ test("invalid draft input leaves no partially persisted activity version", () =>
   assert.deepEqual(store, before);
 });
 
-test("activity task binding freezes id and version together", () => {
+test("legacy task binding input is ignored and never enters the Activity Module Interface", () => {
   const store = data();
-  assert.throws(
-    () => activity.upsertDraft(store, draftInput({ preboundTaskDefinitionId: "task-without-version" }), { now: T.draft }),
-    { code: "ACTIVITY_TASK_BINDING_INCOMPLETE" }
-  );
-  assert.equal(store.activityDefinitionVersions, undefined);
   const draft = activity.upsertDraft(store, draftInput({
     preboundTaskDefinitionId: "task-after-activity",
     preboundTaskDefinitionVersion: "task-after-activity-v1",
   }), { now: T.draft });
-  assert.equal(draft.preboundTaskDefinitionId, "task-after-activity");
-  assert.equal(draft.preboundTaskDefinitionVersion, "task-after-activity-v1");
-});
-
-test("task-bound sessions fail closed when reapply would reuse an invalidated assignment", () => {
-  const store = data();
-  assert.throws(
-    () => openSession(store, {
-      allowReapply: true,
-      definition: {
-        preboundTaskDefinitionId: "task-after-activity",
-        preboundTaskDefinitionVersion: "task-after-activity-v1",
-      },
-    }),
-    { code: "ACTIVITY_TASK_REAPPLY_UNSUPPORTED" }
-  );
-  assert.equal(store.activitySessions.length, 0);
+  assert.equal(draft.preboundTaskDefinitionId, undefined);
+  assert.equal(draft.preboundTaskDefinitionVersion, undefined);
+  assert.equal(store.activityDefinitionVersions[0].prebound_task_definition_id, undefined);
 });
 
 test("activity visibility fails closed instead of widening malformed member content to public", () => {

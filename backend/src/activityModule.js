@@ -473,18 +473,6 @@ function upsertDraft(data, input = {}, context = {}) {
     input.contactOwnerSignerRef || input.contact_owner_signer_ref,
     "contactOwnerSignerRef"
   );
-  const preboundTaskDefinitionId = optionalText(
-    input.preboundTaskDefinitionId || input.prebound_task_definition_id
-  );
-  const preboundTaskDefinitionVersion = optionalText(
-    input.preboundTaskDefinitionVersion || input.prebound_task_definition_version
-  );
-  if (preboundTaskDefinitionId.length > 32 || preboundTaskDefinitionVersion.length > 64) {
-    throw activityError("ACTIVITY_TASK_BINDING_INCOMPLETE", "预绑定任务标识或版本长度超限", 400);
-  }
-  if (Boolean(preboundTaskDefinitionId) !== Boolean(preboundTaskDefinitionVersion)) {
-    throw activityError("ACTIVITY_TASK_BINDING_INCOMPLETE", "预绑定任务标识与版本必须同时填写", 400);
-  }
   if (!Array.isArray(data.activityDefinitionVersions)) data.activityDefinitionVersions = definitions;
   if (!definition) {
     definition = {
@@ -501,8 +489,6 @@ function upsertDraft(data, input = {}, context = {}) {
     visibility,
     member_requirement: optionalText(input.memberRequirement || input.member_requirement),
     contact_owner_signer_ref: contactOwnerSignerRef,
-    prebound_task_definition_id: preboundTaskDefinitionId,
-    prebound_task_definition_version: preboundTaskDefinitionVersion,
     published_at: null,
     updated_at: now,
   });
@@ -660,13 +646,6 @@ function createSession(data, input = {}, context = {}) {
   };
   const capacity = positiveInteger(input.capacity, "capacity");
   const allowReapply = input.allowReapply === true || input.allow_reapply === true;
-  if (allowReapply && definition.prebound_task_definition_id) {
-    throw activityError(
-      "ACTIVITY_TASK_REAPPLY_UNSUPPORTED",
-      "预绑定任务的活动场次暂不支持取消后重新报名",
-      409
-    );
-  }
   const existingBusinessSession = sessions.find((item) => (
     item.activity_version_id === activityVersionId
     && item.session_start_at === normalizedTimes.sessionStartAt
@@ -1243,8 +1222,6 @@ function toAdminDefinitionPayload(definition) {
     contactOwnerSignerRef: definition.contact_owner_signer_ref,
     visibility: definition.visibility,
     memberRequirement: definition.member_requirement || "",
-    preboundTaskDefinitionId: definition.prebound_task_definition_id || "",
-    preboundTaskDefinitionVersion: definition.prebound_task_definition_version || "",
     source: definition.source,
     createdAt: definition.created_at,
     updatedAt: definition.updated_at,
@@ -1563,8 +1540,6 @@ function toDefinitionPayload(definition, context = {}) {
     photographyNoticeRef: definition.photography_notice_ref,
     visibility: definition.visibility,
     memberRequirement: definition.member_requirement || "",
-    preboundTaskDefinitionId: definition.prebound_task_definition_id || "",
-    preboundTaskDefinitionVersion: definition.prebound_task_definition_version || "",
   };
 }
 

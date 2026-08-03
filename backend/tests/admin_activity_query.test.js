@@ -319,8 +319,7 @@ test("Admin Activity Query HTTP Interface enforces capabilities, filters and exp
     "activityId", "activityType", "activityVersionId", "agenda", "audience", "bringItems", "cancelPolicy",
     "city", "contactDisplay", "contactOwnerSignerRef", "contentApprovalRef", "createdAt", "detailVersion",
     "feeDescription", "heroAssetRef", "memberRequirement", "objective", "organizer",
-    "photographyNoticeRef", "photographyNoticeText", "preboundTaskDefinitionId",
-    "preboundTaskDefinitionVersion", "privacyNoticeRef",
+    "photographyNoticeRef", "photographyNoticeText", "privacyNoticeRef",
     "privacyNoticeText", "publishedAt", "source", "status", "summary", "title", "updatedAt",
     "venueSummary", "version", "visibility",
   ].sort());

@@ -23,7 +23,6 @@ const adminOpsPresenter = require("./adminOpsPresenter");
 const adminUserPresenter = require("./adminUserPresenter");
 const auditLog = require("./auditLog");
 const activityModule = require("./activityModule");
-const { executeActivityTaskWrite } = require("./activityTaskOutboxCoordinator");
 const campaign = require("./campaign");
 const checkinReminder = require("./checkinReminder");
 const protectedCheckinReminderDelivery = require("./protectedCheckinReminderDelivery");
@@ -1018,48 +1017,44 @@ function appendActivityAudit(data, action, targetType, targetId, body, after, op
 }
 
 function enrollActivity(data, token, body = {}, context = {}) {
-  return executeActivityTaskWrite(data, context, () => {
-    const user = requireUser(data, token);
-    const rootUserId = user.root_user_id || user.user_id;
-    // Member Identity is not yet a production authority in this branch. A
-    // member-only activity therefore fails closed unless the caller supplies a
-    // trusted, server-derived summary through the runtime context.
-    const memberStatus = context.memberIdentitySummary && context.memberIdentitySummary.status;
-    const result = activityModule.enroll(data, rootUserId, body, { ...context, memberStatus });
-    appendActivityAudit(
-      data,
-      "ACTIVITY_ENROLLMENT_ENROLL",
-      "ACTIVITY_ENROLLMENT",
-      result.enrollment.enrollmentId,
-      body,
-      result.enrollment,
-      { operatorId: rootUserId, source: "MINIPROGRAM" }
-    );
-    return response(result);
-  });
+  const user = requireUser(data, token);
+  const rootUserId = user.root_user_id || user.user_id;
+  // Member Identity is not yet a production authority in this branch. A
+  // member-only activity therefore fails closed unless the caller supplies a
+  // trusted, server-derived summary through the runtime context.
+  const memberStatus = context.memberIdentitySummary && context.memberIdentitySummary.status;
+  const result = activityModule.enroll(data, rootUserId, body, { ...context, memberStatus });
+  appendActivityAudit(
+    data,
+    "ACTIVITY_ENROLLMENT_ENROLL",
+    "ACTIVITY_ENROLLMENT",
+    result.enrollment.enrollmentId,
+    body,
+    result.enrollment,
+    { operatorId: rootUserId, source: "MINIPROGRAM" }
+  );
+  return response(result);
 }
 
 function cancelActivityEnrollment(data, token, body = {}, context = {}) {
-  return executeActivityTaskWrite(data, context, () => {
-    const user = requireUser(data, token);
-    const rootUserId = user.root_user_id || user.user_id;
-    const result = activityModule.cancelEnrollment(
-      data,
-      rootUserId,
-      body,
-      context
-    );
-    appendActivityAudit(
-      data,
-      "ACTIVITY_ENROLLMENT_CANCEL",
-      "ACTIVITY_ENROLLMENT",
-      result.enrollment.enrollmentId,
-      body,
-      result.enrollment,
-      { operatorId: rootUserId, reason: result.enrollment.reasonCode, source: "MINIPROGRAM" }
-    );
-    return response(result);
-  });
+  const user = requireUser(data, token);
+  const rootUserId = user.root_user_id || user.user_id;
+  const result = activityModule.cancelEnrollment(
+    data,
+    rootUserId,
+    body,
+    context
+  );
+  appendActivityAudit(
+    data,
+    "ACTIVITY_ENROLLMENT_CANCEL",
+    "ACTIVITY_ENROLLMENT",
+    result.enrollment.enrollmentId,
+    body,
+    result.enrollment,
+    { operatorId: rootUserId, reason: result.enrollment.reasonCode, source: "MINIPROGRAM" }
+  );
+  return response(result);
 }
 
 function upsertActivityDraft(data, body = {}, context = {}) {
@@ -1140,11 +1135,9 @@ function updateActivitySessionState(data, body = {}, context = {}) {
 }
 
 function reviewActivityEnrollment(data, body = {}, context = {}) {
-  return executeActivityTaskWrite(data, context, () => {
-    const result = activityModule.reviewEnrollment(data, body, context);
-    const audit = appendActivityAudit(data, "ACTIVITY_ENROLLMENT_REVIEW", "ACTIVITY_ENROLLMENT", result.enrollment.enrollmentId, body, result.enrollment);
-    return response({ ...result, audit });
-  });
+  const result = activityModule.reviewEnrollment(data, body, context);
+  const audit = appendActivityAudit(data, "ACTIVITY_ENROLLMENT_REVIEW", "ACTIVITY_ENROLLMENT", result.enrollment.enrollmentId, body, result.enrollment);
+  return response({ ...result, audit });
 }
 
 function expireActivityEnrollmentReviews(data, body = {}, context = {}) {
@@ -1156,16 +1149,14 @@ function expireActivityEnrollmentReviews(data, body = {}, context = {}) {
 }
 
 function cancelActivitySession(data, body = {}, context = {}) {
-  return executeActivityTaskWrite(data, context, () => {
-    const session = activityModule.cancelSession(
-      data,
-      body.sessionId || body.activity_session_id,
-      body,
-      context
-    );
-    const audit = appendActivityAudit(data, "ACTIVITY_SESSION_CANCEL", "ACTIVITY_SESSION", session.sessionId, body, session);
-    return response({ session, audit });
-  });
+  const session = activityModule.cancelSession(
+    data,
+    body.sessionId || body.activity_session_id,
+    body,
+    context
+  );
+  const audit = appendActivityAudit(data, "ACTIVITY_SESSION_CANCEL", "ACTIVITY_SESSION", session.sessionId, body, session);
+  return response({ session, audit });
 }
 
 function getTaskProgress(data, token, query = {}, context = {}) {

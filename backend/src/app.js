@@ -969,20 +969,6 @@ function requestCorrelationId(req) {
   return `request_${crypto.createHash("sha256").update(requestId).digest("hex").slice(0, 32)}`;
 }
 
-function activityTaskWriteContext(req, requestContext, runtimeContext, runtimeMetadata, extra = {}) {
-  return {
-    ...runtimeContext,
-    ...extra,
-    getEventTransport: typeof requestContext.getEventTransport === "function"
-      ? requestContext.getEventTransport
-      : undefined,
-    eventTransport: requestContext.eventTransport || null,
-    correlationId: requestCorrelationId(req),
-    producerVersion: runtimeMetadata.version,
-    releaseId: runtimeMetadata.releaseIdConfigured ? runtimeMetadata.releaseId : null,
-  };
-}
-
 function staticFile(filePath, res, baseDir = publicDir) {
   const resolvedBaseDir = path.resolve(baseDir);
   const safePath = path.normalize(filePath).replace(/^(\.\.(\/|\\|$))+/, "");
@@ -1339,7 +1325,7 @@ function createApp(options = {}) {
             data,
             token,
             { ...body, requestId, idempotencyKey },
-            activityTaskWriteContext(req, requestContext, runtimeContext, runtimeMetadata)
+            runtimeContext
           ),
           idempotencyKey
         ));
@@ -1353,7 +1339,7 @@ function createApp(options = {}) {
             data,
             token,
             { ...body, requestId, idempotencyKey },
-            activityTaskWriteContext(req, requestContext, runtimeContext, runtimeMetadata)
+            runtimeContext
           ),
           idempotencyKey
         ));
@@ -2119,13 +2105,7 @@ function createApp(options = {}) {
           () => cancelActivitySession(
             data,
             command,
-            activityTaskWriteContext(
-              req,
-              requestContext,
-              runtimeContext,
-              runtimeMetadata,
-              { adminPrincipal }
-            )
+            { ...runtimeContext, adminPrincipal }
           ),
           command.idempotencyKey
         ));
@@ -2139,7 +2119,7 @@ function createApp(options = {}) {
           () => reviewActivityEnrollment(
             data,
             command,
-            activityTaskWriteContext(req, requestContext, runtimeContext, runtimeMetadata)
+            runtimeContext
           ),
           command.idempotencyKey
         ));

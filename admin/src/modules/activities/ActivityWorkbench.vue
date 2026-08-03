@@ -109,10 +109,6 @@
                     <el-form-item label="会员要求"><el-input v-model="draftForm.memberRequirement" :disabled="draftForm.visibility !== 'MEMBER'" /></el-form-item>
                   </el-col>
                 </el-row>
-                <el-row :gutter="12">
-                  <el-col :span="12"><el-form-item label="预绑定任务定义"><el-input v-model="draftForm.preboundTaskDefinitionId" clearable /></el-form-item></el-col>
-                  <el-col :span="12"><el-form-item label="冻结任务版本"><el-input v-model="draftForm.preboundTaskDefinitionVersion" clearable /></el-form-item></el-col>
-                </el-row>
                 <el-space wrap>
                   <el-button :disabled="!canContentWrite" :loading="writeLoading" type="primary" @click="submitDraft">保存草稿</el-button>
                   <el-button @click="resetDraft">清空</el-button>
@@ -353,7 +349,7 @@ function emptyDraft() {
     cancelPolicy: "", privacyNoticeText: "", photographyNoticeText: "", contactDisplay: "",
     city: "", venueSummary: "", activityType: "", heroAssetRef: "", privacyNoticeRef: "",
     photographyNoticeRef: "", contentApprovalRef: "", contactOwnerSignerRef: "", visibility: "MEMBER",
-    memberRequirement: "ROOT_MEMBER", preboundTaskDefinitionId: "", preboundTaskDefinitionVersion: "", source: "OPS_BACKEND",
+    memberRequirement: "ROOT_MEMBER", source: "OPS_BACKEND",
   };
 }
 const draftForm = reactive(emptyDraft());
@@ -521,7 +517,7 @@ function sameDraft(authority, payload) {
     "feeDescription", "bringItems", "cancelPolicy", "privacyNoticeText", "photographyNoticeText",
     "contactDisplay", "detailVersion", "city", "venueSummary", "activityType", "heroAssetRef",
     "privacyNoticeRef", "photographyNoticeRef", "contentApprovalRef", "contactOwnerSignerRef",
-    "visibility", "memberRequirement", "preboundTaskDefinitionId", "preboundTaskDefinitionVersion", "source",
+    "visibility", "memberRequirement", "source",
   ];
   return keys.every((key) => String(authority?.[key] ?? "") === String(payload?.[key] ?? ""));
 }
