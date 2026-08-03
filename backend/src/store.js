@@ -825,7 +825,6 @@ async function createMysqlStore(config = {}, options = {}) {
   const eventTransportModule = require("./mysqlEventTransportAdapter");
   const commandIdempotencyModule = require("./mysqlCommandIdempotencyAdapter");
   const commandRecoveryModule = require("./mysqlCommandRecovery");
-  const activityTaskReadModule = require("./activityTaskReadAdapter");
   const runtimeControlPlaneModule = require("./v1RuntimeControlPlaneFoundation");
   const runtimePrincipalReadinessModule = require("./mysqlRuntimePrincipalReadiness");
   const notificationDeliveryModule = require("./mysqlNotificationDeliveryCore");
@@ -843,8 +842,6 @@ async function createMysqlStore(config = {}, options = {}) {
     || commandIdempotencyModule.createMysqlCommandIdempotencyAdapter;
   const createMysqlCommandRecovery = dependencies.createMysqlCommandRecovery
     || commandRecoveryModule.createMysqlCommandRecovery;
-  const createMysqlActivityTaskReadAdapter = dependencies.createMysqlActivityTaskReadAdapter
-    || activityTaskReadModule.createMysqlActivityTaskReadAdapter;
   const createV1RuntimeControlPlane = dependencies.createV1RuntimeControlPlane
     || runtimeControlPlaneModule.createV1RuntimeControlPlane;
   const createMysqlRuntimePrincipalReadiness = dependencies.createMysqlRuntimePrincipalReadiness
@@ -1459,7 +1456,6 @@ async function createMysqlStore(config = {}, options = {}) {
             checkpoint,
             resume,
             commandRecovery,
-            activityTaskReadAdapter: createMysqlActivityTaskReadAdapter(connection),
             settlementSourceInvalidationRead: Object.freeze({
               async loadScopes(scopes) {
                 if (!transactionActive || awaitingResume

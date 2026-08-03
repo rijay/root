@@ -3,7 +3,6 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const { createMemoryStore } = require("./store");
-const { createMemoryActivityTaskReadAdapter } = require("./activityTaskReadAdapter");
 const { runCloudbaseObjectStorageProbe } = require("./cloudbaseObjectStorageProbe");
 const { buildRuntimeMetadata } = require("./runtimeMetadata");
 const { createHttpResponseSecurityPolicy } = require("./httpResponseSecurity");
@@ -995,7 +994,6 @@ function createApp(options = {}) {
     trustedWechatIdentityAdapter: options.trustedWechatIdentityAdapter,
     activityPublicationAuthorizationAdapter: options.activityPublicationAuthorizationAdapter,
     activityAssetAdapter: options.activityAssetAdapter,
-    activityTaskReadAdapter: options.activityTaskReadAdapter,
     notificationDeliveryCore: options.notificationDeliveryCore
       || storeAdapter.notificationDeliveryCore
       || null,
@@ -1271,26 +1269,12 @@ function createApp(options = {}) {
       if (route === "GET /api/v1/questionnaire") return ok(res, getQuestionnaire(data, token, url.searchParams.get("type")));
       if (route === "GET /api/v1/questionnaire/answers/status") return ok(res, getQuestionnaireAnswerStatus(data, token, Object.fromEntries(url.searchParams)));
       if (route === "POST /api/v1/questionnaire/answers") {
-        const activityAssignmentRequested = Boolean(
-          body.taskActivityAssignmentId
-          || body.task_activity_assignment_id
-          || body.taskDefinitionVersion
-          || body.task_definition_version
-        );
-        let activityTaskSourceFacts = [];
-        if (activityAssignmentRequested) {
-          const rootUserId = stableRootUserIdForToken(data, token, runtimeContext);
-          const activityTaskReadAdapter = requestContext.activityTaskReadAdapter
-            || runtimeContext.activityTaskReadAdapter
-            || createMemoryActivityTaskReadAdapter(data);
-          activityTaskSourceFacts = await activityTaskReadAdapter.listByRootUser(rootUserId);
-        }
         return ok(res, withIdempotency(data, req, () => submitQuestionnaireAnswer(
           data,
           token,
           body,
           undefined,
-          { ...runtimeContext, activityTaskSourceFacts, activityTaskSourceFactsLoaded: activityAssignmentRequested }
+          runtimeContext
         )));
       }
       if (route === "GET /api/v1/questionnaire/status") return ok(res, getQuestionnaireStatus(data, token));
@@ -2060,7 +2044,6 @@ function createApp(options = {}) {
         transactionCheckpoint: transactionControl.checkpoint,
         transactionResume: transactionControl.resume,
         commandRecovery: transactionControl.commandRecovery,
-        activityTaskReadAdapter: transactionControl.activityTaskReadAdapter,
         settlementSourceInvalidationRead:
           transactionControl.settlementSourceInvalidationRead,
         settlementSourceInvalidationResolve:

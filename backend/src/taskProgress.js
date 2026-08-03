@@ -184,76 +184,18 @@ function assertCanRecordTaskEvent(events, definition) {
   }
 }
 
-function activityBoundDefinitionIds(data) {
-  return new Set(ensureList(data, "activityDefinitionVersions")
-    .map((definition) => text(definition.prebound_task_definition_id))
-    .filter(Boolean));
-}
-
-function activityCompletionEvents(events, fact) {
-  return events.filter((event) => {
-    const payload = objectValue(event.payload_json);
-    return payload.taskActivityAssignmentId === fact.taskActivityAssignmentId
-      && payload.taskDefinitionVersion === fact.taskDefinitionVersion;
-  });
-}
-
-function buildActivityAssignmentTask(events, definition, fact) {
-  const task = buildTaskProgress(activityCompletionEvents(events, fact), definition);
-  const invalidated = Boolean(fact.sourceInvalidationEventId);
-  return {
-    ...task,
-    taskKey: fact.taskActivityAssignmentId,
-    taskActivityAssignmentId: fact.taskActivityAssignmentId,
-    taskDefinitionVersion: fact.taskDefinitionVersion,
-    sourceType: "ACTIVITY_ASSIGNMENT",
-    sourceStatus: invalidated ? "CANCELED" : "AVAILABLE",
-    sourceInvalidated: invalidated,
-    sourceInvalidationReason: invalidated ? "SOURCE_CANCELED" : "",
-    sourceCancellationReasonCode: invalidated ? fact.sourceCancellationReasonCode : "",
-    sourceInvalidatedAt: invalidated ? fact.sourceInvalidatedAt : "",
-    status: invalidated && task.status !== "DONE" ? "CANCELED" : task.status,
-  };
-}
-
-function activityAssignmentTasks(data, rootUserId, campaignId, events, context) {
-  if (context.activityTaskSourceFactsLoaded !== true) return null;
-  const facts = Array.isArray(context.activityTaskSourceFacts) ? context.activityTaskSourceFacts : [];
-  ensureDefaultTaskDefinitions(data);
-  const definitions = ensureList(data, "taskDefinitions");
-  return facts
-    .filter((fact) => fact && fact.rootUserId === rootUserId)
-    .map((fact) => {
-      const definition = definitions.find((item) => item.task_definition_id === fact.taskDefinitionId);
-      if (!definition) {
-        const error = new Error("Activity task assignment references an unavailable definition");
-        error.code = "ACTIVITY_TASK_READ_MODEL_INVALID";
-        error.status = 503;
-        throw error;
-      }
-      return definition.campaign_id === campaignId && definition.status !== "ARCHIVED"
-        ? buildActivityAssignmentTask(events, definition, fact)
-        : null;
-    })
-    .filter(Boolean);
-}
-
-function computeTaskProgress(data, rootUserId, campaignId, context = {}) {
-  const allDefinitions = listTaskDefinitions(data, campaignId);
+function computeTaskProgress(data, rootUserId, campaignId) {
+  const definitions = listTaskDefinitions(data, campaignId);
   const events = ensureList(data, "taskEvents").filter((event) => {
     return event.root_user_id === rootUserId && event.campaign_id === campaignId && event.status !== "VOID";
   });
-  const assignedTasks = activityAssignmentTasks(data, rootUserId, campaignId, events, context);
-  const boundIds = assignedTasks === null ? new Set() : activityBoundDefinitionIds(data);
-  const tasks = allDefinitions
-    .filter((definition) => !boundIds.has(definition.task_definition_id))
+  const tasks = definitions
     .map((definition) => ({
       ...buildTaskProgress(events, definition),
       taskKey: definition.task_definition_id,
       sourceType: "CAMPAIGN",
       sourceStatus: "AVAILABLE",
-    }))
-    .concat(assignedTasks || []);
+    }));
   const requiredTasks = tasks.filter((task) => task.required && task.status !== "CANCELED");
   const requiredDone = requiredTasks.filter((task) => task.status === "DONE").length;
   const completedCount = tasks.filter((task) => task.status === "DONE").length;
@@ -335,24 +277,6 @@ function matchTaskDefinition(data, campaignId, taskType, payload = {}) {
   return definitions[0] || null;
 }
 
-function assertActivityAssignmentEvent(rootUserId, definition, payload, context) {
-  const assignmentId = text(payload.taskActivityAssignmentId || payload.task_activity_assignment_id);
-  const definitionVersion = text(payload.taskDefinitionVersion || payload.task_definition_version);
-  if (!assignmentId && !definitionVersion) return;
-  if (!assignmentId || !definitionVersion || context.activityTaskSourceFactsLoaded !== true) {
-    throw businessError(7004, "活动任务来源校验失败", 409);
-  }
-  const facts = Array.isArray(context.activityTaskSourceFacts) ? context.activityTaskSourceFacts : [];
-  const fact = facts.find((item) => item.taskActivityAssignmentId === assignmentId);
-  if (!fact
-    || fact.rootUserId !== rootUserId
-    || fact.taskDefinitionId !== definition.task_definition_id
-    || fact.taskDefinitionVersion !== definitionVersion
-    || fact.sourceInvalidationEventId) {
-    throw businessError(7004, "活动任务已取消或不可用", 409);
-  }
-}
-
 function recordTaskEvent(data, input = {}, context = {}) {
   const rootUserId = text(input.rootUserId || input.root_user_id);
   if (!rootUserId) throw businessError(1003, "请先登录", 401);
@@ -362,8 +286,6 @@ function recordTaskEvent(data, input = {}, context = {}) {
   const taskType = normalizeTaskType(input.taskType || input.task_type || payload.taskType || payload.task_type);
   const definition = matchTaskDefinition(data, activeCampaign.campaign_id, taskType, payload);
   if (!definition) throw businessError(7002, "任务配置不存在");
-  assertActivityAssignmentEvent(rootUserId, definition, payload, context);
-
   const idempotencyKey = idempotencyKeyFor(input, taskType, payload);
   const now = nowISO();
   const taskDate = text(input.taskDate || input.task_date || payload.taskDate || payload.task_date, todayISO());
@@ -408,7 +330,7 @@ function recordTaskEvent(data, input = {}, context = {}) {
   const existing = existingEvents[0];
   if (existing) {
     idempotencyClaim.reconcile(existing);
-    const progress = computeTaskProgress(data, rootUserId, activeCampaign.campaign_id, context);
+    const progress = computeTaskProgress(data, rootUserId, activeCampaign.campaign_id);
     upsertProgressSnapshot(data, progress);
     return { event: existing, created: false, progress };
   }
@@ -434,7 +356,7 @@ function recordTaskEvent(data, input = {}, context = {}) {
     created_at: now,
   });
   events.push(event);
-  const progress = computeTaskProgress(data, rootUserId, activeCampaign.campaign_id, context);
+  const progress = computeTaskProgress(data, rootUserId, activeCampaign.campaign_id);
   upsertProgressSnapshot(data, progress);
   return { event, created: true, progress };
 }
@@ -442,7 +364,7 @@ function recordTaskEvent(data, input = {}, context = {}) {
 function getProgressView(data, rootUserId, campaignId = "", context = {}) {
   const activeCampaign = campaign.getActiveCampaign(data, { ...context, campaignId });
   const participant = campaign.findParticipant(data, rootUserId, activeCampaign.campaign_id);
-  const progress = computeTaskProgress(data, rootUserId, activeCampaign.campaign_id, context);
+  const progress = computeTaskProgress(data, rootUserId, activeCampaign.campaign_id);
   const snapshot = upsertProgressSnapshot(data, progress);
   return {
     campaign: campaign.toCampaignPayload(activeCampaign, participant),

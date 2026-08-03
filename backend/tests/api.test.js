@@ -2533,7 +2533,7 @@ test("admin product sync HTTP Interface previews and idempotently imports produc
   assert.equal(server.store.auditLogs.filter((log) => log.action === "YOUZAN_PRODUCT_SYNC").length, 1);
 });
 
-test("questionnaire answer HTTP Interface validates answers and stores one response", async (t) => {
+test("questionnaire answer HTTP Interface stores independently from retired task assignments", async (t) => {
   const server = createApp({
     env: {
       ROOT_ALLOW_OPENID_LOGIN: "true",
@@ -2574,6 +2574,8 @@ test("questionnaire answer HTTP Interface validates answers and stores one respo
       campaignId: "ROOT_7D_RESET",
       questionnaireType: "DAY4_MIDPOINT",
       taskDate: "2026-06-22",
+      taskActivityAssignmentId: "retired-assignment-must-not-be-loaded",
+      taskDefinitionVersion: "retired-task-version-v1",
       answers: { stoolChange: "worse", comfortScore: 2, needsContact: true, contactReason: "舒适度低", feedback: "需要顾问联系" },
       idempotencyKey: "http-questionnaire-answer-day4",
     }),
@@ -2600,7 +2602,9 @@ test("questionnaire answer HTTP Interface validates answers and stores one respo
   assert.equal(status.data.answers.length, 1);
   assert.equal(server.store.questionnaireAnswers.length, 1);
   assert.equal(server.store.questionnaireResponses.length, 0);
-  assert.equal(server.store.taskEvents.filter((event) => event.task_type === "QUESTIONNAIRE").length, 1);
+  assert.equal(server.store.taskEvents.filter((event) => event.task_type === "QUESTIONNAIRE").length, 0);
+  assert.equal(Object.hasOwn(submitted.data, "taskEvent"), false);
+  assert.equal(Object.hasOwn(submitted.data, "progress"), false);
   assert.equal(server.store.operationTasks.some((task) => task.task_type === "QUESTIONNAIRE_FOLLOW"), true);
 });
 

@@ -1953,26 +1953,6 @@ function submitQuestionnaireAnswer(data, token, body = {}, dateText = todayISO()
   });
   const answer = result.answer;
   const taskDate = body.taskDate || body.task_date || dateText;
-  const eventResult = taskProgress.recordTaskEvent(data, {
-    campaignId: answer.campaign_id,
-    rootUserId: user.root_user_id || user.user_id,
-    taskType: "QUESTIONNAIRE",
-    taskDate,
-    payload: {
-      source: "QUESTIONNAIRE_ANSWER",
-      questionnaireType: answer.questionnaire_type || answer.questionnaire_id,
-      questionnaireId: answer.questionnaire_id,
-      version: answer.version,
-      answerId: answer.questionnaire_answer_id,
-      taskDefinitionId: body.taskDefinitionId || body.task_definition_id || undefined,
-      taskActivityAssignmentId: body.taskActivityAssignmentId || body.task_activity_assignment_id || undefined,
-      taskDefinitionVersion: body.taskDefinitionVersion || body.task_definition_version || undefined,
-    },
-    idempotencyKey: `questionnaire-answer:${answer.questionnaire_answer_id}`,
-  }, {
-    ...context,
-    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_QUESTIONNAIRE",
-  });
   recordLifecycleEvent(data, user.root_user_id || user.user_id, "QUESTIONNAIRE_ANSWER_SUBMITTED", {
     sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_QUESTIONNAIRE",
     appCode: user.app_code || "MYROOT",
@@ -1980,7 +1960,6 @@ function submitQuestionnaireAnswer(data, token, body = {}, dateText = todayISO()
       campaignId: answer.campaign_id,
       questionnaireId: answer.questionnaire_id,
       questionnaireAnswerId: answer.questionnaire_answer_id,
-      taskEventId: eventResult.event.task_event_id,
       created: result.created,
     },
   });
@@ -2004,8 +1983,6 @@ function submitQuestionnaireAnswer(data, token, body = {}, dateText = todayISO()
     success: true,
     answer: questionnaireAnswerPayload(answer),
     created: result.created,
-    taskEvent: eventResult.event,
-    progress: eventResult.progress,
     followUp: followUp ? { task: followUp.task, created: followUp.created } : null,
     user: publicUser(user, data),
   });
