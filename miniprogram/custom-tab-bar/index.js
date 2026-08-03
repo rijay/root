@@ -7,6 +7,7 @@ const PROTECTED_TAB_INDEXES = new Set([1, 3]);
 Component({
   data: {
     selected: 0,
+    hidden: false,
     tabs: FORMAL_TABS,
   },
 
@@ -14,6 +15,10 @@ Component({
     setSelected(selected) {
       if (!Number.isInteger(selected) || selected < 0 || selected >= this.data.tabs.length) return;
       this.setData({ selected });
+    },
+
+    setHidden(hidden) {
+      this.setData({ hidden: Boolean(hidden) });
     },
 
     switchTab(event) {

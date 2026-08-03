@@ -1,4 +1,4 @@
-<view class="root-tab-bar">
+<view wx:if="{{!hidden}}" class="root-tab-bar">
   <view
     wx:for="{{tabs}}"
     wx:key="pagePath"

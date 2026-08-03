@@ -19,6 +19,9 @@ Page({
     currentQuestion: null,
     answers: {},
     canContinue: false,
+    progressLabel: "01 / 12",
+    progressPercent: 0,
+    contentHeight: 844,
   },
 
   onLoad() {
@@ -26,6 +29,10 @@ Page({
   },
 
   goBack() {
+    if (this.data.currentIndex > 0) {
+      this.previous();
+      return;
+    }
     wx.navigateBack({ delta: 1 });
   },
 
@@ -51,12 +58,21 @@ Page({
     const question = definition.questions[this.data.currentIndex];
     const stored = this.data.answers[question.id];
     const selected = Array.isArray(stored) ? stored : stored ? [stored] : [];
+    const current = this.data.currentIndex + 1;
+    const total = definition.questions.length;
+    const optionCount = Array.isArray(question.options) ? question.options.length : 0;
     this.setData({
       currentQuestion: {
         ...question,
+        title: question.id === "primary_goal"
+          ? "这次使用 Root，\n最想先改善哪类状态？"
+          : question.title,
         options: question.options.map((option) => ({ ...option, selected: selected.includes(option.value) })),
       },
       canContinue: selected.length > 0,
+      progressLabel: `${String(current).padStart(2, "0")} / ${String(total).padStart(2, "0")}`,
+      progressPercent: current * 100 / total,
+      contentHeight: Math.max(844, 294 + optionCount * 62 + 150),
     });
   },
 

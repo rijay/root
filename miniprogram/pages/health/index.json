@@ -1,3 +1,7 @@
 {
-  "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "page-navigation": "/components/page-navigation/index",
+    "root-wordmark": "/components/root-wordmark/index"
+  }
 }

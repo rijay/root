@@ -14,8 +14,21 @@ Page({
   },
 
   onShow() {
-    syncTabBar(this, 1);
+    const safety = Boolean(this.data.result && this.data.result.safetyStatus !== "STANDARD_GUIDANCE");
+    syncTabBar(this, 1, { hidden: safety });
     this.load();
+  },
+
+  applyBootstrap(bootstrap) {
+    const result = bootstrap && bootstrap.result ? {
+      ...bootstrap.result,
+      tags: Array.isArray(bootstrap.result.tags) ? bootstrap.result.tags : [],
+      tips: Array.isArray(bootstrap.result.tips) ? bootstrap.result.tips : [],
+      recommendations: Array.isArray(bootstrap.result.recommendations) ? bootstrap.result.recommendations : [],
+    } : null;
+    const safety = Boolean(result && result.safetyStatus !== "STANDARD_GUIDANCE");
+    this.setData({ bootstrap, result });
+    syncTabBar(this, 1, { hidden: safety });
   },
 
   async load() {
@@ -26,7 +39,7 @@ Page({
     this.setData({ loading: true, error: "" });
     try {
       const bootstrap = await request({ url: "/api/v1/health/root4u", scope: "root4u-home" });
-      this.setData({ bootstrap, result: bootstrap.result || null });
+      this.applyBootstrap(bootstrap);
       if (wx.getStorageSync(START_PENDING_KEY) && !bootstrap.consentRequired && bootstrap.eligibility === "ELIGIBLE") {
         wx.removeStorageSync(START_PENDING_KEY);
         this.openAssessment();
@@ -68,6 +81,10 @@ Page({
 
   manageConsent() {
     wx.navigateTo({ url: "/pages/health-consent/index?mode=manage" });
+  },
+
+  acknowledgeSafety() {
+    wx.switchTab({ url: "/pages/home/index" });
   },
 
   retry() {

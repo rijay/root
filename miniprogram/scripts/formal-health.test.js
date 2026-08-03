@@ -17,14 +17,14 @@ assert.match(healthScript, /\/api\/v1\/health\/root4u/);
 assert.match(healthScript, /ensureHealthConsent/);
 assert.doesNotMatch(healthScript, /task|reward|checkin|coupon/i);
 assert.match(healthWxml, /今天先从三件小事开始/);
-assert.match(healthWxml, /不构成医疗诊断或治疗建议/);
+assert.match(healthWxml, /这不是疾病诊断/);
 assert.match(healthWxml, /不会因为本次回答自动创建工单或承诺主动联系/);
 assert.doesNotMatch(healthWxml, /open-type="contact"/);
 assert.match(assessmentScript, /\/api\/v1\/health\/root4u\/initial-assessment/);
 assert.match(assessmentScript, /idempotencyKey/);
 assert.doesNotMatch(assessmentScript, /setStorageSync\([^,]+,\s*this\.data\.answers/);
 assert.match(assessmentWxml, /完成建档/);
-assert.match(assessmentWxml, /assessment-nav-back/);
+assert.match(assessmentWxml, /<page-navigation[^>]+bind:back="goBack"/);
 assert.match(consentWxml, /首页、活动和会员支持不以同意为前提/);
 assert.doesNotMatch(consentWxml, /任务|奖励|打卡/);
 

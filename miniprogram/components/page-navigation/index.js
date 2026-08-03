@@ -21,6 +21,7 @@ Component({
   properties: {
     tone: { type: String, value: "dark" },
     showHome: { type: Boolean, value: true },
+    interceptBack: { type: Boolean, value: false },
   },
   data: {
     top: 66,
@@ -32,6 +33,10 @@ Component({
   },
   methods: {
     goBack() {
+      if (this.properties.interceptBack) {
+        this.triggerEvent("back");
+        return;
+      }
       const pages = typeof getCurrentPages === "function" ? getCurrentPages() : [];
       if (pages.length > 1) {
         wx.navigateBack({ delta: 1, fail: goHome });
