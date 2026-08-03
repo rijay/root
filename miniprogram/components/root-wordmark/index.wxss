@@ -1,0 +1,18 @@
+:host {
+  display: block;
+  width: 84px;
+  height: 22px;
+}
+
+.root-wordmark {
+  width: 84px;
+  height: 22px;
+  overflow: hidden;
+}
+
+.root-wordmark__source {
+  display: block;
+  width: 114px;
+  height: 22px;
+  margin-left: -28px;
+}

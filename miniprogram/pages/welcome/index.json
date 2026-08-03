@@ -1,4 +1,7 @@
 {
   "navigationStyle": "custom",
-  "disableScroll": true
+  "disableScroll": true,
+  "usingComponents": {
+    "immersive-header": "/components/immersive-header/index"
+  }
 }

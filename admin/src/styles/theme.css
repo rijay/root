@@ -1,6 +1,22 @@
 :root {
-  color: #17201a;
-  background: #f6f4ef;
+  --root-ink: #080806;
+  --root-bg: #f7f4ec;
+  --root-nav: #fdfbf6;
+  --root-surface: #ffffff;
+  --root-moss: #586b3f;
+  --root-sprout: #a6b77a;
+  --root-clay: #b67855;
+  --root-line: #e8e0d0;
+  --root-muted: #8a8172;
+  --root-copy: #433e34;
+  --root-soft: #dde8c4;
+  --root-page-padding: 16px;
+  --root-radius-sm: 4px;
+  --root-radius-md: 8px;
+  --root-radius-lg: 12px;
+  --root-radius-xl: 16px;
+  color: var(--root-ink);
+  background: var(--root-bg);
   font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,7 +29,7 @@
 body {
   margin: 0;
   min-width: 1280px;
-  background: #f6f4ef;
+  background: var(--root-bg);
 }
 
 .admin-shell {
@@ -23,7 +39,7 @@ body {
 }
 
 .admin-sidebar {
-  border-right: 1px solid #ded9ce;
+  border-right: 1px solid var(--root-line);
   background: #1f2a22;
   color: #f8f5ed;
   padding: 20px 14px;
@@ -58,7 +74,7 @@ body {
 
 .admin-main {
   min-width: 0;
-  padding: 22px;
+  padding: calc(var(--root-page-padding) + 6px);
 }
 
 .admin-topbar {

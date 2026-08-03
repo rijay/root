@@ -2,7 +2,9 @@
   <swiper class="welcome__swiper" current="{{current}}" duration="280" bindchange="onSlideChange">
     <swiper-item>
       <view class="welcome__slide welcome__slide--first">
-        <view class="welcome__wordmark-crop"><image class="welcome__wordmark" src="/static/brand/root-logo-horizontal-light.png" mode="heightFix" /></view>
+        <view class="welcome__media welcome__media--first" data-release-asset="DEVELOPMENT_PLACEHOLDER"></view>
+        <view class="welcome__shade welcome__shade--first"></view>
+        <immersive-header tone="light" />
         <view class="welcome__copy welcome__copy--first">
           <text class="welcome__kicker">ROOT MEMBER CLUB</text>
           <text class="welcome__title">欢迎加入\nRoot Member Club</text>
@@ -11,13 +13,17 @@
       </view>
     </swiper-item>
     <swiper-item>
-      <scroll-view class="welcome__slide welcome__slide--second" scroll-y enhanced show-scrollbar="false">
-        <view class="welcome__wordmark-crop"><image class="welcome__wordmark" src="/static/brand/root-logo-horizontal-light.png" mode="heightFix" /></view>
-        <view class="welcome__copy welcome__copy--second">
-          <text class="welcome__lead">平衡不是控制，而是理解。</text>
-          <text class="welcome__body">ROOT的研究源于肠道——\n人体最复杂也最被忽视的系统。\n\n我们不宣称“神奇功效”，\n也不相信“立竿见影”的幻觉。\n当你选择ROOT，不是简单地服用它，\n而是开始与身体重新合作。\n\n真正的健康，是当身体、心智与能量\n重新步入节奏时，你所感受到的安稳、\n轻盈与清晰。\n\n人如草木，根定而生。\nRoot的使命，就是帮你把身体还给身体自己。</text>
-        </view>
-      </scroll-view>
+      <view class="welcome__slide welcome__slide--second">
+        <view class="welcome__media welcome__media--second" data-release-asset="DEVELOPMENT_PLACEHOLDER"></view>
+        <view class="welcome__shade welcome__shade--second"></view>
+        <immersive-header tone="light" />
+        <scroll-view class="welcome__long-copy-scroll" scroll-y enhanced show-scrollbar="false">
+          <view class="welcome__copy welcome__copy--second">
+            <text class="welcome__lead">平衡不是控制，而是理解。</text>
+            <text class="welcome__body">ROOT的研究源于肠道——\n人体最复杂也最被忽视的系统。\n\n我们不宣称“神奇功效”，\n也不相信“立竿见影”的幻觉。\n当你选择ROOT，不是简单地服用它，\n而是开始与身体重新合作。\n\n真正的健康，是当身体、心智与能量\n重新步入节奏时，你所感受到的安稳、\n轻盈与清晰。\n\n人如草木，根定而生。\nRoot的使命，就是帮你把身体还给身体自己。</text>
+          </view>
+        </scroll-view>
+      </view>
     </swiper-item>
   </swiper>
   <view class="welcome__dots" aria-label="第 {{current + 1}} 屏，共 2 屏">

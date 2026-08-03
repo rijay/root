@@ -1,0 +1,4 @@
+<view class="immersive-header" style="top: {{top}}px;">
+  <root-wordmark tone="{{tone}}" />
+  <slot></slot>
+</view>
