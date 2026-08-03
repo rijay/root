@@ -102,9 +102,9 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          # Full verification exercises the local-only SQLite Adapter, whose
-          # implementation uses the built-in node:sqlite module.
-          node-version: "24.13.1"
+          # Full verification exercises the local-only SQLite Adapter on the
+          # same Node 22 line used for formal-launch development and Cloud Run.
+          node-version: "22.23.2"
           cache: npm
           cache-dependency-path: |
             backend/package-lock.json

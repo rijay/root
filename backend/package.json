@@ -40,6 +40,6 @@
     "lodash.unset": "npm:unset-value@2.0.1"
   },
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   }
 }

@@ -18,6 +18,12 @@
 - `docs/adapter_calibration_playbook.md`：真实账号接入前的校准顺序、配置表和回滚判断。
 - `docs/release_record_template.md`：发布记录、签字位、证据检查和回滚动作模板。
 
+## 本地运行时
+
+- 正式开发统一使用 Node.js `22.23.2`，版本记录在 `.node-version`；npm 开启 `engine-strict`，避免用 Node 24 通过本地验证后在 Node 22 云托管中出现差异；
+- `backend/Dockerfile` 使用 Node 22；Admin、Backend、小程序脚本和仓库验证均要求 Node `22.x`；
+- 两个现有 CloudBase 函数仍运行 Node 18，函数包保持 Node `18.x` 声明，并由 CI 中独立的 Node `18.20.8` 任务验证；不得把主开发运行时切回 Node 18。
+
 ## 运行后台
 
 ```bash
