@@ -2885,7 +2885,7 @@ async function runFinalVerification() {
     runCommand(
       "Production dependency audit",
       "npm",
-      ["audit", "--omit=dev", "--audit-level=high"],
+      ["audit", "--package-lock-only", "--omit=dev", "--audit-level=high"],
       { cwd: backendDir },
     ),
     runCommand("Element Plus admin validation", "npm", ["run", "check", "--prefix", adminDir]),

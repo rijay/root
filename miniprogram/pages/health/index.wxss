@@ -1,4 +1,5 @@
-.formal-tab-page { min-height: 100vh; padding: calc(128rpx + env(safe-area-inset-top)) 40rpx calc(160rpx + env(safe-area-inset-bottom)); box-sizing: border-box; background: #fdfbf6; }
+.health-page { height: 100vh; background: #fdfbf6; }
+.health-page__content { min-height: 100vh; padding: calc(128rpx + env(safe-area-inset-top)) 40rpx calc(180rpx + env(safe-area-inset-bottom)); box-sizing: border-box; }
 .formal-tab-page__eyebrow { display: block; color: #586b3f; font-size: 22rpx; font-weight: 600; letter-spacing: 3rpx; }
 .formal-tab-page__title { display: block; margin-top: 24rpx; color: #080806; font-size: 54rpx; line-height: 1.25; font-weight: 600; }
 .formal-tab-page__description { display: block; margin-top: 24rpx; color: #6c6457; font-size: 28rpx; line-height: 1.65; }
@@ -6,5 +7,29 @@
 .formal-steps view { display: flex; align-items: center; gap: 24rpx; min-height: 104rpx; color: #433e34; border-bottom: 1rpx solid #e8e0d0; font-size: 28rpx; }
 .formal-steps view:last-child { border-bottom: 0; }
 .formal-steps view text:first-child { color: #8a8172; font-size: 22rpx; }
-.formal-primary { margin-top: 48rpx; height: 92rpx; color: #fff; background: #080806; border-radius: 24rpx; font-size: 28rpx; line-height: 92rpx; }
+.formal-primary { margin-top: 48rpx; height: 92rpx; color: #fff; background: #586b3f; border-radius: 24rpx; font-size: 28rpx; line-height: 92rpx; }
 .formal-primary::after { border: 0; }
+.health-state { display: flex; flex-direction: column; align-items: center; gap: 24rpx; margin-top: 64rpx; padding: 48rpx 32rpx; color: #6c6457; background: #fff; border-radius: 28rpx; font-size: 26rpx; text-align: center; }
+.health-link, .health-consent-link { padding: 16rpx; color: #586b3f; background: transparent; border: 0; font-size: 25rpx; }
+.health-link::after, .health-consent-link::after { border: 0; }
+.health-result { margin-top: 56rpx; padding: 42rpx 36rpx; color: #fff; background: #586b3f; border-radius: 32rpx; }
+.health-result__label { display: block; color: rgba(255,255,255,.72); font-size: 22rpx; letter-spacing: 2rpx; }
+.health-result__title { display: block; margin-top: 16rpx; font-size: 44rpx; font-weight: 600; }
+.health-tags { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 28rpx; }
+.health-tags text { padding: 10rpx 18rpx; color: #fff; background: rgba(255,255,255,.14); border-radius: 999rpx; font-size: 22rpx; }
+.health-section { margin-top: 52rpx; }
+.health-section__title { display: block; color: #080806; font-size: 32rpx; font-weight: 600; }
+.health-tips, .health-recommendations { margin-top: 24rpx; overflow: hidden; background: #fff; border-radius: 28rpx; }
+.health-tip { display: flex; gap: 22rpx; padding: 28rpx 30rpx; color: #433e34; border-bottom: 1rpx solid #e8e0d0; font-size: 27rpx; line-height: 1.65; }
+.health-tip:last-child, .health-recommendation:last-child { border-bottom: 0; }
+.health-tip__number { flex: 0 0 auto; color: #8a8172; font-size: 21rpx; }
+.health-recommendation { display: flex; align-items: center; justify-content: space-between; min-height: 100rpx; padding: 0 30rpx; color: #433e34; border-bottom: 1rpx solid #e8e0d0; font-size: 27rpx; }
+.health-recommendation text:last-child { color: #a39a8b; font-size: 22rpx; }
+.health-consent-link { display: block; margin: 28rpx auto 0; }
+.health-notice { margin-top: 28rpx; padding: 24rpx; color: #8c5b49; background: #f5ebe3; border-radius: 20rpx; font-size: 24rpx; line-height: 1.6; }
+.health-disclaimer { display: block; margin-top: 22rpx; color: #8a8172; font-size: 22rpx; line-height: 1.6; text-align: center; }
+.health-safety { margin-top: 56rpx; padding: 42rpx 36rpx; background: #fbeee7; border-radius: 32rpx; }
+.health-safety__label { display: block; color: #b67855; font-size: 22rpx; font-weight: 600; letter-spacing: 2rpx; }
+.health-safety__title { display: block; margin-top: 24rpx; color: #080806; font-size: 40rpx; font-weight: 600; line-height: 1.35; }
+.health-safety__body { display: block; margin-top: 24rpx; color: #6c6457; font-size: 27rpx; line-height: 1.7; }
+.health-safety__notice { display: block; margin-top: 28rpx; color: #8a8172; font-size: 22rpx; line-height: 1.6; }

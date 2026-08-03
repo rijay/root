@@ -18,6 +18,12 @@
       ]
     },
     {
+      "root": "subpkg/health",
+      "pages": [
+        "pages/initial-assessment/index"
+      ]
+    },
+    {
       "root": "subpkg/activity",
       "pages": [
         "pages/detail/index",
@@ -72,6 +78,10 @@
     "pages/activities/index": {
       "network": "all",
       "packages": ["subpkg/activity"]
+    },
+    "pages/health/index": {
+      "network": "all",
+      "packages": ["subpkg/health"]
     },
     "pages/profile/index": {
       "network": "all",

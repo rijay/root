@@ -41,6 +41,7 @@ const {
 const coupon = require("./coupon");
 const cloudbaseIdentityProbe = require("./cloudbaseIdentityProbe");
 const contentModule = require("./contentModule");
+const formalHealthModule = require("./formalHealthModule");
 const csvImport = require("./csvImport");
 const externalAdapterSamples = require("./externalAdapterSamples");
 const externalPlatformAdapters = require("./externalPlatformAdapters");
@@ -855,6 +856,42 @@ function listFormalHomeContent(data, context = {}) {
 
 function getFormalContentDetail(data, contentId, context = {}) {
   return response(contentModule.getDetail(data, contentId, context));
+}
+
+function formalHealthContext(data, user, context = {}) {
+  const profile = profileModule.read(data, user).profile;
+  const consentStatus = privacyConsent.getHealthConsentStatus(data, user.root_user_id || user.user_id, context);
+  return { profile, consentStatus };
+}
+
+function getFormalHealthBootstrap(data, token, context = {}) {
+  const user = requireUser(data, token);
+  const { profile, consentStatus } = formalHealthContext(data, user, context);
+  return response(formalHealthModule.bootstrap(data, user, profile, consentStatus, context));
+}
+
+function getFormalHealthInitialAssessment(data, token, context = {}) {
+  const user = requireUser(data, token);
+  const { profile } = formalHealthContext(data, user, context);
+  privacyConsent.requireHealthConsent(data, user.root_user_id || user.user_id, context);
+  return response(formalHealthModule.getDefinition(profile, context));
+}
+
+function submitFormalHealthInitialAssessment(data, token, body = {}, context = {}) {
+  const user = requireUser(data, token);
+  const { profile } = formalHealthContext(data, user, context);
+  privacyConsent.requireHealthConsent(data, user.root_user_id || user.user_id, context);
+  const result = formalHealthModule.submit(data, user, profile, body, context);
+  recordLifecycleEvent(data, user.root_user_id || user.user_id, "ROOT4U_INITIAL_ASSESSMENT_COMPLETED", {
+    sourceChannel: "MYROOT_ROOT4U",
+    appCode: user.app_code || "MYROOT",
+    metadata: {
+      answerId: result.answerId,
+      questionnaireId: formalHealthModule.QUESTIONNAIRE_ID,
+      questionnaireVersion: formalHealthModule.QUESTIONNAIRE_VERSION,
+    },
+  });
+  return response(result);
 }
 
 function submitFormalProfile(data, token, body = {}) {
@@ -3354,6 +3391,8 @@ module.exports = {
   getCheckinReminderTemplate,
   getCloudbaseIdentityProbe,
   getHealthConsentStatus,
+  getFormalHealthBootstrap,
+  getFormalHealthInitialAssessment,
   getFormalContentDetail,
   getFormalProfile,
   getPrivacyNotice,
@@ -3447,6 +3486,7 @@ module.exports = {
   submitCheckin,
   submitDailyCheckin,
   submitFormalProfile,
+  submitFormalHealthInitialAssessment,
   submitProfile,
   submitQuestionnaireAnswer,
   submitQuestionnaire,

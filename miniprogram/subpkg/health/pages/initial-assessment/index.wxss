@@ -1,0 +1,24 @@
+page { background: #fdfbf6; }
+.assessment-page { min-height: 100vh; padding: calc(150rpx + env(safe-area-inset-top)) 40rpx calc(56rpx + env(safe-area-inset-bottom)); box-sizing: border-box; }
+.assessment-nav-back { position: fixed; z-index: 2; top: calc(64rpx + env(safe-area-inset-top)); left: 32rpx; display: flex; align-items: center; justify-content: center; width: 80rpx; height: 80rpx; padding: 0; background: rgba(255,255,255,.88); border: 1rpx solid #e8e0d0; border-radius: 50%; }
+.assessment-nav-back::after { border: 0; }
+.assessment-nav-back view { width: 18rpx; height: 18rpx; margin-left: 8rpx; border-bottom: 3rpx solid #080806; border-left: 3rpx solid #080806; transform: rotate(45deg); }
+.assessment-state { padding-top: 180rpx; color: #6c6457; font-size: 28rpx; text-align: center; }
+.assessment-progress { display: flex; align-items: center; justify-content: space-between; color: #8a8172; font-size: 22rpx; }
+.assessment-progress__track { height: 6rpx; margin-top: 20rpx; overflow: hidden; background: #e8e0d0; border-radius: 999rpx; }
+.assessment-progress__track view { height: 100%; background: #586b3f; border-radius: 999rpx; transition: width .24s ease; }
+.assessment-title { display: block; margin-top: 56rpx; color: #080806; font-size: 42rpx; font-weight: 600; line-height: 1.38; }
+.assessment-hint { display: block; margin-top: 16rpx; color: #8a8172; font-size: 24rpx; }
+.assessment-options { display: flex; flex-direction: column; gap: 16rpx; margin-top: 36rpx; }
+.assessment-option { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 92rpx; margin: 0; padding: 20rpx 24rpx; color: #433e34; background: #fff; border: 2rpx solid transparent; border-radius: 22rpx; font-size: 27rpx; line-height: 1.5; text-align: left; }
+.assessment-option::after { border: 0; }
+.assessment-option--selected { color: #344126; background: #eef1e8; border-color: #586b3f; }
+.assessment-option__mark { width: 20rpx; height: 20rpx; margin-left: 20rpx; border: 2rpx solid #c8c0b2; border-radius: 50%; }
+.assessment-option--selected .assessment-option__mark { background: #586b3f; border: 6rpx solid #dfe6d5; }
+.assessment-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 16rpx; margin-top: 44rpx; }
+.assessment-back, .assessment-next { height: 92rpx; margin: 0; border-radius: 22rpx; font-size: 27rpx; line-height: 92rpx; }
+.assessment-back { color: #586b3f; background: transparent; border: 1rpx solid #b9c2aa; }
+.assessment-next { color: #fff; background: #080806; border: 0; }
+.assessment-back::after, .assessment-next::after { border: 0; }
+.assessment-back[disabled], .assessment-next[disabled] { color: #a39a8b; background: #e8e0d0; border-color: #e8e0d0; }
+.assessment-disclaimer { display: block; margin-top: 28rpx; color: #8a8172; font-size: 21rpx; line-height: 1.55; text-align: center; }

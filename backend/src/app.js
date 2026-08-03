@@ -88,6 +88,8 @@ const {
   getCheckinReminderTemplate,
   getCloudbaseIdentityProbe,
   getHealthConsentStatus,
+  getFormalHealthBootstrap,
+  getFormalHealthInitialAssessment,
   getFormalContentDetail,
   getFormalProfile,
   getPrivacyNotice,
@@ -204,6 +206,7 @@ const {
   submitCheckin,
   submitDailyCheckin,
   submitFormalProfile,
+  submitFormalHealthInitialAssessment,
   submitProfile,
   submitQuestionnaireAnswer,
   submitQuestionnaire,
@@ -1309,6 +1312,13 @@ function createApp(options = {}) {
       if (route === "POST /api/v1/privacy/health-consent") return ok(res, withIdempotency(data, req, () => recordHealthConsentDecision(data, token, body, runtimeContext)));
       if (route === "GET /api/v1/user/profile") return ok(res, getProfile(data, token));
       if (route === "GET /api/v1/user/formal-profile") return ok(res, getFormalProfile(data, token));
+      if (route === "GET /api/v1/health/root4u") return ok(res, getFormalHealthBootstrap(data, token, runtimeContext));
+      if (route === "GET /api/v1/health/root4u/initial-assessment") {
+        return ok(res, getFormalHealthInitialAssessment(data, token, runtimeContext));
+      }
+      if (route === "POST /api/v1/health/root4u/initial-assessment") {
+        return ok(res, withIdempotency(data, req, () => submitFormalHealthInitialAssessment(data, token, body, runtimeContext)));
+      }
       if (route === "GET /api/v1/user/orders") return ok(res, getUserOrders(data, token));
       if (route === "GET /api/v1/user/consultations") return ok(res, getUserConsultations(data, token));
       if (route === "GET /api/v1/activities") {

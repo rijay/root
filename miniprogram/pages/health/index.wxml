@@ -1,11 +1,72 @@
-<view class="formal-tab-page">
-  <text class="formal-tab-page__eyebrow">ROOT4U</text>
-  <text class="formal-tab-page__title">找到你的健康起点</text>
-  <text class="formal-tab-page__description">先完成一次初始化建档，再获取适合你的生活方式建议。</text>
-  <view class="formal-steps">
-    <view><text>01</text><text>确定人群分类</text></view>
-    <view><text>02</text><text>完成基础状态评测</text></view>
-    <view><text>03</text><text>选择适合自己的健康评测</text></view>
+<scroll-view class="health-page" scroll-y enhanced show-scrollbar="{{false}}">
+  <view class="health-page__content">
+    <text class="formal-tab-page__eyebrow">ROOT4U</text>
+    <text class="formal-tab-page__title">从此刻开始，理解自己的健康起点</text>
+    <text class="formal-tab-page__description">这不是疾病诊断，而是一份用于整理日常状态、找到下一步生活方式重点的基础评测。</text>
+
+    <view wx:if="{{loading}}" class="health-state">正在整理你的健康起点…</view>
+    <view wx:elif="{{error}}" class="health-state">
+      <text>{{error}}</text>
+      <button class="health-link" bindtap="retry">重新加载</button>
+    </view>
+
+    <block wx:elif="{{result && result.safetyStatus !== 'STANDARD_GUIDANCE'}}">
+      <view class="health-safety">
+        <text class="health-safety__label">健康安全提示</text>
+        <text class="health-safety__title">这次不继续生成普通生活方式建议</text>
+        <text class="health-safety__body">你选择的情况需要更谨慎地处理。Root4U 不适合在此时根据问卷自动给出一般性建议。</text>
+      </view>
+      <view class="health-section">
+        <text class="health-section__title">建议你现在这样做</text>
+        <view class="health-tips">
+          <view wx:for="{{result.tips}}" wx:key="*this" class="health-tip">
+            <text class="health-tip__number">0{{index + 1}}</text><text>{{item}}</text>
+          </view>
+        </view>
+      </view>
+      <text class="health-safety__notice">Root 不提供实时监测，也不会因为本次回答自动创建工单或承诺主动联系。</text>
+      <button class="health-consent-link" bindtap="manageConsent">管理健康信息同意</button>
+    </block>
+
+    <block wx:elif="{{result}}">
+      <view class="health-result">
+        <text class="health-result__label">你的当前起点</text>
+        <text class="health-result__title">{{result.categoryTitle}}</text>
+        <view wx:if="{{result.tags.length}}" class="health-tags">
+          <text wx:for="{{result.tags}}" wx:key="*this">{{item}}</text>
+        </view>
+      </view>
+
+      <view class="health-section">
+        <text class="health-section__title">今天先从三件小事开始</text>
+        <view class="health-tips">
+          <view wx:for="{{result.tips}}" wx:key="*this" class="health-tip">
+            <text class="health-tip__number">0{{index + 1}}</text>
+            <text>{{item}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{result.recommendations.length}}" class="health-section">
+        <text class="health-section__title">接下来可以继续了解</text>
+        <view class="health-recommendations">
+          <view wx:for="{{result.recommendations}}" wx:key="title" class="health-recommendation">
+            <text>{{item.title}}</text><text>即将开放</text>
+          </view>
+        </view>
+      </view>
+      <button class="health-consent-link" bindtap="manageConsent">管理健康信息同意</button>
+    </block>
+
+    <block wx:else>
+      <view class="formal-steps">
+        <view><text>01</text><text>确定目标</text></view>
+        <view><text>02</text><text>完成基础状态评测</text></view>
+        <view><text>03</text><text>选择适合自己的健康评测</text></view>
+      </view>
+      <view wx:if="{{bootstrap && bootstrap.eligibility === 'AGE_RESTRICTED'}}" class="health-notice">首发仅面向 18 岁及以上用户。</view>
+      <button class="formal-primary" bindtap="startAssessment">开始健康起点评测</button>
+      <text class="health-disclaimer">首发仅面向18岁及以上用户 · 评测结果不构成医疗诊断或治疗建议</text>
+    </block>
   </view>
-  <button class="formal-primary" bindtap="startAssessment">开始健康起点评测</button>
-</view>
+</scroll-view>
