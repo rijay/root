@@ -46,6 +46,7 @@ assert.equal(safeOpaqueId("session_001"), "session_001");
 assert.equal(safeOpaqueId("https://example.com/session"), "");
 assert.equal(presentActivityList({ activities: [activity] })[0].statusLabel, "可报名");
 assert.equal(presentActivityList({ activities: [activity] })[0].startText, "2026年8月12日 09:00");
+assert.equal(presentActivityList({ activities: [activity] })[0].compactStartText, "8月12日  周三  09:00");
 assert.equal(presentActivityList({ activities: [activity] })[0].cancelCloseText, "2026年8月11日 09:00");
 assert.equal(
   presentActivityList({ activities: [activity] })[0].heroAssetUrl,

@@ -5,6 +5,7 @@ function goHome() {
 Component({
   properties: {
     tone: { type: String, value: "dark" },
+    showHome: { type: Boolean, value: true },
   },
   methods: {
     goBack() {

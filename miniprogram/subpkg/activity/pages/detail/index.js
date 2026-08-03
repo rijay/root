@@ -70,11 +70,18 @@ Page({
 
   authorityData(activity) {
     const activityView = { ...activity, heroReady: Boolean(activity.heroAssetUrl) };
+    const action = deriveActivityAction(activityView, { authenticated: Boolean(getToken()) });
+    const availabilityText = activityView.enrollment
+      ? `我的报名：${activityView.enrollment.label}`
+      : (activityView.remainingCapacity !== null && activityView.listingState === "AVAILABLE"
+        ? `剩余 ${activityView.remainingCapacity} 个名额`
+        : activityView.statusLabel);
     return {
       viewState: "ready",
       activity: activityView,
       sessionId: activity.sessionId,
-      action: deriveActivityAction(activityView, { authenticated: Boolean(getToken()) }),
+      action,
+      availabilityText,
       errorText: "",
     };
   },

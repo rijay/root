@@ -38,6 +38,8 @@ const tokens = read("styles/tokens.wxss");
 ].forEach((token) => assert.match(tokens.toLowerCase(), new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))));
 
 assert.match(read("app.wxss"), /@import "\.\/styles\/tokens\.wxss";/);
+assert.match(read("components/page-navigation/index.wxss"), /flex:\s*0\s+0\s+40px/);
+assert.match(read("components/page-navigation/index.wxml"), /wx:if="\{\{showHome\}\}"/);
 
 const wordmarkWxml = read("components/root-wordmark/index.wxml");
 const wordmarkWxss = read("components/root-wordmark/index.wxss");

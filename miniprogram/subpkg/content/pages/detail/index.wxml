@@ -1,5 +1,5 @@
 <view class="content-detail" bindtap="handleAction">
-  <page-navigation tone="light" />
+  <page-navigation tone="light" show-home="{{false}}" />
   <block wx:if="{{state === 'ready'}}">
     <image wx:for="{{item.detailImages}}" wx:key="*this" class="content-detail__image" src="{{item}}" mode="widthFix" />
     <view wx:if="{{item.detailImages.length === 0}}" class="content-detail__placeholder">

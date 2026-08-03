@@ -1,13 +1,75 @@
-<view class="activity-shell">
-  <text class="activity-shell__eyebrow">ROOT EVENTS</text>
-  <text class="activity-shell__title">活动</text>
-  <text class="activity-shell__date">AUGUST 2026</text>
-  <view class="activity-shell__card">
-    <view class="activity-shell__cover"></view>
-    <view class="activity-shell__content">
-      <text class="activity-shell__tag">线下活动</text>
-      <text class="activity-shell__name">Root 与身体重新合作</text>
-      <text class="activity-shell__meta">活动内容将由运营后台发布</text>
+<view class="activity-page">
+  <view class="activity-head">
+    <text class="activity-head__title">活动</text>
+    <text class="activity-head__subtitle">与 Root 一起，把理解带回真实生活</text>
+  </view>
+
+  <view class="activity-filters" role="tablist" aria-label="活动筛选">
+    <button
+      wx:for="{{filters}}"
+      wx:key="key"
+      class="activity-filter {{filterKey === item.key ? 'activity-filter--active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="selectFilter"
+      role="tab"
+      aria-selected="{{filterKey === item.key}}"
+    >{{item.label}}</button>
+  </view>
+
+  <view wx:if="{{state === 'loading'}}" class="activity-state">
+    <view class="activity-state__line activity-state__line--wide"></view>
+    <view class="activity-state__line"></view>
+    <text>正在读取近期活动…</text>
+  </view>
+
+  <view wx:elif="{{state === 'error'}}" class="activity-state activity-state--card">
+    <text class="activity-state__title">活动暂时没有读到</text>
+    <text>{{errorText}}</text>
+    <button class="activity-state__action" bindtap="loadActivities">重新加载</button>
+  </view>
+
+  <view wx:elif="{{state === 'empty'}}" class="activity-state activity-state--card">
+    <text class="activity-state__title">近期活动正在准备中</text>
+    <text>活动发布后会第一时间出现在这里。</text>
+  </view>
+
+  <view wx:else class="activity-list">
+    <view wx:if="{{visibleActivities.length === 0}}" class="activity-state activity-state--card">
+      <text class="activity-state__title">当前没有可报名活动</text>
+      <text>可以切换到“全部”查看近期活动。</text>
+    </view>
+
+    <view
+      wx:for="{{visibleActivities}}"
+      wx:key="sessionId"
+      class="activity-card {{item.featured ? 'activity-card--featured' : 'activity-card--compact'}}"
+      data-session-id="{{item.sessionId}}"
+      bindtap="openActivity"
+      hover-class="activity-card--pressed"
+    >
+      <view class="activity-card__visual {{item.heroReady ? '' : 'activity-card__visual--placeholder'}}">
+        <image
+          wx:if="{{item.heroReady}}"
+          class="activity-card__image"
+          src="{{item.heroAssetUrl}}"
+          mode="aspectFill"
+          lazy-load="{{!item.featured}}"
+          data-session-id="{{item.sessionId}}"
+          binderror="handleImageError"
+        />
+        <text wx:if="{{!item.heroReady}}" class="activity-card__visual-mark">ROOT OFFLINE</text>
+        <text class="activity-card__status activity-card__status--{{item.statusTone}}">{{item.enrollmentLabel || item.statusLabel}}</text>
+      </view>
+      <view class="activity-card__body">
+        <text class="activity-card__title">{{item.title}}</text>
+        <view class="activity-card__footer">
+          <view>
+            <text class="activity-card__meta">{{item.compactStartText}}</text>
+            <text class="activity-card__meta">{{item.city}} · {{item.venueSummary}}</text>
+          </view>
+          <text class="activity-card__arrow">→</text>
+        </view>
+      </view>
     </view>
   </view>
 </view>

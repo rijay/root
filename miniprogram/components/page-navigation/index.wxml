@@ -2,7 +2,7 @@
   <button class="page-navigation__button" aria-label="返回上一页" catchtap="goBack">
     <view class="page-navigation__back-icon"></view>
   </button>
-  <button class="page-navigation__button" aria-label="返回小程序首页" catchtap="goHome">
+  <button wx:if="{{showHome}}" class="page-navigation__button" aria-label="返回小程序首页" catchtap="goHome">
     <view class="page-navigation__home-icon"><view class="page-navigation__home-roof"></view></view>
   </button>
 </view>
