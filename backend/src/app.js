@@ -16,11 +16,8 @@ const {
   MAX_BATCH_BYTES: PERFORMANCE_MAX_BATCH_BYTES,
   createPerformanceMetricsModule,
 } = require("./performanceMetricsModule");
-const { buildTaskEventOutboxEnvelope } = require("./taskEventOutbox");
-const { stageOutboxEnvelope } = require("./eventTransport");
-const campaignModule = require("./campaign");
 const { authenticateJobRouteToken } = require("./jobRouteToken");
-const { atomicWriteFailure, isAtomicWriteError } = require("./atomicWriteError");
+const { isAtomicWriteError } = require("./atomicWriteError");
 const { clientErrorResponse, createClientError } = require("./clientError");
 const sessionModule = require("./sessionModule");
 const adminFormalUserQuery = require("./adminFormalUserQuery");
@@ -108,12 +105,10 @@ const {
   getConsultationSla,
   getConsultationSlaEscalations,
   getConsultationAdvisorWorkbench,
-  getTaskProgress,
   getRecordDetail,
   getRecordList,
   getRefundStatus,
   getSession,
-  getSettlementStatus,
   getUserState,
   importExternalSamples,
   enrollActivity,
@@ -164,9 +159,7 @@ const {
   recordRootMemberCenterJumpProof,
   recordProductJump,
   recordHealthConsentDecision,
-  recordUserTaskEvent,
   requestActivityChanges,
-  evaluateUserSettlement,
   rollbackExternalAdapterRun,
   resolveManualReview,
   resolveAdminManualReview,
@@ -1029,38 +1022,6 @@ function createApp(options = {}) {
       ? Promise.resolve().then(() => storeAdapter.save())
       : Promise.resolve();
 
-  async function loadSettlementSourceScopes(requestContext, scopes) {
-    const implementation = requestContext.settlementSourceInvalidationRead;
-    if (!implementation) return Object.freeze({ candidateCount: 0, loadedScopeCount: 0 });
-    if (typeof implementation.loadScopes !== "function") {
-      const error = new Error("Settlement source invalidation read Interface is unavailable");
-      error.code = "SETTLEMENT_SOURCE_INVALIDATION_READ_CONFIGURATION_INVALID";
-      error.status = 503;
-      throw error;
-    }
-    return implementation.loadScopes(scopes);
-  }
-
-  function settlementCampaignId(input = {}) {
-    return campaignModule.getActiveCampaign(data, {
-      ...runtimeContext,
-      campaignId: input.campaignId || input.campaign_id || "",
-    }).campaign_id;
-  }
-
-  async function loadUserSettlementSourceScope(
-    requestContext,
-    token,
-    input = {}
-  ) {
-    const rootUserId = stableRootUserIdForToken(data, token, runtimeContext);
-    if (!rootUserId) return;
-    await loadSettlementSourceScopes(requestContext, [{
-      rootUserId,
-      campaignId: settlementCampaignId(input),
-    }]);
-  }
-
   async function handleRequest(req, res, requestContext = {}) {
     const url = new URL(req.url, "http://localhost");
     const method = req.method || "GET";
@@ -1299,99 +1260,12 @@ function createApp(options = {}) {
       }
       if (route === "GET /api/v1/campaigns/active") return ok(res, getActiveCampaign(data, token, Object.fromEntries(url.searchParams), runtimeContext));
       if (route === "POST /api/v1/campaigns/join") return ok(res, withIdempotency(data, req, () => joinCampaign(data, token, body, runtimeContext)));
-      if (route === "GET /api/v1/tasks/progress") {
-        const rootUserId = stableRootUserIdForToken(data, token, runtimeContext);
-        const activityTaskReadAdapter = requestContext.activityTaskReadAdapter
-          || runtimeContext.activityTaskReadAdapter
-          || createMemoryActivityTaskReadAdapter(data);
-        const activityTaskSourceFacts = await activityTaskReadAdapter.listByRootUser(rootUserId);
-        return ok(res, getTaskProgress(
-          data,
-          token,
-          Object.fromEntries(url.searchParams),
-          { ...runtimeContext, activityTaskSourceFacts, activityTaskSourceFactsLoaded: true }
-        ));
-      }
-      if (route === "POST /api/v1/tasks/events") {
-        let commandIdempotencyKey = "";
-        if (requestContext.commandRecovery) {
-          if (req.commandIdempotencyContext.actorId === "anonymous") {
-            throw createClientError(1003, "请先登录", 401);
-          }
-          commandIdempotencyKey = String(body.idempotencyKey || body.idempotency_key || "").trim();
-          if (!commandIdempotencyKey) {
-            throw createClientError(40001, "任务提交 idempotencyKey 必填", 400);
-          }
-          req.commandIdempotencyContext.executor = requestContext.commandRecovery;
-        }
-        const taskPayload = body.payload && typeof body.payload === "object" ? body.payload : {};
-        const activityAssignmentRequested = Boolean(
-          taskPayload.taskActivityAssignmentId
-          || taskPayload.task_activity_assignment_id
-          || taskPayload.taskDefinitionVersion
-          || taskPayload.task_definition_version
-        );
-        let activityTaskSourceFacts = [];
-        if (activityAssignmentRequested) {
-          const rootUserId = stableRootUserIdForToken(data, token, runtimeContext);
-          const activityTaskReadAdapter = requestContext.activityTaskReadAdapter
-            || runtimeContext.activityTaskReadAdapter
-            || createMemoryActivityTaskReadAdapter(data);
-          activityTaskSourceFacts = await activityTaskReadAdapter.listByRootUser(rootUserId);
-        }
-        const result = await withIdempotency(
-          data,
-          req,
-          () => recordUserTaskEvent(data, token, body, {
-            ...runtimeContext,
-            activityTaskSourceFacts,
-            activityTaskSourceFactsLoaded: activityAssignmentRequested,
-          }),
-          commandIdempotencyKey
-        );
-        // The outbox row is an obligation of the task fact, not of this HTTP attempt.
-        // Replays and domain duplicates therefore repair a missing historical row.
-        const taskEvent = result && result.data ? result.data.event : null;
-        if (taskEvent) {
-          try {
-            const envelope = buildTaskEventOutboxEnvelope(taskEvent, {
-              correlationId: requestCorrelationId(req),
-              producerVersion: runtimeMetadata.version,
-              releaseId: runtimeMetadata.releaseIdConfigured ? runtimeMetadata.releaseId : null,
-            });
-            const eventTransport = typeof requestContext.getEventTransport === "function"
-              ? requestContext.getEventTransport()
-              : requestContext.eventTransport;
-            if (eventTransport && typeof eventTransport.stageOutbox === "function") {
-              eventTransport.stageOutbox(envelope);
-            } else {
-              stageOutboxEnvelope(data, envelope);
-            }
-          } catch (error) {
-            throw atomicWriteFailure(error);
-          }
-        }
-        return ok(res, result);
-      }
       if (route === "GET /api/v1/notifications/checkin-reminder-template") return ok(res, getCheckinReminderTemplate(data, token, runtimeContext));
       if (route === "POST /api/v1/notifications/subscriptions") {
         return ok(res, await withIdempotency(
           data,
           req,
           () => recordCheckinReminderSubscription(data, token, body, runtimeContext)
-        ));
-      }
-      if (route === "GET /api/v1/settlement/status") {
-        const query = Object.fromEntries(url.searchParams);
-        await loadUserSettlementSourceScope(requestContext, token, query);
-        return ok(res, getSettlementStatus(data, token, query, runtimeContext));
-      }
-      if (route === "POST /api/v1/settlement/evaluate") {
-        await loadUserSettlementSourceScope(requestContext, token, body);
-        return ok(res, withIdempotency(
-          data,
-          req,
-          () => evaluateUserSettlement(data, token, body, runtimeContext)
         ));
       }
       if (route === "GET /api/v1/products") return ok(res, listProducts(data, token, Object.fromEntries(url.searchParams), runtimeContext));

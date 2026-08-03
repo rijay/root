@@ -139,14 +139,14 @@ test("HTTP sensitive writes require current consent while products remain availa
     headers: auth,
     body: JSON.stringify({ decision: "WITHDRAWN", policyVersion: status.data.notice.policyVersion }),
   });
-  const blockedAfterWithdrawal = await request(baseUrl, "/api/v1/tasks/events", {
+  const blockedAfterWithdrawal = await request(baseUrl, "/api/v1/user/profile", {
     method: "POST",
     headers: auth,
     body: JSON.stringify({
-      taskType: "CHECKIN",
-      taskDate: "2026-07-11",
-      payload: { hadStool: true, stoolType: "type4" },
-      idempotencyKey: "privacy-withdrawal-checkin",
+      joinReasons: ["health"],
+      gutHealthStatus: "normal",
+      improvementMethods: ["diet"],
+      stoolType: "type4",
     }),
   });
   const productsAfterWithdrawal = await request(baseUrl, "/api/v1/products", { headers: auth });

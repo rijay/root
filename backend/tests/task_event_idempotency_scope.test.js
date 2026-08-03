@@ -225,44 +225,6 @@ test("snapshot validation permits cross-user key reuse and rejects scoped duplic
   assert.equal(partialResult.errors.some((message) => message.includes("task event idempotency digest invalid")), true);
 });
 
-test("HTTP Interface scopes a reused task key to the authenticated root user and conflicts on drift", async (t) => {
-  const server = createApp({ env: { ROOT_ALLOW_OPENID_LOGIN: "true" } });
-  const baseUrl = await listen(server);
-  t.after(() => server.close());
-  const firstUser = await login(baseUrl, "http-a");
-  const secondUser = await login(baseUrl, "http-b");
-  const body = {
-    taskType: "SHARE",
-    taskDate: "2026-07-18",
-    payload: { taskDate: "2026-07-18", scene: "HTTP_SCOPE" },
-    idempotencyKey: "http-shared-task-key",
-  };
-
-  const first = await request(baseUrl, "/api/v1/tasks/events", {
-    method: "POST",
-    headers: firstUser.authorization,
-    body: JSON.stringify(body),
-  });
-  const second = await request(baseUrl, "/api/v1/tasks/events", {
-    method: "POST",
-    headers: secondUser.authorization,
-    body: JSON.stringify(body),
-  });
-  const conflict = await request(baseUrl, "/api/v1/tasks/events", {
-    method: "POST",
-    headers: secondUser.authorization,
-    body: JSON.stringify({ ...body, payload: { ...body.payload, scene: "HTTP_DRIFT" } }),
-  });
-
-  assert.equal(first.body.code, 0);
-  assert.equal(second.body.code, 0);
-  assert.equal(first.body.data.event.root_user_id, firstUser.rootUserId);
-  assert.equal(second.body.data.event.root_user_id, secondUser.rootUserId);
-  assert.notEqual(first.body.data.event.task_event_id, second.body.data.event.task_event_id);
-  assert.equal(conflict.status, 409);
-  assert.equal(conflict.body.code, 40901);
-});
-
 test("task event MySQL projection and staged migrations carry scoped digest authority", () => {
   const projection = PROJECTIONS.find((candidate) => candidate.table === "task_event");
   for (const column of [

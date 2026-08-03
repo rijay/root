@@ -35,6 +35,13 @@ const RETIRED_ADMIN_ROUTES = Object.freeze([
   "/api/v1/admin/reward-delivery/status-query",
 ]);
 
+const RETIRED_USER_ROUTES = Object.freeze([
+  "/api/v1/tasks/progress",
+  "/api/v1/tasks/events",
+  "/api/v1/settlement/status",
+  "/api/v1/settlement/evaluate",
+]);
+
 const RETIRED_PACKAGE_COMMANDS = Object.freeze([
   "adapter-retry",
   "checkin-reminders",
@@ -73,7 +80,7 @@ function verifyFormalRouteSurface() {
     "/api/v1/jobs/health-data-retention-cleanup",
     "POST ${V1_RUNTIME_CYCLE_ROUTE}",
   ].filter((route) => !appSource.includes(route));
-  const remainingRetiredRoutes = [...RETIRED_JOB_ROUTES, ...RETIRED_ADMIN_ROUTES]
+  const remainingRetiredRoutes = [...RETIRED_JOB_ROUTES, ...RETIRED_ADMIN_ROUTES, ...RETIRED_USER_ROUTES]
     .filter((route) => appSource.includes(route));
   const remainingCommands = RETIRED_PACKAGE_COMMANDS.filter((name) =>
     Object.prototype.hasOwnProperty.call(backendPackage.scripts || {}, name));

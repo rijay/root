@@ -150,38 +150,3 @@ async function request(baseUrl, path, options = {}) {
   });
   return { status: response.status, body: await response.json() };
 }
-
-test("Task Progress HTTP Interface exposes consumed Activity assignments without enrollment status", async (t) => {
-  let rootUserId = "";
-  const server = createApp({
-    env: { ROOT_ALLOW_OPENID_LOGIN: "true" },
-    activityTaskReadAdapter: {
-      async listByRootUser(inputRootUserId) {
-        rootUserId = inputRootUserId;
-        return normalizeFacts([row({ root_user_id: inputRootUserId })], inputRootUserId);
-      },
-    },
-  });
-  const baseUrl = await listen(server);
-  t.after(() => server.close());
-  const login = await request(baseUrl, "/api/v1/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ openid: "activity-task-read-http", appCode: "MYROOT" }),
-  });
-  const token = login.body.data.token;
-  server.store.taskDefinitions.push({
-    ...data().taskDefinitions[0],
-  });
-  server.store.activityDefinitionVersions.push({
-    ...data().activityDefinitionVersions[0],
-  });
-  const progress = await request(baseUrl, "/api/v1/tasks/progress", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  assert.equal(progress.status, 200);
-  assert.equal(progress.body.code, 0);
-  assert.equal(rootUserId, login.body.data.user.rootUserId);
-  const task = progress.body.data.progress.tasks.find((item) => item.taskActivityAssignmentId === ASSIGNMENT_ID);
-  assert.equal(task.taskDefinitionVersion, TASK_DEFINITION_VERSION);
-  assert.equal(Object.hasOwn(task, "activityEnrollmentStatus"), false);
-});
