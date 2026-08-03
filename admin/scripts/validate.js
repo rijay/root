@@ -51,7 +51,9 @@ const app = read("src/App.vue");
 for (const value of [
   "defineAsyncComponent",
   "发布工作台",
+  "内容运营",
   "活动运营",
+  "健康运营",
   "用户查询",
   "操作审计",
   "UserQueryPage",
@@ -69,6 +71,31 @@ for (const value of [
   "Adapter 运行",
   "运营数据",
 ]) assert.equal(app.includes(value), false, `App must not expose ${value}`);
+
+const releasePage = read("src/modules/release/ReleaseWorkbench.vue");
+const releaseApi = read("src/modules/release/adminReleaseApi.js");
+for (const value of [
+  "未发布修改",
+  "发布阻断",
+  "未来 7 天定时上线",
+  "草稿",
+  "系统校验",
+  "小程序预览",
+  "二次确认并发布",
+  "确认发布内容版本",
+  "不代表代码部署、微信审核、正式发布或流量切换",
+  "previewConfirmed",
+  "outcomeUnknown",
+]) assert.equal(releasePage.includes(value), true, `release workbench must include ${value}`);
+for (const value of [
+  "外部动作 Adapter 校准",
+  "生产证据收口",
+  "发布证据包",
+  "发布签字",
+  "身份探针",
+  "运营 Gate",
+]) assert.equal(releasePage.includes(value), false, `release workbench must not expose ${value}`);
+assert.equal(releaseApi.includes("/api/v1/admin/content-release/publish"), true);
 
 const access = read("src/modules/access.js");
 for (const capability of [
