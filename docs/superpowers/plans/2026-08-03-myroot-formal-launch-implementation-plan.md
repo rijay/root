@@ -8,7 +8,7 @@
 >
 > 小程序性能依据：`docs/superpowers/specs/2026-08-03-myroot-miniprogram-performance-design.md`
 >
-> 运营后台性能：待完成独立设计与批准后补充；本次修订不宣称后台性能 Gate 已完成
+> 运营后台性能依据：`docs/superpowers/specs/2026-08-03-myroot-admin-performance-design.md`
 >
 > Git 基线：`origin/main@aecbb1b718ab0aae1072fc8919571e80cab38bab`
 >
@@ -23,7 +23,7 @@
 - 活动：线下活动浏览、报名和权威状态；
 - 我的：资料、会员中心固定跳转、隐私与支持。
 
-实施不为未正式投入真实环境的旧功能建设兼容层。旧功能按完整产品切片删除，身份可信、隐私同意、幂等、事务、审计、结果未知恢复、健康检查、就绪检查和发布 Gate 继续保留。小程序的包体、素材、请求、渲染、内存和核心旅程必须满足已批准的性能预算；性能验收不得等到功能完成后才开始。Element Plus Admin 的功能与高保真实施可以按本计划推进，但其性能验收必须等待独立规格批准后补齐。
+实施不为未正式投入真实环境的旧功能建设兼容层。旧功能按完整产品切片删除，身份可信、隐私同意、幂等、事务、审计、结果未知恢复、健康检查、就绪检查和发布 Gate 继续保留。小程序的包体、素材、请求、渲染、内存和核心旅程必须满足已批准的性能预算；性能验收不得等到功能完成后才开始。Element Plus Admin 按两名核心运营、最多五个同时会话的近期规模实施，并在开发阶段同步满足构建、查询、浏览器三层性能 Gate；本阶段不设置运营 Gate。
 
 ## 2. 当前可复核基线
 
@@ -34,8 +34,9 @@
 - `66` 个历史 migration 校验和通过；
 - Backend、Element Plus Admin、Mini Program、Route Registry 与 HTTP Interface smoke 均通过；
 - Admin 继续使用 Vue `3.5.x`、Vite `6.3.x` 与当前 lockfile 实际解析的 Element Plus `2.14.2`，本轮不升级前端框架；
+- 当前旧 Admin 的 `main.js` 全量注册 Element Plus，`App.vue` 同步导入全部旧页面；现有产物原始体积 `1,635,246 bytes`、gzip 文件合计 `443,222 bytes`；
 - 当前通过证明旧版本在本地自洽，不证明新产品已经实现，也不证明部署、审核、发布或线上流量状态。
-- 当前验证没有形成新产品的包体、P75/P95、弱网、内存或真机性能基线；旧链路数据只能帮助识别工具问题，不作为正式上线目标，也不投入时间优化。
+- 当前验证没有形成新产品的包体、P75/P95、弱网、内存或真机性能基线；旧小程序与旧 Admin 数据只能帮助识别工具问题，不作为正式上线目标，也不投入时间优化。
 
 当前代码与目标之间的主要差异：
 
@@ -99,6 +100,7 @@
 6. **发布状态分离**：内容发布、代码构建、后端候选版本、数据迁移、微信上传、审核、正式发布和线上流量分别留证。
 7. **默认不触碰生产**：本计划只授权本地代码、测试、构建、截图和本地提交；不授权部署、生产迁移、微信送审、发布或切流。
 8. **性能属于 Interface**：启动、响应、错误模式和资源特征都是 Module Interface 的一部分；每个正式上线切片必须同时交付功能、异常恢复和性能预算证据。
+9. **后台保持轻量**：只为两名核心运营、最多五个同时会话建设必要 Depth；不引入 Redis、WebSocket、第三方 APM、虚拟滚动、海量异步导出或新的全局状态框架，也不设置运营 Gate。
 
 ## 5. 分阶段实施任务
 
@@ -342,7 +344,8 @@
 6. 首页实现全屏轮播、指示器、文字切换动画和点击详情；首屏最多一个内容请求，不等待会员或健康请求；
 7. 首页响应压缩后 ≤ 100KB，公共读取 P75 ≤ 600ms、P95 ≤ 1.2 秒；本地缓存 ≤ 300ms；
 8. 首页和活动共用同一个图片详情页；图片热点只做跳转，不承担报名事实；
-9. 管理后台实现欢迎页、首页轮播、共用详情三个入口和小程序预览。
+9. 管理后台实现欢迎页、首页轮播、共用详情三个入口和小程序预览；列表查询 P75 ≤ 800ms，详情查询 P75 ≤ 600ms；
+10. 后台上传前校验格式与体积，使用缩略图并只挂载当前预览；上传及确认目标 ≤ 3 秒，预览目标 ≤ 1.5 秒；对应页面异步资源压缩后硬上限 180KB。
 
 **验证：**
 
@@ -353,6 +356,7 @@
 - `node --test backend/tests/content_module.test.js backend/tests/content_http.test.js`
 - `node miniprogram/scripts/content-presenter.test.js`
 - `npm run check --prefix admin && npm run build --prefix admin`
+- 后台内容列表、详情、上传、预览与页面异步资源满足对应预算；
 - 首页、共用详情与三个后台页面截图对照。
 
 ### R5. 收窄 Activity Module 并完成活动体验
@@ -394,8 +398,9 @@
 5. 报名确认弹层、重复点击、弱网和结果未知恢复沿用现有幂等事实；
 6. 活动列表每页 10–20 条、压缩响应 ≤ 100KB；游客只返回公共内容，登录用户报名状态由同一响应批量返回；
 7. 活动列表封面目标 ≤ 120KB、硬上限 180KB，屏外图片懒加载并固定比例；
-8. 后台拆成活动管理和报名记录；报名记录手机号脱敏，导出留审计；
-9. Root 会员中心和公众号跳转不得创建第二套报名记录。
+8. 后台拆成活动管理和报名记录；列表 P75 ≤ 800ms、详情 P75 ≤ 600ms、保存 P75 ≤ 1 秒；默认每页 20 条、最大 50 条并使用后端分页；
+9. 报名记录手机号脱敏，导出留审计；单次最多 5,000 条且目标 ≤ 10 秒，导出期间不得使另一名运营的普通查询超过 P95 预算；
+10. Root 会员中心和公众号跳转不得创建第二套报名记录。
 
 **验证：**
 
@@ -403,6 +408,7 @@
 - 首页活动详情与活动 Tab 详情确实共用 Content Module；
 - 活动列表与加载更多 P75 ≤ 800ms；详情首图标准 4G ≤ 1.2 秒、弱网 ≤ 2 秒；
 - 报名点击 100ms 内反馈；写入 P75 ≤ 1 秒、P95 ≤ 2 秒，超时后通过权威查询恢复；
+- 后台活动列表、详情、保存、报名分页与导出预算全部通过；
 - `npm run v1:activity:check`
 - 现有活动恢复测试与新增内容引用测试通过；
 - 三个小程序状态画板和两个后台页面截图对照。
@@ -447,7 +453,9 @@
 6. 模型输出经过结构、禁用表达和安全检查后进入建议池；资料或评测变化才重新生成；
 7. 模型生成不得阻塞健康首页或结果页首次展示；状态与建议压缩响应 ≤ 80KB；
 8. 模型失败、超时或不合格时使用固定内容 Adapter；后台只选择已批准配置，不显示或输入密钥；
-9. 后台真实数据启用前要求内容、隐私、技术三方签署。
+9. 后台初始化建档完整验证 12 问；量表按 100 题验收，每组 20 题，未展开控件不挂载且编辑时只更新当前题；
+10. 后台健康列表 P75 ≤ 800ms、详情 P75 ≤ 600ms、保存 P75 ≤ 1 秒；生活方式建议页不实时调用模型；
+11. 后台真实数据启用前要求内容、隐私、技术三方签署。
 
 **验证：**
 
@@ -455,6 +463,7 @@
 - 每一个风险选项都证明不会调用普通建议路径；
 - 模型超时、不合格输出和固定 tips 降级；
 - 日志、审计和普通分析事件不出现直接身份或健康原始答案；
+- 后台 100 题长表单、分组切换、保存与恢复满足交互、查询和写入预算；
 - `node --test backend/tests/assessment_module.test.js backend/tests/health_safety_policy.test.js backend/tests/lifestyle_advice_module.test.js`
 - `npm run check --prefix admin && npm run build --prefix admin`。
 
@@ -544,6 +553,52 @@
 - `node miniprogram/scripts/member-center-link.test.js`
 - 六个手机画板截图对照。
 
+### R8A. 建立运营后台性能预算与测量基础
+
+**目标：** 在后台正式信息架构落地前建立机器可读预算、统一请求 Module 和三层证据格式；只记录旧 Admin 的非正式基线，不优化即将删除的页面。
+
+**性能规格：** `docs/superpowers/specs/2026-08-03-myroot-admin-performance-design.md` 全文。
+
+**修改：**
+
+- `admin/vite.config.js`
+- `admin/package.json`
+- `admin/src/api/client.js`
+- `admin/scripts/validate.js`
+- `backend/src/app.js`
+- `scripts/final-verification.js`
+
+**新增：**
+
+- `admin/config/performance-budgets.json`
+- `admin/scripts/performance-budget.test.js`
+- `admin/scripts/admin-request-performance.test.js`
+- `backend/tests/admin_performance_contract.test.js`
+- `scripts/admin-performance-report.js`
+- `docs/evidence/admin-performance-r0/README.md`
+
+**步骤：**
+
+1. 将冷启动、缓存刷新、页面切换、查询、写入、DOM、帧率、长任务、内存、资源体积与相对退化阈值写入一个机器可读配置；首次可操作外壳 P75 ≤ 2.5 秒、硬上限 4 秒，缓存刷新 P75 ≤ 1.2 秒、硬上限 2 秒，已加载菜单切换硬上限 500ms，首次异步页面硬上限 1.5 秒；
+2. 建立 Admin Request Module：单浏览器最多 4 个并行读取，五个会话合计以最多 10 个同时读取验收；合并重复读取并取消失效查询；读取 8 秒明确失败，写入 15 秒进入结果未知，不自动重试写入；
+3. 所有写入携带幂等标识，结果未知后通过权威读取确认；两名运营同时编辑同一记录时使用版本号，第二次写入被阻止并要求刷新；
+4. 建立用户 10,000、活动报名 5,000、审计 20,000、内容版本 1,000 和量表 100 题的固定测试数据；列表默认 20 条、最大 50 条；
+5. 建立构建 Gate：首屏 JS+CSS 压缩后目标 ≤ 420KB、硬上限 520KB，首屏总传输硬上限 650KB，单页异步资源硬上限 180KB，后台总压缩体积硬上限 1MB；
+6. 建立查询 Gate：列表 P75 ≤ 800ms/P95 ≤ 1.5 秒，详情 P75 ≤ 600ms/P95 ≤ 1.2 秒，写入 P75 ≤ 1 秒/P95 ≤ 2 秒；响应不得出现 N+1 查询或未展示的无用统计；
+7. 建立浏览器 Gate：Chrome 与 Edge 稳定版、不低于 4 核 CPU/8GB 内存、`1240 × 820` 主视口；首次 DOM 硬上限 1,800、完整页面硬上限 3,500，单同步任务 ≤ 50ms，单标签稳定内存硬上限 300MB；
+8. 固定标准办公网络（RTT 80ms、下行 10Mbps、上行 5Mbps）和弱网（RTT 200ms、下行 2Mbps、上行 1Mbps、丢包率 1%），每个关键场景执行 20 次，以 P75 为主结论并记录 P95；三层报告必须记录版本、环境、样本与差异；
+9. 当前旧产物只记录为过期的非正式参考，不得用于宣称新后台达标，也不得触发旧页面性能重构；
+10. 本阶段不新增缓存基础设施、实时推送、第三方 APM、性能大盘或运营 Gate。
+
+**验证：**
+
+- `node admin/scripts/performance-budget.test.js`
+- `node admin/scripts/admin-request-performance.test.js`
+- `node --test backend/tests/admin_performance_contract.test.js`
+- 敏感字段不得进入浏览器性能记录或后端结构化日志；
+- 旧页面同步导入、全量 Element Plus 注册和旧菜单只作为删除证据，不作为优化对象；
+- 三层报告能够独立生成，任一硬上限失败时返回阻断状态。
+
 ### R9. 重建 Element Plus Admin 信息架构
 
 **目标：** 后台只保留首发运营所需能力，并与 12 张后台高保真画板一致。
@@ -578,12 +633,16 @@
 
 **步骤：**
 
-1. 导航固定为发布工作台、内容运营、活动运营、健康运营、用户与审计；
+1. 建立 Admin Shell Module，导航固定为发布工作台、内容运营、活动运营、健康运营、用户与审计；业务页面全部动态导入，Element Plus 只引入实际使用项；
 2. 首发只设置一个后台角色，不提供角色、权限或会员设置页面；后台身份验证和最小访问控制继续保留；
-3. 用户查询只展示解决账号问题所需的最少资料，手机号脱敏，不展示会员资产或健康原始答案；
-4. 操作审计不可修改，记录动作、对象、版本、结果、请求编号和结果未知状态；不记录密钥、凭据、微信身份原值或健康原始答案；
-5. 发布流程固定为草稿、系统校验、小程序预览、二次确认、发布；一次操作只改变一个内容状态；
-6. 内容发布、代码部署、微信审核、正式发布和线上流量在工作台中分开显示。
+3. 用户查询只支持手机号精确查询，P75 ≤ 600ms；只展示解决账号问题所需的最少资料，手机号脱敏，不展示会员资产或健康原始答案；
+4. 操作审计不可修改，P75 ≤ 1 秒；记录动作、对象、版本、结果、请求编号和结果未知状态，不记录密钥、凭据、微信身份原值或健康原始答案；
+5. 发布流程固定为草稿、系统校验、小程序预览、二次确认、发布；点击后 100ms 内反馈，超过 2 秒显示进度，一次操作只改变一个内容状态；
+6. 内容发布、代码部署、微信审核、正式发布和线上流量在工作台中分开显示；
+7. 表格统一后端分页、默认 20 条且最大 50 条，搜索输入延迟 300ms 并取消旧请求，不自动轮询或提供“显示全部”；
+8. 关键长表格和长表单 P75 ≥ 50 FPS，不得持续冻结超过 200ms；单标签稳定内存目标 ≤ 200MB、硬上限 300MB，切换菜单 10 轮与编辑 10 次后增长 ≤ 20%，连续使用 30 分钟保持稳定；
+9. 页面加载超过 300ms 显示骨架；查询失败保留筛选和表格，写入超时进入结果未知并权威回读；会话重新验证后保留内存中的未提交表单；
+10. 不增加运营 Gate，运营使用反馈不替代构建、查询和浏览器三层技术证据。
 
 **验证：**
 
@@ -593,6 +652,9 @@
 - `npm run check --prefix admin`
 - `npm run build --prefix admin`
 - `node scripts/prepare-backend-admin-dist.js --clean`
+- `node admin/scripts/performance-budget.test.js`
+- `node admin/scripts/admin-request-performance.test.js`
+- 用户查询、审计、分页、双人编辑冲突、30 分钟稳定性与三层性能报告通过；
 - 12 张后台画板逐页截图对照；表头、筛选区、状态标签、操作列和右对齐逐项检查。
 
 ### R10. 删除旧后端运行切片与 Job
@@ -686,6 +748,10 @@
 - `docs/evidence/performance-r0/package-budget.json`：主包、分包、总包、素材与相对基线增长；
 - `docs/evidence/performance-r0/real-device-results.json`：设备、网络、入口、代码包状态、30 次样本、P75/P95；
 - `docs/evidence/performance-r0/regression-review.md`：绝对阈值、5% 预警、10% 阻断和例外失效版本；
+- `docs/evidence/admin-performance-r0/build-budget.json`：首屏、单页与后台总资源体积和相对增长；
+- `docs/evidence/admin-performance-r0/query-results.json`：固定测试数据、路由、样本、P75/P95、响应体与查询形态；
+- `docs/evidence/admin-performance-r0/browser-results.json`：Chrome/Edge、网络、DOM、帧率、长任务、内存和 20 次关键场景；
+- `docs/evidence/admin-performance-r0/regression-review.md`：三层 Gate、5% 预警、10% 阻断和例外失效版本；
 - 更新 UED handoff 证据，使 `screenCount=20`、`archivedPagesExcluded=true`、`allCanonicalStatesCovered=true` 只有在真实证据齐全时成立。
 
 **自动验证：**
@@ -698,6 +764,10 @@
 - `node miniprogram/scripts/performance-budget.test.js`
 - `node miniprogram/scripts/performance-monitor.test.js`
 - `node scripts/miniprogram-performance-report.js --candidate`
+- `node admin/scripts/performance-budget.test.js`
+- `node admin/scripts/admin-request-performance.test.js`
+- `node --test backend/tests/admin_performance_contract.test.js`
+- `node scripts/admin-performance-report.js --candidate`
 - `npm run verify`
 - `git diff --check`
 - secret、敏感原值、旧路由、旧菜单和旧 Job 扫描。
@@ -713,13 +783,15 @@
 - 375px 小屏、常见 iOS/Android、弱网、键盘、安全区和长文；
 - iOS 基准/主流设备、Android 4GB 基准/8GB 主流设备；最低基础库与验收时稳定版本；本地包、首次下载和版本更新；
 - 每个核心旅程至少 30 次，P75 为主要结论并记录 P95；连续切换四 Tab 10 轮、详情开关 10 次、完整旅程 15 分钟；
-- 后台 12 张画板对应桌面截图及表格溢出检查。
+- 后台 12 张画板对应桌面截图及表格溢出检查；
+- 后台在 Chrome/Edge、标准办公网络与弱网下各执行关键场景 20 次，记录 P75/P95；最多五个同时会话、两个测试会话编辑冲突和 30 分钟内存稳定性均需验证。
 
 **完成条件：**
 
 - 新首发旅程全部通过；
 - 高保真差异清单为零，或每一项都有用户明确批准；
 - 静态资源、自动化、真机性能和产品体验四层 Gate 全部通过；任何硬上限失败或相对批准基线退化 ≥ 10% 均保持阻断；
+- 运营后台构建、查询、浏览器三层 Gate 全部通过；不新增运营 Gate，也不要求运营签字作为技术性能证据；
 - 本地包冷启动 `appLaunch` P75：iOS ≤ 1.2 秒、Android ≤ 2.6 秒；下载或更新包：iOS ≤ 1.8 秒、Android ≤ 3.7 秒；
 - 已加载 Tab 切换 P75：iOS ≤ 400ms、Android ≤ 600ms；首次分包标准网络 iOS ≤ 1.2 秒、Android ≤ 1.5 秒，弱网 iOS ≤ 2 秒、Android ≤ 2.5 秒；
 - 中端 Android 稳定内存建议值 ≤ 120MB、峰值 ≤ 180MB，滚动流畅度 P75 ≥ 50 FPS；
@@ -740,9 +812,10 @@
 7. `feat: add Root4U assessment and advice modules`
 8. `feat: build Root4U approved mini-program screens`
 9. `feat: rebuild profile and member center links`
-10. `feat: rebuild formal launch admin workbench`
-11. `refactor: remove legacy backend routes and jobs`
-12. `chore: add formal launch performance and verification evidence`
+10. `chore: add admin performance budgets and gates`
+11. `feat: rebuild formal launch admin workbench`
+12. `refactor: remove legacy backend routes and jobs`
+13. `chore: add formal launch performance and verification evidence`
 
 每次提交前运行该切片的专用测试与 `git diff --check`。跨切片修改不得混入同一提交；不使用 `git add -A`，避免带入当前工作树中已有的其他文档改动。
 
@@ -757,6 +830,7 @@
 - 生产模型供应方、处理地区、保留规则或合同未确认，且任务准备启用模型 Adapter；
 - 最低基础库、基准设备或网络档位无法锁定，且任务准备关闭真机性能 Gate；
 - 任一性能硬上限失败，或相对最近批准基线退化 10% 以上；
+- 后台目标 Chrome/Edge、固定测试数据或网络档位不可用，且任务准备关闭构建、查询或浏览器 Gate；
 - 删除目标仍被线上版本、保留 Module 或真实业务数据使用；
 - 需要部署、生产 migration、微信上传、审核、发布或切流。
 
@@ -778,6 +852,10 @@
 10. **用开发者工具代替真机**：最终结论必须包含 iOS、Android、代码包状态、网络档位、30 次样本、P75 和 P95。
 11. **通过删除体验伪造达标**：性能优化不得删除批准文案、主要动画、内容层级或健康安全表达。
 12. **缓存制造错误成功**：登录、注册、健康结果和报名状态必须来自可信身份与权威查询，弱网只允许进入等待或结果未知恢复。
+13. **旧 Admin 被包装成新基线**：同步导入旧页面、全量注册 Element Plus 和旧产物只能用于识别删除范围，不能成为新后台达标证据。
+14. **低并发掩盖查询错误**：只有两名运营不代表可以接受 N+1、无分页、“显示全部”、重复请求或写入状态不明确。
+15. **性能治理过度设计**：出现 Redis、WebSocket、第三方 APM、实时性能大盘、海量异步导出或新的全局状态框架时，先证明正式需求，否则删除。
+16. **擅自增加运营 Gate**：后台只设构建、查询、浏览器三层性能 Gate；运营反馈可以记录，但不形成阻断签署流程。
 
 ## 9. 计划完成后的状态定义
 
@@ -785,4 +863,4 @@
 
 `FORMAL_LAUNCH_IMPLEMENTATION_LOCAL_COMPLETE / EXTERNAL_RELEASE_GATES_PENDING`
 
-该状态表示本地代码、自动验证、四层小程序性能 Gate、真机旅程和高保真一致性证据已完成。它不表示 CloudBase 已部署、生产数据库已迁移、微信版本已上传或审核、正式版本已发布，也不表示线上流量已切换。
+该状态表示本地代码、自动验证、四层小程序性能 Gate、运营后台构建/查询/浏览器三层性能 Gate、真机旅程和高保真一致性证据已完成；后台不设置运营 Gate。它不表示 CloudBase 已部署、生产数据库已迁移、微信版本已上传或审核、正式版本已发布，也不表示线上流量已切换。
