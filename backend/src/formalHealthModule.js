@@ -269,6 +269,57 @@ function getDefinition(profile, context = {}) {
   return { definition: definitionFor(profile) };
 }
 
+function adminInitializationDefinition(query = {}) {
+  const page = Number(query.page || 1);
+  const pageSize = Number(query.pageSize || query.page_size || 20);
+  if (!Number.isInteger(page) || page < 1 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) {
+    throw createClientError("FORMAL_HEALTH_ADMIN_QUERY_INVALID", "分页参数无效", 400);
+  }
+  const keyword = String(query.keyword || query.search || "").trim().toLowerCase();
+  if (keyword.length > 120) throw createClientError("FORMAL_HEALTH_ADMIN_QUERY_INVALID", "搜索内容过长", 400);
+  const type = String(query.type || "").trim().toLowerCase();
+  if (type && !["single", "multi"].includes(type)) {
+    throw createClientError("FORMAL_HEALTH_ADMIN_QUERY_INVALID", "题目类型无效", 400);
+  }
+  const requestedVersion = String(query.version || "").trim();
+  const items = QUESTIONS.map((question, index) => ({
+    id: question.id,
+    number: String(index + 1).padStart(2, "0"),
+    title: question.title,
+    type: question.type,
+    typeLabel: question.type === "multi" ? "多选" : "单选",
+    required: true,
+    optionCount: question.options.length,
+    options: question.options.map(([value, label, config]) => ({
+      value,
+      label,
+      exclusive: Boolean(config && config.exclusive),
+      applicability: config && config.femaleOnly ? "FEMALE" : "ALL",
+    })),
+    routing: question.id === "safety" ? "SAFETY" : "STANDARD",
+    routingLabel: question.id === "safety" ? "安全分流" : "普通分类",
+    status: "CANDIDATE",
+    version: QUESTIONNAIRE_VERSION,
+    versionLabel: `v${QUESTIONNAIRE_VERSION}.0`,
+  }))
+    .filter((item) => !keyword || [item.number, item.id, item.title, item.versionLabel]
+      .some((value) => String(value).toLowerCase().includes(keyword)))
+    .filter((item) => !type || item.type === type)
+    .filter((item) => !requestedVersion || requestedVersion === String(item.version) || requestedVersion === item.versionLabel);
+  const offset = (page - 1) * pageSize;
+  return {
+    items: items.slice(offset, offset + pageSize),
+    pagination: {
+      page,
+      pageSize,
+      total: items.length,
+      totalPages: items.length ? Math.ceil(items.length / pageSize) : 0,
+    },
+    currentVersion: `v${QUESTIONNAIRE_VERSION}.0`,
+    previewPath: "/pages/health/index",
+  };
+}
+
 function submit(data, user, profile, input = {}, context = {}) {
   assertEligible(profile, context);
   const rootUserId = user.root_user_id || user.user_id;
@@ -299,6 +350,7 @@ module.exports = {
   MINIMUM_AGE,
   QUESTIONNAIRE_ID,
   QUESTIONNAIRE_VERSION,
+  adminInitializationDefinition,
   ageOn,
   bootstrap,
   getDefinition,

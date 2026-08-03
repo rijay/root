@@ -853,6 +853,10 @@ function getFormalHealthInitialAssessment(data, token, context = {}) {
   return response(formalHealthModule.getDefinition(profile, context));
 }
 
+function listAdminFormalHealthInitialization(query = {}) {
+  return response(formalHealthModule.adminInitializationDefinition(query));
+}
+
 function submitFormalHealthInitialAssessment(data, token, body = {}, context = {}) {
   const user = requireUser(data, token);
   const { profile } = formalHealthContext(data, user, context);
@@ -3007,6 +3011,7 @@ module.exports = {
   listAdminActivityEnrollments,
   listAdminActivityReviewQueue,
   listAdminActivitySessions,
+  listAdminFormalHealthInitialization,
   listConsultationAdvisorAssignments,
   listConsultationWeworkWritebacks,
   listOrderAfterSalesRecords,

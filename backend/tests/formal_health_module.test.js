@@ -93,6 +93,21 @@ test("Root4U fails closed for minors, missing answers and safety signals", () =>
   assert.match(safetyResult.categoryTitle, /不继续生成/);
 });
 
+test("Root4U admin initialization projection is bounded and never includes user answers", () => {
+  const page = formalHealthModule.adminInitializationDefinition({ page: 1, pageSize: 20 });
+  assert.equal(page.items.length, 12);
+  assert.equal(page.pagination.total, 12);
+  assert.equal(page.items[2].routing, "SAFETY");
+  assert.equal(page.items[2].status, "CANDIDATE");
+  assert.equal(page.items[2].optionCount, 9);
+  assert.equal(JSON.stringify(page).includes("answers_json"), false);
+  assert.equal(formalHealthModule.adminInitializationDefinition({ keyword: "安全" }).items.length, 1);
+  assert.throws(
+    () => formalHealthModule.adminInitializationDefinition({ pageSize: 51 }),
+    (error) => error.code === "FORMAL_HEALTH_ADMIN_QUERY_INVALID" && error.status === 400,
+  );
+});
+
 test("Root4U HTTP Interface requires consent and returns only derived result on bootstrap", async (t) => {
   const server = createApp({ env: consentEnv });
   const baseUrl = await listen(server);
@@ -110,6 +125,7 @@ test("Root4U HTTP Interface requires consent and returns only derived result on 
   });
 
   const bootstrapBefore = await request(baseUrl, "/api/v1/health/root4u", { headers: auth });
+  const adminInitialization = await request(baseUrl, "/api/v1/admin/formal-health/initialization?keyword=%E5%AE%89%E5%85%A8");
   const blocked = await request(baseUrl, "/api/v1/health/root4u/initial-assessment", { headers: auth });
   const consent = await request(baseUrl, "/api/v1/privacy/health-consent", { headers: auth });
   await request(baseUrl, "/api/v1/privacy/health-consent", {
@@ -126,6 +142,9 @@ test("Root4U HTTP Interface requires consent and returns only derived result on 
   const bootstrapAfter = await request(baseUrl, "/api/v1/health/root4u", { headers: auth });
 
   assert.equal(bootstrapBefore.data.consentRequired, true);
+  assert.equal(adminInitialization.data.items.length, 1);
+  assert.equal(adminInitialization.data.items[0].routing, "SAFETY");
+  assert.equal(JSON.stringify(adminInitialization.data).includes("13800000884"), false);
   assert.equal(blocked.code, 45101);
   assert.equal(definition.data.definition.questions.length, 12);
   assert.equal(submitted.data.result.tips.length, 3);

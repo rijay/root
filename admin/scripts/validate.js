@@ -22,6 +22,11 @@ const requiredFiles = [
   "src/modules/activities/ActivityManagementPage.vue",
   "src/modules/activities/ActivityRegistrationsPage.vue",
   "src/modules/activities/adminActivityApi.js",
+  "src/modules/health/InitializationPage.vue",
+  "src/modules/health/ScaleManagementPage.vue",
+  "src/modules/health/RecommendationRulesPage.vue",
+  "src/modules/health/LifestyleAdvicePage.vue",
+  "src/modules/health/adminHealthApi.js",
   "src/modules/users/UserQueryPage.vue",
   "src/modules/users/adminUserQueryApi.js",
   "src/modules/audit/AuditLogPage.vue",
@@ -65,6 +70,10 @@ for (const value of [
   "UserQueryPage",
   "ActivityManagementPage",
   "ActivityRegistrationsPage",
+  "InitializationPage",
+  "ScaleManagementPage",
+  "RecommendationRulesPage",
+  "LifestyleAdvicePage",
   "ReleaseWorkbench",
   "WelcomeContentPage",
   "HomeCarouselPage",
@@ -175,6 +184,33 @@ for (const value of ["活动主视觉", "180KB", "报名规则", "发布共用�
 }
 for (const value of ["手机号", "默认脱敏", "不显示会员资产或健康答案", "查看状态审计", "导出当前名单", "AbortController"]) {
   assert.equal(registrationsPage.includes(value), true, `activity registrations must include ${value}`);
+}
+
+const healthApi = read("src/modules/health/adminHealthApi.js");
+const initializationPage = read("src/modules/health/InitializationPage.vue");
+const scalePage = read("src/modules/health/ScaleManagementPage.vue");
+const recommendationPage = read("src/modules/health/RecommendationRulesPage.vue");
+const lifestylePage = read("src/modules/health/LifestyleAdvicePage.vue");
+for (const route of [
+  "/api/v1/admin/formal-health/initialization",
+  "/api/v1/admin/formal-health/scales",
+  "/api/v1/admin/formal-health/recommendation-rules",
+  "/api/v1/admin/formal-health/lifestyle-advice",
+]) assert.equal(healthApi.includes(route), true, `health Interface must include ${route}`);
+for (const value of ["12 问", "安全分流", "固定指引版本", "联合签署", "AbortController", "300"]) {
+  assert.equal(initializationPage.includes(value), true, `initialization page must include ${value}`);
+}
+for (const value of ["题目与选项", "计分与结果分层", "适用与版本", "建议内容版本", "100", "20 题", "AbortController"]) {
+  assert.equal(scalePage.includes(value), true, `scale page must include ${value}`);
+}
+for (const value of ["主分类", "辅助标签", "不使用手机号、昵称或原始健康答案", "最多 3", "已发布且有效", "AbortController"]) {
+  assert.equal(recommendationPage.includes(value), true, `recommendation page must include ${value}`);
+}
+for (const value of ["模型配置", "不输入或显示模型密钥", "最少字段", "三条轮换", "固定降级内容", "健康安全", "AbortController"]) {
+  assert.equal(lifestylePage.includes(value), true, `lifestyle page must include ${value}`);
+}
+for (const forbidden of ["apiKey", "apiSecret", "modelSecret", "type=\"password\""]) {
+  assert.equal(lifestylePage.includes(forbidden), false, `lifestyle page must not expose ${forbidden}`);
 }
 
 const userApi = read("src/modules/users/adminUserQueryApi.js");

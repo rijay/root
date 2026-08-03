@@ -117,6 +117,7 @@ const {
   listAdminActivityEnrollments,
   listAdminActivityReviewQueue,
   listAdminActivitySessions,
+  listAdminFormalHealthInitialization,
   listConsultationAdvisorAssignments,
   listExternalSampleReviews,
   listFormalHomeContent,
@@ -1375,6 +1376,10 @@ function createApp(options = {}) {
       if (route === "GET /api/v1/admin/activity-enrollments/review-queue") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_ENROLLMENT_REVIEW);
         return ok(res, listAdminActivityReviewQueue(data, Object.fromEntries(url.searchParams), runtimeContext));
+      }
+      if (route === "GET /api/v1/admin/formal-health/initialization") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
+        return ok(res, listAdminFormalHealthInitialization(Object.fromEntries(url.searchParams)));
       }
       if (route === "GET /api/v1/admin/cloudbase-identity-probe") {
         const trustedWechatIdentity = await resolveTrustedWechatIdentity({

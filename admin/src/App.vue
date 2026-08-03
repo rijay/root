@@ -83,6 +83,10 @@
             ref="activeWorkbench"
             @navigate-module="activeModule = $event"
           />
+          <InitializationPage v-else-if="currentModuleKey === 'profile'" ref="activeWorkbench" />
+          <ScaleManagementPage v-else-if="currentModuleKey === 'scales'" ref="activeWorkbench" />
+          <RecommendationRulesPage v-else-if="currentModuleKey === 'recommendations'" ref="activeWorkbench" />
+          <LifestyleAdvicePage v-else-if="currentModuleKey === 'lifestyle'" ref="activeWorkbench" />
           <UserQueryPage v-else-if="currentModuleKey === 'users'" ref="activeWorkbench" />
           <AuditLogPage v-else-if="currentModuleKey === 'audit'" ref="activeWorkbench" />
         </div>
@@ -113,6 +117,10 @@ const ADMIN_MODULES = [
     ],
   },
   { key: "registrations", label: "报名记录", capabilities: [ADMIN_CAPABILITIES.ACTIVITY_ENROLLMENT_REVIEW] },
+  { key: "profile", label: "初始化建档", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
+  { key: "scales", label: "量表管理", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
+  { key: "recommendations", label: "推荐规则", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
+  { key: "lifestyle", label: "生活方式建议", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
   { key: "users", label: "用户查询", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
   { key: "audit", label: "操作审计", capabilities: [ADMIN_CAPABILITIES.AUDIT_READ] },
 ];
@@ -136,10 +144,10 @@ const navigationGroups = [
   {
     label: "健康运营",
     items: [
-      { key: "profile", label: "初始化建档", disabled: true },
-      { key: "scales", label: "量表管理", disabled: true },
-      { key: "recommendations", label: "推荐规则", disabled: true },
-      { key: "lifestyle", label: "生活方式建议", disabled: true },
+      { key: "profile", label: "初始化建档" },
+      { key: "scales", label: "量表管理" },
+      { key: "recommendations", label: "推荐规则" },
+      { key: "lifestyle", label: "生活方式建议" },
     ],
   },
   {
@@ -157,6 +165,10 @@ const HomeCarouselPage = defineAsyncComponent(() => import("./modules/content/Ho
 const SharedDetailPage = defineAsyncComponent(() => import("./modules/content/SharedDetailPage.vue"));
 const ActivityManagementPage = defineAsyncComponent(() => import("./modules/activities/ActivityManagementPage.vue"));
 const ActivityRegistrationsPage = defineAsyncComponent(() => import("./modules/activities/ActivityRegistrationsPage.vue"));
+const InitializationPage = defineAsyncComponent(() => import("./modules/health/InitializationPage.vue"));
+const ScaleManagementPage = defineAsyncComponent(() => import("./modules/health/ScaleManagementPage.vue"));
+const RecommendationRulesPage = defineAsyncComponent(() => import("./modules/health/RecommendationRulesPage.vue"));
+const LifestyleAdvicePage = defineAsyncComponent(() => import("./modules/health/LifestyleAdvicePage.vue"));
 const UserQueryPage = defineAsyncComponent(() => import("./modules/users/UserQueryPage.vue"));
 const AuditLogPage = defineAsyncComponent(() => import("./modules/audit/AuditLogPage.vue"));
 

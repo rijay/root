@@ -940,13 +940,15 @@ body {
 
 .home-carousel-page .content-table-card,
 .shared-detail-page:not(.detail-editor-mode) .content-table-card,
-.activity-table-card {
+.activity-table-card,
+.health-table-card {
   min-height: 512px;
 }
 
 .home-carousel-page .content-table-card .el-table__empty-block,
 .shared-detail-page:not(.detail-editor-mode) .content-table-card .el-table__empty-block,
-.activity-table-card .el-table__empty-block {
+.activity-table-card .el-table__empty-block,
+.health-table-card .el-table__empty-block {
   min-height: 450px;
 }
 
@@ -1114,6 +1116,69 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.health-row-primary {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 20px;
+  align-items: center;
+}
+
+.health-row-primary > span:last-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.health-row-primary strong,
+.health-row-primary small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.health-row-primary strong {
+  color: #383d35;
+  font-size: 13px;
+}
+
+.health-row-primary small {
+  color: #77746b;
+  font-size: 12px;
+}
+
+.health-row-marker {
+  display: block;
+  width: 56px;
+  height: 56px;
+  border-radius: 7px;
+  background: #b7aa8f;
+}
+
+.health-row-marker.is-safety {
+  background: #304232;
+}
+
+.health-edit-drawer .el-textarea__inner {
+  background: #faf9f5;
+  line-height: 20px;
+}
+
+.health-edit-drawer .el-input-number,
+.health-edit-drawer .el-date-editor {
+  width: 100%;
+}
+
+.health-edit-drawer .typography-controls {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.health-approval-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.35fr);
+  gap: 8px;
+  width: 100%;
 }
 
 .content-pagination {
