@@ -47,7 +47,8 @@
       </view>
 
       <text class="register-page__hint">手机号、生日、性别为必填项\n头像和昵称未授权时将使用默认值</text>
-      <button class="register-page__submit" style="width: 350px;" loading="{{loading}}" disabled="{{loading || avatarUploading}}" bindtap="submitProfile">登录</button>
+      <button wx:if="{{editing}}" class="register-page__submit" style="width: 350px;" loading="{{loading}}" disabled="{{loading || avatarUploading}}" bindtap="submitProfile">保存资料</button>
+      <button wx:else class="register-page__submit" style="width: 350px;" loading="{{loading}}" disabled="{{loading || avatarUploading}}" bindtap="submitProfile">登录</button>
     </view>
   </scroll-view>
   <privacy-consent id="root-privacy-consent" />

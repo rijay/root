@@ -24,6 +24,7 @@ const SUBPACKAGE_ROUTES = Object.freeze([
   "subpkg/activity/pages/enrollments/index",
   "subpkg/profile/pages/about/index",
   "subpkg/profile/pages/support/index",
+  "subpkg/profile/pages/privacy-account/index",
 ]);
 
 const REGISTERED_FORMAL_ROUTES = Object.freeze([...MAIN_ROUTES, ...SUBPACKAGE_ROUTES]);

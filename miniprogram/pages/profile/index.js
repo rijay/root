@@ -1,17 +1,29 @@
 const env = require("../../config/env");
+const { appVersion } = require("../../config/version");
 const router = require("../../utils/router");
 const { clearToken, getToken, request } = require("../../utils/request");
 const { syncTabBar } = require("../../utils/tab-bar");
+const { clearLegacyTransientHealthStorage, clearTransientHealthData } = require("../../utils/transient-health-state");
 
 const PROFILE_ROUTE = "/pages/profile/index";
-const LOCAL_SESSION_KEYS = ["ROOT_AUTH_INTENT_V1", "ROOT_REGISTRATION_CONTEXT_V1", "ROOT_PROFILE_SUBMIT_KEY_V1"];
+const PENDING_MEMBER_TARGET_KEY = "ROOT_PROFILE_MEMBER_TARGET_V1";
+const LOCAL_SESSION_KEYS = [
+  "ROOT_AUTH_INTENT_V1",
+  "ROOT_REGISTRATION_CONTEXT_V1",
+  "ROOT_PROFILE_SUBMIT_KEY_V1",
+  "ROOT4U_START_PENDING_V1",
+  "ROOT4U_INITIAL_SUBMIT_KEY_V1",
+  "MYROOT_ACTIVITY_ROUTE_INTENT_V1",
+  "MYROOT_ACTIVITY_PENDING_COMMANDS_V1",
+  PENDING_MEMBER_TARGET_KEY,
+];
 
 function runtimeVersion() {
   try {
     const info = wx.getAccountInfoSync();
-    return info && info.miniProgram && info.miniProgram.version || "0.5.13";
+    return info && info.miniProgram && info.miniProgram.version || appVersion;
   } catch (error) {
-    return "0.5.13";
+    return appVersion;
   }
 }
 
@@ -19,7 +31,9 @@ Page({
   data: {
     loggedIn: false,
     profile: { nickname: "未登录", avatarUrl: "" },
-    version: "0.5.13",
+    version: appVersion,
+    memberLinkFailure: false,
+    failedMemberKey: "",
   },
 
   onLoad() {
@@ -29,8 +43,21 @@ Page({
   onShow() {
     syncTabBar(this, 3);
     const loggedIn = Boolean(getToken());
-    this.setData({ loggedIn });
-    if (loggedIn) this.loadProfile();
+    this.setData(loggedIn
+      ? { loggedIn }
+      : { loggedIn, memberLinkFailure: false, failedMemberKey: "" });
+    if (loggedIn) {
+      this.loadProfile();
+      const pendingTarget = wx.getStorageSync(PENDING_MEMBER_TARGET_KEY);
+      if (pendingTarget && !this._resumingMemberTarget) {
+        this._resumingMemberTarget = true;
+        wx.removeStorageSync(PENDING_MEMBER_TARGET_KEY);
+        setTimeout(() => {
+          this.openMemberPath(pendingTarget);
+          this._resumingMemberTarget = false;
+        }, 0);
+      }
+    }
   },
 
   async loadProfile() {
@@ -46,18 +73,43 @@ Page({
     if (!this.data.loggedIn) router.open(`/pages/login/index?intent=${encodeURIComponent(PROFILE_ROUTE)}`);
   },
 
+  handleIdentityTap() {
+    if (this.data.loggedIn) this.openProfileEditor();
+    else this.openLogin();
+  },
+
   openMemberEntry(event) {
+    const key = event.currentTarget.dataset.key;
     if (!this.data.loggedIn) {
+      wx.setStorageSync(PENDING_MEMBER_TARGET_KEY, key);
       this.openLogin();
       return;
     }
-    const key = event.currentTarget.dataset.key;
+    this.openMemberPath(key);
+  },
+
+  openMemberPath(key) {
     const path = key === "orders" ? env.rootMemberCenterOrdersPath : env.rootMemberCenterCouponsPath;
     if (!env.rootMemberCenterAppId || !path) {
-      wx.showToast({ title: "入口路径待会员中心确认", icon: "none" });
+      this.setData({ memberLinkFailure: true, failedMemberKey: key });
       return;
     }
-    wx.navigateToMiniProgram({ appId: env.rootMemberCenterAppId, path, envVersion: "release" });
+    wx.navigateToMiniProgram({
+      appId: env.rootMemberCenterAppId,
+      path,
+      envVersion: "release",
+      success: () => this.setData({ memberLinkFailure: false, failedMemberKey: "" }),
+      fail: () => this.setData({ memberLinkFailure: true, failedMemberKey: key }),
+    });
+  },
+
+  retryMemberEntry() {
+    this.openMemberPath(this.data.failedMemberKey || "orders");
+  },
+
+  openProfileEditor() {
+    if (!this.data.loggedIn) return this.openLogin();
+    router.open("/pages/register/index?mode=edit&intent=%2Fpages%2Fprofile%2Findex");
   },
 
   openSupport(event) {
@@ -72,7 +124,14 @@ Page({
   logout() {
     clearToken();
     LOCAL_SESSION_KEYS.forEach((key) => wx.removeStorageSync(key));
-    this.setData({ loggedIn: false, profile: { nickname: "未登录", avatarUrl: "" } });
+    clearTransientHealthData();
+    clearLegacyTransientHealthStorage(wx);
+    this.setData({
+      loggedIn: false,
+      profile: { nickname: "未登录", avatarUrl: "" },
+      memberLinkFailure: false,
+      failedMemberKey: "",
+    });
     wx.showToast({ title: "已退出登录", icon: "success" });
   },
 });

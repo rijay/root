@@ -1,36 +1,126 @@
-.profile-subpage {
-  padding-top: 44rpx;
+page,
+.about-page {
+  min-height: 100vh;
+  background: #fdfbf6;
 }
 
-.about-logo-crop {
-  display: block;
-  width: 250rpx;
-  height: 58rpx;
-  margin: var(--spacing-xl) auto var(--spacing-lg);
+.about-page {
+  position: relative;
+  height: 844px;
   overflow: hidden;
 }
 
-.about-logo {
-  width: 300rpx;
-  height: 58rpx;
-  margin-left: -72rpx;
+.about-page__title {
+  position: absolute;
+  top: 130px;
+  left: 20px;
+  width: 350px;
+  height: 38px;
+  color: #080806;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 38px;
 }
 
-.about-page .h1 {
-  margin-top: var(--spacing-sm);
+.about-page__wordmark {
+  position: absolute;
+  top: 210px;
+  left: 20px;
+  width: 126px;
+  height: 33px;
+  overflow: hidden;
 }
 
-.about-page .body {
-  margin-top: var(--spacing-md);
+.about-page__wordmark root-wordmark {
+  transform: scale(1.5);
+  transform-origin: left top;
 }
 
-.brand-line {
-  margin-top: var(--spacing-lg);
-  padding: var(--spacing-md);
-  color: var(--color-root-moss);
-  background: var(--color-primary-tint);
-  border-radius: var(--radius-control);
-  font-size: var(--font-size-base);
-  font-weight: 800;
-  line-height: 1.45;
+.about-page__introduction {
+  position: absolute;
+  top: 278px;
+  left: 20px;
+  width: 350px;
+  height: 82px;
+  color: #433e34;
+  font-size: 14px;
+  line-height: 27px;
+  white-space: pre-line;
+}
+
+.about-page__quote {
+  position: absolute;
+  top: 390px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  width: 350px;
+  height: 112px;
+  box-sizing: border-box;
+  padding: 0 20px;
+  color: #fff;
+  background: #080806;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 32px;
+  white-space: pre-line;
+}
+
+.about-page__links {
+  position: absolute;
+  top: 530px;
+  left: 20px;
+  width: 350px;
+  height: 200px;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 0 16px;
+  background: #fff;
+  border-radius: 14px;
+}
+
+.about-page__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 318px;
+  height: 50px;
+  box-sizing: border-box;
+  color: #433e34;
+  border-bottom: 1px solid #e8e0d0;
+  font-size: 14px;
+}
+
+.about-page__row:last-child {
+  border-bottom: 0;
+}
+
+.about-page__arrow {
+  width: 4px;
+  height: 8px;
+  margin-right: 1px;
+  border-top: 1px solid #8a8172;
+  border-right: 1px solid #8a8172;
+  transform: rotate(45deg);
+}
+
+.about-page__version,
+.about-page__copyright {
+  position: absolute;
+  left: 20px;
+  width: 350px;
+  height: 18px;
+  color: #8a8172;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.about-page__version {
+  top: 766px;
+}
+
+.about-page__copyright {
+  top: 796px;
 }

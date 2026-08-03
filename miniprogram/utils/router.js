@@ -21,6 +21,7 @@ const publicRoutes = new Set([
   "/subpkg/activity/pages/detail/index",
   "/subpkg/profile/pages/about/index",
   "/subpkg/profile/pages/support/index",
+  "/subpkg/profile/pages/privacy-account/index",
 ]);
 const protectedRoutes = new Set([
   "/pages/health/index",

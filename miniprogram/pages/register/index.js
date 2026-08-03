@@ -34,15 +34,18 @@ Page({
     loading: false,
     avatarUploading: false,
     newUser: true,
+    editing: false,
   },
 
-  onLoad() {
+  onLoad(options = {}) {
     const context = wx.getStorageSync(REGISTRATION_CONTEXT_STORAGE_KEY) || {};
+    const editing = options.mode === "edit";
     const newUser = context.outcome !== "PROFILE_REQUIRED";
     this.setData({
-      newUser,
-      title: newUser ? "欢迎注册" : "完善资料",
-      subtitle: newUser ? "补全必要资料，开始你的 Root 会员旅程" : "补全缺失资料，继续使用 myRoot",
+      editing,
+      newUser: editing ? false : newUser,
+      title: editing ? "编辑资料" : (newUser ? "欢迎注册" : "完善资料"),
+      subtitle: editing ? "更新头像、昵称与必要会员资料" : (newUser ? "补全必要资料，开始你的 Root 会员旅程" : "补全缺失资料，继续使用 myRoot"),
       phone: context.phone || "",
       userId: context.userId || "",
     });
@@ -116,8 +119,8 @@ Page({
       });
       wx.removeStorageSync(PROFILE_SUBMIT_KEY_STORAGE);
       wx.removeStorageSync(REGISTRATION_CONTEXT_STORAGE_KEY);
-      wx.showToast({ title: this.data.newUser ? "成功注册" : "资料已完善", icon: "success" });
-      router.go(consumeAuthIntent() || "/pages/home/index");
+      wx.showToast({ title: this.data.editing ? "资料已更新" : (this.data.newUser ? "成功注册" : "资料已完善"), icon: "success" });
+      router.go(this.data.editing ? "/pages/profile/index" : (consumeAuthIntent() || "/pages/home/index"));
     } catch (error) {
       const resultUnknown = error && error.resultUnknown;
       wx.showToast({

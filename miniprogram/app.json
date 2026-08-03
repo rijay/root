@@ -34,7 +34,8 @@
       "root": "subpkg/profile",
       "pages": [
         "pages/about/index",
-        "pages/support/index"
+        "pages/support/index",
+        "pages/privacy-account/index"
       ]
     }
   ],

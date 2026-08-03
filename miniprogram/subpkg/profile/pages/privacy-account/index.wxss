@@ -1,0 +1,332 @@
+page,
+.privacy-account-page {
+  min-height: 100vh;
+  background: #fdfbf6;
+}
+
+.privacy-account-page {
+  position: relative;
+  height: 844px;
+  overflow: hidden;
+}
+
+.privacy-account-page__title {
+  position: absolute;
+  top: 130px;
+  left: 20px;
+  width: 350px;
+  height: 38px;
+  color: #080806;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 38px;
+}
+
+.privacy-account-page__introduction {
+  position: absolute;
+  top: 180px;
+  left: 20px;
+  width: 350px;
+  height: 44px;
+  color: #433e34;
+  font-size: 14px;
+  line-height: 22px;
+  white-space: pre-line;
+}
+
+.privacy-account-page__section-tag {
+  position: absolute;
+  left: 20px;
+  width: 350px;
+  height: 18px;
+  color: #586b3f;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.privacy-account-page__section-tag--privacy {
+  top: 260px;
+}
+
+.privacy-account-page__section-tag--account {
+  top: 502px;
+}
+
+.privacy-account-page__menu {
+  position: absolute;
+  left: 20px;
+  width: 350px;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 0 16px;
+  background: #fff;
+  border-radius: 14px;
+}
+
+.privacy-account-page__menu--privacy {
+  top: 292px;
+  height: 172px;
+}
+
+.privacy-account-page__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 318px;
+  height: 57.33px;
+  color: #433e34;
+  border-bottom: 1px solid #e8e0d0;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.privacy-account-page__row:last-child {
+  border-bottom: 0;
+}
+
+.privacy-account-page__arrow {
+  flex: 0 0 4px;
+  width: 4px;
+  height: 8px;
+  margin-right: 1px;
+  border-top: 1px solid #8a8172;
+  border-right: 1px solid #8a8172;
+  transform: rotate(45deg);
+}
+
+.privacy-account-page__account {
+  position: absolute;
+  top: 534px;
+  left: 20px;
+  width: 350px;
+  height: 94px;
+  box-sizing: border-box;
+  padding: 18px 16px;
+  background: #fff;
+  border-radius: 14px;
+}
+
+.privacy-account-page__account-title,
+.privacy-account-page__account-hint {
+  display: block;
+}
+
+.privacy-account-page__account-title {
+  color: #b5523c;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+}
+
+.privacy-account-page__account-hint {
+  margin-top: 10px;
+  color: #8a8172;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.privacy-account-page__account > .privacy-account-page__arrow {
+  position: absolute;
+  top: 23px;
+  right: 17px;
+}
+
+.privacy-account-page__support {
+  position: absolute;
+  top: 664px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 350px;
+  height: 76px;
+  box-sizing: border-box;
+  padding: 0 20px;
+  color: #586b3f;
+  background: #f1f5e6;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: pre-line;
+}
+
+.privacy-account-page__version {
+  position: absolute;
+  top: 790px;
+  left: 20px;
+  width: 350px;
+  height: 18px;
+  color: #8a8172;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.cancellation-overlay {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  background: rgba(8, 8, 6, .92);
+}
+
+.cancellation-sheet {
+  position: absolute;
+  top: 248px;
+  left: 0;
+  width: 390px;
+  height: 596px;
+  overflow: hidden;
+  background: #fdfbf6;
+  border-radius: 20px 20px 0 0;
+}
+
+.cancellation-sheet__handle {
+  position: absolute;
+  top: 12px;
+  left: 169px;
+  width: 52px;
+  height: 4px;
+  background: #e8e0d0;
+  border-radius: 2px;
+}
+
+.cancellation-sheet__tag,
+.cancellation-sheet__title,
+.cancellation-sheet__introduction,
+.cancellation-sheet__support {
+  position: absolute;
+}
+
+.cancellation-sheet__tag {
+  top: 44px;
+  left: 24px;
+  width: 342px;
+  height: 18px;
+  color: #b5523c;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.cancellation-sheet__title {
+  top: 78px;
+  left: 24px;
+  width: 342px;
+  height: 32px;
+  color: #080806;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 32px;
+}
+
+.cancellation-sheet__introduction {
+  top: 122px;
+  left: 24px;
+  width: 342px;
+  height: 40px;
+  color: #433e34;
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre-line;
+}
+
+.cancellation-sheet__consequences {
+  position: absolute;
+  top: 180px;
+  left: 24px;
+  width: 342px;
+  height: 178px;
+  box-sizing: border-box;
+  padding: 18px 16px;
+  color: #433e34;
+  background: #fff;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 34px;
+  white-space: pre-line;
+}
+
+.cancellation-sheet__confirmation {
+  position: absolute;
+  top: 380px;
+  left: 24px;
+  display: flex;
+  width: 342px;
+  height: 38px;
+  color: #433e34;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: pre-line;
+}
+
+.cancellation-sheet__checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  box-sizing: border-box;
+  color: #fff;
+  background: #fff;
+  border: 1px solid #b5523c;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.cancellation-sheet__checkbox.is-checked {
+  background: #b5523c;
+}
+
+.cancellation-sheet__keep,
+.cancellation-sheet__submit {
+  position: absolute;
+  left: 20px;
+  margin: 0 !important;
+  padding: 0;
+  box-sizing: border-box;
+  border-radius: 12px;
+}
+
+.cancellation-sheet__keep::after,
+.cancellation-sheet__submit::after {
+  border: 0;
+}
+
+.cancellation-sheet__keep {
+  top: 442px;
+  height: 50px;
+  min-height: 50px;
+  color: #fff;
+  background: #586b3f;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 50px;
+}
+
+.cancellation-sheet__submit {
+  top: 502px;
+  height: 46px;
+  min-height: 46px;
+  color: #b5523c;
+  background: #fff;
+  border: 1px solid #b5523c;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 44px;
+}
+
+.cancellation-sheet__support {
+  top: 564px;
+  left: 20px;
+  width: 350px;
+  height: 18px;
+  color: #8a8172;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+}

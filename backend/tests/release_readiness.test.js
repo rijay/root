@@ -127,7 +127,10 @@ test("release smoke: formal mini-program exposes only the approved four-Tab scop
     ]
   );
   assert.deepEqual(activityPackage.pages.sort(), ["pages/detail/index", "pages/enrollments/index"].sort());
-  assert.deepEqual(profilePackage.pages.sort(), ["pages/about/index", "pages/support/index"].sort());
+  assert.deepEqual(
+    profilePackage.pages.sort(),
+    ["pages/about/index", "pages/privacy-account/index", "pages/support/index"].sort(),
+  );
   assert.match(supportPage, /open-type="contact"/);
 });
 
