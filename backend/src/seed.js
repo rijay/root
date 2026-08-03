@@ -141,7 +141,6 @@ function createSeedData() {
     ],
     productJumpLogs: [],
     youzanCustomers: [],
-    youzanIdentityReconciliations: [],
     youzanOrders: [
       {
         order_id: "ord_root_001",

@@ -11,8 +11,6 @@ const adminConfigPresenter = require("./adminConfigPresenter");
 const adminLifecycleFilterPresets = require("./adminLifecycleFilterPresets");
 const adminLifecyclePresenter = require("./adminLifecyclePresenter");
 const adminLifecycleSettlementJobs = require("./adminLifecycleSettlementJobs");
-const adminLifecycleSettlementScheduler = require("./adminLifecycleSettlementScheduler");
-const adminLifecycleSettlementCleanup = require("./adminLifecycleSettlementCleanup");
 const adminLifecycleUserExports = require("./adminLifecycleUserExports");
 const adminManualReview = require("./adminManualReview");
 const adminOrderMatching = require("./adminOrderMatching");
@@ -84,7 +82,6 @@ const { resolveWechatAccessToken } = require("./wechatAccessToken");
 const { wechatSubscribeMessageAdapter } = require("./wechatSubscribeMessageAdapter");
 const weworkTouch = require("./weworkTouch");
 const youzanCustomerMirror = require("./youzanCustomerMirror");
-const youzanIdentityReconciliation = require("./youzanIdentityReconciliation");
 const { buildProductionEnvMatrix } = require("./productionEnvMatrix");
 const {
   buildCloudbaseJobManifest,
@@ -1432,10 +1429,6 @@ async function runHealthDataRetentionCleanup(data, body = {}, context = {}) {
   return response(await healthDataRetention.cleanupExpiredHealthData(data, body, context));
 }
 
-async function runYouzanIdentityReconciliation(data, body = {}, context = {}) {
-  return response(await youzanIdentityReconciliation.reconcileYouzanIdentities(data, body, context));
-}
-
 function lifecycleBatchQuery(body = {}) {
   const filters = body.filters && typeof body.filters === "object" && !Array.isArray(body.filters)
     ? body.filters
@@ -1506,22 +1499,6 @@ function cancelAdminLifecycleSettlementJob(data, body = {}, context = {}) {
 
 function retryFailedAdminLifecycleSettlementJob(data, body = {}, context = {}) {
   return response(adminLifecycleSettlementJobs.retryFailedLifecycleSettlementJob(data, body, context));
-}
-
-function planAdminLifecycleSettlementJobRuns(data, body = {}) {
-  return response(adminLifecycleSettlementScheduler.planLifecycleSettlementJobRuns(data, body));
-}
-
-async function runDueAdminLifecycleSettlementJobs(data, body = {}, context = {}) {
-  return response(await adminLifecycleSettlementScheduler.runDueLifecycleSettlementJobs(data, body, context));
-}
-
-function planAdminLifecycleSettlementJobCleanup(data, body = {}) {
-  return response(adminLifecycleSettlementCleanup.planLifecycleSettlementJobCleanup(data, body));
-}
-
-async function runAdminLifecycleSettlementJobCleanup(data, body = {}) {
-  return response(await adminLifecycleSettlementCleanup.runLifecycleSettlementJobCleanup(data, body));
 }
 
 function listAdminLifecycleFilterPresets(data, query = {}) {
@@ -3370,7 +3347,6 @@ module.exports = {
   runAdminOperationalAlertJob,
   runAdminLifecycleUserExportJob,
   runHealthDataRetentionCleanup,
-  runYouzanIdentityReconciliation,
   queryAdminRewardDeliveryStatus,
   getActiveCampaign,
   getActivityDetail,
@@ -3452,7 +3428,6 @@ module.exports = {
   previewAdminOrderIncrementSync,
   previewAdminProductSync,
   previewAdminLifecycleSettlementBatch,
-  planAdminLifecycleSettlementJobRuns,
   planWeWorkTouches,
   previewAdminSettlement,
   previewAdminSettlementBatch,
@@ -3470,7 +3445,6 @@ module.exports = {
   resolveAdminManualReviewBatch,
   response,
   runAdminLifecycleSettlementJob,
-  planAdminLifecycleSettlementJobCleanup,
   runDailyAudit,
   startCheckin,
   syncManualOrder,
@@ -3497,8 +3471,6 @@ module.exports = {
   reviewActivityEnrollment,
   evaluateUserSettlement,
   rollbackExternalAdapterRun,
-  runDueAdminLifecycleSettlementJobs,
-  runAdminLifecycleSettlementJobCleanup,
   runDueExternalAdapterRetries,
   runDueCheckinReminders,
   runDueWeWorkTouches,

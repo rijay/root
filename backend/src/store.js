@@ -140,7 +140,6 @@ function createEmptyData() {
   data.campaignProductRelations = [];
   data.productJumpLogs = [];
   data.youzanCustomers = [];
-  data.youzanIdentityReconciliations = [];
   data.campaignDefinitions = [];
   data.campaignParticipants = [];
   data.activityDefinitionVersions = [];
@@ -307,7 +306,6 @@ function validateSnapshot(snapshot, options = {}) {
     ["legacyDataMigrationDecisions", "request_id"],
     ["legacyDataMigrationExecutions", "execution_id"],
     ["legacyDataMigrationExecutions", "request_id"],
-    ["youzanIdentityReconciliations", "reconciliation_id"],
     ["consultationAdvisorAssignments", "assignment_id"],
     ["consultationAdvisorAssignments", "request_id"],
     ["consultationWeworkWritebacks", "writeback_id"],
