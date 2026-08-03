@@ -415,21 +415,6 @@ const ENV_GROUPS = [
     action: "确认有赞客户镜像、User Query URL、token 托管策略和 UnionID 到 yz_open_id 小批量对账开关。",
   },
   {
-    id: "youzan_coupon",
-    label: "有赞优惠券发放与状态",
-    ownerRole: "研发/运营",
-    required: ["YOUZAN_COUPON_SEND_URL", "YOUZAN_COUPON_STATUS_URL"],
-    anyOf: [["YOUZAN_COUPON_ACCESS_TOKEN", "YOUZAN_ACCESS_TOKEN"]],
-    optional: [
-      "YOUZAN_COUPON_STATUS_ACCESS_TOKEN",
-      "YOUZAN_COUPON_RESULT_FIELD_MAP",
-      "YOUZAN_COUPON_STATUS_FIELD_MAP",
-      "YOUZAN_COUPON_SEND_METHOD",
-      "YOUZAN_COUPON_STATUS_METHOD",
-    ],
-    action: "确认发券、券状态查询 URL、token、券码路径和状态枚举。",
-  },
-  {
     id: "fulfillment",
     label: "物流状态 Adapter",
     ownerRole: "研发/运营",
@@ -457,21 +442,6 @@ const ENV_GROUPS = [
       "WEWORK_TOKEN_URL",
     ],
     action: "确认企业微信客户联系凭证、外部联系人 ID、备注名、手机号和来源活动字段。",
-  },
-  {
-    id: "wework_tag",
-    label: "企业微信标签 Adapter",
-    ownerRole: "研发/运营",
-    required: ["WEWORK_TAG_APPLY_URL", "WEWORK_CORP_ID"],
-    anyOf: [["WEWORK_TAG_ACCESS_TOKEN", "WEWORK_ACCESS_TOKEN", "WEWORK_CONTACT_ACCESS_TOKEN", "WEWORK_CONTACT_SECRET"]],
-    optional: [
-      "WEWORK_TAG_DEFAULT_ID",
-      "WEWORK_TAG_USERID",
-      "WEWORK_TAG_RESULT_FIELD_MAP",
-      "WEWORK_TAG_APPLY_METHOD",
-      "WEWORK_TAG_APPLY_EXTRA_PARAMS",
-    ],
-    action: "确认标签写入 URL、token、默认标签 ID 和外部联系人 ID 来源。",
   },
   {
     id: "consultation_advisors",

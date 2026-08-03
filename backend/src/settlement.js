@@ -1,7 +1,6 @@
 const { nowISO } = require("./dates");
 const { createId } = require("./seed");
 const campaign = require("./campaign");
-const rewardGrant = require("./rewardGrant");
 const taskProgress = require("./taskProgress");
 const manualReview = require("./manualReview");
 
@@ -35,22 +34,7 @@ const DEFAULT_RULE_VERSION = {
       label: "完成收尾问卷",
     },
   ],
-  rewards_json: [
-    {
-      reward_type: "YOUZAN_COUPON",
-      reward_key: "completion_coupon",
-      title: "有赞优惠券",
-      description: "完成活动条件后生成待发放优惠券记录。",
-      payload: { couponScene: "ROOT_COMPLETION" },
-    },
-    {
-      reward_type: "FREE_ORDER_CHANCE",
-      reward_key: "free_order_review",
-      title: "免单机会",
-      description: "进入人工复核，运营确认后处理。",
-      review_reason: "免单机会需要运营确认",
-    },
-  ],
+  rewards_json: [],
 };
 
 function ensureList(data, key) {
@@ -297,7 +281,6 @@ function publishRuleVersion(data, input = {}) {
     updated_at: now,
   });
   if (!conditionLeafCount(ruleVersion.conditions_json)) throw businessError(8002, "规则条件不能为空");
-  if (!ruleVersion.rewards_json.length) throw businessError(8003, "奖励配置不能为空");
   if (!existing) versions.push(ruleVersion);
   return { ruleVersion, created: !existing };
 }
@@ -429,7 +412,6 @@ function buildSettlementResult(data, rootUserId, campaignId, ruleVersion) {
     conditionTree,
     progress,
     missingConditions,
-    rewards: qualified ? arrayValue(ruleVersion.rewards_json) : [],
     evaluatedAt: nowISO(),
   };
 }
@@ -467,26 +449,23 @@ function evaluateSettlement(data, rootUserId, campaignId = "", options = {}) {
     campaign_rule_version_id: ruleVersion.campaign_rule_version_id,
     status: preview.result.qualified ? "QUALIFIED" : "NOT_QUALIFIED",
     result_json: preview.result,
-    rewards_json: preview.result.rewards,
+    rewards_json: [],
     evaluated_at: now,
     created_at: now,
   };
   ensureList(data, "settlementRecords").push(record);
-  const grants = rewardGrant.grantRewards(data, record, preview.result.rewards, options);
-  return { ...preview, settlementRecord: record, rewardResults: grants };
+  return { ...preview, settlementRecord: record };
 }
 
 function getSettlementStatus(data, rootUserId, campaignId = "", options = {}) {
   const preview = previewSettlement(data, rootUserId, campaignId, options);
   const latestRecord = latestSettlementRecord(data, rootUserId, preview.campaign.campaignId);
-  const grants = rewardGrant.listRewardGrants(data, { rootUserId, campaignId: preview.campaign.campaignId }).map(rewardGrant.toRewardGrantPayload);
   const reviews = manualReview
     .listManualReviewItems(data, { rootUserId, campaignId: preview.campaign.campaignId })
     .map((item) => manualReview.toManualReviewPayload(item, options));
   return {
     ...preview,
     latestSettlement: latestRecord ? toSettlementRecordPayload(latestRecord) : null,
-    rewardGrants: grants,
     manualReviews: reviews,
   };
 }
@@ -498,7 +477,6 @@ function toRuleVersionPayload(ruleVersion) {
     version: ruleVersion.version,
     status: ruleVersion.status,
     conditions: ruleVersion.conditions_json || [],
-    rewards: ruleVersion.rewards_json || [],
     publishedAt: ruleVersion.published_at || "",
   };
 }

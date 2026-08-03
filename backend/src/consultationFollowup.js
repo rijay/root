@@ -106,6 +106,7 @@ function buildItem(data, event) {
   return {
     consultationId: event.task_event_id,
     taskEventId: event.task_event_id,
+    rootUserId: event.root_user_id,
     campaignId: event.campaign_id,
     consultationType: topic.key,
     consultationTypeLabel: topic.label,

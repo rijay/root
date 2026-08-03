@@ -1072,43 +1072,18 @@ test("adapter calibration reports config, runs, and cursors by source", async ()
   assert.equal(youzan.env.required.every((item) => item.present), true);
 });
 
-test("action adapter calibration gates external reward and WeWork actions", () => {
+test("action adapter calibration gates the retained WeWork contact writeback", () => {
   const store = domain.createStore();
   const missing = domain.getActionAdapterCalibration(store, { env: {}, target: "production" }).data;
   const gray = domain.getActionAdapterCalibration(store, { env: {}, target: "gray" }).data;
 
   assert.equal(missing.status, "BLOCKED");
-  assert.equal(missing.actions.length, 4);
-  assert.equal(missing.summary.totalActionCount, 4);
-  assert.ok(missing.actions.some((item) => item.id === "YOUZAN_COUPON_SEND"));
+  assert.equal(missing.actions.length, 1);
+  assert.equal(missing.summary.totalActionCount, 1);
+  assert.equal(missing.actions[0].id, "WEWORK_CONTACT_WRITEBACK");
   assert.ok(missing.actions.every((item) => item.checks.some((check) => check.id === "live_evidence")));
   assert.equal(gray.status, "NEEDS_REVIEW");
 
-  store.rewardDeliveryJobs.push({
-    reward_delivery_job_id: "rdj_action_coupon_ready",
-    request_id: "action-coupon-ready",
-    reward_grant_id: "grant_action_coupon_ready",
-    adapter_type: "YOUZAN_COUPON",
-    status: "DELIVERED",
-    external_ref: "coupon-real-001",
-    external_result_json: { lastStatus: "USED", lastStatusCheckedAt: "2026-06-20T09:35:00+08:00" },
-    delivered_at: "2026-06-20T09:30:00+08:00",
-    status_checked_at: "2026-06-20T09:35:00+08:00",
-    created_at: "2026-06-20T09:28:00+08:00",
-    updated_at: "2026-06-20T09:35:00+08:00",
-  });
-  store.rewardDeliveryJobs.push({
-    reward_delivery_job_id: "rdj_action_wework_tag_ready",
-    request_id: "action-wework-tag-ready",
-    reward_grant_id: "grant_action_wework_tag_ready",
-    adapter_type: "WEWORK_TAG",
-    status: "DELIVERED",
-    external_ref: "wework-tag-real-001",
-    external_result_json: { tagId: "tag-root-active" },
-    delivered_at: "2026-06-20T09:40:00+08:00",
-    created_at: "2026-06-20T09:38:00+08:00",
-    updated_at: "2026-06-20T09:40:00+08:00",
-  });
   store.consultationWeworkWritebacks.push({
     writeback_id: "wwb_action_ready",
     request_id: "action-wework-writeback-ready",
@@ -1120,10 +1095,6 @@ test("action adapter calibration gates external reward and WeWork actions", () =
   });
 
   const env = {
-    YOUZAN_COUPON_SEND_URL: "https://youzan.example.com/coupon/send",
-    YOUZAN_COUPON_STATUS_URL: "https://youzan.example.com/coupon/status",
-    YOUZAN_ACCESS_TOKEN: "youzan-token",
-    WEWORK_TAG_APPLY_URL: "https://wework.example.com/tag",
     WEWORK_CONTACT_WRITEBACK_URL: "https://wework.example.com/writeback",
     WEWORK_CORP_ID: "ww-root",
     WEWORK_ACCESS_TOKEN: "wework-token",
@@ -1132,10 +1103,10 @@ test("action adapter calibration gates external reward and WeWork actions", () =
   const release = domain.getReleaseRecord(store, { target: "production", env }).data;
 
   assert.equal(ready.status, "READY");
-  assert.equal(ready.summary.readyActionCount, 4);
+  assert.equal(ready.summary.readyActionCount, 1);
   assert.ok(ready.actions.every((item) => item.checks.every((check) => check.status === "PASS")));
   assert.equal(release.evidence.actionAdapterCalibration.status, "READY");
-  assert.equal(release.evidence.actionAdapterCalibration.actions.length, 4);
+  assert.equal(release.evidence.actionAdapterCalibration.actions.length, 1);
 });
 
 test("release record gathers readiness, calibration, runs, and rollback evidence", async () => {
@@ -1158,13 +1129,13 @@ test("release record gathers readiness, calibration, runs, and rollback evidence
   assert.equal(missing.evidence.adminTransitionReadiness.summary.requiredModuleCount, 6);
   assert.equal(missing.evidence.adminTransitionReadiness.legacyDeprecationDecision.status, "PENDING");
   assert.equal(missing.evidence.productionCutoverReadiness.status, "BLOCKED");
-  assert.equal(missing.evidence.productionCutoverReadiness.summary.requiredProofCount, 14);
+  assert.equal(missing.evidence.productionCutoverReadiness.summary.requiredProofCount, 13);
   assert.ok(missing.evidence.productionCutoverReadiness.blockers.some((item) => item.includes("微信开放平台")));
   assert.equal(missing.evidence.actionAdapterCalibration.status, "BLOCKED");
-  assert.equal(missing.evidence.actionAdapterCalibration.actions.length, 4);
+  assert.equal(missing.evidence.actionAdapterCalibration.actions.length, 1);
   assert.equal(missing.evidence.legacyDataMigration.status, "READY");
   assert.equal(missing.evidence.legacyDataMigration.summary.legacySessionCount, 0);
-  assert.equal(missing.evidence.productionEvidenceIntake.items.length, 14);
+  assert.equal(missing.evidence.productionEvidenceIntake.items.length, 13);
   assert.equal(missing.evidence.productionEvidenceIntake.status, "BLOCKED");
   assert.ok(missing.evidence.productionEvidenceIntake.items.some((item) => item.backlogId === "T-009" && item.id === "cloudbase_store_production"));
   assert.deepEqual(

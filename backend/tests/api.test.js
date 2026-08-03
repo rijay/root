@@ -763,18 +763,18 @@ test("production cutover readiness gates live external proof", () => {
   });
 
   assert.equal(blocked.status, "BLOCKED");
-  assert.equal(blocked.summary.requiredProofCount, 14);
-  assert.equal(blocked.summary.blockerCount, 14);
+  assert.equal(blocked.summary.requiredProofCount, 13);
+  assert.equal(blocked.summary.blockerCount, 13);
   assert.ok(blocked.blockers.some((item) => item.includes("微信开放平台")));
   assert.equal(gray.status, "NEEDS_REVIEW");
-  assert.equal(gray.summary.warningCount, 14);
+  assert.equal(gray.summary.warningCount, 13);
   assert.equal(grayReady.status, "READY");
   assert.equal(grayReady.items[0].proofSource, "ENV");
   assert.equal(envOnlyProduction.status, "BLOCKED");
   assert.equal(envOnlyProduction.summary.readyProofCount, 0);
   assert.ok(envOnlyProduction.blockers.every((item) => item.includes("后台 VERIFIED 记录")));
   assert.equal(ready.status, "READY");
-  assert.equal(ready.summary.readyProofCount, 14);
+  assert.equal(ready.summary.readyProofCount, 13);
   assert.equal(ready.summary.releaseScopedProofCount, 4);
   assert.equal(ready.summary.releaseBoundReadyCount, 4);
   assert.ok(ready.items.every((item) => item.proofSource === "RECORD"));
@@ -789,16 +789,16 @@ test("production cutover readiness gates live external proof", () => {
   assert.equal(partial.status, "BLOCKED");
   assert.ok(partial.blockers.some((item) => item.includes("Root 会员中心 appId")));
   assert.equal(legacyProofWithoutEvidence.status, "BLOCKED");
-  assert.equal(legacyProofWithoutEvidence.summary.readyProofCount, 13);
+  assert.equal(legacyProofWithoutEvidence.summary.readyProofCount, 12);
   assert.ok(legacyProofWithoutEvidence.blockers.some((item) => item.includes("缺少 evidenceRef")));
   assert.equal(staleRelease.status, "BLOCKED");
-  assert.equal(staleRelease.summary.readyProofCount, 10);
+  assert.equal(staleRelease.summary.readyProofCount, 9);
   assert.equal(staleRelease.summary.releaseBoundReadyCount, 0);
   assert.equal(staleRelease.items.find((item) => item.id === "cloudbase_unionid").status, "READY");
   assert.equal(staleRelease.items.find((item) => item.id === "cloudrun_candidate_runtime").status, "BLOCKED");
   assert.ok(staleRelease.blockers.some((item) => item.includes("与当前候选 0.5.13/myroot-api-test-053 不一致")));
   assert.equal(fallbackReleaseId.status, "BLOCKED");
-  assert.equal(fallbackReleaseId.summary.readyProofCount, 10);
+  assert.equal(fallbackReleaseId.summary.readyProofCount, 9);
   assert.ok(fallbackReleaseId.blockers.some((item) => item.includes("显式 ROOT_RELEASE_ID")));
 });
 
@@ -1781,13 +1781,13 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.equal(releaseRecord.data.evidence.adminTransitionReadiness.legacyDeprecationDecision.status, "PENDING");
   assert.equal(releaseRecord.data.evidence.adminTransitionReadiness.summary.deprecationSource, "NONE");
   assert.equal(releaseRecord.data.evidence.productionCutoverReadiness.status, "NEEDS_REVIEW");
-  assert.equal(releaseRecord.data.evidence.productionCutoverReadiness.summary.requiredProofCount, 14);
+  assert.equal(releaseRecord.data.evidence.productionCutoverReadiness.summary.requiredProofCount, 13);
   assert.ok(releaseRecord.data.evidence.productionCutoverReadiness.items.some((item) => item.proofEnv === "ROOT_CUTOVER_CLOUDBASE_UNIONID_VERIFIED"));
   assert.equal(releaseRecord.data.evidence.actionAdapterCalibration.status, "NEEDS_REVIEW");
-  assert.equal(releaseRecord.data.evidence.actionAdapterCalibration.actions.length, 4);
+  assert.equal(releaseRecord.data.evidence.actionAdapterCalibration.actions.length, 1);
   assert.equal(releaseRecord.data.evidence.legacyDataMigration.status, "READY");
   assert.equal(releaseRecord.data.evidence.legacyDataMigration.summary.legacySessionCount, 0);
-  assert.equal(releaseRecord.data.evidence.productionEvidenceIntake.items.length, 14);
+  assert.equal(releaseRecord.data.evidence.productionEvidenceIntake.items.length, 13);
   assert.equal(releaseRecord.data.evidence.productionEvidenceIntake.items.find((item) => item.backlogId === "T-010").status, "READY");
   assert.equal(releaseRecord.data.evidence.cloudbaseStoreReadiness.status, "NEEDS_REVIEW");
   assert.equal(releaseRecord.data.evidence.cloudbaseStoreReadiness.selectedDecision, "UNDECIDED");
@@ -1812,13 +1812,13 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.equal(evidencePack.data.pack.evidence.adminTransitionReadiness.summary.readyModuleCount, 6);
   assert.equal(evidencePack.data.pack.evidence.adminTransitionReadiness.legacyDeprecationDecision.status, "PENDING");
   assert.equal(evidencePack.data.pack.summary.productionCutoverStatus, "NEEDS_REVIEW");
-  assert.equal(evidencePack.data.pack.evidence.productionCutoverReadiness.summary.requiredProofCount, 14);
+  assert.equal(evidencePack.data.pack.evidence.productionCutoverReadiness.summary.requiredProofCount, 13);
   assert.equal(evidencePack.data.pack.summary.actionAdapterCalibrationStatus, "NEEDS_REVIEW");
-  assert.equal(evidencePack.data.pack.evidence.actionAdapterCalibration.actions.length, 4);
+  assert.equal(evidencePack.data.pack.evidence.actionAdapterCalibration.actions.length, 1);
   assert.equal(evidencePack.data.pack.summary.legacyDataMigrationStatus, "READY");
   assert.equal(evidencePack.data.pack.evidence.legacyDataMigration.summary.legacySessionCount, 0);
   assert.equal(evidencePack.data.pack.summary.productionEvidenceIntakeStatus, "BLOCKED");
-  assert.equal(evidencePack.data.pack.evidence.productionEvidenceIntake.items.length, 14);
+  assert.equal(evidencePack.data.pack.evidence.productionEvidenceIntake.items.length, 13);
   assert.equal(evidencePack.data.pack.summary.cloudbaseStoreStatus, "NEEDS_REVIEW");
   assert.equal(evidencePack.data.pack.evidence.cloudbaseStoreReadiness.selectedDecision, "UNDECIDED");
   assert.equal(evidencePack.data.pack.summary.rootMemberCenterStatus, "NEEDS_REVIEW");
@@ -2094,7 +2094,7 @@ test("serves the REST API and admin dashboard data", async (t) => {
   const calibration = await request(baseUrl, "/api/v1/admin/adapter-calibration");
   const actionCalibration = await request(baseUrl, "/api/v1/admin/action-adapter-calibration?target=gray");
   assert.equal(actionCalibration.code, 0);
-  assert.equal(actionCalibration.data.actions.length, 4);
+  assert.equal(actionCalibration.data.actions.length, 1);
   assert.equal(actionCalibration.data.status, "NEEDS_REVIEW");
   const adapters = await request(baseUrl, "/api/v1/admin/external-adapters");
   const calibrationReport = buildCalibrationReport({
@@ -3160,7 +3160,7 @@ test("external platform adapter Interface exposes catalog and manual sample runs
   assert.ok(calibration.data.sources.some((item) => item.adapterKind === "YOUZAN_OPEN"));
   const actionCalibration = await request(baseUrl, "/api/v1/admin/action-adapter-calibration");
   assert.equal(actionCalibration.code, 0);
-  assert.equal(actionCalibration.data.actions.length, 4);
+  assert.equal(actionCalibration.data.actions.length, 1);
   assert.equal(actionCalibration.data.status, "BLOCKED");
   assert.ok(catalog.data.catalog.manualAdapters.some((item) => item.sourceType === "YOUZAN_CUSTOMER" && item.status === "READY"));
   assert.equal(normalizeSource("wework"), "WECHAT_LEAD");

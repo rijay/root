@@ -38,11 +38,6 @@ function clone(value) {
 
 const SETTLEMENT_AUTHORITY_COLLECTIONS = Object.freeze([
   Object.freeze({ key: "settlementRecords", id: "settlement_record_id" }),
-  Object.freeze({ key: "rewardGrants", id: "reward_grant_id" }),
-  Object.freeze({
-    key: "rewardInventoryReservations",
-    id: "reward_inventory_reservation_id",
-  }),
 ]);
 
 function settlementAuthorityScopes(before, after) {
@@ -158,10 +153,6 @@ function createEmptyData() {
   data.questionnaireAnswers = [];
   data.campaignRuleVersions = [];
   data.settlementRecords = [];
-  data.rewardInventoryPools = [];
-  data.rewardInventoryReservations = [];
-  data.rewardGrants = [];
-  data.rewardDeliveryJobs = [];
   data.manualReviewItems = [];
   data.adminLifecycleFilterPresets = [];
   data.adminLifecycleSettlementJobs = [];
@@ -277,11 +268,6 @@ function validateSnapshot(snapshot, options = {}) {
     ["notificationDeliveries", "notification_delivery_id"],
     ["campaignRuleVersions", "campaign_rule_version_id"],
     ["settlementRecords", "settlement_record_id"],
-    ["rewardInventoryPools", "reward_inventory_pool_id"],
-    ["rewardInventoryReservations", "reward_inventory_reservation_id"],
-    ["rewardInventoryReservations", "idempotency_key"],
-    ["rewardGrants", "reward_grant_id"],
-    ["rewardDeliveryJobs", "reward_delivery_job_id"],
     ["manualReviewItems", "manual_review_item_id"],
     ["adminLifecycleFilterPresets", "preset_id"],
     ["adminLifecycleSettlementJobs", "job_id"],

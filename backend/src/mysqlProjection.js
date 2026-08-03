@@ -349,30 +349,6 @@ const PROJECTIONS = [
     columns: ["settlement_record_id", "root_user_id", "campaign_id", "rule_version", "campaign_rule_version_id", "status", "result_json", "rewards_json", "evaluated_at", "created_at"],
   },
   {
-    table: "reward_inventory_pool",
-    source: "rewardInventoryPools",
-    id: "reward_inventory_pool_id",
-    columns: ["reward_inventory_pool_id", "campaign_id", "quota_key", "quota_limit", "status", "created_at", "updated_at"],
-  },
-  {
-    table: "reward_inventory_reservation",
-    source: "rewardInventoryReservations",
-    id: "reward_inventory_reservation_id",
-    columns: ["reward_inventory_reservation_id", "reward_inventory_pool_id", "campaign_id", "quota_key", "root_user_id", "reward_type", "reward_key", "settlement_record_id", "reward_grant_id", "status", "idempotency_key", "release_reason", "reserved_at", "released_at", "created_at", "updated_at"],
-  },
-  {
-    table: "reward_grant",
-    source: "rewardGrants",
-    id: "reward_grant_id",
-    columns: ["reward_grant_id", "root_user_id", "campaign_id", "settlement_record_id", "order_id", "reward_type", "reward_key", "quota_key", "quota_limit", "inventory_reservation_id", "title", "description", "status", "payload_json", "external_ref", "external_status", "external_status_checked_at", "external_status_json", "used_at", "expired_at", "delivered_at", "recovery_status", "recovery_reason", "recovery_record_id", "recovered_at", "idempotency_key", "created_at", "updated_at"],
-  },
-  {
-    table: "reward_delivery_job",
-    source: "rewardDeliveryJobs",
-    id: "reward_delivery_job_id",
-    columns: ["reward_delivery_job_id", "reward_grant_id", "adapter_type", "status", "attempt_count", "last_error", "next_retry_at", "delivered_at", "status_checked_at", "request_id", "external_result_json", "created_at", "updated_at"],
-  },
-  {
     table: "manual_review_item",
     source: "manualReviewItems",
     id: "manual_review_item_id",
