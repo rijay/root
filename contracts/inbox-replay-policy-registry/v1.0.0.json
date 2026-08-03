@@ -14,7 +14,7 @@
       "maximumSelectedCount": 10000,
       "selectionCursorType": "FIRST_RECEIVED_AT_RECEIPT_ID_V1",
       "selectionQueryId": "task_share_succeeded_receipts_by_received_at_v1",
-      "selectionQueryDigest": "168c004f4db9919ca667f64c53507e16ee0dcb87f2346928099196401e54384c",
+      "selectionQueryDigest": "a30043e53ddda88c0a955f56e0c38d5093efbd3bf71f2ea78b7076aef7fc3b15",
       "requiredCapabilities": [
         "inbox.replay.authorize",
         "inbox.replay.execute"
@@ -31,7 +31,7 @@
         "handlerRegistryVersion": 1,
         "handlerDescriptorDigest": "bc207af5d102ccef5fd5012be39abb2b238715883f2c860a56393de826a98fbc",
         "handlerSourceDigest": "be7160f3dd61ef5b8b6d4a0c167e423997a9329e04cd3081828c581d133372d0",
-        "handlerRegistrationDigest": "d26caa83642a9978eb8541bd22c5e2e9148b399c9d10f1510884245088dfd45b"
+        "handlerRegistrationDigest": "0092649a6e5a1883bc34a734ae945ce94dff6162844eb09d140c14cff66e7911"
       },
       "execution": {
         "consumerPrefix": "task-share-shadow-rebuild-v1",
@@ -60,7 +60,7 @@
       "maximumSelectedCount": 10000,
       "selectionCursorType": "FIRST_RECEIVED_AT_RECEIPT_ID_V1",
       "selectionQueryId": "task_share_succeeded_receipts_by_received_at_v1",
-      "selectionQueryDigest": "168c004f4db9919ca667f64c53507e16ee0dcb87f2346928099196401e54384c",
+      "selectionQueryDigest": "a30043e53ddda88c0a955f56e0c38d5093efbd3bf71f2ea78b7076aef7fc3b15",
       "requiredCapabilities": [
         "inbox.replay.authorize",
         "inbox.replay.execute"
@@ -77,7 +77,7 @@
         "handlerRegistryVersion": 1,
         "handlerDescriptorDigest": "bc207af5d102ccef5fd5012be39abb2b238715883f2c860a56393de826a98fbc",
         "handlerSourceDigest": "be7160f3dd61ef5b8b6d4a0c167e423997a9329e04cd3081828c581d133372d0",
-        "handlerRegistrationDigest": "d26caa83642a9978eb8541bd22c5e2e9148b399c9d10f1510884245088dfd45b"
+        "handlerRegistrationDigest": "0092649a6e5a1883bc34a734ae945ce94dff6162844eb09d140c14cff66e7911"
       },
       "execution": {
         "consumerPrefix": "task-share-verify-v1",

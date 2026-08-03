@@ -1,11 +1,9 @@
-const crypto = require("node:crypto");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
 const { assertResolvedInboxHandlerRegistration } = require("../src/inboxHandlerRegistry");
-const { buildActivityTaskOutboxEnvelope } = require("../src/activityTaskEventOutbox");
 
 const ENABLED_ENV = Object.freeze({
   NODE_ENV: "test",
@@ -47,156 +45,6 @@ function shareClaim(overrides = {}) {
         eventType: overrides.completionEventType || "SHARE_COMPLETED",
       },
       payloadDigest: "a".repeat(64),
-      releaseId: null,
-    },
-  };
-}
-
-function activityConfirmedClaim() {
-  const row = buildActivityTaskOutboxEnvelope({
-    enrollmentEvent: {
-      activity_enrollment_event_id: "aee-bridge-confirmed-1",
-      activity_enrollment_id: "ae-bridge-confirmed-1",
-      activity_session_id: "as-bridge-confirmed-1",
-      root_user_id: "root-bridge-confirmed-1",
-      event_sequence: 1,
-      from_status: "PENDING",
-      to_status: "CONFIRMED",
-      operation: "ENROLL",
-      reason_code: null,
-      occurred_at: "2026-07-18 10:00:00.000",
-    },
-    binding: { taskDefinitionId: "task-bridge-1", taskDefinitionVersion: "v1" },
-  });
-  return {
-    outboxEventId: row.outbox_event_id,
-    leaseOwner: "bridge-owner-activity-1",
-    leaseGeneration: 1,
-    attemptCount: 1,
-    maxAttempts: 5,
-    retryPolicyVersion: "outbox-retry-v1",
-    claimTransitionId: "bridge-claim-activity-1",
-    payloadDigest: row.payload_digest,
-    envelope: {
-      topic: row.topic,
-      eventType: row.event_type,
-      schemaVersion: row.schema_version,
-      sourceName: row.source_name,
-      partitionKey: row.partition_key,
-      partitionPosition: row.partition_position,
-      aggregateType: row.aggregate_type,
-      aggregateId: row.aggregate_id,
-      aggregateVersion: row.aggregate_version,
-      occurredAt: row.occurred_at,
-      producerVersion: row.producer_version,
-      correlationId: row.correlation_id,
-      causationId: row.causation_id,
-      idempotencyKey: row.idempotency_key,
-      dedupeKey: row.dedupe_key,
-      payload: row.payload_json,
-      payloadDigest: row.payload_digest,
-      releaseId: row.release_id,
-    },
-  };
-}
-
-function activityCanceledClaim() {
-  const row = buildActivityTaskOutboxEnvelope({
-    enrollmentEvent: {
-      activity_enrollment_event_id: "aee-bridge-canceled-1",
-      activity_enrollment_id: "ae-bridge-canceled-1",
-      activity_session_id: "as-bridge-canceled-1",
-      root_user_id: "root-bridge-canceled-1",
-      event_sequence: 2,
-      from_status: "CONFIRMED",
-      to_status: "CANCELED",
-      operation: "CANCEL",
-      reason_code: "USER_CANCELED",
-      occurred_at: "2026-07-18 11:00:00.000",
-    },
-    binding: { taskDefinitionId: "task-bridge-canceled-1", taskDefinitionVersion: "v1" },
-  });
-  return {
-    outboxEventId: row.outbox_event_id,
-    leaseOwner: "bridge-owner-activity-canceled-1",
-    leaseGeneration: 1,
-    attemptCount: 1,
-    maxAttempts: 5,
-    retryPolicyVersion: "outbox-retry-v1",
-    claimTransitionId: "bridge-claim-activity-canceled-1",
-    payloadDigest: row.payload_digest,
-    envelope: {
-      topic: row.topic,
-      eventType: row.event_type,
-      schemaVersion: row.schema_version,
-      sourceName: row.source_name,
-      partitionKey: row.partition_key,
-      partitionPosition: row.partition_position,
-      aggregateType: row.aggregate_type,
-      aggregateId: row.aggregate_id,
-      aggregateVersion: row.aggregate_version,
-      occurredAt: row.occurred_at,
-      producerVersion: row.producer_version,
-      correlationId: row.correlation_id,
-      causationId: row.causation_id,
-      idempotencyKey: row.idempotency_key,
-      dedupeKey: row.dedupe_key,
-      payload: row.payload_json,
-      payloadDigest: row.payload_digest,
-      releaseId: row.release_id,
-    },
-  };
-}
-
-function sourceInvalidatedClaim() {
-  const canceled = activityCanceledClaim();
-  const payload = canceled.envelope.payload;
-  const invalidationId = `task_invalid_${crypto.createHash("sha256")
-    .update(
-      `myroot:task-source-invalidation:v1:${payload.activityTaskAssignmentId}\0${payload.activityEnrollmentEventId}`,
-      "utf8"
-    )
-    .digest("hex").slice(0, 51)}`;
-  const idempotencyKey = `task-source-invalidation:${invalidationId}:v1`;
-  const digest = "c".repeat(64);
-  return {
-    outboxEventId: "outbox-source-invalidated-bridge-1",
-    leaseOwner: "bridge-owner-source-invalidated-1",
-    leaseGeneration: 1,
-    attemptCount: 1,
-    maxAttempts: 5,
-    retryPolicyVersion: "outbox-retry-v1",
-    claimTransitionId: "bridge-claim-source-invalidated-1",
-    payloadDigest: digest,
-    envelope: {
-      topic: "task.source.events",
-      eventType: "task.source_invalidated.v1",
-      schemaVersion: "1",
-      sourceName: "myroot-task-projection",
-      partitionKey: `task_source_invalidation:${invalidationId}`,
-      partitionPosition: 1,
-      aggregateType: "TASK_SOURCE_INVALIDATION",
-      aggregateId: invalidationId,
-      aggregateVersion: 1,
-      occurredAt: canceled.envelope.occurredAt,
-      producerVersion: "1.0.0-test",
-      correlationId: null,
-      causationId: canceled.outboxEventId,
-      idempotencyKey,
-      dedupeKey: idempotencyKey,
-      payload: {
-        taskActivityAssignmentId: payload.activityTaskAssignmentId,
-        rootUserId: payload.rootUserId,
-        taskDefinitionId: payload.taskDefinitionId,
-        taskDefinitionVersion: payload.taskDefinitionVersion,
-        activityEnrollmentId: payload.activityEnrollmentId,
-        activitySessionId: payload.activitySessionId,
-        taskSourceInvalidationEventId: invalidationId,
-        reasonCode: "SOURCE_CANCELED",
-        sourceCancellationReasonCode: payload.reasonCode,
-        sourceEventId: payload.activityEnrollmentEventId,
-      },
-      payloadDigest: digest,
       releaseId: null,
     },
   };
@@ -362,7 +210,7 @@ test("runOnce receives the exact SHARE fact durably before completing the same f
   const bridge = loaded.createMysqlOutboxToInboxBridgeHarness({
     pool: basicPool(), env: ENABLED_ENV, workerId: "bridge-worker-1",
   });
-  assert.equal(loaded.factoryCalls.length, 5);
+  assert.equal(loaded.factoryCalls.length, 2);
   assert.equal(Object.hasOwn(loaded.factoryCalls[0][1], "adapterFactory"), false);
   const result = await bridge.runOnce({ limit: 3 });
   assert.deepEqual(result, {
@@ -382,40 +230,6 @@ test("runOnce receives the exact SHARE fact durably before completing the same f
     (error) => error.code === "OUTBOX_INBOX_BRIDGE_INPUT_INVALID"
   );
   assert.deepEqual(calls.map((call) => call[0]), ["claim", "receive", "complete"]);
-});
-
-test("Activity confirmed reaches its registered Inbox and shares one global batch budget", async () => {
-  const claim = activityConfirmedClaim();
-  const claimCalls = [];
-  const received = [];
-  const completed = [];
-  const outbox = {
-    async claimRegistered(registration, input) {
-      claimCalls.push([registration.descriptor.eventType, input.limit]);
-      return registration.descriptor.eventType === "activity.enrollment.confirmed.v1"
-        ? [claim]
-        : [];
-    },
-    async completeOwned(value) { completed.push(value.outboxEventId); return { status: "SUCCEEDED" }; },
-    async failOwned() { throw new Error("must not fail"); },
-    async recoverExpiredRegistered() { return []; },
-  };
-  const loaded = loadBridge(outbox, {
-    async receive(envelope) { received.push(envelope); return receipt(envelope, true); },
-  }, { filterToShare: false });
-  const bridge = loaded.createMysqlOutboxToInboxBridgeHarness({
-    pool: basicPool(), env: ENABLED_ENV, workerId: "bridge-worker-activity-1",
-  });
-  const result = await bridge.runOnce({ limit: 1 });
-  assert.deepEqual(claimCalls, [
-    ["task.event.recorded.v1", 1],
-    ["activity.enrollment.confirmed.v1", 1],
-  ]);
-  assert.equal(result.claimedCount, 1);
-  assert.equal(received.length, 1);
-  assert.equal(received[0].eventType, "activity.enrollment.confirmed.v1");
-  assert.equal(received[0].payload.transition, "CONFIRMED");
-  assert.deepEqual(completed, [claim.outboxEventId]);
 });
 
 test("unsupported CHECKIN or another topic is never received, completed, or failed even if an Adapter violates claim scope", async () => {
@@ -604,93 +418,6 @@ test("recoverOnce is constrained by the same branded Registration and cannot acc
   );
 });
 
-test("canceled and Settlement successor scopes run while one failed scope cannot head-of-line block the others", async () => {
-  const calls = { claimTypes: [], recoverTypes: [], receive: 0, complete: 0, fail: 0 };
-  const claims = new Map([
-    ["task.event.recorded.v1", shareClaim()],
-    ["activity.enrollment.confirmed.v1", activityConfirmedClaim()],
-    ["activity.enrollment.canceled.v1", activityCanceledClaim()],
-    ["task.source_invalidated.v1", sourceInvalidatedClaim()],
-  ]);
-  const loaded = loadBridge({
-    async claimRegistered(registration) {
-      const eventType = registration.descriptor.eventType;
-      calls.claimTypes.push(eventType);
-      return claims.has(eventType) ? [claims.get(eventType)] : [];
-    },
-    async recoverExpiredRegistered(registration) {
-      calls.recoverTypes.push(registration.descriptor.eventType);
-      return [];
-    },
-    async completeOwned() { calls.complete += 1; return { status: "SUCCEEDED" }; },
-    async failOwned() { calls.fail += 1; return { status: "RETRY_PENDING" }; },
-  }, {
-    async receive(envelope) {
-      calls.receive += 1;
-      if (envelope.eventType === "activity.enrollment.canceled.v1") {
-        const error = new Error("canceled partition retry");
-        error.code = "INBOX_CORE_PERSISTENCE_FAILED";
-        throw error;
-      }
-      return receipt(envelope, true);
-    },
-  }, { filterToShare: false });
-  const connection = {
-    async execute(sql) {
-      if (String(sql).startsWith("SET SESSION")) return [{ affectedRows: 0 }, []];
-      return [inspectRows(sql, EMPTY_SCOPE_INSPECT), []];
-    },
-    async beginTransaction() {},
-    async rollback() {},
-    release() {},
-    destroy() {},
-  };
-  const bridge = loaded.createMysqlOutboxToInboxBridgeHarness({
-    pool: { async getConnection() { return connection; } },
-    env: ENABLED_ENV,
-    workerId: "bridge-worker-gate-1",
-  });
-  const run = await bridge.runOnce({ limit: 4 });
-  assert.equal(run.claimedCount, 4);
-  assert.equal(run.outboxCompletedCount, 3);
-  assert.equal(run.retryScheduledCount, 1);
-  assert.deepEqual(calls.claimTypes, [
-    "task.event.recorded.v1",
-    "activity.enrollment.confirmed.v1",
-    "activity.enrollment.canceled.v1",
-    "task.source_invalidated.v1",
-  ]);
-  assert.deepEqual(calls, {
-    claimTypes: [
-      "task.event.recorded.v1",
-      "activity.enrollment.confirmed.v1",
-      "activity.enrollment.canceled.v1",
-      "task.source_invalidated.v1",
-    ],
-    recoverTypes: [],
-    receive: 4,
-    complete: 3,
-    fail: 1,
-  });
-
-  assert.deepEqual(await bridge.recoverOnce({ limit: 4 }), {
-    enabled: true,
-    recoveredCount: 0,
-    retryPendingCount: 0,
-    deadLetteredCount: 0,
-  });
-  assert.deepEqual(calls.recoverTypes.sort(), [
-    "activity.enrollment.canceled.v1",
-    "activity.enrollment.confirmed.v1",
-    "task.event.recorded.v1",
-    "task.source_invalidated.v1",
-  ]);
-
-  const inspection = await bridge.inspect();
-  assert.equal(inspection.mismatch.successorUnavailableActive, 0);
-  assert.deepEqual(inspection.readiness, { ready: true, reasonCode: "BRIDGE_SCOPE_READY" });
-});
-
 test("inspect returns only aggregate lag, mismatch, and kill-switch evidence without payload output", async () => {
   const calls = [];
   const connection = {
@@ -779,9 +506,6 @@ test("companion SQL has independent source and self-claimed anchors for active, 
   assert.match(deadClaimAnchor, /dead\.source_name = 'myroot-api'/);
   assert.match(deadClaimAnchor, /dead\.event_type = 'task\.event\.recorded\.v1'/);
   assert.match(deadClaimAnchor, /dead\.partition_key LIKE 'task_event:%'/);
-  assert.match(deadClaimAnchor, /dead\.source_name = 'myroot-task-projection'/);
-  assert.match(deadClaimAnchor, /dead\.event_type = 'task\.source_invalidated\.v1'/);
-  assert.match(deadClaimAnchor, /dead\.partition_key LIKE 'task_source_invalidation:%'/);
   assert.match(deadClaimAnchor, /COALESCE\(/);
   assert.match(deadClaimAnchor, /dead_source\.outbox_event_id IS NULL/);
   assert.match(deadClaimAnchor, /dead_source\.status <> 'DEAD_LETTER'/);

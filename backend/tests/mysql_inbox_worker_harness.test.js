@@ -75,9 +75,6 @@ function createPool(options = {}) {
             if (values.includes("task.event.recorded.v1")) {
               return [[options.inspectRow || INSPECT_ROW], []];
             }
-            if (values.includes("activity.enrollment.canceled.v1")) {
-              return [[options.blockedInspectRow || EMPTY_INSPECT_ROW], []];
-            }
             return [[EMPTY_INSPECT_ROW], []];
           }
           if (/r\.status = 'CLAIMED'/.test(sql)) {
@@ -143,7 +140,7 @@ test("production construction fixes the explicit runnable registrations and expo
   });
   assert.deepEqual(Object.keys(harness).sort(), ["inspect", "recoverOnce", "runOnce"]);
   assert.equal(Object.isFrozen(harness), true);
-  assert.equal(coreConstructions.length, 4);
+  assert.equal(coreConstructions.length, 1);
   assert.deepEqual({
     consumerName: coreConstructions[0].consumerName,
     handlerVersion: coreConstructions[0].handlerVersion,
@@ -278,78 +275,6 @@ test("an absent discovery result blocks gap or stale candidates before Core invo
     noOpCount: 0,
   });
   assert.deepEqual(nextCore.calls, []);
-});
-
-test("a failed canceled partition cannot head-of-line block SHARE or its Settlement successor", async () => {
-  const pool = createPool({
-    runRowsByEventType: {
-      "task.event.recorded.v1": [scopeRow()],
-      "activity.enrollment.canceled.v1": [{
-        source_name: "myroot-api",
-        partition_key: "activity_task_assignment:canceled-worker-1",
-        partition_position: 2,
-      }],
-      "task.source_invalidated.v1": [{
-        source_name: "myroot-task-projection",
-        partition_key: "task_source_invalidation:worker-1",
-        partition_position: 1,
-      }],
-    },
-  });
-  nextCore = createCore({
-    async claimNext(scope) {
-      this.calls.push(["claimNext", scope]);
-      return [{
-        receiptId: `receipt-${scope.partitionKey}`,
-        partitionKey: scope.partitionKey,
-        attemptCount: 1,
-        maxAttempts: 5,
-      }];
-    },
-    async completeOwned(claim) {
-      this.calls.push(["completeOwned", claim]);
-      if (claim.partitionKey.includes("canceled-worker")) throw new Error("retry canceled");
-      return { status: "SUCCEEDED" };
-    },
-  });
-  const harness = createMysqlInboxWorkerHarness({ pool, env: ENABLED_ENV });
-  assert.deepEqual(await harness.runOnce({ limit: 10 }), {
-    discoveredScopeCount: 3,
-    claimedCount: 3,
-    succeededCount: 2,
-    retryScheduledCount: 1,
-    noOpCount: 0,
-  });
-  assert.equal(nextCore.calls.filter((entry) => entry[0] === "claimNext").length, 3);
-  assert.equal(nextCore.calls.filter((entry) => entry[0] === "completeOwned").length, 3);
-  assert.equal(nextCore.calls.filter((entry) => entry[0] === "failOwned").length, 1);
-  assert.equal(nextCore.calls.some((entry) => (
-    entry[0] === "completeOwned"
-      && entry[1].partitionKey === "task_source_invalidation:worker-1"
-  )), true);
-  const discoveryCalls = pool.telemetry.executes.filter((entry) => /discover_/.test(entry.sql));
-  assert.equal(discoveryCalls.length, 4);
-  assert.equal(discoveryCalls.some((entry) => (
-    entry.values.includes("activity.enrollment.canceled.v1")
-  )), true);
-  assert.equal(discoveryCalls.some((entry) => (
-    entry.values.includes("task.source_invalidated.v1")
-  )), true);
-
-  assert.deepEqual(await harness.recoverOnce({ limit: 10 }), {
-    discoveredScopeCount: 0,
-    recoveredCount: 0,
-    retryPendingCount: 0,
-    deadLetterCount: 0,
-    noOpCount: 0,
-  });
-  assert.equal(pool.telemetry.executes
-    .filter((entry) => /discover_/.test(entry.sql))
-    .some((entry) => entry.values.includes("activity.enrollment.canceled.v1")), true);
-
-  const inspection = await harness.inspect();
-  assert.equal(inspection.successorUnavailableHeadCount, 0);
-  assert.equal(inspection.statusCounts.received, 2);
 });
 
 test("inspect returns aggregate counts only and never selects persisted content", async () => {

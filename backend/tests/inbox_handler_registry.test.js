@@ -144,7 +144,7 @@ test("production Registry exposes an exact frozen Interface with deterministic e
     manifest.assemblySourcePaths,
     sourceReader
   ));
-  assert.equal(description.handlerCount, 4);
+  assert.equal(description.handlerCount, 1);
 
   const registration = assertResolvedInboxHandlerRegistration(registry.assertScope(RESOLVE_INPUT));
   const descriptor = registration.descriptor;
@@ -420,13 +420,10 @@ test("standalone validator reads back all production handlers and authorized sou
   const result = validateProductionInboxHandlerRegistry();
   assert.equal(result.status, "PASS");
   assert.equal(result.scope, "PRODUCTION");
-  assert.equal(result.handlerCount, 4);
-  assert.equal(result.sourceCount, 4);
+  assert.equal(result.handlerCount, 1);
+  assert.equal(result.sourceCount, 1);
   assert.deepEqual(result.handlers.map((handler) => handler.handlerId), [
     "task-share-completion-projection-v1",
-    "activity-enrollment-confirmed-task-v1",
-    "activity-enrollment-canceled-task-v1",
-    "task-source-invalidation-settlement-v1",
   ]);
   result.sources.forEach((source) => {
     assert.deepEqual(source.dependencies, ["node:crypto"]);

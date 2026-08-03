@@ -9,17 +9,6 @@ const SNAPSHOT_PROJECTION_AUTHORITY_TABLES = new Set([
   "event_dead_letter",
   "consumer_checkpoint",
 ]);
-const HANDLER_OWNED_MANUAL_REVIEW_SOURCE_TYPES = Object.freeze([
-  "TASK_SOURCE_INVALIDATION",
-]);
-
-function handlerOwnedManualReviewSourceType(value) {
-  if (typeof value !== "string") return false;
-  const key = value.trimEnd().normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
-  return HANDLER_OWNED_MANUAL_REVIEW_SOURCE_TYPES.some((sourceType) => (
-    sourceType.toLowerCase() === key
-  ));
-}
 
 function assertSnapshotProjectionRegistrySafe(projections) {
   const forbidden = Array.isArray(projections)
@@ -32,22 +21,6 @@ function assertSnapshotProjectionRegistrySafe(projections) {
       `Snapshot projections cannot own command/event authority tables: ${Array.from(new Set(forbidden)).join(", ")}`
     );
     error.code = "MYSQL_SNAPSHOT_PROJECTION_AUTHORITY_TABLE_FORBIDDEN";
-    throw error;
-  }
-  const invalidPreservation = Array.isArray(projections)
-    && projections.some((projection) => (
-      projection
-      && projection.preservedSourceTypes !== undefined
-      && (projection.table !== "manual_review_item"
-        || !Array.isArray(projection.preservedSourceTypes)
-        || projection.preservedSourceTypes.length === 0
-        || projection.preservedSourceTypes.some((sourceType) => (
-          !HANDLER_OWNED_MANUAL_REVIEW_SOURCE_TYPES.includes(sourceType)
-        )))
-    ));
-  if (invalidPreservation) {
-    const error = new Error("Snapshot projection preservation is invalid");
-    error.code = "MYSQL_SNAPSHOT_PROJECTION_PRESERVATION_INVALID";
     throw error;
   }
   return true;
@@ -235,7 +208,7 @@ const PROJECTIONS = [
       "authorization_verified_at",
       "withdraw_owner_signer_ref", "withdraw_reason", "archive_owner_signer_ref", "archive_reason",
       "source", "visibility",
-      "member_requirement", "prebound_task_definition_id", "prebound_task_definition_version",
+      "member_requirement",
       "published_at", "created_at", "updated_at",
     ],
   },
@@ -346,13 +319,6 @@ const PROJECTIONS = [
     table: "manual_review_item",
     source: "manualReviewItems",
     id: "manual_review_item_id",
-    rows(data) {
-      const rows = Array.isArray(data.manualReviewItems) ? data.manualReviewItems : [];
-      return rows.filter((row) => (
-        row && !handlerOwnedManualReviewSourceType(row.source_type)
-      ));
-    },
-    preservedSourceTypes: HANDLER_OWNED_MANUAL_REVIEW_SOURCE_TYPES,
     columns: ["manual_review_item_id", "root_user_id", "campaign_id", "review_type", "source_type", "source_id", "reason", "status", "priority", "metadata", "idempotency_key", "operator_id", "resolved_at", "resolution", "created_at", "updated_at"],
   },
 ];
@@ -423,28 +389,14 @@ async function upsertProjection(connection, projection, rows) {
 
 async function deleteStaleProjection(connection, projection, rows) {
   const ids = rows.map((row) => row[projection.id]);
-  const preservedSourceTypes = Array.isArray(projection.preservedSourceTypes)
-    ? projection.preservedSourceTypes
-    : [];
-  const ownershipSql = preservedSourceTypes.length
-    ? `(\`source_type\` IS NULL OR \`source_type\` NOT IN (${preservedSourceTypes.map(() => "?").join(", ")}))`
-    : "";
-  const ownershipValues = [...preservedSourceTypes];
   if (!ids.length) {
-    if (ownershipSql) {
-      await connection.execute(
-        `DELETE FROM \`${projection.table}\` WHERE ${ownershipSql}`,
-        ownershipValues
-      );
-    } else {
-      await connection.query(`DELETE FROM \`${projection.table}\``);
-    }
+    await connection.query(`DELETE FROM \`${projection.table}\``);
     return;
   }
   const placeholders = ids.map(() => "?").join(", ");
   await connection.execute(
-    `DELETE FROM \`${projection.table}\` WHERE ${ownershipSql ? `${ownershipSql} AND ` : ""}\`${projection.id}\` NOT IN (${placeholders})`,
-    [...ownershipValues, ...ids]
+    `DELETE FROM \`${projection.table}\` WHERE \`${projection.id}\` NOT IN (${placeholders})`,
+    ids
   );
 }
 

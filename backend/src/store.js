@@ -19,12 +19,6 @@ const {
   markRecipientBindingUnverified,
   validateRecipientBindingCollection,
 } = require("./wechatRecipientBinding");
-const {
-  createMysqlSettlementSourceInvalidationReadAdapter,
-} = require("./settlementSourceInvalidationReadAdapter");
-const {
-  createMysqlSettlementSourceInvalidationResolveAdapter,
-} = require("./settlementSourceInvalidationResolveAdapter");
 const { runtimeAlertDeliveryMode } = require("./v1RuntimeAlertPayloadAdapter");
 
 const SQLITE_SCHEMA_VERSION = 1;
@@ -34,81 +28,6 @@ const MYSQL_STORE_KEY = "root-checkin";
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
-}
-
-const SETTLEMENT_AUTHORITY_COLLECTIONS = Object.freeze([
-  Object.freeze({ key: "settlementRecords", id: "settlement_record_id" }),
-]);
-
-function settlementAuthorityScopes(before, after) {
-  const scopes = new Map();
-  for (const collection of SETTLEMENT_AUTHORITY_COLLECTIONS) {
-    const beforeRows = Array.isArray(before && before[collection.key])
-      ? before[collection.key]
-      : [];
-    const afterRows = Array.isArray(after && after[collection.key])
-      ? after[collection.key]
-      : [];
-    const indexRows = (rows) => {
-      const indexed = new Map();
-      for (const row of rows) {
-        const id = row && row[collection.id];
-        if (typeof id !== "string" || !id.trim()
-          || id !== id.trim() || id.length > 128
-          || /[\u0000-\u001f\u007f]/.test(id)
-          || indexed.has(id)) {
-          const error = new Error("Settlement authority collection identity is invalid");
-          error.code = "SETTLEMENT_SOURCE_INVALIDATION_READ_SCOPE_INVALID";
-          error.status = 503;
-          throw error;
-        }
-        indexed.set(id, row);
-      }
-      return indexed;
-    };
-    const beforeById = indexRows(beforeRows);
-    const afterById = indexRows(afterRows);
-    const ids = new Set([...beforeById.keys(), ...afterById.keys()]);
-    for (const id of ids) {
-      const previous = beforeById.get(id) || null;
-      const current = afterById.get(id) || null;
-      if (JSON.stringify(previous) === JSON.stringify(current)) continue;
-      for (const row of [previous, current].filter(Boolean)) {
-        const rootUserId = row.root_user_id;
-        const campaignId = row.campaign_id;
-        if (typeof rootUserId !== "string" || !rootUserId.trim()
-          || rootUserId !== rootUserId.trim() || rootUserId.length > 32
-          || typeof campaignId !== "string" || !campaignId.trim()
-          || campaignId !== campaignId.trim() || campaignId.length > 64) {
-          const error = new Error("Settlement authority scope is invalid");
-          error.code = "SETTLEMENT_SOURCE_INVALIDATION_READ_SCOPE_INVALID";
-          error.status = 503;
-          throw error;
-        }
-        scopes.set(`${rootUserId}\0${campaignId}`, { rootUserId, campaignId });
-      }
-    }
-  }
-  return [...scopes.values()].sort((left, right) => Buffer.compare(
-    Buffer.from(`${left.rootUserId}\0${left.campaignId}`, "utf8"),
-    Buffer.from(`${right.rootUserId}\0${right.campaignId}`, "utf8")
-  ));
-}
-
-function assertSettlementAuthorityAvailable(candidates) {
-  const rows = Array.isArray(candidates) ? candidates : [];
-  if (rows.some((row) => row.review_type === "SETTLEMENT_STOP_CANDIDATE")) {
-    const error = new Error("活动任务来源已取消，本次结算已停止");
-    error.code = "SETTLEMENT_SOURCE_INVALIDATED";
-    error.status = 409;
-    throw error;
-  }
-  if (rows.length > 0) {
-    const error = new Error("原结算需通过追加调整流程复核，不能自动重算或覆盖");
-    error.code = "SETTLEMENT_RECALCULATION_REQUIRED";
-    error.status = 409;
-    throw error;
-  }
 }
 
 function mergeDefaults(target, defaults) {
@@ -336,11 +255,6 @@ function validateSnapshot(snapshot, options = {}) {
       if (activityVersions.has(identity)) errors.push(`duplicate activity version: ${identity}`);
       activityVersions.add(identity);
       if (definition.activity_version_id) activityVersionIds.add(definition.activity_version_id);
-      const preboundTaskDefinitionId = String(definition.prebound_task_definition_id || "").trim();
-      const preboundTaskDefinitionVersion = String(definition.prebound_task_definition_version || "").trim();
-      if (Boolean(preboundTaskDefinitionId) !== Boolean(preboundTaskDefinitionVersion)) {
-        errors.push(`activity task binding is incomplete: ${definition.activity_version_id || "unknown"}`);
-      }
       if (definition.status === "PUBLISHED") {
         const decisionIdentity = `${definition.publication_authorization_adapter_id || ""}:${definition.publication_authorization_decision_ref || ""}`;
         if (activityPublicationDecisions.has(decisionIdentity)) {
@@ -826,12 +740,6 @@ async function createMysqlStore(config = {}, options = {}) {
     || runtimePrincipalReadinessModule.assertMysqlRuntimePrincipalReadinessStatus;
   const createMysqlNotificationDeliveryCore = dependencies.createMysqlNotificationDeliveryCore
     || notificationDeliveryModule.createMysqlNotificationDeliveryCore;
-  const createSettlementSourceInvalidationReadAdapter = dependencies
-    .createMysqlSettlementSourceInvalidationReadAdapter
-    || createMysqlSettlementSourceInvalidationReadAdapter;
-  const createSettlementSourceInvalidationResolveAdapter = dependencies
-    .createMysqlSettlementSourceInvalidationResolveAdapter
-    || createMysqlSettlementSourceInvalidationResolveAdapter;
   const policyEnvSource = options.env || process.env;
   // Node exposes process.env as a host object whose prototype is not
   // Object.prototype. Internal persistence modules intentionally accept only
@@ -1108,18 +1016,7 @@ async function createMysqlStore(config = {}, options = {}) {
         throw error;
       }
       const before = normalizeStoreData(parseMysqlPayload(row.payload_json), options);
-      const sourceInvalidationRead = createSettlementSourceInvalidationReadAdapter(connection);
-      const normalizedRequest = normalizeStoreData(clone(snapshot), options);
-      const normalized = normalizeStoreData(
-        sourceInvalidationRead.prepareSnapshotForPersistence(normalizedRequest),
-        options
-      );
-      const authorityScopes = settlementAuthorityScopes(before, normalized);
-      if (authorityScopes.length > 0) {
-        const currentAuthority = await sourceInvalidationRead
-          .assertCurrentScopesAvailable(before, authorityScopes);
-        assertSettlementAuthorityAvailable(currentAuthority.candidates);
-      }
+      const normalized = normalizeStoreData(clone(snapshot), options);
       const changedKeys = changedCollectionKeys(before, normalized);
       const nextRevision = changedKeys.size ? currentRevision + 1 : currentRevision;
       if (changedKeys.size) await writeSnapshot(connection, normalized, nextRevision);
@@ -1240,8 +1137,6 @@ async function createMysqlStore(config = {}, options = {}) {
         let transactionEventTransport = null;
         let transactionEventTransportFacade = null;
         let transactionCommandIdempotency = null;
-        let settlementSourceInvalidationRead = null;
-        let settlementSourceInvalidationResolve = null;
         let transactionGeneration = 0;
 
         const createEventTransportFacade = (implementation) => {
@@ -1280,13 +1175,6 @@ async function createMysqlStore(config = {}, options = {}) {
           });
           const row = await selectSnapshot(connection, requestOptions.write !== false);
           beforePersisted = normalizeStoreData(parseMysqlPayload(row.payload_json), options);
-          settlementSourceInvalidationRead = createSettlementSourceInvalidationReadAdapter(
-            connection
-          );
-          settlementSourceInvalidationResolve = createSettlementSourceInvalidationResolveAdapter(
-            connection,
-            settlementSourceInvalidationRead
-          );
           before = normalizeStoreData(clone(beforePersisted), options);
           replaceStoreData(data, before, options);
           revision = Number(row.revision || 0);
@@ -1302,24 +1190,7 @@ async function createMysqlStore(config = {}, options = {}) {
 
         const commitCurrentTransaction = async (commitOptions = {}) => {
           const after = adapter.exportSnapshot();
-          if (!settlementSourceInvalidationRead) {
-            const error = new Error("Settlement source invalidation read Adapter is unavailable");
-            error.code = "SETTLEMENT_SOURCE_INVALIDATION_READ_NOT_HYDRATED";
-            throw error;
-          }
-          const afterPersisted = normalizeStoreData(
-            settlementSourceInvalidationRead.prepareSnapshotForPersistence(after),
-            options
-          );
-          const authorityScopes = settlementAuthorityScopes(
-            beforePersisted,
-            afterPersisted
-          );
-          if (authorityScopes.length > 0) {
-            const currentAuthority = await settlementSourceInvalidationRead
-              .assertCurrentScopesAvailable(beforePersisted, authorityScopes);
-            assertSettlementAuthorityAvailable(currentAuthority.candidates);
-          }
+          const afterPersisted = normalizeStoreData(after, options);
           const changedKeys = changedCollectionKeys(beforePersisted, afterPersisted);
           if (commitOptions.commandClaimOnly === true) {
             if (changedKeys.size) throw commandClaimCheckpointDirty();
@@ -1346,7 +1217,6 @@ async function createMysqlStore(config = {}, options = {}) {
           transactionEventTransport = null;
           if (transactionCommandIdempotency) transactionCommandIdempotency.discard();
           transactionCommandIdempotency = null;
-          settlementSourceInvalidationResolve = null;
           revision = nextRevision;
           replaceStoreData(data, afterPersisted, options);
           before = normalizeStoreData(clone(afterPersisted), options);
@@ -1431,39 +1301,6 @@ async function createMysqlStore(config = {}, options = {}) {
             checkpoint,
             resume,
             commandRecovery,
-            settlementSourceInvalidationRead: Object.freeze({
-              async loadScopes(scopes) {
-                if (!transactionActive || awaitingResume
-                  || !settlementSourceInvalidationRead) {
-                  const error = new Error(
-                    "Settlement source invalidation read requires an active transaction"
-                  );
-                  error.code = "SETTLEMENT_SOURCE_INVALIDATION_READ_NOT_ACTIVE";
-                  throw error;
-                }
-                const hydrated = await settlementSourceInvalidationRead
-                  .hydrateRequestState(data, scopes);
-                replaceStoreData(data, hydrated.data, options);
-                before = normalizeStoreData(clone(hydrated.data), options);
-                return Object.freeze({
-                  candidateCount: hydrated.candidateCount,
-                  loadedScopeCount: hydrated.loadedScopeCount,
-                });
-              },
-            }),
-            settlementSourceInvalidationResolve: Object.freeze({
-              async resolve(input) {
-                if (!transactionActive || awaitingResume
-                  || !settlementSourceInvalidationResolve) {
-                  const error = new Error(
-                    "Settlement source invalidation resolution requires an active transaction"
-                  );
-                  error.code = "SETTLEMENT_SOURCE_RESOLUTION_NOT_ACTIVE";
-                  throw error;
-                }
-                return settlementSourceInvalidationResolve.resolve(beforePersisted, input);
-              },
-            }),
             get eventTransport() {
               return transactionEventTransportFacade;
             },
@@ -1484,7 +1321,6 @@ async function createMysqlStore(config = {}, options = {}) {
             transactionEventTransport = null;
             if (transactionCommandIdempotency) transactionCommandIdempotency.discard();
             transactionCommandIdempotency = null;
-            settlementSourceInvalidationResolve = null;
             replaceStoreData(data, beforePersisted, options);
             lastError = "";
             return result;
@@ -1502,7 +1338,6 @@ async function createMysqlStore(config = {}, options = {}) {
           transactionEventTransport = null;
           if (transactionCommandIdempotency) transactionCommandIdempotency.discard();
           transactionCommandIdempotency = null;
-          settlementSourceInvalidationResolve = null;
           if (beforePersisted) replaceStoreData(data, beforePersisted, options);
           if (phase === "store" || rollbackError) lastError = (rollbackError || error).message;
           throw error;

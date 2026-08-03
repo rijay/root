@@ -3,10 +3,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const taskShareCompletionProjectionV1 = require("./inboxHandlers/taskShareCompletionProjectionV1");
-const activityEnrollmentTaskProjectionV1 = require("./inboxHandlers/activityEnrollmentTaskProjectionV1");
-const taskSourceInvalidationSettlementV1 = require(
-  "./inboxHandlers/taskSourceInvalidationSettlementV1"
-);
 
 const REPOSITORY_ROOT = path.resolve(__dirname, "..", "..");
 const DEFAULT_MANIFEST_PATH = path.join(
@@ -33,13 +29,6 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 
 const PRODUCTION_IMPLEMENTATIONS = Object.freeze({
   "task-share-completion-projection-v1": taskShareCompletionProjectionV1,
-  "activity-enrollment-confirmed-task-v1": Object.freeze({
-    apply: activityEnrollmentTaskProjectionV1.apply,
-    verify: activityEnrollmentTaskProjectionV1.verify,
-    outboxBuilders: Object.freeze({}),
-  }),
-  "activity-enrollment-canceled-task-v1": activityEnrollmentTaskProjectionV1,
-  "task-source-invalidation-settlement-v1": taskSourceInvalidationSettlementV1,
 });
 
 function registryError(code = "INBOX_HANDLER_REGISTRY_INVALID") {

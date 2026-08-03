@@ -2016,10 +2016,6 @@ function createApp(options = {}) {
         transactionCheckpoint: transactionControl.checkpoint,
         transactionResume: transactionControl.resume,
         commandRecovery: transactionControl.commandRecovery,
-        settlementSourceInvalidationRead:
-          transactionControl.settlementSourceInvalidationRead,
-        settlementSourceInvalidationResolve:
-          transactionControl.settlementSourceInvalidationResolve,
         getEventTransport: () => transactionControl.eventTransport,
         eventTransport: transactionControl.eventTransport,
       });

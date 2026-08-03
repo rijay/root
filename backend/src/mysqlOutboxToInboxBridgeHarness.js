@@ -267,14 +267,9 @@ SELECT (
   WHERE dead.direction = 'OUTBOX'
     AND dead.status = 'OPEN'
     AND (
-      (dead.source_name = 'myroot-api' AND (
-        (dead.event_type = 'task.event.recorded.v1' AND dead.partition_key LIKE 'task_event:%')
-        OR (dead.event_type IN ('activity.enrollment.confirmed.v1', 'activity.enrollment.canceled.v1')
-            AND dead.partition_key LIKE 'activity_task_assignment:%')
-      ))
-      OR (dead.source_name = 'myroot-task-projection'
-          AND dead.event_type = 'task.source_invalidated.v1'
-          AND dead.partition_key LIKE 'task_source_invalidation:%')
+      dead.source_name = 'myroot-api'
+      AND dead.event_type = 'task.event.recorded.v1'
+      AND dead.partition_key LIKE 'task_event:%'
     )
     AND (
       dead_source.outbox_event_id IS NULL

@@ -56,9 +56,6 @@ function createFakeMysqlRuntime() {
         state.transaction.snapshot = JSON.parse(values[2]);
         return [{ affectedRows: 1 }, []];
       }
-      if (compact.includes("settlement_source_invalidation_read:hydrate")) {
-        return [[], []];
-      }
       if (/^INSERT INTO `outbox_event`/i.test(compact)) {
         state.calls.push("OUTBOX_INSERT");
         return [{ affectedRows: 1 }, []];

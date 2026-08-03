@@ -152,17 +152,6 @@ test("invalid draft input leaves no partially persisted activity version", () =>
   assert.deepEqual(store, before);
 });
 
-test("legacy task binding input is ignored and never enters the Activity Module Interface", () => {
-  const store = data();
-  const draft = activity.upsertDraft(store, draftInput({
-    preboundTaskDefinitionId: "task-after-activity",
-    preboundTaskDefinitionVersion: "task-after-activity-v1",
-  }), { now: T.draft });
-  assert.equal(draft.preboundTaskDefinitionId, undefined);
-  assert.equal(draft.preboundTaskDefinitionVersion, undefined);
-  assert.equal(store.activityDefinitionVersions[0].prebound_task_definition_id, undefined);
-});
-
 test("activity visibility fails closed instead of widening malformed member content to public", () => {
   const store = data();
   assert.throws(

@@ -178,9 +178,6 @@ function fakeMysqlRuntime(options = {}) {
         state.calls.push(sql.includes("FOR UPDATE") ? "SNAPSHOT_LOCK" : "SNAPSHOT_READ");
         return [[{ payload_json: state.payload, updated_at: "2026-07-17 03:00:00.000", revision: 0 }]];
       }
-      if (sql.includes("settlement_source_invalidation_read:hydrate")) {
-        return [[], []];
-      }
       throw new Error(`unexpected execute: ${sql}`);
     },
     async query(sql) {

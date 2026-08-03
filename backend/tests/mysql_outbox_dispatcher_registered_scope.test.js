@@ -2,7 +2,6 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { payloadSnapshot } = require("../src/eventTransport");
-const { buildActivityTaskOutboxEnvelope } = require("../src/activityTaskEventOutbox");
 const { getDefaultInboxHandlerRegistry } = require("../src/inboxHandlerRegistry");
 const { createMysqlOutboxDispatcher } = require("../src/mysqlOutboxDispatcher");
 const { createMysqlOutboxDispatcherAdapter } = require("../src/mysqlOutboxDispatcherAdapter");
@@ -18,17 +17,6 @@ function registration() {
     eventType: "task.event.recorded.v1",
     schemaVersion: "1",
     aggregateType: "TASK_EVENT",
-  });
-}
-
-function activityRegistration(eventType) {
-  return getDefaultInboxHandlerRegistry().assertScope({
-    consumerName: "activity-task-source-projection",
-    handlerVersion: "activity-task-source-v1",
-    sourceName: "myroot-api",
-    eventType,
-    schemaVersion: "1",
-    aggregateType: "ACTIVITY_ENROLLMENT_TASK_SOURCE",
   });
 }
 
@@ -213,45 +201,6 @@ function dispatcherClaim() {
   };
 }
 
-function activityDispatcherClaim(kind) {
-  const confirmed = kind === "CONFIRMED";
-  const row = buildActivityTaskOutboxEnvelope({
-    enrollmentEvent: {
-      activity_enrollment_event_id: confirmed ? "aee-dispatch-confirmed" : "aee-dispatch-canceled",
-      activity_enrollment_id: "ae-dispatch-1",
-      activity_session_id: "as-dispatch-1",
-      root_user_id: "root-dispatch-1",
-      event_sequence: confirmed ? 1 : 2,
-      from_status: confirmed ? "PENDING" : "CONFIRMED",
-      to_status: confirmed ? "CONFIRMED" : "CANCELED",
-      operation: confirmed ? "ENROLL" : "CANCEL",
-      reason_code: confirmed ? null : "USER_CANCELED",
-      occurred_at: confirmed ? "2026-07-18 09:00:00.000" : "2026-07-18 10:00:00.000",
-    },
-    binding: { taskDefinitionId: "task-dispatch-1", taskDefinitionVersion: "v1" },
-  });
-  return {
-    outboxEventId: row.outbox_event_id,
-    leaseOwner: "registered-worker-activity",
-    leaseGeneration: 1,
-    attemptCount: 1,
-    maxAttempts: 5,
-    retryPolicyVersion: "outbox-retry-v1",
-    claimTransitionId: "registered-transition-activity",
-    payloadDigest: row.payload_digest,
-    envelope: {
-      topic: row.topic, eventType: row.event_type, schemaVersion: row.schema_version,
-      sourceName: row.source_name, partitionKey: row.partition_key,
-      partitionPosition: row.partition_position, aggregateType: row.aggregate_type,
-      aggregateId: row.aggregate_id, aggregateVersion: row.aggregate_version,
-      occurredAt: row.occurred_at, producerVersion: row.producer_version,
-      correlationId: row.correlation_id, causationId: row.causation_id,
-      idempotencyKey: row.idempotency_key, dedupeKey: row.dedupe_key,
-      payload: row.payload_json, payloadDigest: row.payload_digest, releaseId: row.release_id,
-    },
-  };
-}
-
 test("Dispatcher registered claim accepts only a branded Registration and exposes no caller-selected scope", async () => {
   const calls = [];
   const expected = dispatcherClaim();
@@ -292,31 +241,6 @@ test("Dispatcher registered claim accepts only a branded Registration and expose
     (error) => error.code === "OUTBOX_DISPATCH_INPUT_INVALID"
   );
   assert.equal(connections, 1);
-});
-
-test("Dispatcher validates both Activity registrations and their exact envelopes", async () => {
-  for (const kind of ["CONFIRMED", "CANCELED"]) {
-    const expected = activityDispatcherClaim(kind);
-    const adapter = { async claimRegistered() { return [expected]; }, discard() {} };
-    const connection = {
-      adapter,
-      async execute() {}, async beginTransaction() {}, async commit() {}, async rollback() {},
-      release() {}, destroy() {},
-    };
-    const dispatcher = createMysqlOutboxDispatcher({
-      pool: { async getConnection() { return connection; } },
-      workerId: expected.leaseOwner,
-      transitionIdFactory: () => expected.claimTransitionId,
-      adapterFactory: (value) => value.adapter,
-    });
-    const eventType = kind === "CONFIRMED"
-      ? "activity.enrollment.confirmed.v1"
-      : "activity.enrollment.canceled.v1";
-    assert.deepEqual(
-      await dispatcher.claimRegistered(activityRegistration(eventType), { limit: 1 }),
-      [expected]
-    );
-  }
 });
 
 test("registered Adapter claim leaves CHECKIN and other topics untouched while incrementing owner/generation/transition fencing", async () => {

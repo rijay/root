@@ -379,7 +379,7 @@ test("pre-existing OUTBOX dead letters and companion drift are orchestration blo
   ]);
 });
 
-test("missing Settlement successor is scope-local and does not starve a runnable cycle", async () => {
+test("a missing registered successor is scope-local and does not starve a runnable cycle", async () => {
   const { module, adapterSet } = foundation({
     bridgeSnapshot: bridgeSnapshot({
       mismatch: {
