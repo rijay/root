@@ -18,6 +18,7 @@ const MAIN_ROUTES = Object.freeze([
 ]);
 
 const SUBPACKAGE_ROUTES = Object.freeze([
+  "subpkg/content/pages/detail/index",
   "subpkg/activity/pages/detail/index",
   "subpkg/activity/pages/enrollments/index",
   "subpkg/profile/pages/about/index",

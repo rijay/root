@@ -134,6 +134,7 @@ function mergeDefaults(target, defaults) {
 
 function createEmptyData() {
   const data = createSeedData();
+  data.formalContentItems = [];
   data.youzanProducts = [];
   data.youzanSkus = [];
   data.campaignProductRelations = [];

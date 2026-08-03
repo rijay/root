@@ -1,7 +1,7 @@
 {
   "navigationStyle": "custom",
-  "disableScroll": true,
   "usingComponents": {
+    "page-navigation": "/components/page-navigation/index",
     "root-wordmark": "/components/root-wordmark/index"
   }
 }

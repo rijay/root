@@ -12,6 +12,12 @@
   ],
   "subPackages": [
     {
+      "root": "subpkg/content",
+      "pages": [
+        "pages/detail/index"
+      ]
+    },
+    {
       "root": "subpkg/activity",
       "pages": [
         "pages/detail/index",
@@ -59,6 +65,10 @@
     ]
   },
   "preloadRule": {
+    "pages/home/index": {
+      "network": "all",
+      "packages": ["subpkg/content"]
+    },
     "pages/activities/index": {
       "network": "all",
       "packages": ["subpkg/activity"]

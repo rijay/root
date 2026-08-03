@@ -1712,6 +1712,26 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.equal(notice.data.releaseId, "0.5.13");
 });
 
+test("formal home content HTTP Interface is public and detail uses the same published item", async (t) => {
+  const server = createApp();
+  const baseUrl = await listen(server);
+  t.after(() => server.close());
+
+  const home = await request(baseUrl, "/api/v1/public/content/home");
+  assert.equal(home.code, 0);
+  assert.equal(home.data.publicationState, "PUBLISHED");
+  assert.equal(home.data.items.length, 2);
+  assert.equal(home.data.items[0].assetState, "DEVELOPMENT_PLACEHOLDER");
+
+  const detail = await request(
+    baseUrl,
+    `/api/v1/public/content/detail?contentId=${encodeURIComponent(home.data.items[0].contentId)}`,
+  );
+  assert.equal(detail.code, 0);
+  assert.equal(detail.data.item.contentId, home.data.items[0].contentId);
+  assert.deepEqual(detail.data.item.lines, home.data.items[0].lines);
+});
+
 test("ready Interface exposes only safe MySQL least-privilege proof", async (t) => {
   const base = createMemoryStore(undefined, { seedSampleData: false });
   const storeAdapter = {

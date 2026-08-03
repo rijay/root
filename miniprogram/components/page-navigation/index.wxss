@@ -30,6 +30,20 @@
   opacity: 0.64;
 }
 
+.page-navigation--light .page-navigation__button {
+  background: rgba(23, 23, 19, 0.72);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.page-navigation--light .page-navigation__back-icon {
+  border-color: #fff;
+}
+
+.page-navigation--light .page-navigation__home-icon,
+.page-navigation--light .page-navigation__home-roof {
+  border-color: #fff;
+}
+
 .page-navigation__back-icon {
   width: 9px;
   height: 9px;

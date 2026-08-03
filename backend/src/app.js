@@ -88,6 +88,7 @@ const {
   getCheckinReminderTemplate,
   getCloudbaseIdentityProbe,
   getHealthConsentStatus,
+  getFormalContentDetail,
   getFormalProfile,
   getPrivacyNotice,
   getProfile,
@@ -130,6 +131,7 @@ const {
   listAdminActivitySessions,
   listConsultationAdvisorAssignments,
   listExternalSampleReviews,
+  listFormalHomeContent,
   listImportBatches,
   listAdminLegacyDeprecationDecisions,
   listAdminYouzanCustomers,
@@ -1298,6 +1300,10 @@ function createApp(options = {}) {
         }));
       }
       if (route === "GET /api/v1/privacy/notice") return ok(res, getPrivacyNotice(runtimeContext));
+      if (route === "GET /api/v1/public/content/home") return ok(res, listFormalHomeContent(data, runtimeContext));
+      if (route === "GET /api/v1/public/content/detail") {
+        return ok(res, getFormalContentDetail(data, url.searchParams.get("contentId"), runtimeContext));
+      }
       if (route === "GET /api/v1/user/state") return ok(res, getUserState(data, token, runtimeContext));
       if (route === "GET /api/v1/privacy/health-consent") return ok(res, getHealthConsentStatus(data, token, runtimeContext));
       if (route === "POST /api/v1/privacy/health-consent") return ok(res, withIdempotency(data, req, () => recordHealthConsentDecision(data, token, body, runtimeContext)));

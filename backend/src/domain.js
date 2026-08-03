@@ -40,6 +40,7 @@ const {
 } = require("./wechatUnionIdAuthority");
 const coupon = require("./coupon");
 const cloudbaseIdentityProbe = require("./cloudbaseIdentityProbe");
+const contentModule = require("./contentModule");
 const csvImport = require("./csvImport");
 const externalAdapterSamples = require("./externalAdapterSamples");
 const externalPlatformAdapters = require("./externalPlatformAdapters");
@@ -846,6 +847,14 @@ function getProfile(data, token) {
 function getFormalProfile(data, token) {
   const user = requireUser(data, token);
   return response(profileModule.read(data, user));
+}
+
+function listFormalHomeContent(data, context = {}) {
+  return response(contentModule.listHome(data, context));
+}
+
+function getFormalContentDetail(data, contentId, context = {}) {
+  return response(contentModule.getDetail(data, contentId, context));
 }
 
 function submitFormalProfile(data, token, body = {}) {
@@ -3345,6 +3354,7 @@ module.exports = {
   getCheckinReminderTemplate,
   getCloudbaseIdentityProbe,
   getHealthConsentStatus,
+  getFormalContentDetail,
   getFormalProfile,
   getPrivacyNotice,
   getProfile,
@@ -3399,6 +3409,7 @@ module.exports = {
   listLegacyDataMigrationDecisions,
   listLegacyDataMigrationExecutions,
   listExternalSampleReviews,
+  listFormalHomeContent,
   listImportBatches,
   listAuditLogs,
   exportImportFailuresCsv,

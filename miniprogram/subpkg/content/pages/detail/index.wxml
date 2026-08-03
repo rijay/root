@@ -1,0 +1,14 @@
+<view class="content-detail" bindtap="handleAction">
+  <page-navigation tone="light" />
+  <block wx:if="{{state === 'ready'}}">
+    <image wx:for="{{item.detailImages}}" wx:key="*this" class="content-detail__image" src="{{item}}" mode="widthFix" />
+    <view wx:if="{{item.detailImages.length === 0}}" class="content-detail__placeholder">
+      <view class="content-detail__wordmark"><root-wordmark tone="light" /></view>
+      <text class="content-detail__asset-state">{{item.assetState}}</text>
+      <text class="content-detail__kicker">{{item.kicker}}</text>
+      <text wx:for="{{item.lines}}" wx:for-item="line" wx:key="*this" class="content-detail__line">{{line}}</text>
+    </view>
+  </block>
+  <view wx:elif="{{state === 'loading'}}" class="content-detail__state">正在读取内容…</view>
+  <view wx:else class="content-detail__state"><text>内容暂时没有读到</text><button catchtap="loadDetail">重新加载</button></view>
+</view>

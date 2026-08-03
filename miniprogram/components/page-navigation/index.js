@@ -3,6 +3,9 @@ function goHome() {
 }
 
 Component({
+  properties: {
+    tone: { type: String, value: "dark" },
+  },
   methods: {
     goBack() {
       const pages = typeof getCurrentPages === "function" ? getCurrentPages() : [];
