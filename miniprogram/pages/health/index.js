@@ -24,10 +24,14 @@ Page({
       ? bootstrap.result.recommendations.map((item, index) => ({
         ...item,
         viewKey: item.scaleVersionId || `${item.title || "assessment"}-${index}`,
-        detail: item.availability === "PUBLISHED"
+        detail: item.latestResult
+          ? `${item.latestResult.levelTitle} · ${item.latestResult.score}/${item.latestResult.maximumScore} 分`
+          : item.availability === "PUBLISHED"
           ? `${item.questionCount} 题 · 约 ${item.estimatedMinutes} 分钟`
           : "继续了解自己的日常状态",
-        statusLabel: item.availability === "PUBLISHED" ? "已为你匹配" : "即将开放",
+        statusLabel: item.latestResult
+          ? "已完成 · 查看结果"
+          : item.availability === "PUBLISHED" ? "已为你匹配" : "即将开放",
       }))
       : [];
     const result = bootstrap && bootstrap.result ? {

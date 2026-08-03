@@ -22,6 +22,8 @@ assert.match(script, /this\.questionGroups/);
 assert.match(view, /评测结果/);
 assert.match(view, /结果用于整理日常状态/);
 assert.match(healthScript, /openRecommendedScale/);
+assert.match(healthScript, /latestResult/);
+assert.match(healthScript, /已完成 · 查看结果/);
 assert.match(healthView, /bindtap="openRecommendedScale"/);
 
 console.log("scale assessment checks passed");

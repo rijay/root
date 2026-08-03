@@ -6,6 +6,7 @@ const assessmentModule = require("./assessmentModule");
 const healthSafetyPolicy = require("./healthSafetyPolicy");
 const lifestyleAdviceModule = require("./lifestyleAdviceModule");
 const healthOperationsModule = require("./healthOperationsModule");
+const healthScaleAssessmentModule = require("./healthScaleAssessmentModule");
 
 const QUESTIONNAIRE_ID = assessmentModule.QUESTIONNAIRE_ID;
 const QUESTIONNAIRE_VERSION = assessmentModule.QUESTIONNAIRE_VERSION;
@@ -56,6 +57,26 @@ function publicResult(row) {
   };
 }
 
+function withLatestScaleResults(data, user, result) {
+  if (!result || !Array.isArray(result.recommendations) || !result.recommendations.length) return result;
+  return {
+    ...result,
+    recommendations: result.recommendations.map((recommendation) => {
+      const latest = healthScaleAssessmentModule.latestResult(data, user, recommendation.scaleVersionId);
+      if (!latest) return recommendation;
+      return {
+        ...recommendation,
+        latestResult: {
+          levelTitle: latest.levelTitle,
+          score: latest.score,
+          maximumScore: latest.maximumScore,
+          completedAt: latest.completedAt,
+        },
+      };
+    }),
+  };
+}
+
 function bootstrap(data, user, profile, consentStatus, context = {}) {
   let age = -1;
   let eligibility = "PROFILE_REQUIRED";
@@ -64,7 +85,8 @@ function bootstrap(data, user, profile, consentStatus, context = {}) {
     eligibility = age >= MINIMUM_AGE ? "ELIGIBLE" : "AGE_RESTRICTED";
   }
   const row = latest(data, user.root_user_id || user.user_id);
-  const result = consentStatus.active ? publicResult(row) : null;
+  const storedResult = consentStatus.active ? publicResult(row) : null;
+  const result = withLatestScaleResults(data, user, storedResult);
   return {
     eligibility,
     minimumAge: MINIMUM_AGE,

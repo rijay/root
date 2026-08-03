@@ -4,6 +4,7 @@ const test = require("node:test");
 const { createApp } = require("../src/app");
 const formalHealthModule = require("../src/formalHealthModule");
 const healthOperations = require("../src/healthOperationsModule");
+const healthScaleAssessment = require("../src/healthScaleAssessmentModule");
 const profileModule = require("../src/profileModule");
 const { createSeedData } = require("../src/seed");
 
@@ -135,7 +136,7 @@ test("Root4U persists versioned scoring only after safety passes", () => {
   assert.equal(submitted.result.recommendations.length, 0);
 });
 
-test("Root4U submission freezes published recommendation versions into the user result", () => {
+test("Root4U submission freezes recommendation versions and dynamically returns completed scale results", () => {
   const { data, user, profile } = fixture();
   const operationsContext = { now: "2026-08-03T08:00:00.000Z", operatorId: "health-publisher" };
   const scaleDraft = healthOperations.saveScaleDraft(data, {
@@ -216,6 +217,29 @@ test("Root4U submission freezes published recommendation versions into the user 
   assert.equal(submitted.result.adviceContentVersionId, "ROOT4U_FIXED_CONTENT_V1");
   assert.equal(submitted.result.adviceMode, "FIXED_ONLY");
   assert.deepEqual(data.questionnaireAnswers[0].answers_json.result.recommendations, submitted.result.recommendations);
+
+  const specialized = healthScaleAssessment.submit(data, user, profile, scale.versionId, {
+    answers: { bowel_rhythm: "variable" },
+    idempotencyKey: "root4u-specialized-result-1",
+  }, {
+    today: "2026-08-03",
+    now: "2026-08-03T08:45:00.000Z",
+  });
+  const refreshed = formalHealthModule.bootstrap(data, user, profile, {
+    active: true,
+    configured: true,
+    required: false,
+  }, {
+    today: "2026-08-03",
+    now: "2026-08-03T09:00:00.000Z",
+  });
+  assert.deepEqual(refreshed.result.recommendations[0].latestResult, {
+    levelTitle: specialized.result.levelTitle,
+    score: specialized.result.score,
+    maximumScore: specialized.result.maximumScore,
+    completedAt: specialized.result.completedAt,
+  });
+  assert.equal(JSON.stringify(refreshed.result.recommendations[0]).includes("answers"), false);
 });
 
 test("Root4U production writes stay closed until explicitly enabled", () => {
