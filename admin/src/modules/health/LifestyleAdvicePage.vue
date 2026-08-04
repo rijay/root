@@ -2,11 +2,11 @@
   <section class="workbench content-workbench health-operations-page health-lifestyle-page">
     <el-alert v-if="errorMessage" :closable="false" :title="errorMessage" type="error" />
     <header class="page-heading">
-      <div><h1>生活方式建议</h1><p>维护生成策略、校验规则、三条轮换与固定降级内容。</p></div>
+      <div><h1>生活方式建议</h1><p>维护首发固定建议策略、校验规则、三条提示与生效版本。</p></div>
       <el-space><el-button :disabled="!previewPath" @click="previewOnline">预览当前线上</el-button><el-button type="primary" @click="createDraft">新建策略</el-button></el-space>
     </header>
     <el-form class="content-filter-bar" inline @submit.prevent>
-      <el-input v-model="filters.keyword" clearable placeholder="搜索策略、提示词或固定 tips" @input="scheduleLoad" />
+      <el-input v-model="filters.keyword" clearable placeholder="搜索策略或固定建议版本" @input="scheduleLoad" />
       <el-select v-model="filters.status" placeholder="全部配置状态" @change="load"><el-option label="全部配置状态" value="" /><el-option label="草稿" value="DRAFT" /><el-option label="已批准" value="APPROVED" /><el-option label="当前生效" value="ACTIVE" /><el-option label="已停用" value="RETIRED" /></el-select>
       <el-select v-model="filters.version" placeholder="当前生效版本" @change="load"><el-option label="全部版本" value="" /><el-option label="当前生效版本" value="ACTIVE" /></el-select>
       <el-button link @click="resetFilters">重置筛选</el-button>
@@ -14,7 +14,7 @@
     <section class="content-table-card health-table-card">
       <el-table v-loading="loading" :data="rows" :empty-text="interfaceUnavailable ? '正式建议策略暂不可用' : '暂无建议策略'" height="510">
         <el-table-column label="序号" width="58"><template #default="{ $index }">{{ sequenceNumber($index) }}</template></el-table-column>
-        <el-table-column label="配置" min-width="250"><template #default="{ row }"><div class="health-row-primary"><span class="health-row-marker" /><span><strong>{{ row.name || '未命名策略' }}</strong><small>{{ row.deliveryLabel || '最少字段 · 三条轮换' }}</small><small>{{ row.validationLabel || '结构、禁用表达与健康安全校验' }}</small></span></div></template></el-table-column>
+        <el-table-column label="配置" min-width="250"><template #default="{ row }"><div class="health-row-primary"><span class="health-row-marker" /><span><strong>{{ row.name || '未命名策略' }}</strong><small>{{ row.deliveryLabel || '规则匹配 · 固定三条' }}</small><small>{{ row.validationLabel || '结构、禁用表达与健康安全校验' }}</small></span></div></template></el-table-column>
         <el-table-column label="版本与用途" min-width="170"><template #default="{ row }"><strong class="table-title">{{ row.versionLabel || '草稿' }} · {{ row.approvalLabel || '待审批' }}</strong><span class="description-meta">{{ row.purposeLabel || '用户生活方式建议' }}</span></template></el-table-column>
         <el-table-column label="生效时间" min-width="136"><template #default="{ row }">{{ row.effectiveAtLabel || '待配置' }}</template></el-table-column>
         <el-table-column label="状态" width="96"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="plain">{{ statusLabel(row.status) }}</el-tag></template></el-table-column>
@@ -23,13 +23,13 @@
       <el-pagination v-if="total > pageSize" v-model:current-page="filters.page" class="content-pagination" :page-size="pageSize" :total="total" layout="prev, pager, next" @current-change="load" />
     </section>
     <el-drawer v-model="drawerVisible" class="content-edit-drawer health-edit-drawer" size="408px" :show-close="true">
-      <template #header><div><h2>{{ draft.id || draft.sourceVersionId ? '编辑建议生成策略' : '新建建议生成策略' }}</h2><p>后台只选择已批准配置，不输入或显示模型密钥。</p></div></template>
+      <template #header><div><h2>{{ draft.id || draft.sourceVersionId ? '编辑固定建议策略' : '新建固定建议策略' }}</h2><p>首发仅使用已批准的固定建议内容，不接入模型。</p></div></template>
       <el-form label-position="top">
         <el-form-item label="策略名称 *"><el-input v-model="draft.name" maxlength="80" /></el-form-item>
-        <el-form-item label="模型配置 *"><el-select v-model="draft.modelConfigurationId" placeholder="选择已批准模型配置"><el-option v-for="item in modelConfigurations" :key="item.id" :label="item.label" :value="item.id" /></el-select><p class="field-help">密钥仅由后端秘密管理；模型不可用时自动使用固定内容。</p></el-form-item>
-        <el-form-item label="最少字段与生成条件 *"><el-input v-model="draft.minimumFieldsSummary" :rows="3" resize="none" type="textarea" placeholder="仅允许分类、辅助标签与量表结果；资料变化时再生成" /></el-form-item>
+        <el-form-item label="建议生成方式 *"><el-select v-model="draft.modelConfigurationId" placeholder="选择首发建议方式"><el-option v-for="item in modelConfigurations" :key="item.id" :label="item.label" :value="item.id" /></el-select><p class="field-help">当前根据评测分类匹配固定内容，不调用模型。</p></el-form-item>
+        <el-form-item label="匹配依据 *"><el-input v-model="draft.minimumFieldsSummary" :rows="3" resize="none" type="textarea" placeholder="依据主分类、辅助标签与评测结果匹配固定建议" /></el-form-item>
         <el-form-item label="输出校验"><div class="typography-controls"><el-select v-model="draft.structureCheck"><el-option label="结构检查" value="REQUIRED" /></el-select><el-select v-model="draft.prohibitedLanguageCheck"><el-option label="禁用表达" value="REQUIRED" /></el-select><el-select v-model="draft.healthSafetyCheck"><el-option label="健康安全" value="REQUIRED" /></el-select></div></el-form-item>
-        <el-form-item label="固定降级内容 *"><el-select v-model="draft.fallbackContentVersionId" placeholder="选择已批准固定 tips 版本"><el-option v-for="item in fallbackOptions" :key="item.versionId" :label="item.label" :value="item.versionId" /></el-select></el-form-item>
+        <el-form-item label="固定建议内容 *"><el-select v-model="draft.fallbackContentVersionId" placeholder="选择已批准固定建议版本"><el-option v-for="item in fallbackOptions" :key="item.versionId" :label="item.label" :value="item.versionId" /></el-select></el-form-item>
         <el-form-item label="审批与生效"><div class="health-approval-grid"><el-input v-model="draft.approver" placeholder="健康内容负责人" /><el-date-picker v-model="draft.effectiveAt" placeholder="生效时间" type="datetime" value-format="YYYY-MM-DDTHH:mm:ssZ" /></div></el-form-item>
       </el-form>
       <template #footer><el-button @click="drawerVisible = false">取消</el-button><el-button :loading="saving" type="primary" @click="saveDraft">保存草稿</el-button></template>
@@ -43,7 +43,7 @@ import { ElMessage } from "element-plus/es/components/message/index";
 import { ElMessageBox } from "element-plus/es/components/message-box/index";
 import { fetchLifestyleAdvicePolicies, publishLifestyleAdviceVersion, saveLifestyleAdviceDraft } from "./adminHealthApi";
 
-const emptyDraft = () => ({ id: "", sourceVersionId: "", expectedRevision: 0, name: "", modelConfigurationId: "", minimumFieldsSummary: "仅发送分类、辅助标签与量表结果\n资料或评测结果变化时才重新生成", structureCheck: "REQUIRED", prohibitedLanguageCheck: "REQUIRED", healthSafetyCheck: "REQUIRED", fallbackContentVersionId: "", approver: "", effectiveAt: "" });
+const emptyDraft = () => ({ id: "", sourceVersionId: "", expectedRevision: 0, name: "", modelConfigurationId: "", minimumFieldsSummary: "依据主分类、辅助标签与评测结果匹配固定建议\n首发不调用模型", structureCheck: "REQUIRED", prohibitedLanguageCheck: "REQUIRED", healthSafetyCheck: "REQUIRED", fallbackContentVersionId: "", approver: "", effectiveAt: "" });
 const rows = ref([]), total = ref(0), loading = ref(false), saving = ref(false), drawerVisible = ref(false), interfaceUnavailable = ref(false);
 const modelConfigurations = ref([]), fallbackOptions = ref([]), errorMessage = ref(""), previewPath = ref(""), publishingId = ref("");
 const draft = reactive(emptyDraft()), filters = reactive({ keyword: "", status: "", version: "", page: 1 });

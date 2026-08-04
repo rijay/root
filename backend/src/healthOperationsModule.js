@@ -629,7 +629,7 @@ function lifestyleView(row) {
   return {
     ...versionView(row, row.status === PUBLISHED ? "ACTIVE" : row.status),
     ...content,
-    deliveryLabel: "最少字段 · 三条轮换",
+    deliveryLabel: "规则匹配 · 固定三条",
     validationLabel: "结构、禁用表达与健康安全校验",
     approvalLabel: content.approver || "待审批",
     purposeLabel: "用户生活方式建议",

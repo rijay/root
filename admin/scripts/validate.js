@@ -239,7 +239,7 @@ for (const value of ["题目与选项", "计分与结果分层", "适用与版�
 for (const value of ["主分类", "辅助标签", "不使用手机号、昵称或原始健康答案", "最多 3", "已发布且有效", "确认发布", "expectedRevision", "AbortController"]) {
   assert.equal(recommendationPage.includes(value), true, `recommendation page must include ${value}`);
 }
-for (const value of ["模型配置", "不输入或显示模型密钥", "最少字段", "三条轮换", "固定降级内容", "健康安全", "确认发布", "expectedRevision", "AbortController"]) {
+for (const value of ["建议生成方式", "不接入模型", "匹配依据", "固定三条", "固定建议内容", "健康安全", "确认发布", "expectedRevision", "AbortController"]) {
   assert.equal(lifestylePage.includes(value), true, `lifestyle page must include ${value}`);
 }
 for (const [name, source] of [["initialization", initializationPage], ["scale", scalePage], ["recommendation", recommendationPage], ["lifestyle", lifestylePage]]) {
