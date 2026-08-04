@@ -10,6 +10,7 @@ const {
   aggregateBrowserEvidence,
   aggregateQueryEvidence,
   evaluateMetric,
+  parseArgs,
   percentile,
 } = require("../../scripts/admin-performance-report.js");
 const adminRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -38,6 +39,11 @@ test("budget evaluation distinguishes target warnings from hard blocks", () => {
   assert.equal(evaluateMetric(101, { target: 100, hardLimit: 120 }).status, "WARN");
   assert.equal(evaluateMetric(121, { target: 100, hardLimit: 120 }).status, "BLOCK");
   assert.equal(percentile([5, 1, 4, 2, 3], 0.75), 4);
+});
+
+test("local rehearsal is explicit and cannot be mistaken for candidate evidence", () => {
+  assert.equal(parseArgs(["--rehearsal"]).evidenceClass, "LOCAL_REHEARSAL");
+  assert.equal(parseArgs(["--candidate"]).evidenceClass, "FORMAL_LAUNCH_CANDIDATE");
 });
 
 test("candidate query and browser evidence only pass with complete bounded samples", () => {

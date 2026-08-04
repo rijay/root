@@ -20,6 +20,17 @@ node scripts/admin-performance-report.js \
 
 `npm run evidence:local:write` 会生成当前构建快照，并把缺失的查询与浏览器证据保持为 `BLOCK`；`npm run evidence:local:check` 校验这些本地证据是否仍与当前构建和 20 个 UED 映射一致。
 
+本地开发可先运行：
+
+```sh
+npm run evidence:admin-query:rehearse
+node scripts/admin-performance-report.js \
+  --rehearsal \
+  --query-events docs/evidence/admin-performance-r0/query-rehearsal-events.json
+```
+
+该命令只启动进程内存储和本机 HTTP 服务，按固定规模采集列表、用户详情、审计与草稿写入各 20 次，不连接候选或生产环境。输出结构可直接被候选报告复用，但其 `environment=local-fixed-fixture`，只能作为 `LOCAL_REHEARSAL` 排障材料，不关闭候选查询 Gate。
+
 ## 判定边界
 
 - 构建通过只说明静态资源未越过硬上限，不等于正式上线性能门禁通过。

@@ -227,6 +227,7 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (value === "--legacy") options.evidenceClass = "LEGACY_NON_GATE_BASELINE";
+    else if (value === "--rehearsal") options.evidenceClass = "LOCAL_REHEARSAL";
     else if (value === "--candidate") options.evidenceClass = "FORMAL_LAUNCH_CANDIDATE";
     else if (value === "--build-gate") options.buildGate = true;
     else if (value === "--dist") options.distRoot = argv[++index];
@@ -265,6 +266,9 @@ function main() {
   if (options.evidenceClass === "LEGACY_NON_GATE_BASELINE") {
     report.warnings.push("旧后台或本地样本不得作为正式上线 Gate 通过证据");
   }
+  if (options.evidenceClass === "LOCAL_REHEARSAL") {
+    report.warnings.push("本地固定夹具仅用于开发排障，不得作为候选或正式上线 Gate 通过证据");
+  }
   const output = `${JSON.stringify(report, null, 2)}\n`;
   if (options.outputPath) fs.writeFileSync(path.resolve(options.outputPath), output, "utf8");
   else process.stdout.write(output);
@@ -288,5 +292,6 @@ module.exports = {
   aggregateQueryEvidence,
   buildAdminPerformanceReport,
   evaluateMetric,
+  parseArgs,
   percentile,
 };

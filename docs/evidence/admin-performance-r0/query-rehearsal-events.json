@@ -1,0 +1,642 @@
+[
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 39.34,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 25.729,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 26.839,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 25.192,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 20.445,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 20.571,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 20.302,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 18.816,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 21.692,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 20.598,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 20.472,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 19.941,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 20.009,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 19.85,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 19.702,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 20.042,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 19.889,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 20.372,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 20.192,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "list",
+    "durationMs": 18.789,
+    "responseBytes": 19020
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 18.146,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 15.604,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 17.593,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 17.368,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 17.673,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 17.094,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 17.12,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 17.288,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 17.351,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 16.907,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 16.875,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 17.144,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 17.347,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 17.189,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 19.822,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 19.7,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 17.396,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 17.292,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 17.606,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "detail",
+    "durationMs": 17.384,
+    "responseBytes": 243
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 31.273,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 28.709,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 28.786,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 29.722,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 30.266,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 38.756,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 29.223,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 27.284,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 27.594,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 27.577,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 27.45,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 28.448,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 30.177,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 27.95,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 28.351,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 28.189,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 28.465,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 28.871,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 29.127,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "audit",
+    "durationMs": 38.078,
+    "responseBytes": 6078
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 36.52,
+    "responseBytes": 1175
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 17.368,
+    "responseBytes": 1175
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 13.939,
+    "responseBytes": 1175
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 14.829,
+    "responseBytes": 1175
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 15.316,
+    "responseBytes": 1175
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 15.425,
+    "responseBytes": 1175
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 15.134,
+    "responseBytes": 1175
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 15.472,
+    "responseBytes": 1175
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 15.02,
+    "responseBytes": 1175
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 15.052,
+    "responseBytes": 1177
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 15.137,
+    "responseBytes": 1177
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 14.978,
+    "responseBytes": 1177
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 15.186,
+    "responseBytes": 1177
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 15.085,
+    "responseBytes": 1177
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 14.946,
+    "responseBytes": 1177
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 15.142,
+    "responseBytes": 1177
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 15.071,
+    "responseBytes": 1177
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 15.25,
+    "responseBytes": 1177
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 15.611,
+    "responseBytes": 1177
+  },
+  {
+    "version": "local-0.5.13",
+    "environment": "local-fixed-fixture",
+    "datasetVersion": "ADMIN_PERFORMANCE_R0",
+    "scenario": "write",
+    "durationMs": 21.215,
+    "responseBytes": 1177
+  }
+]
