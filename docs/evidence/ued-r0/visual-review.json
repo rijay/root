@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-04T08:40:46.957Z",
-  "evidenceClass": "LOCAL_CONTROLLED_VISUAL_REVIEW_PARTIAL",
+  "generatedAt": "2026-08-04T08:59:48.219Z",
+  "evidenceClass": "LOCAL_CONTROLLED_VISUAL_REVIEW_COMPLETE",
   "status": "BLOCK",
   "releaseGateEligible": false,
   "requiredReviewCount": 20,
   "controlledCaptureCount": 20,
-  "completedReviewCount": 5,
-  "referenceExportBlockedCount": 15,
+  "completedReviewCount": 20,
+  "referenceExportBlockedCount": 0,
   "allCanonicalStatesCovered": false,
   "externalGatesRemain": [
     "WECHAT_PRIVACY_AUTHORIZATION",
@@ -24,18 +24,22 @@
         "368:8",
         "368:12"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "390x844",
       "captureClass": "LOCAL_SIMULATOR_DEVELOPMENT_PLACEHOLDER",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/miniprogram/01-welcome-01.png",
         "screenshots/implementation/miniprogram/01-welcome-02.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-368_8.png",
+        "screenshots/reference/design-368_12.png"
+      ],
       "differences": [
         "正式摄影背景尚未进入代码库，本次只验收安全区、文案、轮播指示与跳过按钮。"
       ]
@@ -47,18 +51,22 @@
         "368:55",
         "368:59"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "390x844",
       "captureClass": "LOCAL_MOCKED_STATE",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/miniprogram/02-home.png",
         "screenshots/implementation/miniprogram/02-content-detail.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-368_55.png",
+        "screenshots/reference/design-368_59.png"
+      ],
       "differences": [
         "正式商品与活动摄影素材尚未进入代码库，当前使用开发占位背景。"
       ]
@@ -71,18 +79,23 @@
         "369:47",
         "369:50"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "390x844",
       "captureClass": "LOCAL_SIMULATOR_RUNTIME",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/miniprogram/03-login.png",
         "screenshots/implementation/miniprogram/03-register.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-369_45.png",
+        "screenshots/reference/design-369_47.png",
+        "screenshots/reference/design-369_50.png"
+      ],
       "differences": [
         "微信隐私保护授权弹窗属于平台态，本轮未取得可重复截图。"
       ]
@@ -94,18 +107,22 @@
         "372:7",
         "372:9"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "390x844",
       "captureClass": "LOCAL_MOCKED_STATE",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/miniprogram/04-health-entry.png",
         "screenshots/implementation/miniprogram/04-health-initial-assessment.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_7.png",
+        "screenshots/reference/design-372_9.png"
+      ],
       "differences": [
         "题目态使用本地临时代表数据，不证明候选环境问卷版本或真实用户数据。"
       ]
@@ -117,18 +134,22 @@
         "372:19",
         "372:21"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "390x844",
       "captureClass": "LOCAL_MOCKED_STATE",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/miniprogram/05-health-result.png",
         "screenshots/implementation/miniprogram/05-health-safety.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_19.png",
+        "screenshots/reference/design-372_21.png"
+      ],
       "differences": [
         "结果与安全分流使用本地临时代表数据，不证明真实评分结果或医疗处置。"
       ]
@@ -141,19 +162,24 @@
         "372:150",
         "372:154"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "390x844",
       "captureClass": "LOCAL_MOCKED_STATE",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/miniprogram/06-activities.png",
         "screenshots/implementation/miniprogram/06-activity-detail.png",
         "screenshots/implementation/miniprogram/06-activity-enrollments-guest.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_148.png",
+        "screenshots/reference/design-372_150.png",
+        "screenshots/reference/design-372_154.png"
+      ],
       "differences": [
         "活动卡片与详情使用本地临时代表数据，正式活动摄影与候选环境报名状态仍待验证。"
       ]
@@ -166,19 +192,24 @@
         "372:247",
         "372:249"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "390x844",
       "captureClass": "LOCAL_MOCKED_STATE",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/miniprogram/07-profile.png",
         "screenshots/implementation/miniprogram/07-profile-member.png",
         "screenshots/implementation/miniprogram/07-profile-member-failure.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_245.png",
+        "screenshots/reference/design-372_247.png",
+        "screenshots/reference/design-372_249.png"
+      ],
       "differences": [
         "会员中心失败态为本地临时状态，不证明跨小程序跳转已在真机通过。"
       ]
@@ -191,19 +222,24 @@
         "372:261",
         "372:263"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "390x844",
       "captureClass": "LOCAL_MOCKED_STATE",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/miniprogram/08-about-root.png",
         "screenshots/implementation/miniprogram/08-privacy-account.png",
         "screenshots/implementation/miniprogram/08-account-cancellation.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_259.png",
+        "screenshots/reference/design-372_261.png",
+        "screenshots/reference/design-372_263.png"
+      ],
       "differences": [
         "注销弹层仅验收视觉和文案，不代表注销申请已接入或提交。"
       ]
@@ -214,19 +250,24 @@
       "boardNodes": [
         "372:506"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "1240x820",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/admin/09-release-workbench.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/09-release-workbench.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_506.png"
+      ],
       "differences": [
-        "内存数据为零，未覆盖有草稿、有阻断项和回滚入口的完整状态。"
+        "已覆盖 5 项内容草稿与发布流程；设计示例中的阻断项、定时上线和回滚入口仍需候选环境数据复验。"
       ]
     },
     {
@@ -235,19 +276,24 @@
       "boardNodes": [
         "372:597"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "1240x820",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/admin/10-content-operations.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/10-content-operations.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_597.png"
+      ],
       "differences": [
-        "空表已取证，尚未覆盖欢迎页与首页轮播的代表数据和编辑抽屉。"
+        "已覆盖两条首页轮播与编辑抽屉；图片为受控本地占位素材，不替代正式摄影和候选环境素材尺寸复验。"
       ]
     },
     {
@@ -256,19 +302,24 @@
       "boardNodes": [
         "372:751"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "1240x820",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/admin/11-shared-detail.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/11-shared-detail.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_751.png"
+      ],
       "differences": [
-        "空表已取证，尚未覆盖热点编辑、跨小程序路径和公众号链接的编辑态。"
+        "已覆盖三张页面图、热点选择与路径编辑；当前目标处于待检查态，跨小程序和公众号白名单需候选环境复验。"
       ]
     },
     {
@@ -277,19 +328,24 @@
       "boardNodes": [
         "372:949"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "1240x820",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/admin/12-activity-management.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/12-activity-management.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_949.png"
+      ],
       "differences": [
-        "空表已取证，尚未覆盖正式活动代表数据、场次和编辑抽屉。"
+        "已覆盖两条活动、一个开放场次和编辑抽屉；主视觉仍为受控占位素材，保存发布授权不在本地视觉证据范围内。"
       ]
     },
     {
@@ -298,19 +354,24 @@
       "boardNodes": [
         "372:1100"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "1240x820",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/admin/13-activity-registrations.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/13-activity-registrations.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_1100.png"
+      ],
       "differences": [
-        "空表已取证，尚未覆盖报名审核、导出和状态详情。"
+        "已覆盖待确认与已报名记录以及状态详情抽屉；名单导出和审核写操作未执行。"
       ]
     },
     {
@@ -319,19 +380,24 @@
       "boardNodes": [
         "372:1252"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "1240x820",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/admin/14-health-initialization.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/14-health-initialization.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_1252.png"
+      ],
       "differences": [
-        "12 问列表已取证，尚未覆盖题目编辑抽屉。"
+        "已覆盖完整 12 问列表与安全适用性题目编辑抽屉；候选环境签署版本仍需复验。"
       ]
     },
     {
@@ -340,19 +406,24 @@
       "boardNodes": [
         "372:1403"
       ],
-      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": null,
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "1240x820",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
-      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/admin/15-health-scales.png"
       ],
-      "referenceRefs": [],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/15-health-scales.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_1403.png"
+      ],
       "differences": [
-        "空表已取证，尚未覆盖量表题目、计分规则与发布态。"
+        "已覆盖已发布/草稿两种量表及题目、计分、结果分层编辑态；代表量表为 2 道题，不替代候选内容版本。"
       ]
     },
     {
@@ -363,19 +434,23 @@
       ],
       "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": "2026-08-04T08:34:00.000Z",
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "1240x820",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/admin/16-health-recommendations.png"
       ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/16-health-recommendations.png"
+      ],
       "referenceRefs": [
+        "screenshots/reference/design-372_1554.png",
         "screenshots/reference/372_1550-20260804_162258703.webp"
       ],
       "differences": [
-        "设计基准为有数据加编辑抽屉；实现截图仅覆盖空表，未完成该状态对齐。"
+        "已覆盖两条规则、已发布量表映射和编辑抽屉；实际候选推荐配置仍需版本证据。"
       ]
     },
     {
@@ -386,19 +461,23 @@
       ],
       "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": "2026-08-04T08:34:00.000Z",
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "1240x820",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/admin/17-health-lifestyle.png"
       ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/17-health-lifestyle.png"
+      ],
       "referenceRefs": [
+        "screenshots/reference/design-372_1705.png",
         "screenshots/reference/372_1701-20260804_162258704.webp"
       ],
       "differences": [
-        "设计基准为有数据加编辑抽屉；实现截图仅覆盖空表，未完成该状态对齐。"
+        "已覆盖当前生效与草稿策略、固定降级和校验项编辑抽屉；本地固定建议不证明候选环境配置已发布。"
       ]
     },
     {
@@ -409,19 +488,23 @@
       ],
       "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": "2026-08-04T08:34:00.000Z",
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "1240x820",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/admin/18-user-query.png"
       ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/18-user-query.png"
+      ],
       "referenceRefs": [
+        "screenshots/reference/design-372_1857.png",
         "screenshots/reference/372_1853-20260804_162258705.webp"
       ],
       "differences": [
-        "设计基准包含查询结果与详情抽屉；实现截图仅覆盖查询入口。"
+        "已按批准稿补齐统一列表与详情抽屉；为保留最小化数据 Interface，仍只允许完整手机号精确查询，不提供全量用户列表。"
       ]
     },
     {
@@ -432,19 +515,23 @@
       ],
       "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": "2026-08-04T08:34:00.000Z",
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "1240x820",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/admin/19-operation-audit.png"
       ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/19-operation-audit.png"
+      ],
       "referenceRefs": [
+        "screenshots/reference/design-372_2008.png",
         "screenshots/reference/372_2004-20260804_162258705.webp"
       ],
       "differences": [
-        "已把默认英文空态修正为中文；仍缺有数据列表与审计详情抽屉截图。"
+        "已覆盖两条脱敏审计记录与详情抽屉；代表记录为本地只读投影，不证明候选环境审计完整性。"
       ]
     },
     {
@@ -455,19 +542,23 @@
       ],
       "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T08:34:00.000Z",
-      "reviewedAt": "2026-08-04T08:34:00.000Z",
+      "capturedAt": "2026-08-04T09:08:00.000Z",
+      "reviewedAt": "2026-08-04T09:08:00.000Z",
       "viewport": "1240x820",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/admin/20-publish-confirmation.png"
       ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/20-publish-confirmation.png"
+      ],
       "referenceRefs": [
+        "screenshots/reference/design-372_2239.png",
         "screenshots/reference/372_2155-20260804_162258707.webp"
       ],
       "differences": [
-        "弹窗结构已对齐；内存态无内容版本且小程序预览未完成，确认发布保持禁用。"
+        "已覆盖 5 项内容变更的二次确认弹窗；小程序预览未完成，因此确认发布按规则保持禁用。"
       ]
     }
   ]

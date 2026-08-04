@@ -189,11 +189,13 @@ const activityApi = read("src/modules/activities/adminActivityApi.js");
 const activityPage = read("src/modules/activities/ActivityManagementPage.vue");
 const registrationsPage = read("src/modules/activities/ActivityRegistrationsPage.vue");
 for (const route of [
-  "/api/v1/admin/formal-activities",
+  "/api/v1/admin/activities",
+  "/api/v1/admin/activity-sessions",
   "/api/v1/admin/formal-activities/draft",
   "/api/v1/admin/activity-enrollments/query",
   "/api/v1/admin/activity-enrollments/export",
 ]) assert.equal(activityApi.includes(route), true, `activity query module must include ${route}`);
+assert.equal(activityApi.includes("adminRequest(`/api/v1/admin/formal-activities"), false, "activity reads must not call the retired formal-activities route");
 assert.equal(activityApi.includes("postAdminRead"), true, "activity phone search must avoid URL query logging");
 for (const value of ["活动主视觉", "180KB", "报名规则", "发布共用详情", "报名时段", "AbortController"]) {
   assert.equal(activityPage.includes(value), true, `activity management must include ${value}`);

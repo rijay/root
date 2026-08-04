@@ -193,10 +193,25 @@ const SCREENS = Object.freeze([
   },
 ]);
 
-const CONTROLLED_CAPTURED_AT = "2026-08-04T08:34:00.000Z";
+const CONTROLLED_CAPTURED_AT = "2026-08-04T09:08:00.000Z";
 const miniCapture = (names) => names.map((name) => `screenshots/implementation/miniprogram/${name}`);
 const adminCapture = (name) => [`screenshots/implementation/admin/${name}`];
 const referenceCapture = (name) => [`screenshots/reference/${name}`];
+
+function referenceRefsFor(screen, review) {
+  return [...new Set([
+    ...screen.boardNodes.map((node) => `screenshots/reference/design-${node.replace(":", "_")}.png`),
+    ...(review.referenceRefs || []),
+  ])];
+}
+
+function beforeRefsFor(screen, review) {
+  if (screen.surface !== "ADMIN") return [];
+  return review.screenshotRefs.map((reference) => reference.replace(
+    "screenshots/implementation/admin/",
+    "screenshots/implementation/admin/before/",
+  ));
+}
 
 const CONTROLLED_REVIEWS = Object.freeze({
   welcome: {
@@ -241,68 +256,68 @@ const CONTROLLED_REVIEWS = Object.freeze({
   },
   "admin-release-workbench": {
     screenshotRefs: adminCapture("09-release-workbench.png"),
-    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
-    differences: ["内存数据为零，未覆盖有草稿、有阻断项和回滚入口的完整状态。"],
+    captureClass: "LOCAL_BROWSER_UED_REVIEW_STORE",
+    differences: ["已覆盖 5 项内容草稿与发布流程；设计示例中的阻断项、定时上线和回滚入口仍需候选环境数据复验。"],
   },
   "admin-content-operations": {
     screenshotRefs: adminCapture("10-content-operations.png"),
-    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
-    differences: ["空表已取证，尚未覆盖欢迎页与首页轮播的代表数据和编辑抽屉。"],
+    captureClass: "LOCAL_BROWSER_UED_REVIEW_STORE",
+    differences: ["已覆盖两条首页轮播与编辑抽屉；图片为受控本地占位素材，不替代正式摄影和候选环境素材尺寸复验。"],
   },
   "admin-shared-detail": {
     screenshotRefs: adminCapture("11-shared-detail.png"),
-    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
-    differences: ["空表已取证，尚未覆盖热点编辑、跨小程序路径和公众号链接的编辑态。"],
+    captureClass: "LOCAL_BROWSER_UED_REVIEW_STORE",
+    differences: ["已覆盖三张页面图、热点选择与路径编辑；当前目标处于待检查态，跨小程序和公众号白名单需候选环境复验。"],
   },
   "admin-activities": {
     screenshotRefs: adminCapture("12-activity-management.png"),
-    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
-    differences: ["空表已取证，尚未覆盖正式活动代表数据、场次和编辑抽屉。"],
+    captureClass: "LOCAL_BROWSER_UED_REVIEW_STORE",
+    differences: ["已覆盖两条活动、一个开放场次和编辑抽屉；主视觉仍为受控占位素材，保存发布授权不在本地视觉证据范围内。"],
   },
   "admin-registrations": {
     screenshotRefs: adminCapture("13-activity-registrations.png"),
-    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
-    differences: ["空表已取证，尚未覆盖报名审核、导出和状态详情。"],
+    captureClass: "LOCAL_BROWSER_UED_REVIEW_STORE",
+    differences: ["已覆盖待确认与已报名记录以及状态详情抽屉；名单导出和审核写操作未执行。"],
   },
   "admin-initialization": {
     screenshotRefs: adminCapture("14-health-initialization.png"),
-    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
-    differences: ["12 问列表已取证，尚未覆盖题目编辑抽屉。"],
+    captureClass: "LOCAL_BROWSER_UED_REVIEW_STORE",
+    differences: ["已覆盖完整 12 问列表与安全适用性题目编辑抽屉；候选环境签署版本仍需复验。"],
   },
   "admin-scales": {
     screenshotRefs: adminCapture("15-health-scales.png"),
-    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
-    differences: ["空表已取证，尚未覆盖量表题目、计分规则与发布态。"],
+    captureClass: "LOCAL_BROWSER_UED_REVIEW_STORE",
+    differences: ["已覆盖已发布/草稿两种量表及题目、计分、结果分层编辑态；代表量表为 2 道题，不替代候选内容版本。"],
   },
   "admin-recommendations": {
     screenshotRefs: adminCapture("16-health-recommendations.png"),
     referenceRefs: referenceCapture("372_1550-20260804_162258703.webp"),
-    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
-    differences: ["设计基准为有数据加编辑抽屉；实现截图仅覆盖空表，未完成该状态对齐。"],
+    captureClass: "LOCAL_BROWSER_UED_REVIEW_STORE",
+    differences: ["已覆盖两条规则、已发布量表映射和编辑抽屉；实际候选推荐配置仍需版本证据。"],
   },
   "admin-lifestyle": {
     screenshotRefs: adminCapture("17-health-lifestyle.png"),
     referenceRefs: referenceCapture("372_1701-20260804_162258704.webp"),
-    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
-    differences: ["设计基准为有数据加编辑抽屉；实现截图仅覆盖空表，未完成该状态对齐。"],
+    captureClass: "LOCAL_BROWSER_UED_REVIEW_STORE",
+    differences: ["已覆盖当前生效与草稿策略、固定降级和校验项编辑抽屉；本地固定建议不证明候选环境配置已发布。"],
   },
   "admin-user-query": {
     screenshotRefs: adminCapture("18-user-query.png"),
     referenceRefs: referenceCapture("372_1853-20260804_162258705.webp"),
-    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
-    differences: ["设计基准包含查询结果与详情抽屉；实现截图仅覆盖查询入口。"],
+    captureClass: "LOCAL_BROWSER_UED_REVIEW_STORE",
+    differences: ["已按批准稿补齐统一列表与详情抽屉；为保留最小化数据 Interface，仍只允许完整手机号精确查询，不提供全量用户列表。"],
   },
   "admin-audit": {
     screenshotRefs: adminCapture("19-operation-audit.png"),
     referenceRefs: referenceCapture("372_2004-20260804_162258705.webp"),
-    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
-    differences: ["已把默认英文空态修正为中文；仍缺有数据列表与审计详情抽屉截图。"],
+    captureClass: "LOCAL_BROWSER_UED_REVIEW_STORE",
+    differences: ["已覆盖两条脱敏审计记录与详情抽屉；代表记录为本地只读投影，不证明候选环境审计完整性。"],
   },
   "admin-publish-confirmation": {
     screenshotRefs: adminCapture("20-publish-confirmation.png"),
     referenceRefs: referenceCapture("372_2155-20260804_162258707.webp"),
-    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
-    differences: ["弹窗结构已对齐；内存态无内容版本且小程序预览未完成，确认发布保持禁用。"],
+    captureClass: "LOCAL_BROWSER_UED_REVIEW_STORE",
+    differences: ["已覆盖 5 项内容变更的二次确认弹窗；小程序预览未完成，因此确认发布按规则保持禁用。"],
   },
 });
 
@@ -325,8 +340,17 @@ function validateScreenDefinitions() {
       const expected = screen.surface === "ADMIN" ? [1240, 820] : [602, 1300];
       assert.deepEqual([header.readUInt32BE(16), header.readUInt32BE(20)], expected, `controlled screenshot dimensions invalid: ${reference}`);
     });
-    (review.referenceRefs || []).forEach((reference) => {
-      assert.equal(fs.existsSync(path.join(evidenceRoot, "ued-r0", reference)), true, `Ardot reference screenshot missing: ${reference}`);
+    referenceRefsFor(screen, review).forEach((reference) => {
+      const target = path.join(evidenceRoot, "ued-r0", reference);
+      assert.equal(fs.existsSync(target), true, `Ardot reference screenshot missing: ${reference}`);
+      if (reference.endsWith(".png")) {
+        const header = fs.readFileSync(target).subarray(0, 24);
+        assert.equal(header.subarray(1, 4).toString("ascii"), "PNG", `Ardot reference must be PNG: ${reference}`);
+        assert.equal(header.readUInt32BE(16) > 0 && header.readUInt32BE(20) > 0, true, `Ardot reference dimensions invalid: ${reference}`);
+      }
+    });
+    beforeRefsFor(screen, review).forEach((reference) => {
+      assert.equal(fs.existsSync(path.join(evidenceRoot, "ued-r0", reference)), true, `controlled before screenshot missing: ${reference}`);
     });
   });
 }
@@ -358,18 +382,19 @@ function screenIndex(generatedAt) {
         screenshotStatus: "CONTROLLED_CAPTURE_COMPLETE",
         captureClass: review.captureClass,
         screenshotRefs: review.screenshotRefs,
-        referenceRefs: review.referenceRefs || [],
+        beforeRefs: beforeRefsFor(screen, review),
+        referenceRefs: referenceRefsFor(screen, review),
       };
     }),
   };
 }
 
 function visualReview(generatedAt) {
-  const directComparisons = SCREENS.filter((screen) => (CONTROLLED_REVIEWS[screen.key].referenceRefs || []).length > 0);
+  const directComparisons = SCREENS.filter((screen) => referenceRefsFor(screen, CONTROLLED_REVIEWS[screen.key]).length > 0);
   return {
     schemaVersion: 1,
     generatedAt,
-    evidenceClass: "LOCAL_CONTROLLED_VISUAL_REVIEW_PARTIAL",
+    evidenceClass: "LOCAL_CONTROLLED_VISUAL_REVIEW_COMPLETE",
     status: "BLOCK",
     releaseGateEligible: false,
     requiredReviewCount: SCREENS.length,
@@ -380,7 +405,7 @@ function visualReview(generatedAt) {
     externalGatesRemain: ["WECHAT_PRIVACY_AUTHORIZATION", "REAL_DEVICE_IOS", "REAL_DEVICE_ANDROID", "FORMAL_PHOTOGRAPHY", "CANDIDATE_DATA_STATES"],
     reviews: SCREENS.map((screen) => {
       const review = CONTROLLED_REVIEWS[screen.key];
-      const directlyCompared = (review.referenceRefs || []).length > 0;
+      const directlyCompared = referenceRefsFor(screen, review).length > 0;
       return {
         key: screen.key,
         sectionNode: screen.sectionNode,
@@ -393,7 +418,8 @@ function visualReview(generatedAt) {
         captureClass: review.captureClass,
         referenceStatus: directlyCompared ? "ARDOT_REFERENCE_EXPORTED" : "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
         screenshotRefs: review.screenshotRefs,
-        referenceRefs: review.referenceRefs || [],
+        beforeRefs: beforeRefsFor(screen, review),
+        referenceRefs: referenceRefsFor(screen, review),
         differences: review.differences,
       };
     }),

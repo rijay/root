@@ -307,7 +307,7 @@ function openDetail(row) {
     assets: normalizeAssets(row.assets),
   });
   activeAssetIndex.value = 0;
-  selectedHotspotIndex.value = -1;
+  selectedHotspotIndex.value = detailDraft.assets[0]?.hotspots.length ? 0 : -1;
   mode.value = "editor";
 }
 

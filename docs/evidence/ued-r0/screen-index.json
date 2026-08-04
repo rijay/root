@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-04T08:40:46.957Z",
+  "generatedAt": "2026-08-04T08:59:48.219Z",
   "evidenceClass": "LOCAL_IMPLEMENTATION_MAPPING",
   "releaseGateEligible": false,
   "designSource": {
@@ -38,7 +38,11 @@
         "screenshots/implementation/miniprogram/01-welcome-01.png",
         "screenshots/implementation/miniprogram/01-welcome-02.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-368_8.png",
+        "screenshots/reference/design-368_12.png"
+      ]
     },
     {
       "key": "home-and-shared-detail",
@@ -61,7 +65,11 @@
         "screenshots/implementation/miniprogram/02-home.png",
         "screenshots/implementation/miniprogram/02-content-detail.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-368_55.png",
+        "screenshots/reference/design-368_59.png"
+      ]
     },
     {
       "key": "wechat-login-register",
@@ -86,7 +94,12 @@
         "screenshots/implementation/miniprogram/03-login.png",
         "screenshots/implementation/miniprogram/03-register.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-369_45.png",
+        "screenshots/reference/design-369_47.png",
+        "screenshots/reference/design-369_50.png"
+      ]
     },
     {
       "key": "root4u-entry-assessment",
@@ -109,7 +122,11 @@
         "screenshots/implementation/miniprogram/04-health-entry.png",
         "screenshots/implementation/miniprogram/04-health-initial-assessment.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_7.png",
+        "screenshots/reference/design-372_9.png"
+      ]
     },
     {
       "key": "root4u-result-safety",
@@ -133,7 +150,11 @@
         "screenshots/implementation/miniprogram/05-health-result.png",
         "screenshots/implementation/miniprogram/05-health-safety.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_19.png",
+        "screenshots/reference/design-372_21.png"
+      ]
     },
     {
       "key": "activity-discovery-enrollment",
@@ -159,7 +180,12 @@
         "screenshots/implementation/miniprogram/06-activity-detail.png",
         "screenshots/implementation/miniprogram/06-activity-enrollments-guest.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_148.png",
+        "screenshots/reference/design-372_150.png",
+        "screenshots/reference/design-372_154.png"
+      ]
     },
     {
       "key": "profile-guest-member",
@@ -184,7 +210,12 @@
         "screenshots/implementation/miniprogram/07-profile-member.png",
         "screenshots/implementation/miniprogram/07-profile-member-failure.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_245.png",
+        "screenshots/reference/design-372_247.png",
+        "screenshots/reference/design-372_249.png"
+      ]
     },
     {
       "key": "profile-privacy-account",
@@ -209,7 +240,12 @@
         "screenshots/implementation/miniprogram/08-privacy-account.png",
         "screenshots/implementation/miniprogram/08-account-cancellation.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_259.png",
+        "screenshots/reference/design-372_261.png",
+        "screenshots/reference/design-372_263.png"
+      ]
     },
     {
       "key": "admin-release-workbench",
@@ -226,11 +262,16 @@
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "screenshotRefs": [
         "screenshots/implementation/admin/09-release-workbench.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/09-release-workbench.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_506.png"
+      ]
     },
     {
       "key": "admin-content-operations",
@@ -247,11 +288,16 @@
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "screenshotRefs": [
         "screenshots/implementation/admin/10-content-operations.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/10-content-operations.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_597.png"
+      ]
     },
     {
       "key": "admin-shared-detail",
@@ -267,11 +313,16 @@
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "screenshotRefs": [
         "screenshots/implementation/admin/11-shared-detail.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/11-shared-detail.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_751.png"
+      ]
     },
     {
       "key": "admin-activities",
@@ -287,11 +338,16 @@
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "screenshotRefs": [
         "screenshots/implementation/admin/12-activity-management.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/12-activity-management.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_949.png"
+      ]
     },
     {
       "key": "admin-registrations",
@@ -307,11 +363,16 @@
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "screenshotRefs": [
         "screenshots/implementation/admin/13-activity-registrations.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/13-activity-registrations.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_1100.png"
+      ]
     },
     {
       "key": "admin-initialization",
@@ -327,11 +388,16 @@
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "screenshotRefs": [
         "screenshots/implementation/admin/14-health-initialization.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/14-health-initialization.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_1252.png"
+      ]
     },
     {
       "key": "admin-scales",
@@ -347,11 +413,16 @@
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "screenshotRefs": [
         "screenshots/implementation/admin/15-health-scales.png"
       ],
-      "referenceRefs": []
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/15-health-scales.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_1403.png"
+      ]
     },
     {
       "key": "admin-recommendations",
@@ -367,11 +438,15 @@
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "screenshotRefs": [
         "screenshots/implementation/admin/16-health-recommendations.png"
       ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/16-health-recommendations.png"
+      ],
       "referenceRefs": [
+        "screenshots/reference/design-372_1554.png",
         "screenshots/reference/372_1550-20260804_162258703.webp"
       ]
     },
@@ -389,11 +464,15 @@
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "screenshotRefs": [
         "screenshots/implementation/admin/17-health-lifestyle.png"
       ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/17-health-lifestyle.png"
+      ],
       "referenceRefs": [
+        "screenshots/reference/design-372_1705.png",
         "screenshots/reference/372_1701-20260804_162258704.webp"
       ]
     },
@@ -411,11 +490,15 @@
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "screenshotRefs": [
         "screenshots/implementation/admin/18-user-query.png"
       ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/18-user-query.png"
+      ],
       "referenceRefs": [
+        "screenshots/reference/design-372_1857.png",
         "screenshots/reference/372_1853-20260804_162258705.webp"
       ]
     },
@@ -433,11 +516,15 @@
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "screenshotRefs": [
         "screenshots/implementation/admin/19-operation-audit.png"
       ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/19-operation-audit.png"
+      ],
       "referenceRefs": [
+        "screenshots/reference/design-372_2008.png",
         "screenshots/reference/372_2004-20260804_162258705.webp"
       ]
     },
@@ -455,11 +542,15 @@
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
-      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
       "screenshotRefs": [
         "screenshots/implementation/admin/20-publish-confirmation.png"
       ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/20-publish-confirmation.png"
+      ],
       "referenceRefs": [
+        "screenshots/reference/design-372_2239.png",
         "screenshots/reference/372_2155-20260804_162258707.webp"
       ]
     }
