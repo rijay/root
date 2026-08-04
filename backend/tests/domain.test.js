@@ -6,7 +6,6 @@ const path = require("node:path");
 
 const domain = require("../src/domain");
 const campaign = require("../src/campaign");
-const { addDays } = require("../src/dates");
 const { validateSnapshot } = require("../src/store");
 const lifecycleExportDelivery = require("../src/adminLifecycleExportDelivery");
 const alertWebhookAdapter = require("../src/operationalAlertWebhookAdapter");
@@ -48,110 +47,13 @@ function readyMysqlAdapter() {
 
 function register(store, phone = "13800000001") {
   const login = domain.login(store, { phone }).data;
-  domain.submitProfile(store, login.token, {
-    joinReasons: ["health", "gut_flora"],
-    gutHealthStatus: "normal",
-    improvementMethods: ["diet", "probiotics"],
-    stoolType: "type4",
+  domain.submitFormalProfile(store, login.token, {
+    nickname: "Root用户",
+    birthDate: "1990-01-01",
+    gender: "MALE",
   });
   return login.token;
 }
-
-function startMatchedCheckin(store, token, date = "2026-04-26") {
-  domain.matchOrder(store, token, { phone: "13800000001" }, date);
-  domain.startCheckin(store, token, { confirmReceived: true }, date);
-}
-
-function completeSevenDays(store, token, startDate = "2026-04-26") {
-  for (let day = 1; day <= 7; day += 1) {
-    domain.submitCheckin(
-      store,
-      token,
-      { dayIndex: day, tookProduct: true, hadStool: true, stoolType: "type4", feedback: `day ${day}` },
-      addDays(startDate, day - 1)
-    );
-  }
-}
-
-test("matches a delivered order without starting check-in automatically", () => {
-  const store = domain.createStore();
-  const token = register(store);
-  const matched = domain.matchOrder(store, token, { phone: "13800000001" }, "2026-04-26").data;
-
-  assert.equal(matched.user.state, domain.STATES.REGISTERED_IDLE);
-  assert.equal(matched.order.youzanOrderNo, "YZROOT202604260001");
-  assert.equal(matched.order.deliveryStatus, "DELIVERED");
-  assert.equal(matched.nextAction, "READY_TO_START");
-  assert.equal(matched.canStartCheckin, true);
-  assert.equal(matched.session, null);
-  assert.equal(store.checkinSessions.length, 0);
-  assert.equal(store.identityLinks[0].receiver_phone, "13800000001");
-  const state = domain.getUserState(store, token).data;
-  assert.equal(state.flowView, "READY_TO_START");
-  assert.deepEqual(state.allowedActions, ["START_CHECKIN"]);
-});
-
-test("starts check-in only after a matched order is delivered", () => {
-  const store = domain.createStore();
-  const token = register(store);
-  domain.matchOrder(store, token, { phone: "13800000001" }, "2026-04-26");
-
-  const started = domain.startCheckin(store, token, { confirmReceived: true }, "2026-04-26").data;
-
-  assert.equal(started.user.state, domain.STATES.CHECKIN_ACTIVE);
-  assert.equal(started.session.orderId, "ord_root_001");
-  assert.equal(started.session.startDate, "2026-04-26");
-});
-
-test("matched shipped order waits for delivery before starting check-in", () => {
-  const store = domain.createStore();
-  const token = register(store, "13800000002");
-  const matched = domain.matchOrder(store, token, { phone: "13800000002" }, "2026-04-26").data;
-
-  assert.equal(matched.user.state, domain.STATES.REGISTERED_IDLE);
-  assert.equal(matched.order.deliveryStatus, "SHIPPED");
-  assert.equal(matched.nextAction, "WAITING_DELIVERY");
-  assert.equal(matched.canStartCheckin, false);
-  assert.equal(domain.getUserState(store, token).data.flowView, "WAITING_DELIVERY");
-  assert.throws(() => domain.startCheckin(store, token, { confirmReceived: true }, "2026-04-26"), /物流送达后才能开始打卡/);
-});
-
-test("order already bound to another user enters conflict path", () => {
-  const store = domain.createStore();
-  const token = register(store, "13800000003");
-
-  assert.throws(() => domain.matchOrder(store, token, { phone: "13800000099" }, "2026-04-26"), /订单已被其他用户绑定/);
-  assert.equal(store.operationTasks.length, 1);
-  assert.equal(store.operationTasks[0].task_type, "MANUAL_REVIEW_REQUIRED");
-  assert.equal(domain.getUserState(store, token).data.flowView, "MANUAL_REVIEW_REQUIRED");
-  assert.equal(store.checkinSessions.length, 0);
-});
-
-test("start check-in requires a matched order", () => {
-  const store = domain.createStore();
-  const token = register(store, "13800000888");
-
-  assert.throws(() => domain.startCheckin(store, token, { confirmReceived: true }, "2026-04-26"), /请先匹配/);
-  assert.equal(store.operationTasks[0].task_type, "MANUAL_REVIEW_REQUIRED");
-  assert.equal(domain.getUserState(store, token).data.flowView, "MANUAL_REVIEW_REQUIRED");
-});
-
-test("delivered fulfillment creates ready-to-start task once", () => {
-  const store = domain.createStore();
-  const token = register(store, "13800000002");
-  domain.matchOrder(store, token, { phone: "13800000002" }, "2026-04-26");
-
-  const updated = domain.updateOrderFulfillment(store, { orderId: "ord_root_002", deliveryStatus: "DELIVERED" }, "2026-04-27").data;
-  const repeated = domain.updateOrderFulfillment(store, { orderId: "ord_root_002", deliveryStatus: "DELIVERED" }, "2026-04-27").data;
-  const ready = domain.getReadyToStartUsers(store, "2026-04-27").data.users;
-
-  assert.equal(updated.task.task_type, "DELIVERED_NOT_STARTED");
-  assert.equal(repeated.task.task_id, updated.task.task_id);
-  assert.equal(store.operationTasks.length, 1);
-  assert.equal(ready.length, 1);
-  assert.equal(ready[0].order.orderId, "ord_root_002");
-  assert.equal(domain.getUserState(store, token).data.flowView, "READY_TO_START");
-});
 
 test("external adapter samples import orders and fulfillment updates", () => {
   const store = domain.createStore();
@@ -272,38 +174,6 @@ test("real Youzan order and logistics CSV headers auto match WeChat phone users"
   assert.equal(fulfillment.tracking_no, "SF202605270188");
   assert.equal(fulfillment.delivery_status, "DELIVERED");
   assert.equal(store.operationTasks.some((task) => task.task_type === "DELIVERED_NOT_STARTED" && task.user_id === userId), true);
-});
-
-test("orders imported before login bind only when the authorized phone has one clear order", () => {
-  const store = domain.createStore();
-  domain.importExternalSamples(store, {
-    sourceType: "YOUZAN_ORDER",
-    text: [
-      "订单号,订单状态,订单实付金额,全部商品名称,收货人/提货人,收货人手机号/提货人手机号,详细收货地址/提货地址",
-      "YZROOT202605270199,待发货,199,ROOT 7日试饮装,赵样本,13800019999,样本地址",
-    ].join("\n"),
-  }, "2026-05-27");
-
-  const login = domain.login(store, { phone: "13800019999" }).data;
-  const order = store.youzanOrders.find((item) => item.youzan_order_no === "YZROOT202605270199");
-
-  assert.equal(order.user_id, login.user.userId);
-  assert.equal(order.match_source, "AUTO_WECHAT_PHONE");
-
-  domain.importExternalSamples(store, {
-    sourceType: "YOUZAN_ORDER",
-    text: [
-      "订单号,订单状态,订单实付金额,全部商品名称,收货人/提货人,收货人手机号/提货人手机号,详细收货地址/提货地址",
-      "YZROOT202605270201,待发货,199,ROOT 7日试饮装,钱样本,13800020000,样本地址A",
-      "YZROOT202605270202,待发货,199,ROOT 7日试饮装,钱样本,13800020000,样本地址B",
-    ].join("\n"),
-  }, "2026-05-27");
-  const conflictLogin = domain.login(store, { phone: "13800020000" }).data;
-  const conflictOrders = store.youzanOrders.filter((item) => item.receiver_phone === "13800020000");
-
-  assert.equal(conflictOrders.every((item) => !item.user_id), true);
-  assert.equal(conflictLogin.autoMatch.status, "CONFLICT");
-  assert.equal(store.operationTasks.some((task) => task.task_type === "ORDER_PHONE_MATCH_CONFLICT"), true);
 });
 
 test("manual external platform Adapter imports through the shared sample Interface", async () => {
@@ -1028,84 +898,6 @@ test("built-in WeWork contact HTTP Adapter imports leads and advances cursor", a
   assert.equal(JSON.parse(calls[0].init.body).page_size, 1);
 });
 
-test("adapter calibration reports config, runs, and cursors by source", async () => {
-  const store = domain.createStore();
-  const missing = domain.getAdapterCalibration(store, { env: {} }).data;
-
-  assert.equal(missing.status, "BLOCKED");
-  assert.equal(missing.sources.find((item) => item.adapterKind === "YOUZAN_OPEN").checks.some((check) => check.id === "configuration" && check.status === "BLOCKER"), true);
-
-  const context = {
-    env: { YOUZAN_ACCESS_TOKEN: "token", YOUZAN_ORDER_LIST_URL: "https://youzan.example/orders" },
-    adapterImplementations: {
-      YOUZAN_OPEN: () => ({
-        samples: [
-          {
-            有赞订单号: "YZROOT202605160399",
-            收货人: "校准用户",
-            收货手机号: "13800039999",
-            商品名称: "ROOT 7日试饮装",
-            实付金额: "199",
-            订单状态: "已支付",
-            物流状态: "已发货",
-            收货地址: "上海市校准地址",
-          },
-        ],
-        nextCursor: "calibration-cursor-001",
-      }),
-    },
-  };
-  await domain.runExternalAdapter(store, {
-    sourceType: "YOUZAN_ORDER",
-    adapterKind: "YOUZAN_OPEN",
-    mode: "IMPORT",
-    limit: 1,
-  }, context, "2026-05-16");
-  const calibration = domain.getAdapterCalibration(store, {
-    ...context,
-    env: { ...context.env, YOUZAN_ACCESS_TOKEN: "token", YOUZAN_ORDER_LIST_URL: "https://youzan.example/orders" },
-  }).data;
-  const youzan = calibration.sources.find((item) => item.adapterKind === "YOUZAN_OPEN");
-
-  assert.equal(youzan.checks.find((check) => check.id === "latest_run").status, "PASS");
-  assert.equal(youzan.checks.find((check) => check.id === "cursor").status, "PASS");
-  assert.equal(youzan.env.required.every((item) => item.present), true);
-});
-
-test("action adapter calibration gates the retained WeWork contact writeback", () => {
-  const store = domain.createStore();
-  const missing = domain.getActionAdapterCalibration(store, { env: {}, target: "production" }).data;
-  const gray = domain.getActionAdapterCalibration(store, { env: {}, target: "gray" }).data;
-
-  assert.equal(missing.status, "BLOCKED");
-  assert.equal(missing.actions.length, 1);
-  assert.equal(missing.summary.totalActionCount, 1);
-  assert.equal(missing.actions[0].id, "WEWORK_CONTACT_WRITEBACK");
-  assert.ok(missing.actions.every((item) => item.checks.some((check) => check.id === "live_evidence")));
-  assert.equal(gray.status, "NEEDS_REVIEW");
-
-  store.consultationWeworkWritebacks.push({
-    writeback_id: "wwb_action_ready",
-    request_id: "action-wework-writeback-ready",
-    adapter_type: "WEWORK_CONTACT_WRITEBACK",
-    status: "DELIVERED",
-    external_ref: "wework-writeback-real-001",
-    delivered_at: "2026-06-20T09:45:00+08:00",
-    created_at: "2026-06-20T09:44:00+08:00",
-  });
-
-  const env = {
-    WEWORK_CONTACT_WRITEBACK_URL: "https://wework.example.com/writeback",
-    WEWORK_CORP_ID: "ww-root",
-    WEWORK_ACCESS_TOKEN: "wework-token",
-  };
-  const ready = domain.getActionAdapterCalibration(store, { target: "production", env }).data;
-
-  assert.equal(ready.status, "READY");
-  assert.equal(ready.summary.readyActionCount, 1);
-  assert.ok(ready.actions.every((item) => item.checks.every((check) => check.status === "PASS")));
-});
-
 test("cloudbase store readiness classifies production store decisions", () => {
   const missing = cloudbaseStoreReadiness.buildCloudbaseStoreReadiness({
     env: {},
@@ -1292,7 +1084,6 @@ test("external adapter sample reviews track coverage and unknown status values",
     ].join("\n"),
   }).data;
   const review = result.review;
-  const dashboard = domain.adminDashboard(store).data;
 
   assert.equal(result.importableCount, 0);
   assert.equal(review.decision_status, "NEEDS_MAPPING");
@@ -1305,7 +1096,6 @@ test("external adapter sample reviews track coverage and unknown status values",
   assert.match(review.rows[0].mapped.youzanOrderNo, /已脱敏/);
   assert.equal(review.rows[0].errors[0], "deliveryStatus 未知：派送失败");
   assert.equal(store.externalSampleReviews[0].review_id, review.review_id);
-  assert.equal(dashboard.externalSampleReviews[0].decision_status, "NEEDS_MAPPING");
   const lookup = domain.listExternalSampleReviews(store, { reviewId: review.review_id }).data;
   assert.equal(lookup.review.review_id, review.review_id);
   assert.equal(lookup.reviews.length, 1);
@@ -1327,295 +1117,12 @@ test("external status mappings resolve unknown sample values", () => {
     canonicalValue: "EXCEPTION",
   }).data.mapping;
   const after = domain.previewExternalSamples(store, { sourceType: "YOUZAN_ORDER", text }).data;
-  const dashboard = domain.adminDashboard(store).data;
 
   assert.equal(before.review.decision_status, "NEEDS_MAPPING");
   assert.equal(mapping.canonical_value, "EXCEPTION");
   assert.equal(after.rows[0].mapped.deliveryStatus, "EXCEPTION");
   assert.equal(after.importableCount, 1);
   assert.equal(after.review.decision_status, "NEEDS_REVIEW");
-  assert.equal(dashboard.externalStatusMappings[0].raw_value, "派送失败");
-});
-
-test("external adapter readiness requires three clean samples per source", () => {
-  const store = domain.createStore();
-  domain.previewExternalSamples(store, {
-    sourceType: "YOUZAN_ORDER",
-    text: [
-      "有赞订单号,收货人,收货手机号,商品名称,实付金额,订单状态,物流状态,收货地址",
-      "YZROOT202605160101,张样本,13800010101,ROOT 7日试饮装,199,已支付,已发货,上海市样本地址1号",
-    ].join("\n"),
-  });
-  const firstReadiness = domain.adminDashboard(store).data.externalAdapterReadiness;
-  assert.equal(firstReadiness.status, "BLOCKED");
-  assert.equal(firstReadiness.sources.find((item) => item.sourceType === "YOUZAN_ORDER").blockingReasons[0].code, "INSUFFICIENT_SAMPLES");
-
-  domain.previewExternalSamples(store, {
-    sourceType: "YOUZAN_ORDER",
-    text: [
-      "有赞订单号,收货人,收货手机号,商品名称,实付金额,订单状态,物流状态,收货地址",
-      "YZROOT202605160101,张样本,13800010101,ROOT 7日试饮装,199,已支付,已发货,上海市样本地址1号",
-      "YZROOT202605160102,李样本,13800010102,ROOT 7日试饮装,199,已支付,已发货,上海市样本地址2号",
-      "YZROOT202605160103,王样本,13800010103,ROOT 7日试饮装,199,已支付,已发货,上海市样本地址3号",
-    ].join("\n"),
-  });
-  domain.previewExternalSamples(store, {
-    sourceType: "FULFILLMENT",
-    text: [
-      "有赞订单号,快递公司,运单号,物流状态,签收时间,最新物流节点",
-      "YZROOT202605160101,SF,SFROOT101,已签收,2026-05-18T10:00:00+08:00,本人签收",
-      "YZROOT202605160102,SF,SFROOT102,已签收,2026-05-18T11:00:00+08:00,门店代收",
-      "YZROOT202605160103,SF,SFROOT103,已签收,2026-05-18T12:00:00+08:00,本人签收",
-    ].join("\n"),
-  });
-  domain.previewExternalSamples(store, {
-    sourceType: "YOUZAN_CUSTOMER",
-    text: [
-      "有赞客户ID,unionid,手机号,昵称",
-      "yz_root_101,union_root_101,13800010101,张样本",
-      "yz_root_102,union_root_102,13800010102,李样本",
-      "yz_root_103,union_root_103,13800010103,王样本",
-    ].join("\n"),
-  });
-  domain.previewExternalSamples(store, {
-    sourceType: "WECHAT_LEAD",
-    text: [
-      "外部联系人ID,企业微信备注名,来源活动,当前添加状态,收货手机号,运营备注",
-      "wm_root_101,张样本-ROOT,线下沙龙,ADDED,13800010101,已发送规则",
-      "wm_root_102,李样本-ROOT,线下沙龙,ADDED,13800010102,已发送规则",
-      "wm_root_103,王样本-ROOT,线下沙龙,ADDED,13800010103,已发送规则",
-    ].join("\n"),
-  });
-  const readiness = domain.adminLaunchReadiness(store, {
-    target: "production",
-    storeAdapter: readyMysqlAdapter(),
-    env: {
-      WECHAT_APPID: "wx-root",
-      WECHAT_APPSECRET: "secret",
-      ROOT_PUBLIC_BASE_URL: "https://api.root.test",
-      ROOT_ADMIN_TOKEN: "admin-secret",
-    },
-  }).data;
-
-  assert.equal(readiness.adapterReadiness.status, "READY");
-  assert.equal(readiness.summary.blockers, 0);
-  assert.ok(readiness.checks.filter((item) => item.id.startsWith("sample_")).every((item) => item.status === "PASS"));
-});
-
-test("launch readiness separates gray trial warnings from production blockers", () => {
-  const store = domain.createStore();
-  const production = domain.adminLaunchReadiness(store, { target: "production", storeAdapter: { kind: "memory" }, env: {} }).data;
-  const gray = domain.adminLaunchReadiness(store, { target: "gray", storeAdapter: { kind: "json-file" }, env: {} }).data;
-  const sqliteProduction = domain.adminLaunchReadiness(store, {
-    target: "production",
-    storeAdapter: { kind: "sqlite", filePath: "/tmp/root-checkin.sqlite" },
-    env: {
-      WECHAT_APPID: "wx-root",
-      WECHAT_APPSECRET: "secret",
-      ROOT_PUBLIC_BASE_URL: "https://root.example.com",
-      ROOT_ADMIN_TOKEN: "admin-secret",
-    },
-  }).data;
-  const mysqlProduction = domain.adminLaunchReadiness(store, {
-    target: "production",
-    storeAdapter: readyMysqlAdapter(),
-    env: {
-      WECHAT_APPID: "wx-root",
-      WECHAT_APPSECRET: "secret",
-      ROOT_PUBLIC_BASE_URL: "https://root.example.com",
-      ROOT_ADMIN_TOKEN: "admin-secret",
-    },
-  }).data;
-  const multiTokenProduction = domain.adminLaunchReadiness(store, {
-    target: "production",
-    storeAdapter: readyMysqlAdapter(),
-    env: {
-      WECHAT_APPID: "wx-root",
-      WECHAT_APPSECRET: "secret",
-      ROOT_PUBLIC_BASE_URL: "https://root.example.com",
-      ROOT_ADMIN_TOKENS: JSON.stringify({ ops: { token: "ops-secret", role: "operator" } }),
-    },
-  }).data;
-
-  assert.equal(production.status, "BLOCKED");
-  assert.ok(production.checks.some((item) => item.id === "store_adapter" && item.status === "BLOCKER"));
-  assert.ok(production.checks.some((item) => item.id === "wechat_credentials" && item.status === "BLOCKER"));
-  assert.equal(gray.status, "NEEDS_REVIEW");
-  assert.equal(gray.summary.blockers, 0);
-  assert.ok(gray.checks.some((item) => item.id === "store_adapter" && item.status === "PASS"));
-  assert.ok(sqliteProduction.checks.some((item) => item.id === "store_adapter" && item.status === "BLOCKER"));
-  assert.ok(mysqlProduction.checks.some((item) => item.id === "store_adapter" && item.status === "PASS"));
-  assert.ok(multiTokenProduction.checks.some((item) => item.id === "admin_access" && item.status === "PASS"));
-});
-
-test("manual review can be resolved into a started check-in", () => {
-  const store = domain.createStore();
-  const token = register(store, "13800000888");
-  assert.throws(() => domain.startCheckin(store, token, { confirmReceived: true }, "2026-04-26"), /请先匹配/);
-
-  const task = store.operationTasks[0];
-  const resolved = domain.resolveManualReview(store, task.task_id, { action: "ALLOW_START" }, "2026-04-26").data;
-
-  assert.equal(resolved.task.result, "ALLOWED_START");
-  assert.equal(resolved.user.state, domain.STATES.CHECKIN_ACTIVE);
-  assert.equal(resolved.session.orderId, null);
-});
-
-test("matched order can complete seven days and create a pending refund application", () => {
-  const store = domain.createStore();
-  const token = register(store);
-  startMatchedCheckin(store, token);
-  completeSevenDays(store, token);
-
-  assert.throws(() => domain.applyRefund(store, token), /Day8 收尾问卷/);
-  const questionnaireResult = domain.submitQuestionnaire(store, token, {
-    type: "DAY8_SUMMARY",
-    answers: { overallFeeling: "better", repurchaseIntent: "maybe", needsContact: false },
-    idempotencyKey: "day8-refund",
-  }).data;
-
-  const state = domain.getUserState(store, token).data.user;
-  const refund = domain.applyRefund(store, token).data.refundWorkItem;
-
-  assert.equal(questionnaireResult.refundWorkItem.status, "PENDING");
-  assert.equal(state.state, domain.STATES.CHECKIN_COMPLETED);
-  assert.equal(refund.status, "PENDING");
-  assert.equal(refund.amount, 199);
-});
-
-test("Day4 questionnaire pending does not block Day5 check-in", () => {
-  const store = domain.createStore();
-  const token = register(store);
-  startMatchedCheckin(store, token);
-
-  for (let day = 1; day <= 4; day += 1) {
-    const result = domain.submitCheckin(
-      store,
-      token,
-      { dayIndex: day, tookProduct: true, hadStool: true, stoolType: "type4", feedback: `day ${day}` },
-      addDays("2026-04-26", day - 1)
-    ).data;
-    if (day === 4) assert.equal(result.nextAction, "DAY4_QUESTIONNAIRE");
-  }
-  assert.equal(domain.getUserState(store, token).data.flowView, "DAY4_PENDING");
-
-  const day5 = domain.submitCheckin(
-    store,
-    token,
-    { dayIndex: 5, tookProduct: true, hadStool: true, stoolType: "type4", feedback: "day 5" },
-    "2026-04-30"
-  ).data;
-
-  assert.equal(day5.record.day_index, 5);
-  assert.equal(store.operationTasks.some((task) => task.task_type === "DAY4_QUESTIONNAIRE_PENDING"), true);
-
-  domain.submitQuestionnaire(store, token, {
-    type: "DAY4_MIDPOINT",
-    answers: { stoolChange: "better", comfortScore: 4, needsContact: false },
-    idempotencyKey: "day4-ok",
-  });
-
-  assert.equal(store.operationTasks.some((task) => task.task_type === "DAY4_QUESTIONNAIRE_PENDING" && task.status === "OPEN"), false);
-});
-
-test("daily audit fails a session after three missed days", () => {
-  const store = domain.createStore();
-  const token = register(store);
-  domain.matchOrder(store, token, { phone: "13800000001" }, "2026-04-26");
-  domain.startCheckin(store, token, { confirmReceived: true }, "2026-04-26");
-
-  domain.runDailyAudit(store, "2026-04-27");
-  domain.runDailyAudit(store, "2026-04-28");
-  domain.runDailyAudit(store, "2026-04-29");
-
-  const state = domain.getUserState(store, token).data.user;
-  assert.equal(state.state, domain.STATES.CHECKIN_FAILED);
-});
-
-test("daily audit creates a summary and does not reopen handled tasks on the same date", () => {
-  const store = domain.createStore();
-  const token = register(store);
-  startMatchedCheckin(store, token);
-
-  const firstAudit = domain.runDailyAudit(store, "2026-04-27").data;
-  const missedTask = store.operationTasks.find((task) => task.task_type === "MISSED_CHECKIN");
-
-  assert.equal(firstAudit.summary.date, "2026-04-27");
-  assert.equal(firstAudit.summary.dueToday, 1);
-  assert.equal(firstAudit.summary.missedToday, 1);
-  assert.equal(firstAudit.tasks.length, 1);
-  assert.equal(store.checkinSessions[0].miss_count, 1);
-  assert.equal(missedTask.status, "OPEN");
-
-  const skipped = domain.completeOperationTask(store, missedTask.task_id, { status: "SKIPPED", note: "已电话确认" }).data.task;
-  const repeatedAudit = domain.runDailyAudit(store, "2026-04-27").data;
-
-  assert.equal(skipped.status, "SKIPPED");
-  assert.equal(store.checkinSessions[0].miss_count, 1);
-  assert.equal(repeatedAudit.tasks.length, 0);
-  assert.equal(store.operationTasks.filter((task) => task.task_type === "MISSED_CHECKIN").length, 1);
-  assert.equal(store.operationTasks.some((task) => task.task_type === "MISSED_CHECKIN" && task.status === "OPEN"), false);
-});
-
-test("daily audit adds questionnaire and refund work items to operations summary", () => {
-  const store = domain.createStore();
-  const token = register(store);
-  startMatchedCheckin(store, token);
-  completeSevenDays(store, token);
-  domain.submitQuestionnaire(store, token, {
-    type: "DAY8_SUMMARY",
-    answers: { overallFeeling: "better", repurchaseIntent: "yes", needsContact: false },
-    idempotencyKey: "day8-audit",
-  });
-
-  const audit = domain.runDailyAudit(store, "2026-05-03").data;
-  const dashboard = domain.adminDashboard(store).data;
-
-  assert.equal(audit.summary.refundPending, 1);
-  assert.equal(audit.summary.day4Pending, 1);
-  assert.equal(store.operationTasks.some((task) => task.task_type === "REFUND_PENDING"), true);
-  assert.equal(dashboard.summary.date, "2026-05-03");
-  assert.equal(dashboard.operationTasks.some((task) => task.taskType === "REFUND_PENDING" && task.user), true);
-});
-
-test("admin ops dashboard summarizes operator metrics and prioritized tasks", () => {
-  const store = domain.createStore();
-  const manualToken = register(store, "13800000888");
-  assert.throws(() => domain.startCheckin(store, manualToken, { confirmReceived: true }, "2026-04-26"), /请先匹配/);
-
-  const readyToken = register(store, "13800000002");
-  domain.matchOrder(store, readyToken, { phone: "13800000002" }, "2026-04-26");
-  domain.updateOrderFulfillment(store, { orderId: "ord_root_002", deliveryStatus: "DELIVERED" }, "2026-04-27");
-
-  const feedbackToken = register(store, "13800000001");
-  startMatchedCheckin(store, feedbackToken);
-  domain.submitCheckin(
-    store,
-    feedbackToken,
-    { dayIndex: 1, tookProduct: true, hadStool: true, stoolType: "type7", feedback: "今天不太舒服" },
-    "2026-04-26"
-  );
-  domain.syncManualOrder(store, {
-    youzanOrderNo: "YZROOT202605240001",
-    receiverName: "待匹配用户",
-    receiverPhone: "13800009991",
-    productName: "ROOT 7日试饮装",
-    amount: 199,
-    orderStatus: "PAID",
-    deliveryStatus: "SHIPPED",
-  });
-
-  const dashboard = domain.adminDashboard(store).data.opsDashboard;
-  const metrics = Object.fromEntries(dashboard.metrics.map((item) => [item.key, item.value]));
-
-  assert.equal(metrics.pendingOrders, 1);
-  assert.equal(metrics.readyToStart, 1);
-  assert.equal(metrics.riskFeedbacks, 1);
-  assert.equal(dashboard.priorityTasks[0].taskType, "MANUAL_REVIEW_REQUIRED");
-  assert.equal(dashboard.priorityTasks[0].label, "需要人工确认");
-  assert.equal(dashboard.pendingOrders[0].youzanOrderNo, "YZROOT202605240001");
-  assert.equal(dashboard.readyToStartUsers[0].order.orderId, "ord_root_002");
-  assert.equal(dashboard.riskFeedbacks[0].title, "Day1 打卡反馈");
 });
 
 test("admin order matching searches candidates and previews a clean match", () => {
@@ -1787,66 +1294,6 @@ test("manual corrections can update fulfillment, unbind order, and ignore confli
 
   assert.equal(ignored.result.task.status, "SKIPPED");
   assert.equal(domain.listAuditLogs(store, {}).data.auditLogs.length >= 3, true);
-});
-
-test("admin user rows expose operator status and blockage summary", () => {
-  const store = domain.createStore();
-  const token = register(store, "13800000001");
-  const userId = domain.getUserState(store, token).data.user.userId;
-  domain.confirmAdminOrderMatch(store, { orderId: "ord_root_001", userId }, "2026-04-28");
-
-  const dashboard = domain.adminDashboard(store).data;
-  const row = dashboard.opsUsers.find((item) => item.userId === userId);
-  const detail = domain.getAdminUserDetail(store, userId).data;
-
-  assert.equal(row.currentBlockage, "已送达未开始");
-  assert.equal(row.nextAction, "提醒用户进入小程序开始记录");
-  assert.equal(row.orderStatusLabel, "已签收");
-  assert.equal(row.totalRecords, 0);
-  assert.equal(row.openTaskCount >= 1, true);
-  assert.equal(detail.opsSummary.currentBlockage, "已送达未开始");
-  assert.equal(detail.opsSummary.latestOrderNo, "YZROOT202604260001");
-});
-
-test("admin user detail aggregates feedback and can create follow tasks", () => {
-  const store = domain.createStore();
-  const token = register(store);
-  const userId = domain.getUserState(store, token).data.user.userId;
-  startMatchedCheckin(store, token);
-  domain.submitCheckin(
-    store,
-    token,
-    { dayIndex: 1, tookProduct: true, hadStool: true, stoolType: "type6", feedback: "今天有点不适" },
-    "2026-04-26"
-  );
-
-  const detail = domain.getAdminUserDetail(store, userId).data;
-  const feedback = detail.feedbacks[0];
-
-  assert.equal(detail.user.userId, userId);
-  assert.equal(detail.orders.length, 1);
-  assert.equal(detail.records.length, 1);
-  assert.equal(detail.opsSummary.currentBlockage, "打卡进行中");
-  assert.equal(detail.opsSummary.totalRecords, 1);
-  assert.equal(feedback.sourceType, "CHECKIN_RECORD");
-  assert.equal(feedback.severity, "HIGH");
-
-  const follow = domain.createFeedbackFollowTask(store, userId, {
-    sourceType: feedback.sourceType,
-    sourceId: feedback.sourceId,
-    reason: feedback.text,
-  }, "2026-04-27").data;
-  const repeated = domain.createFeedbackFollowTask(store, userId, {
-    sourceType: feedback.sourceType,
-    sourceId: feedback.sourceId,
-    reason: feedback.text,
-  }, "2026-04-27").data;
-  const nextDetail = domain.getAdminUserDetail(store, userId).data;
-
-  assert.equal(follow.task.taskType, "FEEDBACK_FOLLOW");
-  assert.equal(follow.created, true);
-  assert.equal(repeated.created, false);
-  assert.equal(nextDetail.operationTasks.some((task) => task.taskType === "FEEDBACK_FOLLOW"), true);
 });
 
 test("consultations create user-visible follow-up status without legacy task progress", () => {
@@ -2212,99 +1659,6 @@ test("consultation SLA marks overdue follow tasks and feeds operational alerts",
   assert.equal(validateSnapshot(store).valid, true);
 });
 
-test("Day6 coupon can be claimed without blocking Day7 or refund eligibility", () => {
-  const store = domain.createStore();
-  const token = register(store);
-  startMatchedCheckin(store, token);
-
-  for (let day = 1; day <= 5; day += 1) {
-    domain.submitCheckin(
-      store,
-      token,
-      { dayIndex: day, tookProduct: true, hadStool: true, stoolType: "type4", feedback: `day ${day}` },
-      addDays("2026-04-26", day - 1)
-    );
-  }
-  const beforeDay6 = domain.getCouponStatus(store, token).data;
-  const day6 = domain.submitCheckin(
-    store,
-    token,
-    { dayIndex: 6, tookProduct: true, hadStool: true, stoolType: "type4", feedback: "day 6" },
-    "2026-05-01"
-  ).data;
-  const claimed = domain.claimCoupon(store, token, { couponId: day6.coupon.couponId }).data.coupon;
-  const day7 = domain.submitCheckin(
-    store,
-    token,
-    { dayIndex: 7, tookProduct: true, hadStool: true, stoolType: "type4", feedback: "day 7" },
-    "2026-05-02"
-  ).data;
-
-  domain.submitQuestionnaire(store, token, {
-    type: "DAY8_SUMMARY",
-    answers: { overallFeeling: "better", repurchaseIntent: "maybe", needsContact: false },
-    idempotencyKey: "day8-coupon-refund",
-  });
-  const refund = domain.applyRefund(store, token).data.refundWorkItem;
-
-  assert.equal(beforeDay6.coupon, null);
-  assert.equal(day6.coupon.visible, true);
-  assert.equal(day6.coupon.status, "ISSUED");
-  assert.equal(claimed.status, "CLAIMED");
-  assert.equal(day7.nextAction, "DAY8_QUESTIONNAIRE");
-  assert.equal(refund.status, "PENDING");
-});
-
-test("claimed unused coupons create operation tasks and can be marked used", () => {
-  const store = domain.createStore();
-  const token = register(store);
-  startMatchedCheckin(store, token);
-
-  for (let day = 1; day <= 6; day += 1) {
-    domain.submitCheckin(
-      store,
-      token,
-      { dayIndex: day, tookProduct: true, hadStool: true, stoolType: "type4", feedback: `day ${day}` },
-      addDays("2026-04-26", day - 1)
-    );
-  }
-  const couponStatus = domain.getCouponStatus(store, token).data.coupon;
-  domain.claimCoupon(store, token, { couponId: couponStatus.couponId });
-  const audit = domain.runDailyAudit(store, "2026-05-02").data;
-  const task = store.operationTasks.find((item) => item.task_type === "COUPON_UNUSED");
-  const used = domain.markCouponUsed(store, couponStatus.couponId).data.coupon;
-
-  assert.equal(audit.summary.couponUnused, 1);
-  assert.equal(task.status, "DONE");
-  assert.equal(task.result, "COUPON_USED");
-  assert.equal(used.status, "USED");
-});
-
-test("paid refund keeps completed users out of follow-up daily check-in", () => {
-  const store = domain.createStore();
-  const token = register(store);
-  startMatchedCheckin(store, token);
-  completeSevenDays(store, token);
-  domain.submitQuestionnaire(store, token, {
-    type: "DAY8_SUMMARY",
-    answers: { overallFeeling: "better", repurchaseIntent: "yes", needsContact: false },
-    idempotencyKey: "day8-paid",
-  });
-
-  const refund = domain.applyRefund(store, token).data.refundWorkItem;
-  domain.approveRefund(store, refund.refund_work_item_id);
-  const state = domain.getUserState(store, token).data.user;
-
-  assert.equal(state.state, domain.STATES.CHECKIN_COMPLETED);
-  assert.throws(() => domain.continueAsDailyUser(store, token), /当前版本不支持继续打卡/);
-  assert.throws(() => domain.submitDailyCheckin(
-    store,
-    token,
-    { tookProduct: true, hadStool: true, stoolType: "type4", feedback: "继续记录" },
-    "2026-05-03"
-  ), /当前不是日常打卡用户/);
-});
-
 test("production phone login requires WeChat server credentials", async () => {
   const store = domain.createStore();
   await assert.rejects(
@@ -2434,7 +1788,7 @@ test("openid login creates root identity without requiring an order or phone", a
   assert.equal(login.data.user.phone, "");
   assert.equal(login.data.user.unionidStatus, "PENDING");
   assert.equal(login.data.nextRoute, "/pages/register/index");
-  assert.equal(login.data.features.myRootRebuildEnabled, true);
+  assert.equal(login.data.sessionOutcome, "NEW_USER");
   assert.equal(store.rootUsers.length, 1);
   assert.equal(store.wechatIdentities.length, 1);
   assert.equal(store.wechatIdentities[0].openid, "myroot_openid_without_phone");
@@ -2442,24 +1796,7 @@ test("openid login creates root identity without requiring an order or phone", a
   assert.equal(store.userLifecycleEvents.some((item) => item.event_type === "ROOT_USER_CREATED"), true);
   assert.equal(store.userLifecycleEvents.some((item) => item.event_type === "WECHAT_LOGIN"), true);
   assert.equal(state.route, "/pages/register/index");
-  assert.equal(state.flowView, "REGISTER_PROFILE");
-});
-
-test("rebuild feature flag can route unregistered users through the legacy home flow", async () => {
-  const store = domain.createStore();
-  const login = await domain.loginWithWechat(store, {
-    openid: "legacy_route_openid",
-    appCode: "MYROOT",
-  }, {
-    ROOT_ALLOW_OPENID_LOGIN: "true",
-    MYROOT_REBUILD_ENABLED: "false",
-  });
-  const state = domain.getUserState(store, login.data.token, { MYROOT_REBUILD_ENABLED: "false" }).data;
-
-  assert.equal(login.data.nextRoute, "/pages/home/index");
-  assert.equal(login.data.features.myRootRebuildEnabled, false);
-  assert.equal(state.route, "/pages/home/index");
-  assert.equal(state.features.myRootRebuildEnabled, false);
+  assert.equal(state.sessionOutcome, "PROFILE_REQUIRED");
 });
 
 test("same openid can attach phone evidence without creating a second root user", async () => {

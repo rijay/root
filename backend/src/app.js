@@ -882,12 +882,6 @@ function createApp(options = {}) {
       || null,
     v1RuntimeControlPlane,
     runtimeMetadata,
-    adminTransitionOptions: {
-      sourceAdminDistDir,
-      bundledAdminDistDir,
-      elementAdminDir,
-      legacyAdminFile: path.join(publicDir, "admin.html"),
-    },
   };
   const initialPersistPromise = Promise.resolve();
 
@@ -1003,18 +997,14 @@ function createApp(options = {}) {
         },
       });
     }
-    if (method === "GET" && url.pathname === "/") return staticFile("admin.html", res);
-    if (method === "GET" && ["/admin", "/admin/", "/admin/index.html"].includes(url.pathname)) {
+    if (method === "GET" && ["/", "/admin", "/admin/", "/admin/index.html"].includes(url.pathname)) {
       if (hasElementAdminBuild(elementAdminDir)) return staticFile("index.html", res, elementAdminDir);
-      return staticFile("admin.html", res);
+      return staticFile("missing-admin-dist", res, elementAdminDir);
     }
     if (method === "GET" && url.pathname.startsWith("/admin/assets/")) {
       if (hasElementAdminBuild(elementAdminDir)) return staticFile(url.pathname.replace(/^\/admin\//, ""), res, elementAdminDir);
       return staticFile("missing-admin-dist", res, elementAdminDir);
     }
-    if (method === "GET" && ["/admin-legacy", "/admin-legacy/"].includes(url.pathname)) return staticFile("admin.html", res);
-    if (method === "GET" && url.pathname.startsWith("/assets/")) return staticFile(url.pathname.slice(1), res);
-    if (method === "GET" && ["/admin.css", "/admin.js"].includes(url.pathname)) return staticFile(url.pathname.slice(1), res);
     if (requiresAdminAccess(url.pathname) && !hasAdminAccess(req, runtimeContext.env, url.pathname)) {
       return send(res, 401, { code: 40101, message: "请先输入后台访问口令", data: null });
     }

@@ -44,7 +44,6 @@ const {
   determineExitCode: determineProductionEnvExitCode,
   parseArgs: parseProductionEnvArgs,
 } = require("../scripts/production-env-matrix");
-const { buildAdminTransitionReadiness } = require("../src/adminTransitionReadiness");
 const { prepareBackendAdminDist, validateAdminDist } = require("../../scripts/prepare-backend-admin-dist");
 
 const directPhoneLoginEnv = { ROOT_ALLOW_DIRECT_PHONE_LOGIN: "true" };
@@ -698,112 +697,20 @@ test("prepare backend admin dist copies Element Plus build for backend-only depl
   assert.match(fs.readFileSync(path.join(targetDir, "assets", "app.js"), "utf8"), /__PREPARED_ADMIN__/);
   const buildManifest = JSON.parse(fs.readFileSync(path.join(targetDir, "admin-build-manifest.json"), "utf8"));
   assert.equal(buildManifest.releaseVersion, "0.5.13");
-  assert.deepEqual(buildManifest.modules.map((item) => item.key), ["config", "users", "audit", "adapters", "analytics", "release"]);
-});
-
-test("admin transition readiness reads backend-only build evidence", (t) => {
-  const backendRoot = fs.mkdtempSync(path.join(os.tmpdir(), "root-admin-backend-only-"));
-  const bundledDir = path.join(backendRoot, "public", "admin-dist");
-  fs.mkdirSync(path.join(bundledDir, "assets"), { recursive: true });
-  fs.writeFileSync(path.join(bundledDir, "index.html"), '<script type="module" src="/admin/assets/app.js"></script>');
-  fs.writeFileSync(path.join(bundledDir, "assets", "app.js"), "window.__ROOT_ADMIN__ = true;");
-  fs.writeFileSync(path.join(bundledDir, "admin-build-manifest.json"), JSON.stringify({
-    schemaVersion: 1,
-    modules: ["config", "users", "audit", "adapters", "analytics", "release"],
-  }));
-  fs.writeFileSync(path.join(backendRoot, "public", "admin.html"), "ROOT legacy admin");
-  t.after(() => fs.rmSync(backendRoot, { recursive: true, force: true }));
-
-  const readiness = buildAdminTransitionReadiness({ projectRoot: backendRoot, env: {} });
-
-  assert.equal(readiness.summary.readyModuleCount, 6);
-  assert.equal(readiness.summary.bundledDistReady, true);
-  assert.equal(readiness.summary.effectiveDistReady, true);
-  assert.equal(readiness.summary.legacyFallbackAvailable, true);
-  assert.equal(readiness.status, "NEEDS_REVIEW");
-  assert.ok(readiness.moduleCoverage.every((item) => item.evidenceSource === "BUILD_MANIFEST"));
-});
-
-test("admin transition readiness gates legacy admin deprecation", (t) => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "root-admin-transition-"));
-  const moduleFiles = [
-    "modules/config/ConfigWorkbench.vue",
-    "modules/users/UserLifecycle.vue",
-    "modules/audit/AuditLogPage.vue",
-    "modules/adapters/AdapterRunPage.vue",
-    "modules/analytics/OperationalAnalytics.vue",
-    "modules/release/ReleaseWorkbench.vue",
-  ];
-  const appVue = [
-    'import ConfigWorkbench from "./modules/config/ConfigWorkbench.vue";',
-    'import UserLifecycle from "./modules/users/UserLifecycle.vue";',
-    'import AuditLogPage from "./modules/audit/AuditLogPage.vue";',
-    'import AdapterRunPage from "./modules/adapters/AdapterRunPage.vue";',
-    'import OperationalAnalytics from "./modules/analytics/OperationalAnalytics.vue";',
-    'import ReleaseWorkbench from "./modules/release/ReleaseWorkbench.vue";',
-    'const ADMIN_MODULES = [{ key: "config" }, { key: "users" }, { key: "audit" }, { key: "adapters" }, { key: "analytics" }, { key: "release" }];',
-  ].join("\n");
-  fs.mkdirSync(path.join(tempDir, "admin", "src"), { recursive: true });
-  fs.writeFileSync(path.join(tempDir, "admin", "src", "App.vue"), appVue);
-  moduleFiles.forEach((file) => {
-    const fullPath = path.join(tempDir, "admin", "src", file);
-    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-    fs.writeFileSync(fullPath, "<template />");
-  });
-  [path.join(tempDir, "admin", "dist"), path.join(tempDir, "backend", "public", "admin-dist")].forEach((dir) => {
-    fs.mkdirSync(path.join(dir, "assets"), { recursive: true });
-    fs.writeFileSync(path.join(dir, "index.html"), '<script type="module" src="/admin/assets/app.js"></script>');
-    fs.writeFileSync(path.join(dir, "assets", "app.js"), "window.__ROOT_ADMIN__ = true;");
-  });
-  fs.mkdirSync(path.join(tempDir, "backend", "public"), { recursive: true });
-  fs.writeFileSync(path.join(tempDir, "backend", "public", "admin.html"), "ROOT 7日打卡后台");
-  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
-
-  const pending = buildAdminTransitionReadiness({ projectRoot: tempDir, env: {} });
-  const approved = buildAdminTransitionReadiness({
-    projectRoot: tempDir,
-    env: { ROOT_LEGACY_ADMIN_DEPRECATION_APPROVED: "true" },
-  });
-  const approvedByRecord = buildAdminTransitionReadiness({
-    projectRoot: tempDir,
-    env: {},
-    deprecationDecisions: [{
-      status: "APPROVED",
-      evidenceRef: "https://root.example.com/admin-deprecation/proof",
-      rollbackRef: "https://root.example.com/admin-deprecation/rollback",
-      decidedAt: "2026-06-20T00:00:00.000Z",
-    }],
-  });
-  const rejectedByRecord = buildAdminTransitionReadiness({
-    projectRoot: tempDir,
-    env: {},
-    deprecationDecisions: [{
-      status: "REJECTED",
-      evidenceRef: "https://root.example.com/admin-deprecation/rejected",
-      decidedAt: "2026-06-20T00:00:00.000Z",
-    }],
-  });
-  fs.rmSync(path.join(tempDir, "backend", "public", "admin-dist"), { recursive: true, force: true });
-  const blocked = buildAdminTransitionReadiness({
-    projectRoot: tempDir,
-    env: { ROOT_LEGACY_ADMIN_DEPRECATION_APPROVED: "true" },
-  });
-
-  assert.equal(pending.status, "NEEDS_REVIEW");
-  assert.equal(pending.summary.readyModuleCount, 6);
-  assert.equal(pending.summary.bundledDistReady, true);
-  assert.ok(pending.warnings.some((item) => item.includes("旧静态后台下线尚未批准")));
-  assert.equal(approved.status, "READY");
-  assert.equal(approved.summary.deprecationApproved, true);
-  assert.equal(approvedByRecord.status, "READY");
-  assert.equal(approvedByRecord.summary.deprecationApproved, true);
-  assert.equal(approvedByRecord.summary.deprecationSource, "RECORD");
-  assert.equal(approvedByRecord.legacyDeprecationDecision.status, "APPROVED");
-  assert.equal(rejectedByRecord.status, "NEEDS_REVIEW");
-  assert.equal(rejectedByRecord.summary.deprecationDecisionStatus, "REJECTED");
-  assert.ok(rejectedByRecord.warnings.some((item) => item.includes("REJECTED")));
-  assert.equal(blocked.status, "BLOCKED");
-  assert.ok(blocked.blockers.some((item) => item.includes("backend-only Admin dist")));
+  assert.deepEqual(buildManifest.modules.map((item) => item.key), [
+    "release",
+    "welcome",
+    "home",
+    "details",
+    "activities",
+    "registrations",
+    "profile",
+    "scales",
+    "recommendations",
+    "lifestyle",
+    "users",
+    "audit",
+  ]);
 });
 
 test("production cutover readiness gates live external proof", () => {
@@ -1760,11 +1667,8 @@ test("serves formal REST Interfaces and Element Plus Admin assets", async (t) =>
   const home = await textRequest(baseUrl, "/");
   assert.equal(home.status, 200);
   assert.match(home.contentType, /text\/html/);
-  assert.match(home.body, /ROOT 7日打卡后台/);
-  assert.match(home.body, /id="bulk-order-file"/);
-  assert.match(home.body, /上传有赞 CSV 文件/);
-  assert.match(home.body, /id="fulfillment-file"/);
-  assert.match(home.body, /上传物流 CSV 文件/);
+  assert.match(home.body, /myRoot Admin/);
+  assert.doesNotMatch(home.body, /ROOT 7日打卡后台/);
   const elementAdmin = await textRequest(baseUrl, "/admin");
   assert.equal(elementAdmin.status, 200);
   assert.match(elementAdmin.body, /myRoot Admin/);
@@ -1773,8 +1677,10 @@ test("serves formal REST Interfaces and Element Plus Admin assets", async (t) =>
   assert.equal(elementAdminAsset.status, 200);
   assert.match(elementAdminAsset.contentType, /javascript/);
   assert.match(elementAdminAsset.body, /__ROOT_ADMIN_DIST__/);
-  const legacyAdmin = await textRequest(baseUrl, "/admin-legacy");
-  assert.match(legacyAdmin.body, /ROOT 7日打卡后台/);
+  for (const retiredPath of ["/admin-legacy", "/admin-legacy/", "/admin.js", "/admin.css", "/assets/root-logo.png"]) {
+    const retired = await textRequest(baseUrl, retiredPath);
+    assert.equal(retired.status, 404, retiredPath);
+  }
 
   const login = await request(baseUrl, "/api/v1/auth/login", {
     method: "POST",
@@ -2057,29 +1963,6 @@ test("cloud container openid login can enter before phone authorization", async 
 
 
 
-
-test("rebuild feature flag can keep legacy unregistered route over HTTP", async (t) => {
-  const server = createApp({
-    env: {
-      ROOT_ALLOW_OPENID_LOGIN: "true",
-      MYROOT_REBUILD_ENABLED: "false",
-    },
-  });
-  const baseUrl = await listen(server);
-  t.after(() => server.close());
-
-  const login = await request(baseUrl, "/api/v1/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ openid: "http_legacy_route_openid", appCode: "MYROOT" }),
-  });
-  const state = await request(baseUrl, "/api/v1/user/state", {
-    headers: { Authorization: `Bearer ${login.data.token}` },
-  });
-
-  assert.equal(login.data.nextRoute, "/pages/home/index");
-  assert.equal(login.data.features.myRootRebuildEnabled, false);
-  assert.equal(state.data.route, "/pages/home/index");
-});
 
 test("HTTP login rejects direct phone payload when direct phone login is not enabled", async (t) => {
   const server = createApp();

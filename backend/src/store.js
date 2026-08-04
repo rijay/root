@@ -84,7 +84,6 @@ function createEmptyData() {
   data.operationalAlertRules = [];
   data.operationalAlertRuns = [];
   data.operationalAlertNotifications = [];
-  data.adminLegacyDeprecationDecisions = [];
   data.productionCutoverProofs = [];
   data.rootMemberCenterJumpProofs = [];
   data.consultationAdvisorAssignments = [];
@@ -200,8 +199,6 @@ function validateSnapshot(snapshot, options = {}) {
     ["operationalAlertRules", "alert_rule_id"],
     ["operationalAlertRuns", "operational_alert_run_id"],
     ["operationalAlertNotifications", "operational_alert_notification_id"],
-    ["adminLegacyDeprecationDecisions", "decision_id"],
-    ["adminLegacyDeprecationDecisions", "request_id"],
     ["productionCutoverProofs", "proof_id"],
     ["productionCutoverProofs", "request_id"],
     ["rootMemberCenterJumpProofs", "proof_id"],

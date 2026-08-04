@@ -116,7 +116,7 @@ test("legacy token-map entries without a session cannot authenticate", () => {
   store.tokens = { root_map_only_secret: login.user.userId };
 
   assert.throws(
-    () => domain.getProfile(store, "root_map_only_secret"),
+    () => domain.getFormalProfile(store, "root_map_only_secret"),
     (error) => error && error.code === 1003
   );
 });

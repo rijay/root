@@ -78,7 +78,7 @@ test("HTTP server never emits wildcard CORS and serves Admin with browser harden
   assert.equal(allowed.headers.get("access-control-allow-origin"), "https://ops.root.example");
   assert.notEqual(allowed.headers.get("access-control-allow-origin"), "*");
 
-  const admin = await fetch(`${baseUrl}/admin-legacy`);
+  const admin = await fetch(`${baseUrl}/admin`);
   assert.equal(admin.headers.get("x-frame-options"), "DENY");
   assert.match(admin.headers.get("content-security-policy"), /default-src 'self'/);
 });

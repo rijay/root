@@ -98,6 +98,12 @@ const RETIRED_USER_ROUTES = Object.freeze([
   "/api/v1/upload/image",
 ]);
 
+const RETIRED_STATIC_ROUTES = Object.freeze([
+  "/admin-legacy",
+  "/admin.css",
+  "/admin.js",
+]);
+
 const RETIRED_PACKAGE_COMMANDS = Object.freeze([
   "adapter-retry",
   "checkin-reminders",
@@ -136,7 +142,7 @@ function verifyFormalRouteSurface() {
     "/api/v1/jobs/health-data-retention-cleanup",
     "POST ${V1_RUNTIME_CYCLE_ROUTE}",
   ].filter((route) => !appSource.includes(route));
-  const remainingRetiredRoutes = [...RETIRED_JOB_ROUTES, ...RETIRED_ADMIN_ROUTES, ...RETIRED_USER_ROUTES]
+  const remainingRetiredRoutes = [...RETIRED_JOB_ROUTES, ...RETIRED_ADMIN_ROUTES, ...RETIRED_USER_ROUTES, ...RETIRED_STATIC_ROUTES]
     .filter((route) => appSource.includes(route));
   const remainingCommands = RETIRED_PACKAGE_COMMANDS.filter((name) =>
     Object.prototype.hasOwnProperty.call(backendPackage.scripts || {}, name));

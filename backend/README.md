@@ -20,21 +20,6 @@ npm run deploy:prepare-admin
 
 该命令会把 `admin/dist` 复制到 `backend/public/admin-dist`。运行时也可以通过 `ROOT_ADMIN_DIST_DIR` 指定其他 Admin build 目录。
 
-拿到真实导出文件后，可以批量跑样本准入：
-
-```bash
-npm run samples -- --base-url http://127.0.0.1:8788 --mode preview --youzan-file ./samples/youzan.csv
-npm run samples -- --base-url http://127.0.0.1:8788 --mode import --youzan-file ./samples/youzan.csv --fulfillment-file ./samples/fulfillment.csv --wework-file ./samples/wework.csv --require-all-ready
-```
-
-真实 Adapter 配置好后，可以先小批量运行：
-
-```bash
-npm run adapters -- --base-url http://127.0.0.1:8788 --source youzan --mode preview --limit 1
-npm run adapters -- --base-url http://127.0.0.1:8788 --source fulfillment --mode import --limit 1
-npm run adapters -- --base-url http://127.0.0.1:8788 --source wework --mode preview --limit 1
-```
-
 本地灰度试跑需要保留数据时：
 
 ```bash
