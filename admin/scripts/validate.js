@@ -5,6 +5,11 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
+const sourceFiles = (directory) => fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+  const absolutePath = path.join(directory, entry.name);
+  if (entry.isDirectory()) return sourceFiles(absolutePath);
+  return /\.(?:js|vue)$/.test(entry.name) ? [absolutePath] : [];
+});
 
 const requiredFiles = [
   "index.html",
@@ -16,6 +21,7 @@ const requiredFiles = [
   "src/api/client.js",
   "src/modules/access.js",
   "src/modules/release/ReleaseWorkbench.vue",
+  "src/modules/publish/PublishConfirmationDialog.vue",
   "src/modules/content/WelcomeContentPage.vue",
   "src/modules/content/HomeCarouselPage.vue",
   "src/modules/content/SharedDetailPage.vue",
@@ -30,7 +36,7 @@ const requiredFiles = [
   "src/modules/health/adminHealthApi.js",
   "src/modules/users/UserQueryPage.vue",
   "src/modules/users/adminUserQueryApi.js",
-  "src/modules/audit/AuditLogPage.vue",
+  "src/modules/audit/OperationAuditPage.vue",
   "src/modules/audit/adminAuditApi.js",
   "src/styles/theme.css",
 ];
@@ -60,6 +66,14 @@ assert.equal(pkg.dependencies["element-plus"].startsWith("^2"), true);
 assert.equal(pkg.scripts.check.includes("scripts/validate.js"), true);
 
 const app = read("src/App.vue");
+const main = read("src/main.js");
+assert.equal(main.includes("import ElementPlus from"), false, "Admin must not register all Element Plus components");
+for (const file of sourceFiles(path.join(root, "src"))) {
+  assert.equal(fs.readFileSync(file, "utf8").includes('from "element-plus"'), false, `${path.relative(root, file)} must use a direct Element Plus import`);
+}
+for (const component of ["ElTable", "ElForm", "ElDialog", "ElLoading"]) {
+  assert.equal(main.includes(component), true, `Admin must explicitly register ${component}`);
+}
 for (const value of [
   "defineAsyncComponent",
   "发布工作台",
@@ -79,7 +93,7 @@ for (const value of [
   "WelcomeContentPage",
   "HomeCarouselPage",
   "SharedDetailPage",
-  "AuditLogPage",
+  "OperationAuditPage",
 ]) assert.equal(app.includes(value), true, `App must include ${value}`);
 for (const value of [
   "ConfigWorkbench",
@@ -93,6 +107,7 @@ for (const value of [
 ]) assert.equal(app.includes(value), false, `App must not expose ${value}`);
 
 const releasePage = read("src/modules/release/ReleaseWorkbench.vue");
+const publishDialog = read("src/modules/publish/PublishConfirmationDialog.vue");
 const releaseApi = read("src/modules/release/adminReleaseApi.js");
 for (const value of [
   "未发布修改",
@@ -102,11 +117,11 @@ for (const value of [
   "系统校验",
   "小程序预览",
   "二次确认并发布",
-  "确认发布内容版本",
-  "不代表代码部署、微信审核、正式发布或流量切换",
-  "previewConfirmed",
   "outcomeUnknown",
 ]) assert.equal(releasePage.includes(value), true, `release workbench must include ${value}`);
+for (const value of ["确认发布内容版本", "不代表代码部署、微信审核、正式发布或流量切换", "previewConfirmed", "canConfirm"]) {
+  assert.equal(publishDialog.includes(value), true, `publish confirmation must include ${value}`);
+}
 for (const value of [
   "外部动作 Adapter 校准",
   "生产证据收口",
@@ -234,9 +249,15 @@ for (const value of ["task", "reward", "settlement", "birthDate", "gender"]) {
   assert.equal(userPage.includes(value), false, `user query must not include legacy/private field ${value}`);
 }
 
-const auditPage = read("src/modules/audit/AuditLogPage.vue");
+const auditPage = read("src/modules/audit/OperationAuditPage.vue");
 for (const value of ["BATCH_SETTLEMENT_EXECUTE", "REWARD_DELIVERY_BATCH_EXECUTE", "PUBLISH_CAMPAIGN_RULE_VERSION"]) {
   assert.equal(auditPage.includes(value), false, `audit filters must not prescribe ${value}`);
+}
+for (const value of ["pageSize: 20", "AbortController", "300", "request_id", "outcome_unknown", "selectedLog.summary"]) {
+  assert.equal(auditPage.includes(value), true, `operation audit must include ${value}`);
+}
+for (const value of ["selectedLog.before", "selectedLog.after", "selectedLog.metadata"]) {
+  assert.equal(auditPage.includes(value), false, `operation audit must not expose ${value}`);
 }
 
 console.log("admin validation ok");

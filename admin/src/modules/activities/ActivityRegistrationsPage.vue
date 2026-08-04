@@ -96,7 +96,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage } from "element-plus/es/components/message/index";
 import { exportActivityEnrollments, fetchActivityEnrollments, fetchActivityOptions } from "./adminActivityApi";
 
 const emit = defineEmits(["navigate-module"]);

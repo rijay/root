@@ -1095,7 +1095,8 @@ function getCloudbaseIdentityProbe(context = {}) {
 }
 
 function listAuditLogs(data, query = {}) {
-  return response({ auditLogs: auditLog.listAuditLogs(data, query) });
+  const page = auditLog.listAuditLogPage(data, query);
+  return response({ auditLogs: page.items, pagination: page.pagination });
 }
 
 module.exports = {

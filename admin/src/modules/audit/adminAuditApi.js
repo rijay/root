@@ -1,6 +1,6 @@
 import { adminRequest } from "@/api/client";
 
-export function fetchAuditLogs(filters = {}) {
+export function fetchAuditLogs(filters = {}, options = {}) {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== undefined && value !== null && String(value).trim()) {
@@ -8,5 +8,5 @@ export function fetchAuditLogs(filters = {}) {
     }
   });
   const query = params.toString();
-  return adminRequest(`/api/v1/admin/audit-logs${query ? `?${query}` : ""}`);
+  return adminRequest(`/api/v1/admin/audit-logs${query ? `?${query}` : ""}`, options);
 }

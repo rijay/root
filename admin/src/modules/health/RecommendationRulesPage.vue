@@ -39,7 +39,8 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus/es/components/message/index";
+import { ElMessageBox } from "element-plus/es/components/message-box/index";
 import { fetchHealthScales, fetchRecommendationRules, publishRecommendationRuleVersion, saveRecommendationRuleDraft } from "./adminHealthApi";
 
 const emptyDraft = () => ({ id: "", sourceVersionId: "", expectedRevision: 0, primaryCategory: "", auxiliaryTagsText: "", matchSummary: "", priority: 10, matchMode: "ANY", maxRecommendations: 3, scaleVersionId: "", effectiveAt: "" });

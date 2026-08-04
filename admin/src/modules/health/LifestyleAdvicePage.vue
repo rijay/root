@@ -39,7 +39,8 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus/es/components/message/index";
+import { ElMessageBox } from "element-plus/es/components/message-box/index";
 import { fetchLifestyleAdvicePolicies, publishLifestyleAdviceVersion, saveLifestyleAdviceDraft } from "./adminHealthApi";
 
 const emptyDraft = () => ({ id: "", sourceVersionId: "", expectedRevision: 0, name: "", modelConfigurationId: "", minimumFieldsSummary: "仅发送分类、辅助标签与量表结果\n资料或评测结果变化时才重新生成", structureCheck: "REQUIRED", prohibitedLanguageCheck: "REQUIRED", healthSafetyCheck: "REQUIRED", fallbackContentVersionId: "", approver: "", effectiveAt: "" });

@@ -53,7 +53,8 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus/es/components/message/index";
+import { ElMessageBox } from "element-plus/es/components/message-box/index";
 import { fetchInitializationQuestions, publishInitializationVersion, saveInitializationDraft } from "./adminHealthApi";
 
 const rows = ref([]), total = ref(0), loading = ref(false), saving = ref(false), copying = ref(false), publishing = ref(false), drawerVisible = ref(false);

@@ -77,61 +77,25 @@
       <p class="table-footer-hint">系统只校验已批准规则；修复后重新运行检查，不影响当前线上版本。</p>
     </section>
 
-    <el-dialog
+    <PublishConfirmationDialog
       v-model="publishDialogVisible"
-      class="publish-confirmation-dialog"
-      width="680px"
-      :close-on-click-modal="false"
-      :show-close="true"
-    >
-      <template #header>
-        <p class="dialog-eyebrow">SECOND CONFIRMATION</p>
-        <h2>确认发布内容版本？</h2>
-      </template>
-
-      <p class="dialog-description">
-        本操作只替换小程序当前内容版本，<br>
-        不代表代码部署、微信审核、正式发布或流量切换。
-      </p>
-
-      <div class="version-summary">
-        <strong>将上线&nbsp; {{ candidateVersion || "—" }}</strong>
-        <span>{{ draftCount }} 项内容变更 · 当前线上 {{ currentVersion }}</span>
-        <span>{{ changeSummary }}</span>
-      </div>
-
-      <div class="validation-summary" :class="{ 'validation-summary--blocked': blockerCount }">
-        <span>{{ blockerCount ? "!" : "✓" }} 系统校验{{ blockerCount ? `发现 ${blockerCount} 个阻断项` : "通过 · 0 个阻断项" }}</span>
-        <span>{{ previewCompleted ? `✓ 小程序预览完成 · ${previewedAt}` : "○ 小程序预览待完成" }}</span>
-      </div>
-
-      <el-checkbox v-model="previewConfirmed" :disabled="!previewCompleted" class="preview-confirmation">
-        我已在小程序预览确认首页、活动和健康内容
-      </el-checkbox>
-
-      <div class="publish-scope-warning">
-        发布后，新请求读取新内容版本；异常时可回滚到上一已发布版本。<br>
-        本操作不会上传代码、提交微信审核或切换线上流量。
-      </div>
-
-      <template #footer>
-        <el-button @click="publishDialogVisible = false">返回检查</el-button>
-        <el-button
-          :disabled="!canConfirmPublish"
-          :loading="publishing"
-          type="primary"
-          @click="confirmPublish"
-        >
-          确认发布内容
-        </el-button>
-      </template>
-    </el-dialog>
+      :blocker-count="blockerCount"
+      :candidate-version="candidateVersion"
+      :change-summary="changeSummary"
+      :confirming="publishing"
+      :current-version="currentVersion"
+      :draft-count="draftCount"
+      :preview-completed="previewCompleted"
+      :previewed-at="previewedAt"
+      @confirm="confirmPublish"
+    />
   </section>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage } from "element-plus/es/components/message/index";
+import PublishConfirmationDialog from "../publish/PublishConfirmationDialog.vue";
 import { fetchReleaseRecord, markContentPreviewComplete, publishContentVersion } from "./adminReleaseApi";
 
 const emit = defineEmits(["release-meta"]);
@@ -141,7 +105,6 @@ const publishing = ref(false);
 const errorMessage = ref("");
 const releaseRecord = ref(null);
 const publishDialogVisible = ref(false);
-const previewConfirmed = ref(false);
 
 const contentRelease = computed(() => {
   return releaseRecord.value?.contentRelease || releaseRecord.value?.evidence?.contentRelease || {};
@@ -182,9 +145,6 @@ const releaseSteps = computed(() => [
   { label: "小程序预览" },
   { label: "二次确认并发布" },
 ]);
-const canConfirmPublish = computed(() => {
-  return Boolean(candidateVersion.value) && blockerCount.value === 0 && previewCompleted.value && previewConfirmed.value;
-});
 
 async function openPreview() {
   if (!previewAvailable.value) return;
@@ -199,7 +159,6 @@ async function openPreview() {
 }
 
 function openPublishConfirmation() {
-  previewConfirmed.value = false;
   publishDialogVisible.value = true;
 }
 
@@ -212,7 +171,6 @@ function handleBlockingItem(row) {
 }
 
 async function confirmPublish() {
-  if (!canConfirmPublish.value) return;
   publishing.value = true;
   errorMessage.value = "";
   try {

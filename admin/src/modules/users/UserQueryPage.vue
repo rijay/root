@@ -64,7 +64,7 @@
 
 <script setup>
 import { ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage } from "element-plus/es/components/message/index";
 import { queryFormalUserByPhone } from "./adminUserQueryApi";
 
 const phone = ref("");

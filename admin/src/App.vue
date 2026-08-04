@@ -88,7 +88,7 @@
           <RecommendationRulesPage v-else-if="currentModuleKey === 'recommendations'" ref="activeWorkbench" />
           <LifestyleAdvicePage v-else-if="currentModuleKey === 'lifestyle'" ref="activeWorkbench" />
           <UserQueryPage v-else-if="currentModuleKey === 'users'" ref="activeWorkbench" />
-          <AuditLogPage v-else-if="currentModuleKey === 'audit'" ref="activeWorkbench" />
+          <OperationAuditPage v-else-if="currentModuleKey === 'audit'" ref="activeWorkbench" />
         </div>
       </section>
     </main>
@@ -170,7 +170,7 @@ const ScaleManagementPage = defineAsyncComponent(() => import("./modules/health/
 const RecommendationRulesPage = defineAsyncComponent(() => import("./modules/health/RecommendationRulesPage.vue"));
 const LifestyleAdvicePage = defineAsyncComponent(() => import("./modules/health/LifestyleAdvicePage.vue"));
 const UserQueryPage = defineAsyncComponent(() => import("./modules/users/UserQueryPage.vue"));
-const AuditLogPage = defineAsyncComponent(() => import("./modules/audit/AuditLogPage.vue"));
+const OperationAuditPage = defineAsyncComponent(() => import("./modules/audit/OperationAuditPage.vue"));
 
 function initialModule() {
   const module = new URLSearchParams(window.location.search).get("module") || "";
