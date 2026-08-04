@@ -7,6 +7,20 @@ const {
   buildFormalLaunchSnapshotCleanupPlan,
   collectionCount,
 } = require("../src/formalLaunchSnapshotCleanup");
+const {
+  ACTIVE_RELATIONAL_TABLES,
+  ACTIVE_SNAPSHOT_KEYS,
+  ARCHIVE_BEFORE_PRUNE_SNAPSHOT_KEYS,
+  AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS,
+  CONFIRMATION_REQUIRED_SNAPSHOT_KEYS,
+  FORMAL_LAUNCH_DATA_DISPOSITION_VERSION,
+  OWNER_CONFIRMATION_RELATIONAL_TABLES,
+  PROTECTED_SNAPSHOT_KEYS,
+  RETIRED_SNAPSHOT_DEFAULT_KEYS,
+  SYSTEM_RELATIONAL_TABLES,
+} = require("../src/formalLaunchDataDisposition");
+const { createSeedData } = require("../src/seed");
+const { createEmptyData } = require("../src/store");
 const { parseArgs, parseSnapshot } = require("../scripts/formal-launch-snapshot-cleanup-dry-run");
 const { migrationChecksum, splitSqlStatements } = require("../src/mysqlMigrations");
 
@@ -34,6 +48,7 @@ test("cleanup planning is dry-run only and never exposes record content", () => 
   const serialized = JSON.stringify(report);
 
   assert.equal(report.mode, "DRY_RUN");
+  assert.equal(report.dispositionVersion, FORMAL_LAUNCH_DATA_DISPOSITION_VERSION);
   assert.equal(report.writePerformed, false);
   assert.equal(report.filteredAuditLogs.itemCount, 1);
   assert.ok(report.estimatedReducibleBytes > 0);
@@ -43,6 +58,49 @@ test("cleanup planning is dry-run only and never exposes record content", () => 
   assert.equal(serialized.includes("sensitive-user"), false);
   assert.equal(serialized.includes("must-not-appear"), false);
   assert.equal(JSON.stringify(snapshot), original);
+});
+
+test("one Registry classifies every snapshot key and every retained relational table exactly once", () => {
+  const snapshotGroups = [
+    ACTIVE_SNAPSHOT_KEYS,
+    PROTECTED_SNAPSHOT_KEYS,
+    AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS,
+    ARCHIVE_BEFORE_PRUNE_SNAPSHOT_KEYS,
+    CONFIRMATION_REQUIRED_SNAPSHOT_KEYS,
+  ];
+  const classifiedSnapshotKeys = snapshotGroups.flat().sort();
+  const classifiedSnapshotKeySet = new Set(classifiedSnapshotKeys);
+  assert.deepEqual(
+    Object.keys(createSeedData()).filter((key) => !classifiedSnapshotKeySet.has(key)),
+    []
+  );
+  assert.equal(new Set(classifiedSnapshotKeys).size, classifiedSnapshotKeys.length);
+
+  const emptyData = createEmptyData();
+  assert.deepEqual(
+    Object.keys(emptyData).sort(),
+    [...ACTIVE_SNAPSHOT_KEYS, ...PROTECTED_SNAPSHOT_KEYS].sort()
+  );
+  RETIRED_SNAPSHOT_DEFAULT_KEYS.forEach((key) => assert.equal(
+    Object.prototype.hasOwnProperty.call(emptyData, key),
+    false,
+    key
+  ));
+  [...ACTIVE_SNAPSHOT_KEYS, ...PROTECTED_SNAPSHOT_KEYS].forEach((key) => assert.equal(
+    Object.prototype.hasOwnProperty.call(emptyData, key),
+    true,
+    key
+  ));
+
+  const schema = fs.readFileSync(path.join(__dirname, "..", "db", "schema.sql"), "utf8");
+  const schemaTables = [...schema.matchAll(/^-- table: ([a-z0-9_]+)$/gm)].map((match) => match[1]);
+  const classifiedTables = [
+    ...ACTIVE_RELATIONAL_TABLES,
+    ...SYSTEM_RELATIONAL_TABLES,
+    ...OWNER_CONFIRMATION_RELATIONAL_TABLES,
+  ].sort();
+  assert.deepEqual(classifiedTables, schemaTables.sort());
+  assert.equal(new Set(classifiedTables).size, classifiedTables.length);
 });
 
 test("collection counts support arrays, maps and missing values", () => {

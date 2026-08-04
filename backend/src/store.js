@@ -6,6 +6,7 @@ const { minimizePersistedExternalEvidence } = require("./externalEvidenceSanitiz
 const { normalizePersistedCredentials } = require("./credentialProtection");
 const { createCommandRequestDigestCodec } = require("./commandRequestDigest");
 const { createCommandResultCodec } = require("./commandResultProtection");
+const { RETIRED_SNAPSHOT_DEFAULT_KEYS } = require("./formalLaunchDataDisposition");
 const {
   normalizeWechatIdentityAuthority,
   validateWechatIdentityCollection,
@@ -15,70 +16,6 @@ const SQLITE_SCHEMA_VERSION = 1;
 const SQLITE_STORE_KEY = "root-checkin";
 const MYSQL_SCHEMA_VERSION = 28;
 const MYSQL_STORE_KEY = "root-checkin";
-
-const RETIRED_FORMAL_LAUNCH_SNAPSHOT_KEYS = Object.freeze([
-  "adminLegacyDeprecationDecisions",
-  "adminLifecycleFilterPresets",
-  "adminLifecycleSettlementJobs",
-  "adminLifecycleUserExports",
-  "campaignDefinitions",
-  "campaignParticipants",
-  "campaignProductRelations",
-  "campaignRuleVersions",
-  "checkinRecords",
-  "checkinSessions",
-  "consultationAdvisorAssignments",
-  "consultationWeworkWritebacks",
-  "couponEvents",
-  "dailyCheckinRecords",
-  "dailySummaries",
-  "eventConsumerCheckpoints",
-  "eventInbox",
-  "eventOutbox",
-  "events",
-  "eventsTrack",
-  "externalAdapterCursors",
-  "externalAdapterRuns",
-  "externalSampleReviews",
-  "externalStatusMappings",
-  "importBatches",
-  "legacyDataMigrationDecisions",
-  "legacyDataMigrationExecutions",
-  "manualReviewItems",
-  "notificationDeliveries",
-  "notificationJobs",
-  "notificationSubscriptionGrants",
-  "notificationSubscriptions",
-  "notificationTemplates",
-  "operationTasks",
-  "operationalAlertNotifications",
-  "operationalAlertRules",
-  "operationalAlertRuns",
-  "orderAfterSalesRecords",
-  "orderFulfillments",
-  "productJumpLogs",
-  "productionCutoverProofs",
-  "refundWorkItems",
-  "refunds",
-  "releaseSignoffs",
-  "rewardDeliveryJobs",
-  "rewardGrants",
-  "rewardInventoryPools",
-  "rewardInventoryReservations",
-  "rewardRecoveryRecords",
-  "rootMemberCenterJumpProofs",
-  "settlementRecords",
-  "taskDefinitions",
-  "taskEvents",
-  "taskProgressSnapshots",
-  "uploads",
-  "weworkTouchJobs",
-  "youzanCustomers",
-  "youzanIdentityReconciliations",
-  "youzanOrders",
-  "youzanProducts",
-  "youzanSkus",
-]);
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -102,7 +39,7 @@ function mergeDefaults(target, defaults) {
 
 function createEmptyData() {
   const data = createSeedData();
-  RETIRED_FORMAL_LAUNCH_SNAPSHOT_KEYS.forEach((key) => delete data[key]);
+  RETIRED_SNAPSHOT_DEFAULT_KEYS.forEach((key) => delete data[key]);
   data.contentAssets = [];
   data.contentVersions = [];
   data.contentPublicationRecords = [];

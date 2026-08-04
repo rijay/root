@@ -48,18 +48,6 @@ function sessionTokenDigest(token) {
   return `${SESSION_DIGEST_VERSION}:${digest}`;
 }
 
-function containsCredentialMaterial(value, seen = new Set()) {
-  if (!value || typeof value !== "object") return false;
-  if (seen.has(value)) return false;
-  seen.add(value);
-  const entries = Array.isArray(value) ? value.map((item) => ["", item]) : Object.entries(value);
-  return entries.some(([key, item]) => {
-    const normalizedKey = String(key || "").replace(/[^a-z0-9]/gi, "").toLowerCase();
-    if (["token", "accesstoken", "authorization", "bearer", "sessiontoken"].includes(normalizedKey)) return true;
-    return containsCredentialMaterial(item, seen);
-  });
-}
-
 function normalizePersistedCredentials(data = {}) {
   const sessions = Array.isArray(data.sessions) ? data.sessions : [];
   const protectedTokens = {};
@@ -75,14 +63,9 @@ function normalizePersistedCredentials(data = {}) {
 
   data.sessions = sessions;
   data.tokens = protectedTokens;
-  // The legacy replay cache could contain complete login responses. Preserve
-  // non-credential sentinels used by existing Store probes, but invalidate any
-  // entry whose shape can carry bearer material.
-  const legacyIdempotency = data.idempotency && typeof data.idempotency === "object"
-    ? data.idempotency
-    : {};
-  data.idempotency = Object.fromEntries(Object.entries(legacyIdempotency)
-    .filter(([, value]) => !containsCredentialMaterial(value)));
+  // The pre-launch replay cache has no formal caller. Durable command
+  // idempotency lives in commandIdempotencyRecords/command_idempotency.
+  delete data.idempotency;
   return data;
 }
 

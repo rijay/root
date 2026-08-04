@@ -135,7 +135,7 @@ test("login responses never persist bearer tokens in command replay state", asyn
   assert.equal(login.body.code, 0);
   assert.ok(login.body.data.token);
   assert.equal(server.store.commandIdempotencyRecords.length, 0);
-  assert.equal(JSON.stringify(server.store.idempotency).includes(login.body.data.token), false);
+  assert.equal(server.store.idempotency, undefined);
 });
 
 test("authenticated command scope follows the stable Root user across session rotation", async (t) => {

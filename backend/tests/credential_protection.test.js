@@ -83,9 +83,10 @@ test("persisted credential normalization removes raw sessions and token-map-only
   assert.equal(data.sessions[0].token, undefined);
   assert.equal(data.sessions[0].token_hash, digest);
   assert.deepEqual(data.tokens, { [digest]: "usr_1" });
-  assert.deepEqual(data.idempotency, { mysql_probe_sentinel: { status: "RESERVED" } });
+  assert.equal(data.idempotency, undefined);
   assert.equal(JSON.stringify(data).includes("root_legacy_secret"), false);
   assert.equal(JSON.stringify(data).includes("root_map_only_secret"), false);
+  assert.equal(JSON.stringify(data).includes("mysql_probe_sentinel"), false);
 });
 
 test("new login persists only protected phone and session representations", () => {

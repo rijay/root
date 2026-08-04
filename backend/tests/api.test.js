@@ -130,10 +130,10 @@ test("Store snapshot imports do not share mutable references with the source sna
   store.importSnapshot(source);
 
   store.data.users.push({ user_id: "usr_snapshot_alias_guard" });
-  store.data.idempotency.request = { code: 0 };
+  store.data.auditLogs.push({ audit_id: "aud_snapshot_alias_guard" });
 
   assert.equal(source.users.length, 0);
-  assert.equal(source.idempotency.request, undefined);
+  assert.equal(source.auditLogs.length, 0);
 });
 
 test("Store normalization removes persisted WeChat access-token cache without mutating the source", () => {

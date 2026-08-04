@@ -1,87 +1,13 @@
-const AUTOMATICALLY_PRUNABLE_KEYS = Object.freeze([
-  "adminLegacyDeprecationDecisions",
-  "adminLifecycleFilterPresets",
-  "adminLifecycleSettlementJobs",
-  "adminLifecycleUserExports",
-  "eventConsumerCheckpoints",
-  "eventInbox",
-  "eventOutbox",
-  "events",
-  "eventsTrack",
-  "idempotency",
-  "legacyDataMigrationDecisions",
-  "legacyDataMigrationExecutions",
-  "operationalAlertNotifications",
-  "operationalAlertRules",
-  "operationalAlertRuns",
-]);
-
-const ARCHIVE_BEFORE_PRUNE_KEYS = Object.freeze([
-  "externalAdapterCursors",
-  "externalAdapterRuns",
-  "externalSampleReviews",
-  "externalStatusMappings",
-  "productionCutoverProofs",
-  "releaseSignoffs",
-]);
-
-const CONFIRMATION_REQUIRED_KEYS = Object.freeze([
-  "campaignDefinitions",
-  "campaignParticipants",
-  "campaignProductRelations",
-  "campaignRuleVersions",
-  "checkinRecords",
-  "checkinSessions",
-  "consultationAdvisorAssignments",
-  "consultationWeworkWritebacks",
-  "couponEvents",
-  "dailyCheckinRecords",
-  "dailySummaries",
-  "manualReviewItems",
-  "notificationDeliveries",
-  "notificationJobs",
-  "notificationSubscriptionGrants",
-  "notificationSubscriptions",
-  "notificationTemplates",
-  "operationTasks",
-  "orderAfterSalesRecords",
-  "orderFulfillments",
-  "productJumpLogs",
-  "refundWorkItems",
-  "refunds",
-  "rewardDeliveryJobs",
-  "rewardGrants",
-  "rewardInventoryPools",
-  "rewardInventoryReservations",
-  "rewardRecoveryRecords",
-  "settlementRecords",
-  "taskDefinitions",
-  "taskEvents",
-  "taskProgressSnapshots",
-  "uploads",
-  "weworkTouchJobs",
-  "youzanCustomers",
-  "youzanIdentityReconciliations",
-  "youzanOrders",
-  "youzanProducts",
-  "youzanSkus",
-]);
-
-const PROTECTED_KEYS = Object.freeze([
-  "formalProfiles",
-  "healthScaleResponses",
-  "privacyConsentRecords",
-  "profiles",
-  "questionnaireAnswers",
-  "questionnaireResponses",
-  "rootUsers",
-  "sessions",
-  "tokens",
-  "userContactMethods",
-  "userLifecycleEvents",
-  "users",
-  "wechatIdentities",
-]);
+const {
+  ACTIVE_RELATIONAL_TABLES,
+  ARCHIVE_BEFORE_PRUNE_SNAPSHOT_KEYS,
+  AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS,
+  CONFIRMATION_REQUIRED_SNAPSHOT_KEYS,
+  FORMAL_LAUNCH_DATA_DISPOSITION_VERSION,
+  OWNER_CONFIRMATION_RELATIONAL_TABLES,
+  PROTECTED_SNAPSHOT_KEYS,
+  SYSTEM_RELATIONAL_TABLES,
+} = require("./formalLaunchDataDisposition");
 
 const RETIRED_AUDIT_ACTIONS = Object.freeze(new Set([
   "OPERATIONAL_ALERT_JOB_PREVIEW",
@@ -119,8 +45,8 @@ function buildFormalLaunchSnapshotCleanupPlan(snapshot) {
   }
 
   const candidate = clone(snapshot);
-  const automatic = summarize(snapshot, AUTOMATICALLY_PRUNABLE_KEYS);
-  AUTOMATICALLY_PRUNABLE_KEYS.forEach((key) => delete candidate[key]);
+  const automatic = summarize(snapshot, AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS);
+  AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS.forEach((key) => delete candidate[key]);
 
   const auditLogs = Array.isArray(candidate.auditLogs) ? candidate.auditLogs : [];
   const retainedAuditLogs = auditLogs.filter((entry) => (
@@ -129,9 +55,9 @@ function buildFormalLaunchSnapshotCleanupPlan(snapshot) {
   const filteredAuditLogCount = auditLogs.length - retainedAuditLogs.length;
   if (filteredAuditLogCount > 0) candidate.auditLogs = retainedAuditLogs;
 
-  const archiveRequired = summarize(snapshot, ARCHIVE_BEFORE_PRUNE_KEYS);
-  const confirmationRequired = summarize(snapshot, CONFIRMATION_REQUIRED_KEYS);
-  const protectedCollections = summarize(snapshot, PROTECTED_KEYS);
+  const archiveRequired = summarize(snapshot, ARCHIVE_BEFORE_PRUNE_SNAPSHOT_KEYS);
+  const confirmationRequired = summarize(snapshot, CONFIRMATION_REQUIRED_SNAPSHOT_KEYS);
+  const protectedCollections = summarize(snapshot, PROTECTED_SNAPSHOT_KEYS);
   const beforeBytes = byteLength(snapshot);
   const candidateBytes = byteLength(candidate);
   const confirmationItemCount = confirmationRequired.reduce((sum, item) => sum + item.itemCount, 0);
@@ -139,6 +65,7 @@ function buildFormalLaunchSnapshotCleanupPlan(snapshot) {
 
   return Object.freeze({
     mode: "DRY_RUN",
+    dispositionVersion: FORMAL_LAUNCH_DATA_DISPOSITION_VERSION,
     writePerformed: false,
     beforeBytes,
     candidateBytes,
@@ -154,6 +81,11 @@ function buildFormalLaunchSnapshotCleanupPlan(snapshot) {
     archiveRequired,
     confirmationRequired,
     protectedCollections,
+    retainedRelationalTables: Object.freeze({
+      active: ACTIVE_RELATIONAL_TABLES,
+      system: SYSTEM_RELATIONAL_TABLES,
+      ownerConfirmationRequired: OWNER_CONFIRMATION_RELATIONAL_TABLES,
+    }),
     blockers: Object.freeze([
       ...(confirmationItemCount > 0
         ? [`${confirmationItemCount} pre-launch business records require owner confirmation`]
@@ -169,10 +101,10 @@ function buildFormalLaunchSnapshotCleanupPlan(snapshot) {
 }
 
 module.exports = {
-  ARCHIVE_BEFORE_PRUNE_KEYS,
-  AUTOMATICALLY_PRUNABLE_KEYS,
-  CONFIRMATION_REQUIRED_KEYS,
-  PROTECTED_KEYS,
+  ARCHIVE_BEFORE_PRUNE_KEYS: ARCHIVE_BEFORE_PRUNE_SNAPSHOT_KEYS,
+  AUTOMATICALLY_PRUNABLE_KEYS: AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS,
+  CONFIRMATION_REQUIRED_KEYS: CONFIRMATION_REQUIRED_SNAPSHOT_KEYS,
+  PROTECTED_KEYS: PROTECTED_SNAPSHOT_KEYS,
   buildFormalLaunchSnapshotCleanupPlan,
   collectionCount,
 };
