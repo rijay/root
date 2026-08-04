@@ -2,7 +2,7 @@
   <view class="consent-header">
     <view class="eyebrow">单独同意</view>
     <view class="consent-title">{{notice.title}}</view>
-    <view class="consent-copy">{{active ? '你已同意当前版本，可在这里撤回。撤回后将停止新的身体记录提交。' : '请在提交身体画像、健康问卷或打卡前单独确认。商品浏览和人工协助不以同意为前提。'}}</view>
+    <view class="consent-copy">{{active ? '你已同意当前版本，可在这里撤回。撤回后将停止新的健康评测提交。' : '请在提交 Root4U 健康评测前单独确认。首页、活动和会员支持不以同意为前提。'}}</view>
   </view>
 
   <view wx:if="{{loading}}" class="consent-state">正在加载说明...</view>
@@ -46,14 +46,14 @@
       <button class="btn-primary consent-withdraw" loading="{{submitting}}" bindtap="withdraw">撤回同意</button>
     </view>
     <view wx:else class="consent-actions">
-      <button class="btn-secondary" bindtap="decline">暂不同意，去看商品</button>
+      <button class="btn-secondary" bindtap="decline">暂不同意，返回健康首页</button>
       <button class="btn-primary" loading="{{submitting}}" disabled="{{!confirmed || submitting}}" bindtap="agree">单独同意并继续</button>
     </view>
   </block>
 
   <view wx:else class="consent-state consent-state--error">
     <view>敏感信息处理说明尚未配置，当前不会收集新的身体反馈。</view>
-    <button class="btn-secondary consent-fallback" bindtap="decline">返回商品页</button>
+    <button class="btn-secondary consent-fallback" bindtap="decline">返回健康首页</button>
     <button class="contact-button" open-type="contact">联系人工协助</button>
   </view>
 </view>

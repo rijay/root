@@ -152,36 +152,6 @@ test("invalid draft input leaves no partially persisted activity version", () =>
   assert.deepEqual(store, before);
 });
 
-test("activity task binding freezes id and version together", () => {
-  const store = data();
-  assert.throws(
-    () => activity.upsertDraft(store, draftInput({ preboundTaskDefinitionId: "task-without-version" }), { now: T.draft }),
-    { code: "ACTIVITY_TASK_BINDING_INCOMPLETE" }
-  );
-  assert.equal(store.activityDefinitionVersions, undefined);
-  const draft = activity.upsertDraft(store, draftInput({
-    preboundTaskDefinitionId: "task-after-activity",
-    preboundTaskDefinitionVersion: "task-after-activity-v1",
-  }), { now: T.draft });
-  assert.equal(draft.preboundTaskDefinitionId, "task-after-activity");
-  assert.equal(draft.preboundTaskDefinitionVersion, "task-after-activity-v1");
-});
-
-test("task-bound sessions fail closed when reapply would reuse an invalidated assignment", () => {
-  const store = data();
-  assert.throws(
-    () => openSession(store, {
-      allowReapply: true,
-      definition: {
-        preboundTaskDefinitionId: "task-after-activity",
-        preboundTaskDefinitionVersion: "task-after-activity-v1",
-      },
-    }),
-    { code: "ACTIVITY_TASK_REAPPLY_UNSUPPORTED" }
-  );
-  assert.equal(store.activitySessions.length, 0);
-});
-
 test("activity visibility fails closed instead of widening malformed member content to public", () => {
   const store = data();
   assert.throws(
@@ -699,6 +669,35 @@ test("public listing is deterministic and never exposes UED placeholder content"
   assert.equal(activity.getDetail(store, { activityId: "root_activity_001" }, "", {
     now: "2026-08-03T00:00:02.000Z",
   }).session.sessionId, "root_session_001");
+});
+
+test("public activity page stays within the 100 KiB response budget at 20 maximum-length summaries", () => {
+  const store = data();
+  openSession(store, { capacity: 20 });
+  const sourceDefinition = store.activityDefinitionVersions[0];
+  const sourceSession = store.activitySessions[0];
+  sourceDefinition.title = "活".repeat(160);
+  sourceDefinition.summary = "动".repeat(512);
+  for (let index = 1; index < 20; index += 1) {
+    const suffix = String(index).padStart(2, "0");
+    const activityVersionId = `root_activity_${suffix}_v1`;
+    store.activityDefinitionVersions.push({
+      ...sourceDefinition,
+      activity_id: `root_activity_${suffix}`,
+      activity_version_id: activityVersionId,
+    });
+    store.activitySessions.push({
+      ...sourceSession,
+      activity_session_id: `root_session_${suffix}`,
+      activity_version_id: activityVersionId,
+    });
+  }
+  const page = activity.listVisiblePage(store, { page: 1, pageSize: 20 }, {
+    now: "2026-08-03T00:00:00.000Z",
+  });
+  assert.equal(page.items.length, 20);
+  assert.equal(page.items.every((item) => item.objective === undefined && item.cancelPolicy === undefined), true);
+  assert.ok(Buffer.byteLength(JSON.stringify(page), "utf8") <= 100 * 1024);
 });
 
 test("an OPEN session remains COMING_SOON before its frozen registration window", () => {

@@ -1,0 +1,50 @@
+<view class="privacy-account-page">
+  <page-navigation show-home="{{false}}" />
+  <text class="privacy-account-page__title">隐私与账号</text>
+  <text class="privacy-account-page__introduction">查看个人信息使用说明，
+并管理 myRoot 账号。</text>
+
+  <text class="privacy-account-page__section-tag privacy-account-page__section-tag--privacy">隐私</text>
+  <view class="privacy-account-page__menu privacy-account-page__menu--privacy">
+    <view class="privacy-account-page__row" data-type="collection" bindtap="openLegal"><text>个人信息收集清单</text><view class="privacy-account-page__arrow"></view></view>
+    <view class="privacy-account-page__row" data-type="sharing" bindtap="openLegal"><text>第三方信息共享清单</text><view class="privacy-account-page__arrow"></view></view>
+    <view class="privacy-account-page__row" data-type="privacy" bindtap="openLegal"><text>隐私政策</text><view class="privacy-account-page__arrow"></view></view>
+  </view>
+
+  <text class="privacy-account-page__section-tag privacy-account-page__section-tag--account">账号</text>
+  <view class="privacy-account-page__account" bindtap="openCancellation">
+    <text class="privacy-account-page__account-title">注销 myRoot 账号</text>
+    <text class="privacy-account-page__account-hint">不会自动注销 Root 会员中心账号</text>
+    <view class="privacy-account-page__arrow"></view>
+  </view>
+
+  <view class="privacy-account-page__support" bindtap="openSupport">
+    <text>对信息处理有疑问？
+联系客服</text><view class="privacy-account-page__arrow"></view>
+  </view>
+  <text class="privacy-account-page__version">myRoot v{{version}}</text>
+
+  <view wx:if="{{cancellationVisible}}" class="cancellation-overlay" catchtouchmove="preventTouchMove">
+    <view class="cancellation-sheet" role="dialog" aria-label="注销 myRoot 账号二次确认">
+      <view class="cancellation-sheet__handle"></view>
+      <text class="cancellation-sheet__tag">二次确认</text>
+      <text class="cancellation-sheet__title">注销 myRoot 账号</text>
+      <text class="cancellation-sheet__introduction">提交后当前会话将立即失效，
+且停止新的非必要信息收集。</text>
+      <view class="cancellation-sheet__consequences">
+        <text>• 删除可删除的 myRoot 资料
+• 依法需保留的记录将限制处理
+• 不自动注销 Root 会员中心账号
+• 正式处理时限以发布规则为准</text>
+      </view>
+      <view class="cancellation-sheet__confirmation" bindtap="toggleCancellationConfirmation">
+        <view class="cancellation-sheet__checkbox {{cancellationConfirmed ? 'is-checked' : ''}}"><text wx:if="{{cancellationConfirmed}}">✓</text></view>
+        <text>我已了解上述范围与后果，
+并确认继续注销流程。</text>
+      </view>
+      <button class="cancellation-sheet__keep" style="width: 350px;" bindtap="closeCancellation">暂不注销</button>
+      <button class="cancellation-sheet__submit" style="width: 350px;" bindtap="submitCancellation">确认提交注销申请</button>
+      <text class="cancellation-sheet__support" bindtap="openSupport">有疑问，联系客服</text>
+    </view>
+  </view>
+</view>

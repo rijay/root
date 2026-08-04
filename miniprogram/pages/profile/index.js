@@ -1,254 +1,137 @@
-const { clearToken, getToken, request } = require("../../utils/request");
-const router = require("../../utils/router");
-const { uploadCloudAvatar } = require("../../utils/avatar-upload");
+const env = require("../../config/env");
 const { appVersion } = require("../../config/version");
+const router = require("../../utils/router");
+const { clearToken, getToken, request } = require("../../utils/request");
+const { syncTabBar } = require("../../utils/tab-bar");
+const { clearLegacyTransientHealthStorage, clearTransientHealthData } = require("../../utils/transient-health-state");
 
-function emptySession() {
-  return {
-    records: [],
-    missCount: 0,
-    refundStatus: "",
-    orderId: "",
-  };
-}
+const PROFILE_ROUTE = "/pages/profile/index";
+const PENDING_MEMBER_TARGET_KEY = "ROOT_PROFILE_MEMBER_TARGET_V1";
+const LOCAL_SESSION_KEYS = [
+  "ROOT_AUTH_INTENT_V1",
+  "ROOT_REGISTRATION_CONTEXT_V1",
+  "ROOT_PROFILE_SUBMIT_KEY_V1",
+  "ROOT4U_START_PENDING_V1",
+  "ROOT4U_INITIAL_SUBMIT_KEY_V1",
+  "MYROOT_ACTIVITY_ROUTE_INTENT_V1",
+  "MYROOT_ACTIVITY_PENDING_COMMANDS_V1",
+  PENDING_MEMBER_TARGET_KEY,
+];
 
-function isDefaultNickname(value) {
-  const text = String(value || "").trim();
-  return !text || text === "ROOT体验官" || text === "微信用户";
+function runtimeVersion() {
+  try {
+    const info = wx.getAccountInfoSync();
+    return info && info.miniProgram && info.miniProgram.version || appVersion;
+  } catch (error) {
+    return appVersion;
+  }
 }
 
 Page({
   data: {
-    appVersion,
-    viewState: "loading",
-    errorText: "",
-    user: {
-      nickname: "ROOT体验官",
-      phone: "",
-      state: "",
-      avatarUrl: "",
-    },
-    avatarSrc: "/static/brand/logo.png",
-    hasCustomAvatar: false,
-    displayForm: {
-      nickname: "",
-      avatarPreview: "/static/brand/logo.png",
-      avatarFilePath: "",
-    },
-    displaySaving: false,
-    showDisplayProfileCard: false,
-    profile: null,
-    session: emptySession(),
-    refundStatus: "未申请",
-    orders: [],
-    dailyStats: null,
-    progress: [],
-    checkedDays: 0,
-    statusBadge: "未登录",
-    showRecords: false,
-    showOrders: false,
+    loggedIn: false,
+    profile: { nickname: "未登录", avatarUrl: "" },
+    version: appVersion,
+    memberLinkFailure: false,
+    failedMemberKey: "",
   },
 
-  async onShow() {
-    this.resetPrivateView("loading");
-    if (!getToken()) {
-      this.setData({ viewState: "guest" });
+  onLoad() {
+    this.setData({ version: runtimeVersion() });
+  },
+
+  onShow() {
+    syncTabBar(this, 3);
+    const loggedIn = Boolean(getToken());
+    this.setData(loggedIn
+      ? { loggedIn }
+      : { loggedIn, memberLinkFailure: false, failedMemberKey: "" });
+    if (loggedIn) {
+      this.loadProfile();
+      const pendingTarget = wx.getStorageSync(PENDING_MEMBER_TARGET_KEY);
+      if (pendingTarget && !this._resumingMemberTarget) {
+        this._resumingMemberTarget = true;
+        wx.removeStorageSync(PENDING_MEMBER_TARGET_KEY);
+        setTimeout(() => {
+          this.openMemberPath(pendingTarget);
+          this._resumingMemberTarget = false;
+        }, 0);
+      }
+    }
+  },
+
+  async loadProfile() {
+    try {
+      const data = await request({ url: "/api/v1/user/formal-profile", method: "GET", scope: "profile-home" });
+      this.setData({ profile: data.profile || { nickname: "Root用户", avatarUrl: "" } });
+    } catch (error) {
+      this.setData({ profile: { nickname: "Root用户", avatarUrl: "" } });
+    }
+  },
+
+  openLogin() {
+    if (!this.data.loggedIn) router.open(`/pages/login/index?intent=${encodeURIComponent(PROFILE_ROUTE)}`);
+  },
+
+  handleIdentityTap() {
+    if (this.data.loggedIn) this.openProfileEditor();
+    else this.openLogin();
+  },
+
+  openMemberEntry(event) {
+    const key = event.currentTarget.dataset.key;
+    if (!this.data.loggedIn) {
+      wx.setStorageSync(PENDING_MEMBER_TARGET_KEY, key);
+      this.openLogin();
       return;
     }
-    try {
-      const state = await router.fetchState();
-      if (!state || !state.user || state.user.state === "GUEST") {
-        this.setData({ viewState: "guest" });
-        return;
-      }
-      await this.load(state);
-    } catch (_) {
-      this.setData({
-        viewState: getToken() ? "error" : "guest",
-        errorText: "账号信息暂未完成读取，请稍后重试。",
-      });
-    }
+    this.openMemberPath(key);
   },
 
-  resetPrivateView(viewState) {
-    this.setData({
-      viewState,
-      errorText: "",
-      user: { nickname: "ROOT体验官", phone: "", state: "", avatarUrl: "" },
-      avatarSrc: "/static/brand/logo.png",
-      hasCustomAvatar: false,
-      showDisplayProfileCard: false,
-      profile: null,
-      session: emptySession(),
-      orders: [],
-      dailyStats: null,
-      progress: [],
-      checkedDays: 0,
-      statusBadge: "未登录",
-      showRecords: false,
-      showOrders: false,
-    });
-  },
-
-  async load(state) {
-    try {
-      const userState = state.user.state;
-      const [profileResult, ordersResult, sessionResult, refundResult, dailyResult] = await Promise.allSettled([
-        request({ url: "/api/v1/user/profile" }),
-        request({ url: "/api/v1/user/orders" }),
-        ["CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "CHECKIN_FAILED"].includes(userState)
-          ? request({ url: "/api/v1/checkin/session" })
-          : Promise.resolve(null),
-        ["CHECKIN_COMPLETED", "DAILY_USER"].includes(userState) ? request({ url: "/api/v1/refund/status" }) : Promise.resolve(null),
-        userState === "DAILY_USER" ? request({ url: "/api/v1/daily/stats" }) : Promise.resolve(null),
-      ]);
-
-      const session = sessionResult.status === "fulfilled" && sessionResult.value ? sessionResult.value.session : emptySession();
-      const progress = (session.records || []).map((record) => ({
-        ...record,
-        className: record.checkedIn ? "done" : "",
-      }));
-      const checkedDays = progress.filter((record) => record.checkedIn).length;
-      const dailyStats = dailyResult.status === "fulfilled" ? dailyResult.value : null;
-      const statusBadge = this.buildStatusBadge(userState, session, dailyStats);
-      const avatarSrc = state.user.avatarUrl || "/static/brand/logo.png";
-      const nickname = isDefaultNickname(state.user.nickname) ? "" : state.user.nickname;
-
-      this.setData({
-        viewState: "ready",
-        user: state.user,
-        avatarSrc,
-        hasCustomAvatar: Boolean(state.user.avatarUrl),
-        displayForm: {
-          nickname,
-          avatarPreview: avatarSrc,
-          avatarFilePath: "",
-        },
-        showDisplayProfileCard: !state.user.avatarUrl || isDefaultNickname(state.user.nickname),
-        profile: profileResult.status === "fulfilled" ? profileResult.value.profile : null,
-        orders: ordersResult.status === "fulfilled" ? ordersResult.value.orders : [],
-        session,
-        refundStatus: refundResult.status === "fulfilled" && refundResult.value ? refundResult.value.refundStatus || "未申请" : "未申请",
-        dailyStats,
-        progress,
-        checkedDays,
-        statusBadge,
-        showRecords: ["CHECKIN_ACTIVE", "CHECKIN_COMPLETED", "DAILY_USER"].includes(userState),
-        showOrders: ordersResult.status === "fulfilled" && ordersResult.value.orders.length > 0,
-      });
-    } catch (error) {
-      this.resetPrivateView("error");
-      this.setData({ errorText: "账号信息暂未完成读取，请稍后重试。" });
-    }
-  },
-
-  retryLoad() {
-    this.onShow();
-  },
-
-  goLogin() {
-    router.go("/pages/login/index?source=profile");
-  },
-
-  browseProducts() {
-    router.open("/pages/products/index?source=profile_guest");
-  },
-
-  openPrivacy() {
-    router.open("/pages/legal/index?type=privacy&source=profile");
-  },
-
-  onChooseAvatar(event) {
-    const avatarUrl = event.detail && event.detail.avatarUrl;
-    if (!avatarUrl) return;
-    this.setData({
-      displayForm: {
-        ...this.data.displayForm,
-        avatarPreview: avatarUrl,
-        avatarFilePath: avatarUrl,
-      },
-    });
-  },
-
-  onNicknameInput(event) {
-    this.setData({
-      displayForm: {
-        ...this.data.displayForm,
-        nickname: event.detail.value,
-      },
-    });
-  },
-
-  async submitDisplayProfile(event) {
-    const formNickname = event.detail && event.detail.value ? event.detail.value.nickname : "";
-    const nickname = String(formNickname || this.data.displayForm.nickname || "").trim();
-    const avatarFilePath = this.data.displayForm.avatarFilePath;
-
-    if (!nickname && !avatarFilePath) {
-      wx.showToast({ title: "请填写昵称或选择头像", icon: "none" });
+  openMemberPath(key) {
+    const path = key === "orders" ? env.rootMemberCenterOrdersPath : env.rootMemberCenterCouponsPath;
+    if (!env.rootMemberCenterAppId || !path) {
+      this.setData({ memberLinkFailure: true, failedMemberKey: key });
       return;
     }
-
-    this.setData({ displaySaving: true });
-    try {
-      let avatarUrl = "";
-      if (avatarFilePath) {
-        avatarUrl = await uploadCloudAvatar(avatarFilePath, this.data.user.userId);
-        if (!avatarUrl) {
-          wx.showToast({ title: "头像上传失败，请重试", icon: "none" });
-          return;
-        }
-      }
-
-      const data = await request({
-        url: "/api/v1/user/display-profile",
-        method: "POST",
-        data: { nickname, avatarUrl },
-      });
-      const avatarSrc = data.user.avatarUrl || "/static/brand/logo.png";
-      this.setData({
-        user: data.user,
-        avatarSrc,
-        hasCustomAvatar: Boolean(data.user.avatarUrl),
-        displayForm: {
-          nickname: isDefaultNickname(data.user.nickname) ? "" : data.user.nickname,
-          avatarPreview: avatarSrc,
-          avatarFilePath: "",
-        },
-        showDisplayProfileCard: !data.user.avatarUrl || isDefaultNickname(data.user.nickname),
-      });
-      wx.showToast({ title: "资料已更新", icon: "success" });
-    } catch (error) {
-      wx.showToast({ title: error.message || "保存失败", icon: "none" });
-    } finally {
-      this.setData({ displaySaving: false });
-    }
+    wx.navigateToMiniProgram({
+      appId: env.rootMemberCenterAppId,
+      path,
+      envVersion: "release",
+      success: () => this.setData({ memberLinkFailure: false, failedMemberKey: "" }),
+      fail: () => this.setData({ memberLinkFailure: true, failedMemberKey: key }),
+    });
   },
 
-  buildStatusBadge(state, session, dailyStats) {
-    if (state === "CHECKIN_ACTIVE" && session) return `打卡中 Day${session.currentDayIndex || 1}/7`;
-    if (state === "CHECKIN_COMPLETED") return "试饮记录已完成";
-    if (state === "DAILY_USER" && dailyStats) return `日常记录中 · 连续 ${dailyStats.currentStreak} 天`;
-    if (state === "REGISTERED_IDLE") return "待开启打卡";
-    if (state === "UNREGISTERED") return "待完成画像";
-    return state || "未登录";
+  retryMemberEntry() {
+    this.openMemberPath(this.data.failedMemberKey || "orders");
   },
 
-  goLink(event) {
-    const url = event.currentTarget.dataset.url;
-    if (url) router.open(url);
+  openProfileEditor() {
+    if (!this.data.loggedIn) return this.openLogin();
+    router.open("/pages/register/index?mode=edit&intent=%2Fpages%2Fprofile%2Findex");
+  },
+
+  openSupport(event) {
+    const type = event.currentTarget.dataset.type || "contact";
+    router.open(`/subpkg/profile/pages/support/index?type=${encodeURIComponent(type)}`);
+  },
+
+  openAbout() {
+    router.open("/subpkg/profile/pages/about/index");
   },
 
   logout() {
-    wx.showModal({
-      title: "确认退出",
-      content: "退出后需重新进行手机号快捷登录",
-      success: (res) => {
-        if (!res.confirm) return;
-        clearToken();
-        wx.removeStorageSync("userInfo");
-        wx.reLaunch({ url: "/pages/home/index" });
-      },
+    clearToken();
+    LOCAL_SESSION_KEYS.forEach((key) => wx.removeStorageSync(key));
+    clearTransientHealthData();
+    clearLegacyTransientHealthStorage(wx);
+    this.setData({
+      loggedIn: false,
+      profile: { nickname: "未登录", avatarUrl: "" },
+      memberLinkFailure: false,
+      failedMemberKey: "",
     });
+    wx.showToast({ title: "已退出登录", icon: "success" });
   },
 });

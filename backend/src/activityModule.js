@@ -9,7 +9,7 @@ const ENROLLMENT_STATES = Object.freeze(["PENDING", "CONFIRMED", "REJECTED", "CA
 const APPROVAL_MODES = Object.freeze(["AUTO", "MANUAL"]);
 const PUBLICATION_AUTHORIZATION_MAX_AGE_MS = 5 * 60 * 1000;
 const ADMIN_QUERY_DEFAULT_PAGE_SIZE = 20;
-const ADMIN_QUERY_MAX_PAGE_SIZE = 100;
+const ADMIN_QUERY_MAX_PAGE_SIZE = 50;
 const PUBLIC_QUERY_DEFAULT_PAGE_SIZE = 10;
 const PUBLIC_QUERY_MAX_PAGE_SIZE = 50;
 const SESSION_CANCEL_REASONS = Object.freeze(["OPERATOR_CANCELED", "WEATHER", "VENUE", "FORCE_MAJEURE", "OTHER"]);
@@ -60,6 +60,12 @@ function requiredBoundedText(value, field, maximumLength) {
 
 function optionalText(value) {
   return String(value || "").trim();
+}
+
+function maskPhone(value) {
+  const phone = optionalText(value);
+  if (phone.length < 7) return phone;
+  return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
 }
 
 function positiveInteger(value, field) {
@@ -473,18 +479,6 @@ function upsertDraft(data, input = {}, context = {}) {
     input.contactOwnerSignerRef || input.contact_owner_signer_ref,
     "contactOwnerSignerRef"
   );
-  const preboundTaskDefinitionId = optionalText(
-    input.preboundTaskDefinitionId || input.prebound_task_definition_id
-  );
-  const preboundTaskDefinitionVersion = optionalText(
-    input.preboundTaskDefinitionVersion || input.prebound_task_definition_version
-  );
-  if (preboundTaskDefinitionId.length > 32 || preboundTaskDefinitionVersion.length > 64) {
-    throw activityError("ACTIVITY_TASK_BINDING_INCOMPLETE", "预绑定任务标识或版本长度超限", 400);
-  }
-  if (Boolean(preboundTaskDefinitionId) !== Boolean(preboundTaskDefinitionVersion)) {
-    throw activityError("ACTIVITY_TASK_BINDING_INCOMPLETE", "预绑定任务标识与版本必须同时填写", 400);
-  }
   if (!Array.isArray(data.activityDefinitionVersions)) data.activityDefinitionVersions = definitions;
   if (!definition) {
     definition = {
@@ -501,8 +495,6 @@ function upsertDraft(data, input = {}, context = {}) {
     visibility,
     member_requirement: optionalText(input.memberRequirement || input.member_requirement),
     contact_owner_signer_ref: contactOwnerSignerRef,
-    prebound_task_definition_id: preboundTaskDefinitionId,
-    prebound_task_definition_version: preboundTaskDefinitionVersion,
     published_at: null,
     updated_at: now,
   });
@@ -660,13 +652,6 @@ function createSession(data, input = {}, context = {}) {
   };
   const capacity = positiveInteger(input.capacity, "capacity");
   const allowReapply = input.allowReapply === true || input.allow_reapply === true;
-  if (allowReapply && definition.prebound_task_definition_id) {
-    throw activityError(
-      "ACTIVITY_TASK_REAPPLY_UNSUPPORTED",
-      "预绑定任务的活动场次暂不支持取消后重新报名",
-      409
-    );
-  }
   const existingBusinessSession = sessions.find((item) => (
     item.activity_version_id === activityVersionId
     && item.session_start_at === normalizedTimes.sessionStartAt
@@ -1134,13 +1119,30 @@ function listVisible(data, query = {}, context = {}, rootUserId = "") {
     .filter(({ definition }) => !activityType || definition.activity_type === activityType)
     .filter(({ session }) => !date || session.session_start_at.slice(0, 10) === date)
     .map(({ definition, session }) => ({
-      ...toDefinitionPayload(definition, context),
+      ...toPublicListingPayload(definition, context),
       session: toSessionPayload(data, session, now),
       enrollment: rootUserId ? toOptionalEnrollmentPayload(enrollmentByUser(data, session.activity_session_id, rootUserId)) : null,
       actions: toUserActivityActions(session, rootUserId
         ? enrollmentByUser(data, session.activity_session_id, rootUserId)
         : null, now),
     }));
+}
+
+function toPublicListingPayload(definition, context = {}) {
+  return {
+    activityVersionId: definition.activity_version_id,
+    activityId: definition.activity_id,
+    version: definition.version,
+    status: definition.status,
+    title: definition.title,
+    summary: definition.summary,
+    city: definition.city,
+    venueSummary: definition.venue_summary,
+    activityType: definition.activity_type,
+    heroAssetUrl: resolvePublicHeroAssetUrl(definition, context),
+    visibility: definition.visibility,
+    memberRequirement: definition.member_requirement || "",
+  };
 }
 
 function toOptionalEnrollmentPayload(enrollment) {
@@ -1173,12 +1175,19 @@ function buildAdminProjectionIndex(data) {
     [session.activity_session_id, session]
   )));
   const confirmedBySession = new Map();
+  const usersByRootId = new Map();
+  (Array.isArray(data.users) ? data.users : []).forEach((user) => {
+    const rootUserId = optionalText(user.root_user_id || user.user_id);
+    if (!rootUserId) return;
+    const current = usersByRootId.get(rootUserId);
+    if (!current || (!current.phone && user.phone)) usersByRootId.set(rootUserId, user);
+  });
   collections.enrollments.forEach((enrollment) => {
     if (enrollment.status !== "CONFIRMED") return;
     const current = confirmedBySession.get(enrollment.activity_session_id) || 0;
     confirmedBySession.set(enrollment.activity_session_id, current + 1);
   });
-  return { ...collections, definitionsByVersion, sessionsById, confirmedBySession };
+  return { ...collections, definitionsByVersion, sessionsById, confirmedBySession, usersByRootId };
 }
 
 function definitionForAdminProjection(index, activityVersionId) {
@@ -1226,8 +1235,6 @@ function toAdminDefinitionPayload(definition) {
     contactOwnerSignerRef: definition.contact_owner_signer_ref,
     visibility: definition.visibility,
     memberRequirement: definition.member_requirement || "",
-    preboundTaskDefinitionId: definition.prebound_task_definition_id || "",
-    preboundTaskDefinitionVersion: definition.prebound_task_definition_version || "",
     source: definition.source,
     createdAt: definition.created_at,
     updatedAt: definition.updated_at,
@@ -1275,6 +1282,7 @@ function adminReviewState(session, now) {
 function toAdminEnrollmentPayload(index, enrollment, now) {
   const session = sessionForAdminProjection(index, enrollment.activity_session_id);
   const sessionPayload = toAdminSessionPayload(index, session, now);
+  const user = index.usersByRootId.get(enrollment.root_user_id);
   return {
     enrollmentId: enrollment.activity_enrollment_id,
     sessionId: enrollment.activity_session_id,
@@ -1283,6 +1291,8 @@ function toAdminEnrollmentPayload(index, enrollment, now) {
     activityTitle: sessionPayload.activityTitle,
     city: sessionPayload.city,
     rootUserId: enrollment.root_user_id,
+    memberNickname: optionalText(user && user.nickname) || "Root用户",
+    memberContact: maskPhone(user && user.phone),
     status: enrollment.status,
     reasonCode: enrollment.reason_code || "",
     attemptGeneration: enrollment.attempt_generation,
@@ -1365,6 +1375,7 @@ function adminEnrollmentItems(data, query = {}, context = {}) {
   const sessionId = adminQueryText(query.sessionId || query.session_id, "sessionId");
   const activityId = adminQueryText(query.activityId || query.activity_id, "activityId");
   const rootUserId = adminQueryText(query.rootUserId || query.root_user_id, "rootUserId");
+  const search = adminQueryText(query.search, "search").toLowerCase();
   const attemptGeneration = adminQueryInteger(
     firstAdminQueryValue(query.attemptGeneration, query.attempt_generation),
     "attemptGeneration",
@@ -1374,6 +1385,12 @@ function adminEnrollmentItems(data, query = {}, context = {}) {
     .filter((enrollment) => !status || enrollment.status === status)
     .filter((enrollment) => !sessionId || enrollment.activity_session_id === sessionId)
     .filter((enrollment) => !rootUserId || enrollment.root_user_id === rootUserId)
+    .filter((enrollment) => {
+      if (!search) return true;
+      const user = index.usersByRootId.get(enrollment.root_user_id);
+      return [enrollment.root_user_id, user && user.nickname, user && user.phone]
+        .some((value) => optionalText(value).toLowerCase().includes(search));
+    })
     .map((enrollment) => toAdminEnrollmentPayload(index, enrollment, now))
     .filter((enrollment) => !activityId || enrollment.activityId === activityId)
     .filter((enrollment) => !attemptGeneration || enrollment.attemptGeneration === attemptGeneration)
@@ -1546,8 +1563,6 @@ function toDefinitionPayload(definition, context = {}) {
     photographyNoticeRef: definition.photography_notice_ref,
     visibility: definition.visibility,
     memberRequirement: definition.member_requirement || "",
-    preboundTaskDefinitionId: definition.prebound_task_definition_id || "",
-    preboundTaskDefinitionVersion: definition.prebound_task_definition_version || "",
   };
 }
 

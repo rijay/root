@@ -4,19 +4,19 @@ const { createId } = require("./seed");
 const { createClientError } = require("./clientError");
 
 const HEALTH_CONSENT_TYPE = "HEALTH_SENSITIVE_INFO";
-const HEALTH_CONSENT_POLICY_VERSION = "health-sensitive-2026-07-11-v1";
+const HEALTH_CONSENT_POLICY_VERSION = "root4u-health-sensitive-2026-08-03-v1";
 const DECISIONS = new Set(["GRANTED", "WITHDRAWN"]);
 
 const PURPOSES = [
-  "记录活动任务、问卷和身体反馈进度",
-  "按活动规则进行结算与奖励资格判断",
-  "在用户主动请求或出现异常反馈时提供人工协助",
+  "完成 Root4U 健康起点评测与生活方式分类",
+  "生成日常生活方式建议和后续评测推荐",
+  "在出现需要进一步确认的信息时提供必要人工协助",
 ];
 
 const DATA_CATEGORIES = [
-  "排便情况与便型",
-  "身体感受和健康问卷答案",
-  "用户主动选择的打卡图片",
+  "排便频率、便便形态与消化感受",
+  "睡眠、活动、饮食、饮水、压力和精力情况",
+  "健康目标、安全与适用性确认",
 ];
 
 function ensureList(data) {
@@ -75,13 +75,13 @@ function noticePayload(config) {
     title: "身体反馈与健康记录单独同意",
     purposes: PURPOSES.slice(),
     dataCategories: DATA_CATEGORIES.slice(),
-    necessity: "这些信息仅用于你主动参加的身体记录任务、活动结算和必要人工协助，不用于医疗诊断。",
-    refusalImpact: "不同意不会影响商品浏览和人工咨询，但无法提交身体画像、健康问卷或打卡记录，也无法计算依赖这些记录的任务与奖励。",
+    necessity: "这些信息仅用于你主动参加的 Root4U 评测、生活方式建议和必要人工协助，不用于医疗诊断。",
+    refusalImpact: "不同意不会影响首页、活动和会员支持，但无法提交 Root4U 健康评测或查看基于评测生成的建议。",
     controllerName: config.controllerName,
     contact: config.contact,
     retentionDays: config.retentionDays,
     retentionText: config.retentionDays
-      ? `原始身体反馈原则上保存不超过 ${config.retentionDays} 天；到期后自动脱敏记录并清理可控云存储图片，任务完成、结算和同意审计事实按必要期限保留。法律法规另有要求的除外。`
+      ? `原始健康评测答案原则上保存不超过 ${config.retentionDays} 天；到期后自动脱敏，评测版本、完成时间和同意审计事实按必要期限保留。法律法规另有要求的除外。`
       : "保存期限待运营负责人确认。",
   };
 }

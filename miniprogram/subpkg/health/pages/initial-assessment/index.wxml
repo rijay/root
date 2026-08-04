@@ -1,0 +1,32 @@
+<scroll-view class="assessment-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+  <view class="assessment-page" style="min-height: {{contentHeight}}px;">
+    <page-navigation show-home="{{false}}" intercept-back="{{true}}" bind:back="goBack" />
+
+    <view wx:if="{{loading}}" class="assessment-state">正在准备评测…</view>
+
+    <block wx:elif="{{currentQuestion}}">
+      <text class="assessment-progress">{{progressLabel}}</text>
+      <view class="assessment-progress__track"><view style="width: {{progressPercent}}%;"></view></view>
+      <text class="assessment-eyebrow">健康起点评测</text>
+      <text class="assessment-title">{{currentQuestion.title}}</text>
+      <text wx:if="{{currentQuestion.type === 'multi'}}" class="assessment-hint">可选择所有符合的情况</text>
+
+      <view class="assessment-options">
+        <button
+          wx:for="{{currentQuestion.options}}"
+          wx:key="value"
+          class="assessment-option {{item.selected ? 'assessment-option--selected' : ''}}"
+          data-value="{{item.value}}"
+          aria-label="{{item.label}}"
+          bindtap="selectOption"
+        >
+          <text>{{item.label}}</text><view class="assessment-option__mark"></view>
+        </button>
+      </view>
+
+      <view class="assessment-next-dock">
+        <button class="assessment-next" style="width: 350px;" disabled="{{!canContinue || submitting}}" loading="{{submitting}}" bindtap="next">{{currentIndex === definition.questions.length - 1 ? '完成建档' : '下一步'}}</button>
+      </view>
+    </block>
+  </view>
+</scroll-view>

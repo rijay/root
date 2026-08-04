@@ -1,0 +1,6 @@
+<web-view wx:if="{{state === 'ready'}}" src="{{url}}" />
+<view wx:elif="{{state === 'loading'}}" class="content-link-state">正在打开内容…</view>
+<view wx:else class="content-link-state">
+  <text>内容链接暂时不可用</text>
+  <button bindtap="goBack">返回</button>
+</view>

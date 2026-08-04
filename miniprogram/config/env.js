@@ -27,4 +27,7 @@ module.exports = {
   ...(configs[envVersion] || configs.develop),
   youzanAppId: "",
   youzanProductPath: "",
+  rootMemberCenterAppId: "wxfb75c0b432670215",
+  rootMemberCenterOrdersPath: "",
+  rootMemberCenterCouponsPath: "",
 };

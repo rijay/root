@@ -5,20 +5,8 @@ const { consentConfig } = require("./privacyConsent");
 
 const DEFAULT_CLEANUP_LIMIT = 50;
 const MAX_CLEANUP_LIMIT = 200;
-const SENSITIVE_TASK_TYPES = new Set(["CHECKIN", "QUESTIONNAIRE"]);
 const SENSITIVE_OPERATION_TASK_TYPES = new Set(["CONSULTATION_FOLLOW", "FEEDBACK_FOLLOW", "QUESTIONNAIRE_FOLLOW"]);
 const SENSITIVE_AUDIT_TARGET_TYPES = new Set(["OPERATION_TASK", "WEWORK_TOUCH_JOB"]);
-const TASK_PAYLOAD_ALLOWLIST = new Set([
-  "answerId",
-  "checkinRecordId",
-  "dayIndex",
-  "questionnaireId",
-  "questionnaireType",
-  "responseId",
-  "sessionId",
-  "source",
-  "version",
-]);
 const OPERATION_TASK_METADATA_ALLOWLIST = new Set([
   "assignedAdvisorId",
   "assignedAdvisorName",
@@ -134,16 +122,6 @@ function safeResultToken(value) {
   return /^[A-Z0-9_:-]{1,64}$/.test(result) ? result : "";
 }
 
-function redactedTaskPayload(value, pendingMediaRefs = []) {
-  const payload = value && typeof value === "object" && !Array.isArray(value) ? value : {};
-  const redacted = { retentionRedacted: true };
-  for (const [key, item] of Object.entries(payload)) {
-    if (TASK_PAYLOAD_ALLOWLIST.has(key)) redacted[key] = item;
-  }
-  if (pendingMediaRefs.length) redacted.imageUrls = Array.from(new Set(pendingMediaRefs));
-  return redacted;
-}
-
 function markRedaction(item, redactedAt, pendingMediaRefs = []) {
   if (pendingMediaRefs.length) {
     delete item.health_data_redacted_at;
@@ -183,18 +161,6 @@ function candidateSpecs() {
       },
     },
     {
-      kind: "TASK_EVENT",
-      collection: "taskEvents",
-      filter: (item) => SENSITIVE_TASK_TYPES.has(text(item.task_type).toUpperCase()),
-      id: (item) => item.task_event_id,
-      time: (item) => item.occurred_at || item.created_at || item.task_date,
-      media: (item) => mediaRefs(item.payload_json && (item.payload_json.imageUrls || item.payload_json.image_urls)),
-      redact(item, redactedAt, pendingMediaRefs = []) {
-        item.payload_json = redactedTaskPayload(item.payload_json, pendingMediaRefs);
-        markRedaction(item, redactedAt, pendingMediaRefs);
-      },
-    },
-    {
       kind: "QUESTIONNAIRE_ANSWER",
       collection: "questionnaireAnswers",
       id: (item) => item.questionnaire_answer_id,
@@ -215,6 +181,20 @@ function candidateSpecs() {
       redact(item, redactedAt) {
         item.answers = {};
         item.needs_follow = false;
+        markRedaction(item, redactedAt);
+      },
+    },
+    {
+      kind: "HEALTH_SCALE_RESPONSE",
+      collection: "healthScaleResponses",
+      id: (item) => item.health_scale_response_id,
+      time: (item) => item.submitted_at || item.created_at,
+      media: () => [],
+      redact(item, redactedAt) {
+        item.answers_json = {};
+        item.result_json = {};
+        item.score = null;
+        item.result_level_id = "";
         markRedaction(item, redactedAt);
       },
     },
@@ -667,6 +647,5 @@ module.exports = {
   cleanupExpiredHealthData,
   collectCandidates,
   normalizeOptions,
-  redactedTaskPayload,
   resolveHealthDataRetentionConfig,
 };

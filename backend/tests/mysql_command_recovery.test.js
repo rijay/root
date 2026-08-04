@@ -6,17 +6,17 @@ const { createMysqlCommandRecovery } = require("../src/mysqlCommandRecovery");
 
 function descriptor() {
   return {
-    commandName: "POST:/api/v1/tasks/events",
+    commandName: "POST:/api/v1/activities/enrollments",
     actorId: "user:usr_recovery",
     idempotencyKey: "recovery-request-001",
-    request: { body: { taskType: "CHECKIN" } },
+    request: { body: { activityVersionId: "activity-version-recovery" } },
   };
 }
 
 function createHarness(options = {}) {
   const calls = [];
   const data = {
-    taskEvents: [],
+    activityEnrollmentEvents: [],
     commandIdempotencyRecords: options.legacyRecord ? [options.legacyRecord] : [],
   };
   let generation = 1;
@@ -72,8 +72,8 @@ test("durable claim checkpoints before a new generation owns and completes busin
   const outcome = await harness.recovery.execute(harness.data, descriptor(), async () => {
     actionGeneration = 2;
     harness.calls.push(["action", actionGeneration]);
-    harness.data.taskEvents.push({ task_event_id: "tev_recovery" });
-    return { code: 0, data: { eventId: "tev_recovery" } };
+    harness.data.activityEnrollmentEvents.push({ activity_enrollment_event_id: "aee_recovery" });
+    return { code: 0, data: { eventId: "aee_recovery" } };
   });
 
   assert.equal(outcome.replayed, false);
@@ -83,7 +83,7 @@ test("durable claim checkpoints before a new generation owns and completes busin
   );
   assert.deepEqual(harness.calls.find((call) => call[0] === "claim").slice(0, 2), ["claim", 1]);
   assert.deepEqual(harness.calls.find((call) => call[0] === "lock").slice(0, 2), ["lock", 2]);
-  assert.equal(harness.data.taskEvents.length, 1);
+  assert.equal(harness.data.activityEnrollmentEvents.length, 1);
   assert.equal(harness.data.commandIdempotencyRecords.length, 0);
 });
 
@@ -119,19 +119,19 @@ test("legacy snapshot record is passed read-only to the relational claim", async
 
 test("business failure restores mutations, writes safe FAILED through the owner, and rethrows", async () => {
   const harness = createHarness();
-  const error = Object.assign(new Error("sensitive failure detail"), { code: "TASK_REJECTED", status: 409 });
+  const error = Object.assign(new Error("sensitive failure detail"), { code: "ACTIVITY_REJECTED", status: 409 });
 
   await assert.rejects(
     harness.recovery.execute(harness.data, descriptor(), () => {
-      harness.data.taskEvents.push({ task_event_id: "must_rollback" });
+      harness.data.activityEnrollmentEvents.push({ activity_enrollment_event_id: "must_rollback" });
       throw error;
     }),
     (candidate) => candidate === error
   );
 
-  assert.deepEqual(harness.data.taskEvents, []);
+  assert.deepEqual(harness.data.activityEnrollmentEvents, []);
   assert.deepEqual(harness.calls.map((call) => call[0]), ["claim", "checkpoint", "resume", "lock", "fail"]);
-  assert.equal(harness.calls.at(-1)[3], "TASK_REJECTED");
+  assert.equal(harness.calls.at(-1)[3], "ACTIVITY_REJECTED");
 });
 
 test("result completion persistence failure restores business data and leaves claim recoverable", async () => {
@@ -140,13 +140,13 @@ test("result completion persistence failure restores business data and leaves cl
 
   await assert.rejects(
     harness.recovery.execute(harness.data, descriptor(), () => {
-      harness.data.taskEvents.push({ task_event_id: "must_rollback" });
+      harness.data.activityEnrollmentEvents.push({ activity_enrollment_event_id: "must_rollback" });
       return { code: 0 };
     }),
     (error) => error.code === "ATOMIC_WRITE_FAILED"
   );
 
-  assert.deepEqual(harness.data.taskEvents, []);
+  assert.deepEqual(harness.data.activityEnrollmentEvents, []);
   assert.equal(harness.calls.some((call) => call[0] === "fail"), false);
 });
 
@@ -165,7 +165,7 @@ test("snapshot command dual-write fails closed and restores all business changes
 
   await assert.rejects(
     harness.recovery.execute(harness.data, descriptor(), () => {
-      harness.data.taskEvents.push({ task_event_id: "must_rollback" });
+      harness.data.activityEnrollmentEvents.push({ activity_enrollment_event_id: "must_rollback" });
       harness.data.commandIdempotencyRecords.push({ recordId: "forbidden" });
       return { code: 0 };
     }),
@@ -173,7 +173,7 @@ test("snapshot command dual-write fails closed and restores all business changes
       && error.cause.code === "STORE_COMMAND_SNAPSHOT_DUAL_WRITE_FORBIDDEN"
   );
 
-  assert.deepEqual(harness.data.taskEvents, []);
+  assert.deepEqual(harness.data.activityEnrollmentEvents, []);
   assert.deepEqual(harness.data.commandIdempotencyRecords, []);
   assert.equal(harness.calls.some((call) => call[0] === "fail"), false);
 });
@@ -194,6 +194,6 @@ test("read-only and nested recovery calls fail closed", async () => {
     )),
     (error) => error.code === "STORE_COMMAND_RECOVERY_ALREADY_ACTIVE"
   );
-  assert.deepEqual(nested.data.taskEvents, []);
+  assert.deepEqual(nested.data.activityEnrollmentEvents, []);
   assert.equal(nested.calls.some((call) => call[0] === "fail"), true);
 });

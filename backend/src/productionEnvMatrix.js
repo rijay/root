@@ -5,11 +5,11 @@ const {
   parseRetiredKeyIds,
 } = require("./keyRotationConfiguration");
 const { parseScopedJobRouteTokens } = require("./jobRouteToken");
-const { calculateV1MysqlConnectionCapacity } = require("./mysqlConnectionCapacity");
-const {
-  resolveWechatOpenApiUrl,
-  resolveWechatSubscribeSendUrl,
-} = require("./wechatOpenApiEndpoint");
+const { resolveWechatOpenApiUrl } = require("./wechatOpenApiEndpoint");
+
+const FORMAL_JOB_ROUTES = Object.freeze([
+  "/api/v1/jobs/health-data-retention-cleanup",
+]);
 
 const ENV_GROUPS = [
   {
@@ -26,8 +26,6 @@ const ENV_GROUPS = [
       "ROOT_COMMAND_REQUEST_DIGEST_KEY_ID",
       "ROOT_COMMAND_RESULT_ENCRYPTION_KEY",
       "ROOT_COMMAND_RESULT_KEY_ID",
-      "ROOT_INBOX_CONTENT_ENCRYPTION_KEY",
-      "ROOT_INBOX_CONTENT_KEY_ID",
     ],
     anyOf: [["ROOT_ADMIN_TOKEN", "ROOT_ADMIN_TOKENS"]],
     anyOfRules: {
@@ -40,22 +38,19 @@ const ENV_GROUPS = [
       ROOT_COMMAND_REQUEST_DIGEST_KEY_ID: "key_id",
       ROOT_COMMAND_RESULT_ENCRYPTION_KEY: "strong_key",
       ROOT_COMMAND_RESULT_KEY_ID: "key_id",
-      ROOT_INBOX_CONTENT_ENCRYPTION_KEY: "strong_key",
-      ROOT_INBOX_CONTENT_KEY_ID: "key_id",
     },
     optional: [
       "ROOT_ALLOW_OPENID_LOGIN",
-      "MYROOT_REBUILD_ENABLED",
       "ROOT_COMMAND_REQUEST_DIGEST_VERIFICATION_KEYS_JSON",
       "ROOT_COMMAND_RESULT_DECRYPTION_KEYS_JSON",
-      "ROOT_INBOX_CONTENT_DECRYPTION_KEYS_JSON",
+      "ROOT_WECHAT_OPENAPI_BASE_URL",
     ],
     optionalRules: {
       ROOT_COMMAND_REQUEST_DIGEST_VERIFICATION_KEYS_JSON: "request_digest_keyring",
       ROOT_COMMAND_RESULT_DECRYPTION_KEYS_JSON: "command_result_keyring",
-      ROOT_INBOX_CONTENT_DECRYPTION_KEYS_JSON: "inbox_content_keyring",
+      ROOT_WECHAT_OPENAPI_BASE_URL: "wechat_official_openapi_origin",
     },
-    action: "配置正式小程序密钥、HTTPS 域名、唯一候选 ROOT_RELEASE_ID、手机号 HMAC 密钥、命令请求摘要密钥、命令结果加密密钥、Inbox 内容加密密钥及各自 key id，并配置后台访问口令；旧 key 只进入相应有界验证/解密 keyring。",
+    action: "配置正式小程序密钥、HTTPS 域名、唯一候选 ROOT_RELEASE_ID、手机号 HMAC 密钥、命令请求摘要密钥、命令结果加密密钥及各自 key id，并配置后台访问口令；旧 key 只进入相应有界验证/解密 keyring。",
   },
   {
     id: "privacy_compliance",
@@ -78,105 +73,6 @@ const ENV_GROUPS = [
     },
     optional: ["ROOT_HEALTH_DATA_RETENTION_CLEANUP_LIMIT"],
     action: "开启健康类敏感信息单独同意，配置处理者、联系方式和保存天数，并启用可审计的到期脱敏与 CloudBase 图片清理 Job。",
-  },
-  {
-    id: "v1_runtime_control",
-    label: "v1 Runtime Control Plane",
-    ownerRole: "研发/SRE",
-    required: [
-      "MYROOT_V1_RUNTIME_CONTROL_PLANE_ENABLED",
-      "ROOT_V1_RUNTIME_READY_REQUIRED",
-      "MYROOT_V1_RUNTIME_KILL_SWITCH",
-      "MYROOT_V1_RUNTIME_OWNER",
-      "MYROOT_V1_RUNTIME_ATTESTATION_MAX_AGE_SECONDS",
-      "MYROOT_V1_RUNTIME_ENVIRONMENT_ID",
-      "MYROOT_V1_RUNTIME_TARGET_GENERATION",
-      "MYROOT_V1_RUNTIME_CONNECTION_LIMIT",
-      "MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE",
-      "ROOT_V1_RUNTIME_ALERT_RECEIVER_BINDING_REF",
-      "ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT",
-      "ROOT_V1_RUNTIME_ALERT_RECEIVER_SECRET",
-      "ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY",
-      "ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID",
-      "ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY",
-      "ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY_ID",
-      "ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY",
-      "ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID",
-      "MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_USERNAME",
-      "MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD",
-      "MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CURRENT_USER",
-      "MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CONNECTION_LIMIT",
-      "MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_USERNAME",
-      "MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_PASSWORD",
-      "MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CURRENT_USER",
-      "MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CONNECTION_LIMIT",
-      "MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_USERNAME",
-      "MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_PASSWORD",
-      "MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CURRENT_USER",
-      "MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT",
-      "MYROOT_CLOUDRUN_MAX_INSTANCES",
-      "MYSQL_SERVER_MAX_CONNECTIONS",
-      "MYROOT_MYSQL_CONNECTION_HEADROOM",
-      "MYROOT_MYSQL_CAPACITY_EVIDENCE_REF",
-      "MYROOT_V1_RUNTIME_ORCHESTRATOR_ENABLED",
-      "MYROOT_OUTBOX_INBOX_BRIDGE_ENABLED",
-      "MYROOT_INBOX_WORKER_HARNESS_ENABLED",
-      "ROOT_KEY_INVENTORY_READINESS_ENABLED",
-      "MYSQL_CONNECTION_LIMIT",
-    ],
-    requiredRules: {
-      MYROOT_V1_RUNTIME_CONTROL_PLANE_ENABLED: "exact_true",
-      ROOT_V1_RUNTIME_READY_REQUIRED: "exact_true",
-      MYROOT_V1_RUNTIME_KILL_SWITCH: "exact_disengaged",
-      MYROOT_V1_RUNTIME_OWNER: "opaque_ascii",
-      MYROOT_V1_RUNTIME_ATTESTATION_MAX_AGE_SECONDS: "integer_1_3600",
-      MYROOT_V1_RUNTIME_ENVIRONMENT_ID: "opaque_ascii",
-      MYROOT_V1_RUNTIME_TARGET_GENERATION: "opaque_ascii",
-      MYROOT_V1_RUNTIME_CONNECTION_LIMIT: "integer_3_64",
-      ROOT_V1_RUNTIME_ALERT_RECEIVER_BINDING_REF: "opaque_ascii_128",
-      ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT: "https_endpoint",
-      ROOT_V1_RUNTIME_ALERT_RECEIVER_SECRET: "strong_key",
-      ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY: "strong_key",
-      ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID: "key_id",
-      ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY: "strong_key",
-      ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY_ID: "key_id",
-      ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY: "strong_key",
-      ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID: "key_id",
-      MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_USERNAME: "mysql_role_username",
-      MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD: "mysql_role_password",
-      MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CURRENT_USER: "mysql_current_user",
-      MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CONNECTION_LIMIT: "integer_1_64",
-      MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_USERNAME: "mysql_role_username",
-      MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_PASSWORD: "mysql_role_password",
-      MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CURRENT_USER: "mysql_current_user",
-      MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CONNECTION_LIMIT: "integer_1_64",
-      MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_USERNAME: "mysql_role_username",
-      MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_PASSWORD: "mysql_role_password",
-      MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CURRENT_USER: "mysql_current_user",
-      MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT: "integer_1_64",
-      MYROOT_CLOUDRUN_MAX_INSTANCES: "integer_1_10000",
-      MYSQL_SERVER_MAX_CONNECTIONS: "integer_1_1000000000",
-      MYROOT_MYSQL_CONNECTION_HEADROOM: "integer_0_1000000000",
-      MYROOT_MYSQL_CAPACITY_EVIDENCE_REF: "opaque_ascii",
-      MYROOT_V1_RUNTIME_ORCHESTRATOR_ENABLED: "exact_true",
-      MYROOT_OUTBOX_INBOX_BRIDGE_ENABLED: "exact_true",
-      MYROOT_INBOX_WORKER_HARNESS_ENABLED: "exact_true",
-      ROOT_KEY_INVENTORY_READINESS_ENABLED: "exact_true",
-      MYSQL_CONNECTION_LIMIT: "integer_3_1024",
-    },
-    requiredValues: {
-      MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE: ["controlled"],
-    },
-    anyOf: [["K_REVISION", "ROOT_RELEASE_ARTIFACT_DIGEST"]],
-    anyOfRules: {
-      K_REVISION: "opaque_ascii_128",
-      ROOT_RELEASE_ARTIFACT_DIGEST: "sha256_digest",
-    },
-    optional: ["ROOT_KEY_INVENTORY_RETIRED_KEY_IDS_JSON"],
-    optionalRules: {
-      ROOT_KEY_INVENTORY_RETIRED_KEY_IDS_JSON: "retired_key_ids",
-    },
-    action: "在 Candidate 中显式启用 Control Plane、持久 readiness、Orchestration、Bridge、Worker、Key Inventory 与受控告警投递；Registrar、Worker、Inspector 必须使用独立凭据和 pool，并以主池 + orchestration 池 + Registrar/heartbeat + Worker + Inspector、实例上限及运维余量核验数据库总连接预算；正式执行仍须先取得运行授权。",
   },
   {
     id: "store",
@@ -273,318 +169,11 @@ const ENV_GROUPS = [
     },
     optional: [
       "ROOT_JOB_DRY_RUN",
-      "ROOT_V1_RUNTIME_SCHEDULER_DRY_RUN",
-      "ROOT_V1_RUNTIME_SCHEDULER_TIMEOUT_SECONDS",
-      "ROOT_V1_RUNTIME_BRIDGE_LIMIT",
-      "ROOT_V1_RUNTIME_RECOVERY_LIMIT",
-      "ROOT_V1_RUNTIME_WORKER_LIMIT",
-      "ROOT_ALERT_CAMPAIGN_ID",
-      "ROOT_LIFECYCLE_SETTLEMENT_CAMPAIGN_ID",
-      "ROOT_LIFECYCLE_SETTLEMENT_STALE_MINUTES",
-      "ROOT_LIFECYCLE_SETTLEMENT_CANCEL_AFTER_MINUTES",
-      "ROOT_LIFECYCLE_SETTLEMENT_ALLOW_CANCEL",
-      "ROOT_LIFECYCLE_EXPORT_CAMPAIGN_ID",
-      "ROOT_LIFECYCLE_EXPORT_LIMIT",
-      "ROOT_LIFECYCLE_EXPORT_CLEANUP_LIMIT",
-      "ROOT_LIFECYCLE_EXPORT_RETENTION_DAYS",
-      "ROOT_LIFECYCLE_EXPORT_SENSITIVITY",
-      "ROOT_LIFECYCLE_EXPORT_APPROVAL_REQUIRED",
-      "ROOT_LIFECYCLE_EXPORT_DELIVERY_ENABLED",
-      "ROOT_LIFECYCLE_EXPORT_DELIVERY_CHANNEL",
-      "ROOT_LIFECYCLE_EXPORT_DELIVERY_TARGET",
-      "ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_URL",
-      "ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_CHANNEL",
-      "ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_TEMPLATE",
-      "ROOT_LIFECYCLE_EXPORT_DELIVERY_SECRET",
-      "ROOT_LIFECYCLE_EXPORT_DELIVERY_INCLUDE_CSV",
-      "ROOT_LIFECYCLE_EXPORT_DELIVERY_TIMEOUT_MS",
-      "ROOT_LIFECYCLE_EXPORT_DELIVERY_RETRY_ENABLED",
-      "ROOT_LIFECYCLE_EXPORT_DELIVERY_RETRY_BATCH_SIZE",
-      "ROOT_LIFECYCLE_EXPORT_DELIVERY_MAX_ATTEMPTS",
-      "ROOT_LIFECYCLE_EXPORT_DELIVERY_RETRY_DELAY_SECONDS",
-      "ROOT_LIFECYCLE_EXPORT_DOWNLOAD_SECRET",
-      "ROOT_LIFECYCLE_EXPORT_SIGNED_DOWNLOAD_ENABLED",
-      "ROOT_LIFECYCLE_EXPORT_SIGNED_DOWNLOAD_TTL_SECONDS",
-      "ROOT_LIFECYCLE_EXPORT_OBJECT_BASE_URL",
-      "ROOT_LIFECYCLE_EXPORT_OBJECT_BUCKET",
-      "ROOT_LIFECYCLE_EXPORT_OBJECT_CLEANUP_ENABLED",
-      "ROOT_LIFECYCLE_EXPORT_OBJECT_DIR",
-      "ROOT_LIFECYCLE_EXPORT_OBJECT_PROVIDER",
-      "ROOT_LIFECYCLE_EXPORT_OBJECT_PREFIX",
-      "ROOT_WEWORK_TOUCH_TASK_TYPES",
-      "ROOT_WEWORK_TOUCH_TASK_LIMIT",
-      "ROOT_WEWORK_TOUCH_BATCH_SIZE",
-      "ROOT_WEWORK_TOUCH_COOLDOWN_HOURS",
-      "ROOT_WEWORK_TOUCH_ADAPTER_MODE",
-      "ROOT_WEWORK_TOUCH_TEMPLATES",
     ],
     optionalRules: {
       ROOT_JOB_DRY_RUN: "exact_boolean",
-      ROOT_V1_RUNTIME_SCHEDULER_DRY_RUN: "exact_boolean",
-      ROOT_V1_RUNTIME_SCHEDULER_TIMEOUT_SECONDS: "integer_1_25",
-      ROOT_V1_RUNTIME_BRIDGE_LIMIT: "integer_1_100",
-      ROOT_V1_RUNTIME_RECOVERY_LIMIT: "integer_1_100",
-      ROOT_V1_RUNTIME_WORKER_LIMIT: "integer_1_100",
     },
-    action: "在 CloudBase 环境变量或密钥管理中注入 HTTPS Job 域名、可解析的定时任务专用口令轮换配置，并附上仅允许平台 timer 调用函数的策略证据；再配置生命周期结算队列清理阈值、用户生命周期定时导出口径、企微自动触达口径、外部交付通道和签名下载密钥。",
-  },
-  {
-    id: "checkin_reminder_subscription",
-    label: "打卡提醒订阅消息",
-    ownerRole: "产品/运营/研发",
-    required: [
-      "ROOT_CHECKIN_REMINDER_ENABLED",
-      "ROOT_CHECKIN_REMINDER_SEND_ENABLED",
-      "ROOT_CHECKIN_REMINDER_TEMPLATE_ID",
-      "ROOT_CHECKIN_REMINDER_TEMPLATE_VERSION",
-      "MYROOT_NOTIFICATION_DELIVERY_FOUNDATION_ENABLED",
-      "ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY",
-      "ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID",
-    ],
-    requiredValues: {
-      ROOT_CHECKIN_REMINDER_ENABLED: ["true", "1"],
-    },
-    requiredRules: {
-      ROOT_CHECKIN_REMINDER_SEND_ENABLED: "exact_true",
-      MYROOT_NOTIFICATION_DELIVERY_FOUNDATION_ENABLED: "exact_true",
-      ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY: "strong_key",
-      ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID: "key_id",
-    },
-    anyOf: [
-      ["ROOT_WECHAT_APPID", "WECHAT_APPID"],
-      ["ROOT_WECHAT_APPSECRET", "WECHAT_APPSECRET"],
-    ],
-    optional: [
-      "ROOT_CHECKIN_REMINDER_TEMPLATE_TITLE",
-      "ROOT_CHECKIN_REMINDER_HOUR",
-      "ROOT_CHECKIN_REMINDER_PAGE",
-      "ROOT_CHECKIN_REMINDER_MINIPROGRAM_STATE",
-      "ROOT_CHECKIN_REMINDER_TEMPLATE_DATA_JSON",
-      "ROOT_CHECKIN_REMINDER_JOB_LIMIT",
-      "ROOT_WECHAT_OPENAPI_BASE_URL",
-      "ROOT_WECHAT_SUBSCRIBE_SEND_URL",
-    ],
-    optionalRules: {
-      ROOT_WECHAT_OPENAPI_BASE_URL: "wechat_official_openapi_origin",
-      ROOT_WECHAT_SUBSCRIBE_SEND_URL: "wechat_official_subscribe_send_url",
-    },
-    action: "开启次日打卡提醒与持久送达 Foundation，确认微信小程序订阅消息模板、模板版本、跳转页、发送环境、微信凭证，以及独立 provider receipt HMAC key 与 key id。",
-  },
-  {
-    id: "root_member_center_jump",
-    label: "Root 会员中心购买跳转",
-    ownerRole: "研发/运营",
-    anyOf: [
-      ["ROOT_MEMBER_CENTER_APPID", "ROOT_YOUZAN_APP_ID", "YOUZAN_MINIPROGRAM_APPID", "YOUZAN_MINI_APP_ID", "YOUZAN_APP_ID"],
-      ["ROOT_MEMBER_CENTER_PRODUCT_PATH", "ROOT_YOUZAN_PRODUCT_PATH", "YOUZAN_MINIPROGRAM_PRODUCT_PATH"],
-      ["ROOT_MEMBER_CENTER_ENV_VERSION", "ROOT_YOUZAN_ENV_VERSION", "YOUZAN_ENV_VERSION"],
-    ],
-    optional: [
-      "ROOT_MEMBER_CENTER_DEFAULT_PRODUCT_ID",
-      "ROOT_MEMBER_CENTER_DEFAULT_PRODUCT_TITLE",
-      "ROOT_MEMBER_CENTER_DEFAULT_PRODUCT_PRICE_TEXT",
-      "ROOT_MEMBER_CENTER_DEFAULT_SKU_NAME",
-    ],
-    action: "确认 myRoot 商品页展示 Root 会员中心商品，购买按钮跳转到 Root 会员中心小程序，并显式配置 appId、商品路径和目标版本。",
-  },
-  {
-    id: "youzan_order",
-    label: "有赞订单 Adapter",
-    ownerRole: "研发/运营",
-    required: [
-      "YOUZAN_CLIENT_ID",
-      "YOUZAN_GRANT_ID",
-      "YOUZAN_ACCESS_TOKEN",
-      "YOUZAN_ACCESS_TOKEN_EXPIRES_AT",
-      "YOUZAN_TOKEN_MANAGEMENT_MODE",
-      "YOUZAN_TOKEN_ROTATION_OWNER",
-      "YOUZAN_ORDER_LIST_URL",
-    ],
-    requiredValues: {
-      YOUZAN_TOKEN_MANAGEMENT_MODE: ["static_rotation"],
-    },
-    requiredRules: {
-      YOUZAN_ACCESS_TOKEN_EXPIRES_AT: "future_datetime_24h",
-    },
-    optional: [
-      "YOUZAN_TOKEN_MIN_REMAINING_MINUTES",
-      "YOUZAN_ORDER_LIST_DATA_PATH",
-      "YOUZAN_ORDER_LIST_CURSOR_PATH",
-      "YOUZAN_ORDER_LIST_HAS_MORE_PATH",
-      "YOUZAN_ORDER_FIELD_MAP",
-    ],
-    action: "确认 Root 会员中心订单列表 URL、店铺 grant_id、集中 token 轮换负责人、到期时间、游标和字段映射。",
-  },
-  {
-    id: "order_after_sales",
-    label: "订单售后状态映射",
-    ownerRole: "研发/运营",
-    optional: [
-      "ROOT_AFTER_SALES_STATUS_MAP",
-      "ROOT_AFTER_SALES_RECOVERY_STATUSES",
-      "ROOT_AFTER_SALES_FOLLOW_STATUSES",
-      "YOUZAN_AFTER_SALES_FIELD_MAP",
-    ],
-    action: "确认 Root 会员中心售后原始状态到内部状态的映射、触发奖励追回的状态和需要人工跟进的状态。",
-    optionalOnly: true,
-  },
-  {
-    id: "youzan_customer",
-    label: "有赞客户 Adapter",
-    ownerRole: "研发/运营",
-    required: ["YOUZAN_CUSTOMER_LIST_URL", "YOUZAN_USER_QUERY_URL", "ROOT_YOUZAN_IDENTITY_RECONCILE_ENABLED"],
-    requiredValues: {
-      ROOT_YOUZAN_IDENTITY_RECONCILE_ENABLED: ["true", "1"],
-    },
-    anyOf: [["YOUZAN_CUSTOMER_ACCESS_TOKEN", "YOUZAN_ACCESS_TOKEN"]],
-    optional: [
-      "YOUZAN_CUSTOMER_LIST_DATA_PATH",
-      "YOUZAN_CUSTOMER_LIST_CURSOR_PATH",
-      "YOUZAN_CUSTOMER_LIST_HAS_MORE_PATH",
-      "YOUZAN_CUSTOMER_FIELD_MAP",
-      "YOUZAN_USER_QUERY_ACCESS_TOKEN",
-      "YOUZAN_USER_QUERY_METHOD",
-      "YOUZAN_USER_QUERY_ACCESS_TOKEN_LOCATION",
-      "YOUZAN_USER_QUERY_ACCESS_TOKEN_PARAM",
-      "YOUZAN_USER_QUERY_RESULT_TYPES",
-      "YOUZAN_USER_QUERY_EXTRA_PARAMS",
-      "ROOT_YOUZAN_IDENTITY_RECONCILE_BATCH_SIZE",
-      "ROOT_YOUZAN_IDENTITY_RECONCILE_REFRESH_HOURS",
-    ],
-    action: "确认有赞客户镜像、User Query URL、token 托管策略和 UnionID 到 yz_open_id 小批量对账开关。",
-  },
-  {
-    id: "youzan_coupon",
-    label: "有赞优惠券发放与状态",
-    ownerRole: "研发/运营",
-    required: ["YOUZAN_COUPON_SEND_URL", "YOUZAN_COUPON_STATUS_URL"],
-    anyOf: [["YOUZAN_COUPON_ACCESS_TOKEN", "YOUZAN_ACCESS_TOKEN"]],
-    optional: [
-      "YOUZAN_COUPON_STATUS_ACCESS_TOKEN",
-      "YOUZAN_COUPON_RESULT_FIELD_MAP",
-      "YOUZAN_COUPON_STATUS_FIELD_MAP",
-      "YOUZAN_COUPON_SEND_METHOD",
-      "YOUZAN_COUPON_STATUS_METHOD",
-    ],
-    action: "确认发券、券状态查询 URL、token、券码路径和状态枚举。",
-  },
-  {
-    id: "fulfillment",
-    label: "物流状态 Adapter",
-    ownerRole: "研发/运营",
-    required: ["ROOT_FULFILLMENT_LIST_URL", "ROOT_FULFILLMENT_SECRET"],
-    optional: [
-      "ROOT_FULFILLMENT_LIST_DATA_PATH",
-      "ROOT_FULFILLMENT_LIST_CURSOR_PATH",
-      "ROOT_FULFILLMENT_LIST_HAS_MORE_PATH",
-      "ROOT_FULFILLMENT_FIELD_MAP",
-    ],
-    action: "确认物流来源 URL、密钥、签收/异常件字段和游标口径。",
-  },
-  {
-    id: "wework_contact",
-    label: "企业微信线索 Adapter",
-    ownerRole: "研发/运营",
-    required: ["WEWORK_CORP_ID", "WEWORK_CONTACT_LIST_URL"],
-    anyOf: [["WEWORK_CONTACT_SECRET", "WEWORK_CONTACT_ACCESS_TOKEN", "WEWORK_ACCESS_TOKEN"]],
-    optional: [
-      "WEWORK_CONTACT_LIST_DATA_PATH",
-      "WEWORK_CONTACT_LIST_CURSOR_PATH",
-      "WEWORK_CONTACT_LIST_HAS_MORE_PATH",
-      "WEWORK_CONTACT_FIELD_MAP",
-      "WEWORK_CONTACT_USERIDS",
-      "WEWORK_TOKEN_URL",
-    ],
-    action: "确认企业微信客户联系凭证、外部联系人 ID、备注名、手机号和来源活动字段。",
-  },
-  {
-    id: "wework_tag",
-    label: "企业微信标签 Adapter",
-    ownerRole: "研发/运营",
-    required: ["WEWORK_TAG_APPLY_URL", "WEWORK_CORP_ID"],
-    anyOf: [["WEWORK_TAG_ACCESS_TOKEN", "WEWORK_ACCESS_TOKEN", "WEWORK_CONTACT_ACCESS_TOKEN", "WEWORK_CONTACT_SECRET"]],
-    optional: [
-      "WEWORK_TAG_DEFAULT_ID",
-      "WEWORK_TAG_USERID",
-      "WEWORK_TAG_RESULT_FIELD_MAP",
-      "WEWORK_TAG_APPLY_METHOD",
-      "WEWORK_TAG_APPLY_EXTRA_PARAMS",
-    ],
-    action: "确认标签写入 URL、token、默认标签 ID 和外部联系人 ID 来源。",
-  },
-  {
-    id: "consultation_advisors",
-    label: "咨询顾问分配",
-    ownerRole: "运营",
-    optional: [
-      "ROOT_CONSULTATION_ADVISORS",
-    ],
-    action: "若启用自动分配，配置顾问候选池，格式可为 advisor-a:张三,advisor-b:李四。",
-    optionalOnly: true,
-  },
-  {
-    id: "consultation_sla",
-    label: "咨询 SLA",
-    ownerRole: "运营",
-    optional: [
-      "ROOT_CONSULTATION_SLA_MINUTES",
-      "ROOT_CONSULTATION_SLA_DUE_SOON_MINUTES",
-      "ROOT_CONSULTATION_SLA_ESCALATION_RULES",
-    ],
-    action: "按运营承诺配置咨询跟进 SLA 分钟数、即将超时提醒窗口和升级规则；不配置时默认 120 分钟 SLA 与 0/60/120 分钟升级链。",
-    optionalOnly: true,
-  },
-  {
-    id: "manual_review_explanation",
-    label: "复核解释模板",
-    ownerRole: "运营",
-    optional: [
-      "ROOT_MANUAL_REVIEW_EXPLANATION_TEMPLATES",
-    ],
-    action: "按复核类型配置用户可见解释、所需证据和运营处理指引；不配置时使用默认模板。",
-    optionalOnly: true,
-  },
-  {
-    id: "wework_touch",
-    label: "企业微信自动触达 Adapter",
-    ownerRole: "研发/运营",
-    optional: [
-      "WEWORK_TOUCH_SEND_URL",
-      "WEWORK_TOUCH_ACCESS_TOKEN",
-      "WEWORK_TOUCH_SEND_METHOD",
-      "WEWORK_TOUCH_EXTRA_PARAMS",
-      "WEWORK_TOUCH_RESULT_FIELD_MAP",
-    ],
-    action: "确认自动企微触达 URL、token、发送方法、附加参数和回执字段；未配置时只保留本地队列、dry-run 和人工确认模式。",
-    optionalOnly: true,
-  },
-  {
-    id: "wework_contact_writeback",
-    label: "企业微信联系回写 Adapter",
-    ownerRole: "研发/运营",
-    optional: [
-      "WEWORK_CONTACT_WRITEBACK_URL",
-      "WEWORK_CONTACT_WRITEBACK_ACCESS_TOKEN",
-      "WEWORK_CONTACT_WRITEBACK_METHOD",
-      "WEWORK_CONTACT_WRITEBACK_USERID",
-      "WEWORK_CONTACT_WRITEBACK_EXTRA_PARAMS",
-      "WEWORK_CONTACT_WRITEBACK_RESULT_FIELD_MAP",
-    ],
-    action: "确认咨询跟进结果写回企微的 URL、token、外部联系人 ID 和外部回执字段。",
-  },
-  {
-    id: "alert_webhook",
-    label: "外部预警通道",
-    ownerRole: "研发/运营",
-    optional: [
-      "ROOT_OPERATIONAL_ALERT_WEBHOOK_URL",
-      "ROOT_OPERATIONAL_ALERT_WEBHOOK_SECRET",
-      "ROOT_OPERATIONAL_ALERT_WEBHOOK_CHANNEL",
-      "ROOT_OPERATIONAL_ALERT_WEBHOOK_TEMPLATE",
-      "ROOT_OPERATIONAL_ALERT_WEBHOOK_TIMEOUT_MS",
-    ],
-    action: "若发布期开启外部推送，配置企微/钉钉/短信 Webhook URL、签名密钥、通道、模板和超时；未配置 URL 时仅保留站内通知落账。",
-    optionalOnly: true,
+    action: "在 CloudBase 环境变量或密钥管理中注入 HTTPS Job 域名、可解析的定时任务专用口令轮换配置，并附上仅允许平台 timer 调用函数的策略证据。",
   },
 ];
 
@@ -623,8 +212,6 @@ function isRetiredKeyIds(value, env) {
     const domains = [
       ["REQUEST_DIGEST", "ROOT_COMMAND_REQUEST_DIGEST_KEY_ID", "ROOT_COMMAND_REQUEST_DIGEST_VERIFICATION_KEYS_JSON"],
       ["COMMAND_RESULT", "ROOT_COMMAND_RESULT_KEY_ID", "ROOT_COMMAND_RESULT_DECRYPTION_KEYS_JSON"],
-      ["INBOX_CONTENT", "ROOT_INBOX_CONTENT_KEY_ID", "ROOT_INBOX_CONTENT_DECRYPTION_KEYS_JSON"],
-      ["NOTIFICATION_RECEIPT", "ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID", null],
     ];
     for (const [domain, activeKeyIdName, previousKeyringName] of domains) {
       const activeKeyId = env && env[activeKeyIdName];
@@ -748,18 +335,6 @@ function isWechatOfficialOpenApiOrigin(value) {
   }
 }
 
-function isWechatOfficialSubscribeSendUrl(value) {
-  try {
-    const target = resolveWechatSubscribeSendUrl({
-      NODE_ENV: "production",
-      ROOT_WECHAT_SUBSCRIBE_SEND_URL: value,
-    });
-    return target.href === "https://api.weixin.qq.com/cgi-bin/message/subscribe/send";
-  } catch {
-    return false;
-  }
-}
-
 function isNonblankSecret(value) {
   const raw = String(value || "");
   return raw.length >= 16
@@ -786,7 +361,9 @@ function isJobTokenRotation(value) {
 
 function isJobRouteTokenRotation(value) {
   try {
-    return parseScopedJobRouteTokens({ ROOT_ADMIN_JOB_ROUTE_TOKENS: value }).configured;
+    const parsed = parseScopedJobRouteTokens({ ROOT_ADMIN_JOB_ROUTE_TOKENS: value });
+    return parsed.configured
+      && Object.keys(parsed.routes).sort().join("\0") === FORMAL_JOB_ROUTES.join("\0");
   } catch {
     return false;
   }
@@ -894,8 +471,6 @@ function envRows(env, names = [], requiredValues = {}, requiredRules = {}) {
         ? isHttpsEndpoint(raw)
       : rule === "wechat_official_openapi_origin"
         ? isWechatOfficialOpenApiOrigin(raw)
-      : rule === "wechat_official_subscribe_send_url"
-        ? isWechatOfficialSubscribeSendUrl(raw)
       : rule === "privacy_contact"
         ? isValidPrivacyContact(String(env && env[name] || ""))
       : rule === "future_datetime_24h"
@@ -912,8 +487,6 @@ function envRows(env, names = [], requiredValues = {}, requiredRules = {}) {
         ? isPreviousKeyring(raw, env, "ROOT_COMMAND_REQUEST_DIGEST_KEY_ID")
       : rule === "command_result_keyring"
         ? isPreviousKeyring(raw, env, "ROOT_COMMAND_RESULT_KEY_ID")
-      : rule === "inbox_content_keyring"
-        ? isPreviousKeyring(raw, env, "ROOT_INBOX_CONTENT_KEY_ID")
       : rule === "retired_key_ids"
         ? isRetiredKeyIds(raw, env)
         : true;
@@ -952,7 +525,6 @@ function envRows(env, names = [], requiredValues = {}, requiredRules = {}) {
         : rule === "https_url" ? "无用户信息、查询或片段的 HTTPS origin"
         : rule === "https_endpoint" ? "无用户信息或片段的 HTTPS endpoint"
         : rule === "wechat_official_openapi_origin" ? "精确微信官方 HTTPS origin https://api.weixin.qq.com"
-        : rule === "wechat_official_subscribe_send_url" ? "精确微信官方订阅发送 URL"
         : rule === "privacy_contact" ? "有效邮箱或 7 至 15 位电话"
         : rule === "future_datetime_24h" ? "至少晚于当前时间24小时的有效时间"
         : rule === "min_length_32" ? "至少 32 个字符"
@@ -993,95 +565,11 @@ function anyOfRows(env, groups = [], rules = {}) {
 }
 
 function crossGroupMissing(group, env) {
-  if (group.id === "cloudbase_jobs") {
-    return String(env && env.ROOT_REQUIRE_SCOPED_JOB_TOKENS || "") === "true"
-      && !isJobRouteTokenRotation(env && env.ROOT_ADMIN_JOB_ROUTE_TOKENS)
-      ? ["ROOT_ADMIN_JOB_ROUTE_TOKENS=每个 exact Job route 的独立轮换 token"]
-      : [];
-  }
-  if (group.id !== "v1_runtime_control") return [];
-  const registrarUsername = String(env && env.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_USERNAME || "");
-  const workerUsername = String(env && env.MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_USERNAME || "");
-  const inspectorUsername = String(env && env.MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_USERNAME || "");
-  const registrarCurrentUser = String(env && env.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CURRENT_USER || "");
-  const workerCurrentUser = String(env && env.MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CURRENT_USER || "");
-  const inspectorCurrentUser = String(env && env.MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CURRENT_USER || "");
-  const authorityMissing = [];
-  if ([registrarUsername, workerUsername, inspectorUsername].every(Boolean)
-    && new Set([registrarUsername, workerUsername, inspectorUsername]).size !== 3) {
-    authorityMissing.push("MYROOT_V1_RUNTIME_ALERT_MYSQL_USERNAMES_DISTINCT=required");
-  }
-  if ([registrarCurrentUser, workerCurrentUser, inspectorCurrentUser].every(Boolean)
-    && new Set([registrarCurrentUser, workerCurrentUser, inspectorCurrentUser]).size !== 3) {
-    authorityMissing.push("MYROOT_V1_RUNTIME_ALERT_MYSQL_PRINCIPALS_DISTINCT=required");
-  }
-  const rolePasswords = [
-    String(env && env.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD || ""),
-    String(env && env.MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_PASSWORD || ""),
-    String(env && env.MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_PASSWORD || ""),
-  ];
-  if (rolePasswords.every(Boolean) && new Set(rolePasswords).size !== 3) {
-    authorityMissing.push("MYROOT_V1_RUNTIME_ALERT_MYSQL_CREDENTIALS_DISTINCT=required");
-  }
-  const mainUsername = String(env && env.MYSQL_USERNAME || "");
-  if (mainUsername && [registrarUsername, workerUsername, inspectorUsername].includes(mainUsername)) {
-    authorityMissing.push("MYROOT_V1_RUNTIME_ALERT_MYSQL_USERNAMES_DISTINCT_FROM_MAIN=required");
-  }
-  const mainPassword = String(env && env.MYSQL_PASSWORD || "");
-  if (mainPassword && rolePasswords.includes(mainPassword)) {
-    authorityMissing.push("MYROOT_V1_RUNTIME_ALERT_MYSQL_CREDENTIALS_DISTINCT_FROM_MAIN=required");
-  }
-  const alertDigestKeyIds = [
-    String(env && env.ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID || ""),
-    String(env && env.ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY_ID || ""),
-    String(env && env.ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID || ""),
-  ];
-  if (alertDigestKeyIds.every(Boolean) && new Set(alertDigestKeyIds).size !== 3) {
-    authorityMissing.push("ROOT_V1_RUNTIME_ALERT_DIGEST_KEY_IDS_DISTINCT=required");
-  }
-  const alertDigestKeys = [
-    String(env && env.ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY || ""),
-    String(env && env.ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY || ""),
-    String(env && env.ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY || ""),
-  ];
-  if (alertDigestKeys.every(Boolean) && new Set(alertDigestKeys).size !== 3) {
-    authorityMissing.push("ROOT_V1_RUNTIME_ALERT_DIGEST_KEYS_DISTINCT=required");
-  }
-  const names = [
-    "MYSQL_CONNECTION_LIMIT",
-    "MYROOT_V1_RUNTIME_CONNECTION_LIMIT",
-    "MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CONNECTION_LIMIT",
-    "MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CONNECTION_LIMIT",
-    "MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT",
-    "MYROOT_CLOUDRUN_MAX_INSTANCES",
-    "MYSQL_SERVER_MAX_CONNECTIONS",
-    "MYROOT_MYSQL_CONNECTION_HEADROOM",
-  ];
-  const positiveNames = names.filter((name) => name !== "MYROOT_MYSQL_CONNECTION_HEADROOM");
-  if (positiveNames.some((name) => !/^[1-9][0-9]*$/.test(String(env && env[name] || "")))
-    || !/^(0|[1-9][0-9]*)$/.test(String(env && env.MYROOT_MYSQL_CONNECTION_HEADROOM || ""))) {
-    return authorityMissing;
-  }
-  const server = Number(env.MYSQL_SERVER_MAX_CONNECTIONS);
-  if (!Number.isSafeInteger(server)) return authorityMissing;
-  let capacity;
-  try {
-    capacity = calculateV1MysqlConnectionCapacity({
-      mainPool: Number(env.MYSQL_CONNECTION_LIMIT),
-      orchestrationPool: Number(env.MYROOT_V1_RUNTIME_CONNECTION_LIMIT),
-      registrarPool: Number(env.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CONNECTION_LIMIT),
-      registrarHeartbeatPool: 1,
-      workerPool: Number(env.MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CONNECTION_LIMIT),
-      inspectorPool: Number(env.MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT),
-      maximumInstances: Number(env.MYROOT_CLOUDRUN_MAX_INSTANCES),
-      headroom: Number(env.MYROOT_MYSQL_CONNECTION_HEADROOM),
-    });
-  } catch {
-    return authorityMissing;
-  }
-  return capacity.calculatedRequirement <= server
-    ? authorityMissing
-    : [...authorityMissing, `MYSQL_CONNECTION_CAPACITY_BUDGET=${capacity.calculatedRequirement}<=${server}`];
+  if (group.id !== "cloudbase_jobs") return [];
+  return String(env && env.ROOT_REQUIRE_SCOPED_JOB_TOKENS || "") === "true"
+    && !isJobRouteTokenRotation(env && env.ROOT_ADMIN_JOB_ROUTE_TOKENS)
+    ? ["ROOT_ADMIN_JOB_ROUTE_TOKENS=每个 exact Job route 的独立轮换 token"]
+    : [];
 }
 
 function groupStatus(group, target, missingRequired, missingAnyOf) {
@@ -1170,9 +658,9 @@ function buildProductionEnvMatrix(env = process.env, options = {}) {
       return group && group.status !== "OPTIONAL";
     }),
     sequence: [
-      "先配置运行、数据仓库、CloudBase Store 决策和 CloudBase Job 环境变量。",
-      "再逐个启用有赞、物流、企微真实 Adapter，并保留 MANUAL_SAMPLE 回退。",
-      "外部预警通道未配置时不阻塞上线，但 execute 前必须确认站内通知与负责人路由。",
+      "先配置运行、隐私、数据仓库和 CloudBase Store 决策。",
+      "再配置对象存储与健康数据清理 Job，并完成 scoped token 校验。",
+      "最后通过正式接口、性能和 Candidate 证据门禁，不以本地配置替代真实发布证明。",
     ],
   };
 }

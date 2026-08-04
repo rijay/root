@@ -22,9 +22,9 @@
     "BACKEND",
     "CLOUD_FUNCTION",
     "CONTENT",
+    "FORMAL_ROUTES",
     "MIGRATION",
-    "MINIPROGRAM",
-    "ROUTE_REGISTRY"
+    "MINIPROGRAM"
   ],
   "adapterRequirementLevels": [
     "REQUIRED",
@@ -91,7 +91,7 @@
         "relationalSchemaDigest",
         "releaseId",
         "rollbackArtifactId",
-        "routeRegistryDigest",
+        "formalRoutesDigest",
         "runtimeConfigDigest",
         "secretReferenceVersionDigest",
         "sourceCommit",
@@ -209,7 +209,7 @@
     { "ruleId": "MIGRATION_SET_CHANGED", "candidateField": "migrationSetDigest" },
     { "ruleId": "RELATIONAL_SCHEMA_CHANGED", "candidateField": "relationalSchemaDigest" },
     { "ruleId": "EVENT_SCHEMA_SET_CHANGED", "candidateField": "eventSchemaSetDigest" },
-    { "ruleId": "ROUTE_REGISTRY_CHANGED", "candidateField": "routeRegistryDigest" },
+    { "ruleId": "FORMAL_ROUTES_CHANGED", "candidateField": "formalRoutesDigest" },
     { "ruleId": "RUNTIME_CONFIG_CHANGED", "candidateField": "runtimeConfigDigest" },
     { "ruleId": "SECRET_REFERENCE_VERSION_CHANGED", "candidateField": "secretReferenceVersionDigest" },
     { "ruleId": "FEATURE_FLAG_SNAPSHOT_CHANGED", "candidateField": "featureFlagSnapshot" },

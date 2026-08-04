@@ -2,11 +2,23 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const {
-  ADMIN_BUILD_MANIFEST_FILENAME,
-  REQUIRED_ADMIN_MODULES,
-} = require("../backend/src/adminTransitionReadiness");
 const { version: adminReleaseVersion } = require("../admin/package.json");
+
+const ADMIN_BUILD_MANIFEST_FILENAME = "admin-build-manifest.json";
+const REQUIRED_ADMIN_MODULES = Object.freeze([
+  { key: "release", label: "发布工作台", file: "modules/release/ReleaseWorkbench.vue" },
+  { key: "welcome", label: "欢迎页", file: "modules/content/WelcomeContentPage.vue" },
+  { key: "home", label: "首页轮播", file: "modules/content/HomeCarouselPage.vue" },
+  { key: "details", label: "共用详情", file: "modules/content/SharedDetailPage.vue" },
+  { key: "activities", label: "活动管理", file: "modules/activities/ActivityManagementPage.vue" },
+  { key: "registrations", label: "报名记录", file: "modules/activities/ActivityRegistrationsPage.vue" },
+  { key: "profile", label: "初始化建档", file: "modules/health/InitializationPage.vue" },
+  { key: "scales", label: "量表管理", file: "modules/health/ScaleManagementPage.vue" },
+  { key: "recommendations", label: "推荐规则", file: "modules/health/RecommendationRulesPage.vue" },
+  { key: "lifestyle", label: "生活方式建议", file: "modules/health/LifestyleAdvicePage.vue" },
+  { key: "users", label: "用户查询", file: "modules/users/UserQueryPage.vue" },
+  { key: "audit", label: "操作审计", file: "modules/audit/AuditLogPage.vue" },
+]);
 
 const projectRoot = path.resolve(__dirname, "..");
 const defaultSourceDir = path.join(projectRoot, "admin", "dist");

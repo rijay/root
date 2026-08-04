@@ -1,48 +1,74 @@
-<view class="root-page health-page">
-  <view class="health-intro">
-    <view class="health-kicker">MY HEALTH · ROOT</view>
-    <view class="health-title">从了解当下开始</view>
-    <view class="health-copy">健康页只承载经过审核的健康旅程，不以一次填写替代诊断；在内容来源、适用范围与隐私说明确认前，也不会收集新的健康答案。</view>
+<scroll-view class="health-page {{result && result.safetyStatus !== 'STANDARD_GUIDANCE' ? 'health-page--safety' : ''}}" scroll-y enhanced show-scrollbar="{{false}}">
+  <view wx:if="{{loading}}" class="health-state">
+    <text>正在整理你的健康起点…</text>
   </view>
 
-  <view wx:if="{{viewState === 'loading'}}" class="root-card state-card">
-    <view class="state-eyebrow">正在确认</view>
-    <view class="root-section-title state-title">正在读取你的账号状态</view>
-    <view class="root-helper-text state-copy">此过程不会创建健康记录。</view>
+  <view wx:elif="{{error}}" class="health-state">
+    <text>{{error}}</text>
+    <button class="health-state__retry" bindtap="retry">重新加载</button>
   </view>
 
-  <view wx:elif="{{viewState === 'guest'}}" class="root-card state-card">
-    <view class="state-eyebrow">需要登录</view>
-    <view class="root-section-title state-title">登录后查看健康旅程</view>
-    <view class="root-helper-text state-copy">未登录时仍可浏览首页、商品与公开活动；登录不会自动开启健康评测。</view>
-    <button class="root-button state-action" bindtap="goLogin">微信身份进入</button>
+  <view wx:elif="{{result && result.safetyStatus !== 'STANDARD_GUIDANCE'}}" class="health-safety-screen">
+    <page-navigation show-home="{{false}}" />
+    <text class="health-safety-screen__eyebrow">健康安全提示</text>
+    <view class="health-safety-screen__icon">!</view>
+    <text class="health-safety-screen__title">这次不继续生成\n普通生活方式建议</text>
+    <text class="health-safety-screen__body">你选择的情况需要更谨慎地处理。Root4U 不适合在此时根据问卷自动给出一般性建议。</text>
+    <view class="health-safety-screen__guidance">
+      <text class="health-safety-screen__guidance-title">建议你现在这样做</text>
+      <view wx:for="{{result.tips}}" wx:key="*this" class="health-safety-screen__guidance-row">
+        <text>•</text><text>{{item}}</text>
+      </view>
+    </view>
+    <text class="health-safety-screen__notice">Root 不提供实时监测，也不会因为本次回答自动创建工单或承诺主动联系。</text>
+    <button class="health-safety-screen__return" style="width: 350px;" bindtap="acknowledgeSafety">我知道了，返回首页</button>
   </view>
 
-  <view wx:elif="{{viewState === 'accountRequired'}}" class="root-card state-card">
-    <view class="state-eyebrow">需要完成账号资料</view>
-    <view class="root-section-title state-title">先完成账号资料</view>
-    <view class="root-helper-text state-copy">账号资料与健康信息分开处理。完成账号资料后，仍需单独确认适用资格与健康信息说明。</view>
-    <button class="root-button state-action" bindtap="goRegister">继续完善账号</button>
+  <view wx:elif="{{result}}" class="health-result-screen">
+    <text class="health-result-screen__wordmark">Root4U</text>
+    <view class="health-result__classification">
+      <text class="health-result__label">你的健康起点</text>
+      <text class="health-result__title">{{result.categoryTitle}}</text>
+      <view wx:if="{{result.tags.length}}" class="health-result__tags">
+        <text wx:for="{{result.tags}}" wx:key="*this">{{item}}</text>
+      </view>
+    </view>
+
+    <text class="health-result__tips-title">今天先从三件小事开始</text>
+    <view class="health-result__tips">
+      <view wx:for="{{result.tips}}" wx:key="*this" class="health-result__tip">
+        <text class="health-result__tip-number">0{{index + 1}}</text>
+        <text class="health-result__tip-copy">{{item}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{result.recommendations.length}}" class="health-result__recommendations">
+      <view wx:for="{{result.recommendations}}" wx:key="viewKey" class="health-result__recommendation" data-version-id="{{item.scaleVersionId}}" bindtap="openRecommendedScale" role="button" aria-label="开始{{item.title}}">
+        <text class="health-result__recommendation-title">{{item.title}}</text>
+        <text class="health-result__recommendation-copy">{{item.detail}}</text>
+        <text class="health-result__recommendation-status">{{item.statusLabel}}</text>
+      </view>
+    </view>
+    <button class="health-result__consent" bindtap="manageConsent">管理健康信息同意</button>
   </view>
 
-  <view wx:elif="{{viewState === 'contentGated'}}" class="root-card state-card state-card--gated">
-    <view class="state-eyebrow">开放前核验中</view>
-    <view class="root-section-title state-title">健康旅程暂不收集新信息</view>
-    <view class="root-helper-text state-copy">基础评测、主题问卷与生活方式建议需完成来源授权、专家审核、适用范围和保存期限确认。正式开放前，本页不会展示空壳问卷或启动健康写入。</view>
-    <button class="root-button root-button--secondary state-action" bindtap="openPrivacy">查看隐私说明</button>
-    <button class="text-action" bindtap="openSupport">需要帮助，联系人工协助</button>
-  </view>
+  <view wx:else class="health-entry">
+    <root-wordmark class="health-entry__wordmark" />
+    <text class="health-entry__eyebrow">ROOT4U</text>
+    <text class="health-entry__title">从此刻开始，\n理解自己的健康起点</text>
+    <text class="health-entry__description">这不是疾病诊断，而是一份用于整理日常状态、\n找到下一步生活方式重点的基础评测。</text>
 
-  <view wx:else class="root-card state-card">
-    <view class="state-eyebrow">读取失败</view>
-    <view class="root-section-title state-title">账号状态暂未确认</view>
-    <view class="root-helper-text state-copy">{{errorText}}</view>
-    <button class="root-button root-button--secondary state-action" bindtap="loadShell">重新加载</button>
-    <button class="text-action" bindtap="openSupport">联系人工协助</button>
-  </view>
+    <view class="health-entry__step health-entry__step--active health-entry__step--01">
+      <text class="health-entry__step-number">01</text><text class="health-entry__step-copy">确定人群分类</text>
+    </view>
+    <view class="health-entry__step health-entry__step--02">
+      <text class="health-entry__step-number">02</text><text class="health-entry__step-copy">完成基础状态评测</text>
+    </view>
+    <view class="health-entry__step health-entry__step--03">
+      <text class="health-entry__step-number">03</text><text class="health-entry__step-copy">选择适合自己的\n健康评测</text>
+    </view>
 
-  <view class="health-note">
-    <view class="health-note-mark"></view>
-    <view>本页不提供疾病诊断、治疗方案或紧急医疗处置。如有明显或持续不适，请及时寻求专业帮助。</view>
+    <button class="health-entry__start" style="width: 350px;" bindtap="startAssessment">开始健康起点评测</button>
+    <text class="health-entry__eligibility">首发仅面向18岁及以上用户</text>
   </view>
-</view>
+</scroll-view>

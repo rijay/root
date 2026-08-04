@@ -3,34 +3,64 @@
   "releaseVersion": "0.5.13",
   "modules": [
     {
-      "key": "config",
-      "label": "运营配置",
-      "file": "modules/config/ConfigWorkbench.vue"
+      "key": "release",
+      "label": "发布工作台",
+      "file": "modules/release/ReleaseWorkbench.vue"
+    },
+    {
+      "key": "welcome",
+      "label": "欢迎页",
+      "file": "modules/content/WelcomeContentPage.vue"
+    },
+    {
+      "key": "home",
+      "label": "首页轮播",
+      "file": "modules/content/HomeCarouselPage.vue"
+    },
+    {
+      "key": "details",
+      "label": "共用详情",
+      "file": "modules/content/SharedDetailPage.vue"
+    },
+    {
+      "key": "activities",
+      "label": "活动管理",
+      "file": "modules/activities/ActivityManagementPage.vue"
+    },
+    {
+      "key": "registrations",
+      "label": "报名记录",
+      "file": "modules/activities/ActivityRegistrationsPage.vue"
+    },
+    {
+      "key": "profile",
+      "label": "初始化建档",
+      "file": "modules/health/InitializationPage.vue"
+    },
+    {
+      "key": "scales",
+      "label": "量表管理",
+      "file": "modules/health/ScaleManagementPage.vue"
+    },
+    {
+      "key": "recommendations",
+      "label": "推荐规则",
+      "file": "modules/health/RecommendationRulesPage.vue"
+    },
+    {
+      "key": "lifestyle",
+      "label": "生活方式建议",
+      "file": "modules/health/LifestyleAdvicePage.vue"
     },
     {
       "key": "users",
-      "label": "用户生命周期",
-      "file": "modules/users/UserLifecycle.vue"
+      "label": "用户查询",
+      "file": "modules/users/UserQueryPage.vue"
     },
     {
       "key": "audit",
-      "label": "审计记录",
+      "label": "操作审计",
       "file": "modules/audit/AuditLogPage.vue"
-    },
-    {
-      "key": "adapters",
-      "label": "Adapter 运行",
-      "file": "modules/adapters/AdapterRunPage.vue"
-    },
-    {
-      "key": "analytics",
-      "label": "运营数据",
-      "file": "modules/analytics/OperationalAnalytics.vue"
-    },
-    {
-      "key": "release",
-      "label": "开发发布",
-      "file": "modules/release/ReleaseWorkbench.vue"
     }
   ]
 }

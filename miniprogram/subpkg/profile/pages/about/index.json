@@ -1,3 +1,7 @@
 {
-  "navigationBarTitleText": "关于 ROOT"
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "page-navigation": "/components/page-navigation/index",
+    "root-wordmark": "/components/root-wordmark/index"
+  }
 }

@@ -1,14 +1,24 @@
-<view class="root-page profile-subpage about-page">
-  <image class="about-logo" src="/static/brand/root-logo-horizontal.png" mode="aspectFit" />
-  <view class="root-card section">
-    <view class="eyebrow">关于 ROOT</view>
-    <view class="h1">身体 自有其序</view>
-    <view class="body">有时候，身体在轻轻提醒我们：睡得不深、皮肤发暗、思绪变得杂乱。那些微小的不适，都在诉说着身体内部的平衡正在被打扰。</view>
-    <view class="body">ROOT 相信数据，但不宣扬所谓神奇功效，也不追逐立竿见影的幻觉。我们更在意当你选择 ROOT 的那一刻，你开始与自己的身体合作。</view>
-    <view class="brand-line">让科学成为陪伴，让健康变成习惯</view>
+<view class="about-page">
+  <page-navigation show-home="{{false}}" />
+  <text class="about-page__title">关于 Root</text>
+
+  <view class="about-page__wordmark"><root-wordmark /></view>
+  <text class="about-page__introduction">Root 从理解身体开始。
+我们关注身体、心智与能量如何重新步入节奏，
+并把真实、持续的健康选择带回日常。</text>
+
+  <view class="about-page__quote">
+    <text>人如草木，根定而生。
+把身体还给身体自己。</text>
   </view>
-  <view class="root-card section">
-    <view class="root-section-title">从肠道健康，延伸到生活的每一面</view>
-    <view class="body">真正的健康，不只是局部修复，而是身体能量重新建立秩序时，你感到的一种安稳与清晰。</view>
+
+  <view class="about-page__links">
+    <view class="about-page__row" data-type="agreement" bindtap="openLegal"><text>用户协议</text><view class="about-page__arrow"></view></view>
+    <view class="about-page__row" data-type="privacy" bindtap="openLegal"><text>隐私政策</text><view class="about-page__arrow"></view></view>
+    <view class="about-page__row" bindtap="openPrivacyAccount"><text>隐私与账号</text><view class="about-page__arrow"></view></view>
+    <view class="about-page__row" data-type="sharing" bindtap="openLegal"><text>第三方信息共享清单</text><view class="about-page__arrow"></view></view>
   </view>
+
+  <text class="about-page__version">myRoot v{{version}}</text>
+  <text class="about-page__copyright">Root Member Club</text>
 </view>

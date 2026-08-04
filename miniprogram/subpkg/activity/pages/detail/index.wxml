@@ -1,124 +1,124 @@
-<view class="root-page activity-detail-page">
-  <view wx:if="{{viewState === 'loading'}}" class="detail-loading">
-    <view class="loading-visual"></view>
-    <view class="loading-line loading-line--wide"></view>
-    <view class="loading-line"></view>
-    <view class="root-helper-text loading-copy">正在读取已发布活动详情...</view>
+<view class="activity-detail">
+  <page-navigation tone="light" show-home="{{false}}" />
+
+  <view wx:if="{{viewState === 'loading'}}" class="detail-state detail-state--loading">
+    <view class="detail-state__visual"></view>
+    <view class="detail-state__line detail-state__line--wide"></view>
+    <view class="detail-state__line"></view>
+    <text>正在读取活动详情…</text>
   </view>
 
-  <view wx:elif="{{viewState === 'ready'}}">
-    <view class="detail-visual">
-      <image wx:if="{{activity.heroReady}}" class="detail-visual__image" src="{{activity.heroAssetUrl}}" mode="aspectFill" binderror="handleHeroError" />
-      <view class="detail-visual__shade"></view>
-      <view class="detail-visual__copy">
-        <view class="detail-type">{{activity.typeLabel}}</view>
-        <view class="detail-city">{{activity.city}}</view>
+  <block wx:elif="{{viewState === 'ready'}}">
+    <view class="detail-first-screen">
+      <view class="detail-hero">
+        <view class="detail-hero__fallback"></view>
+        <image wx:if="{{activity.heroReady}}" class="detail-hero__image" src="{{activity.heroAssetUrl}}" mode="aspectFill" binderror="handleHeroError" />
+        <view class="detail-hero__shade"></view>
       </view>
-    </view>
-    <view class="detail-heading">
-      <view class="detail-status detail-status--{{activity.statusTone}}">{{activity.statusLabel}}</view>
-      <view class="detail-title">{{activity.title}}</view>
-      <view class="detail-summary">{{activity.summary}}</view>
-    </view>
+      <view class="detail-lower-shade"></view>
+      <view class="detail-hero__wordmark"><root-wordmark tone="light" /></view>
 
-    <view class="root-cell-group detail-facts">
-      <view class="root-cell">
-        <view>开始时间</view><view class="root-cell__value">{{activity.startText}}</view>
-      </view>
-      <view class="root-cell">
-        <view>地点</view><view class="root-cell__value">{{activity.venueSummary}}</view>
-      </view>
-      <view wx:if="{{activity.remainingCapacity !== null}}" class="root-cell">
-        <view>剩余名额</view><view class="root-cell__value">{{activity.remainingCapacity}}</view>
-      </view>
-      <view class="root-cell">
-        <view>取消截止</view><view class="root-cell__value">{{activity.cancelCloseText}}</view>
-      </view>
-      <view class="root-cell">
-        <view>费用</view><view class="root-cell__value">{{activity.feeDescription}}</view>
+      <view class="detail-main">
+        <text class="detail-kicker">ROOT OFFLINE · {{activity.city}}</text>
+        <text class="detail-title">{{activity.title}}</text>
+        <text class="detail-summary">{{activity.summary}}</text>
+
+        <view class="detail-meta">
+          <text class="detail-meta__primary">{{activity.compactStartText}}</text>
+          <text class="detail-meta__row">{{activity.city}} · {{activity.venueSummary}}</text>
+          <text class="detail-meta__muted">{{activity.feeDescription}} · {{activity.cancelPolicy}}</text>
+        </view>
       </view>
     </view>
 
-    <view class="root-card detail-content-card">
-      <view class="detail-content-section"><view class="state-label">活动目标</view><view class="detail-content-copy">{{activity.objective}}</view></view>
-      <view class="detail-content-section"><view class="state-label">适合人群</view><view class="detail-content-copy">{{activity.audience}}</view></view>
-      <view class="detail-content-section"><view class="state-label">活动流程</view><view class="detail-content-copy detail-content-copy--preline">{{activity.agenda}}</view></view>
-      <view class="detail-content-section"><view class="state-label">主办方</view><view class="detail-content-copy">{{activity.organizer}}</view></view>
-      <view class="detail-content-section"><view class="state-label">携带物品</view><view class="detail-content-copy detail-content-copy--preline">{{activity.bringItems}}</view></view>
-      <view class="detail-content-section"><view class="state-label">取消规则</view><view class="detail-content-copy">{{activity.cancelPolicy}}</view></view>
-      <view class="detail-content-section"><view class="state-label">联系人</view><view class="detail-content-copy">{{activity.contactDisplay}}</view></view>
+    <view class="detail-sections">
+      <view class="detail-section">
+        <text class="detail-section__label">活动目标</text>
+        <text class="detail-section__copy">{{activity.objective}}</text>
+      </view>
+      <view class="detail-section">
+        <text class="detail-section__label">适合人群</text>
+        <text class="detail-section__copy">{{activity.audience}}</text>
+      </view>
+      <view class="detail-section">
+        <text class="detail-section__label">活动流程</text>
+        <text class="detail-section__copy detail-section__copy--preline">{{activity.agenda}}</text>
+      </view>
+      <view class="detail-section">
+        <text class="detail-section__label">参与准备</text>
+        <text class="detail-section__copy">{{activity.bringItems}}</text>
+      </view>
+      <view class="detail-section">
+        <text class="detail-section__label">主办方与联系</text>
+        <text class="detail-section__copy">{{activity.organizer}} · {{activity.contactDisplay}}</text>
+      </view>
+      <view class="detail-section">
+        <text class="detail-section__label">隐私与现场记录</text>
+        <text class="detail-section__copy">{{activity.privacyNoticeText}} {{activity.photographyNoticeText}}</text>
+      </view>
     </view>
 
-    <view wx:if="{{activity.enrollment}}" class="root-card enrollment-state">
-      <view class="state-label">我的报名</view>
-      <view class="root-section-title state-title">{{activity.enrollment.label}}</view>
-      <view class="root-helper-text state-copy">报名状态以运营后台记录为准。</view>
+    <view wx:if="{{result}}" class="detail-result detail-result--{{result.kind}}">
+      <text class="detail-result__tag">操作结果</text>
+      <text class="detail-result__title">{{result.title}}</text>
+      <text class="detail-result__copy">{{result.body}}</text>
+      <text wx:if="{{result.auditRef}}" class="detail-result__copy">审计检索标识：{{result.auditRef}}</text>
+      <button wx:if="{{result.retryAvailable}}" class="detail-result__button" bindtap="retryPendingAction">复用原操作重试</button>
+      <button wx:if="{{result.voidAvailable}}" class="detail-result__button detail-result__button--quiet" bindtap="voidPendingAction">作废原操作</button>
+      <button wx:if="{{result.support}}" class="detail-result__button detail-result__button--quiet" bindtap="openSupport">联系 ROOT 顾问</button>
+      <button class="detail-result__dismiss" bindtap="closeResult">知道了</button>
     </view>
+    <view wx:else class="detail-scroll-spacer"></view>
 
-    <view class="root-card notice-card">
-      <view class="state-label">活动说明</view>
-      <view class="notice-row"><text class="notice-label">报名隐私：</text>{{activity.privacyNoticeText}}</view>
-      <view class="notice-row"><text class="notice-label">现场摄影：</text>{{activity.photographyNoticeText}}</view>
-    </view>
-
-    <view wx:if="{{result}}" class="root-card result-card result-card--{{result.kind}}">
-      <view class="state-label">操作结果</view>
-      <view class="root-section-title state-title">{{result.title}}</view>
-      <view class="root-helper-text state-copy">{{result.body}}</view>
-      <view wx:if="{{result.auditRef}}" class="root-helper-text state-copy">如需协助，可向 ROOT 顾问提供本次操作的审计检索标识：{{result.auditRef}}</view>
-      <button wx:if="{{result.retryAvailable}}" class="root-button state-action" bindtap="retryPendingAction">复用原操作重试</button>
-      <button wx:if="{{result.voidAvailable}}" class="root-button root-button--secondary state-action" bindtap="voidPendingAction">作废原操作，允许新意图</button>
-      <button wx:if="{{result.support}}" class="root-button root-button--secondary state-action" bindtap="openSupport">联系 ROOT 顾问</button>
-      <button class="text-action" bindtap="closeResult">知道了</button>
-    </view>
-
-    <view wx:if="{{action}}" class="root-card action-gate">
-      <view class="state-label">报名操作</view>
-      <view class="root-section-title state-title">{{action.label}}</view>
-      <view class="root-helper-text state-copy">{{action.explanation}}</view>
+    <view class="detail-action-bar">
+      <view class="detail-action-state">
+        <text class="detail-action-state__label">{{availabilityText}}</text>
+        <text wx:if="{{activity.enrollment}}" class="detail-action-state__hint">状态以 myRoot 为准</text>
+      </view>
       <button
-        class="root-button state-action"
+        class="detail-action-button"
+        style="width: 198px;"
         disabled="{{action.disabled}}"
+        loading="{{submitting}}"
         bindtap="handlePrimaryAction"
         aria-label="{{action.label}}"
       >{{action.label}}</button>
-      <button wx:if="{{action.disabled}}" class="text-action" bindtap="openSupport">联系人工协助</button>
     </view>
-  </view>
+  </block>
 
-  <view wx:else class="root-card error-card">
-    <view class="state-label">{{viewState === 'invalid' ? '入口无效' : '活动信息未读取'}}</view>
-    <view class="root-section-title state-title">活动详情暂不可用</view>
-    <view class="root-helper-text state-copy">{{errorText}}</view>
-    <button wx:if="{{viewState === 'error'}}" class="root-button root-button--secondary state-action" bindtap="loadDetail">重新加载</button>
-    <button class="text-action" bindtap="backToList">返回活动列表</button>
+  <view wx:else class="detail-state detail-state--error">
+    <text class="detail-state__tag">{{viewState === 'invalid' ? '入口无效' : '活动信息未读取'}}</text>
+    <text class="detail-state__title">活动详情暂不可用</text>
+    <text>{{errorText}}</text>
+    <button wx:if="{{viewState === 'error'}}" class="detail-state__action" bindtap="loadDetail">重新加载</button>
+    <button class="detail-state__quiet" bindtap="backToList">返回活动列表</button>
   </view>
 
   <view wx:if="{{confirmSheetVisible}}" class="sheet-mask" catchtouchmove="stopSheetTap" catchtap="closeConfirmation">
     <view class="confirmation-sheet" catchtap="stopSheetTap">
       <view class="sheet-handle"></view>
-      <view class="state-label">请确认</view>
-      <view class="root-section-title sheet-title">{{action.confirmationTitle}}</view>
-      <view class="root-helper-text sheet-copy">{{action.confirmationBody}}</view>
-      <view class="sheet-fact">{{activity.title}}</view>
-      <view class="sheet-fact">{{activity.startText}} · {{activity.venueSummary}}</view>
-      <view wx:if="{{action.kind === 'CANCEL'}}" class="sheet-warning">
-        <view>自助取消截止：{{activity.cancelCloseText}}</view>
-        <view>{{activity.cancelPolicy}}</view>
+      <text class="sheet-tag">确认报名信息</text>
+      <text class="sheet-title">{{activity.title}}</text>
+      <view class="sheet-summary">
+        <text>时间　{{activity.compactStartText}}</text>
+        <text>地点　{{activity.city}} · {{activity.venueSummary}}</text>
+        <text>费用　{{activity.feeDescription}}</text>
+        <text>取消　{{activity.cancelPolicy}}</text>
       </view>
-      <button class="root-button sheet-primary" loading="{{submitting}}" disabled="{{submitting}}" bindtap="confirmActivityAction">{{action.confirmLabel}}</button>
-      <button class="root-button root-button--secondary sheet-secondary" disabled="{{submitting}}" bindtap="closeConfirmation">暂不操作</button>
+      <text class="sheet-notice">{{action.confirmationBody}} 重复点击不会产生重复报名。</text>
+      <button class="sheet-primary" style="width: 350px;" loading="{{submitting}}" disabled="{{submitting}}" bindtap="confirmActivityAction">{{action.confirmLabel}}</button>
+      <button class="sheet-secondary" style="width: 350px;" disabled="{{submitting}}" bindtap="closeConfirmation">{{action.kind === 'ENROLL' ? '暂不报名' : '暂不操作'}}</button>
     </view>
   </view>
 
   <view wx:if="{{voidSheetVisible}}" class="sheet-mask" catchtouchmove="stopSheetTap" catchtap="closeVoidSheet">
     <view class="confirmation-sheet" catchtap="stopSheetTap">
       <view class="sheet-handle"></view>
-      <view class="state-label">高风险操作</view>
-      <view class="root-section-title sheet-title">作废本机恢复记录？</view>
-      <view class="root-helper-text sheet-copy">作废不会撤销后台可能已经完成的操作。请先确认当前权威报名状态；作废后再次提交会创建新的幂等意图。</view>
-      <button class="root-button sheet-primary" bindtap="confirmVoidPendingAction">确认作废</button>
-      <button class="root-button root-button--secondary sheet-secondary" bindtap="closeVoidSheet">保留原操作</button>
+      <text class="sheet-tag">操作结果待确认</text>
+      <text class="sheet-title">作废本机恢复记录？</text>
+      <text class="sheet-notice">作废不会撤销后台可能已经完成的操作。再次提交前，请先重新加载并确认当前报名状态。</text>
+      <button class="sheet-primary" style="width: 350px;" bindtap="confirmVoidPendingAction">确认作废</button>
+      <button class="sheet-secondary" style="width: 350px;" bindtap="closeVoidSheet">保留原操作</button>
     </view>
   </view>
 </view>

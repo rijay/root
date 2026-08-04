@@ -43,26 +43,9 @@ ROOT_CLOUDBASE_REGION=ap-shanghai
 ROOT_CLOUDBASE_STORE_BACKUP_PLAN=发布前快照+每日备份
 ROOT_CLOUDBASE_STORE_ROLLBACK_PLAN=按发布前快照回滚
 ROOT_CLOUDBASE_STORE_PROOF=生产证明引用
-YOUZAN_CLIENT_ID=<有赞应用 client id>
-YOUZAN_PRODUCT_LIST_URL=<后续候选使用；027 保持为空>
-YOUZAN_PRODUCT_ACCESS_TOKEN=<后续候选可选；027 保持为空>
-YOUZAN_ORDER_LIST_URL=https://open.youzanyun.com/api/youzan.trades.sold.get/4.0.4
-YOUZAN_CUSTOMER_LIST_URL=https://open.youzanyun.com/api/youzan.scrm.customer.list/1.0.0
-YOUZAN_USER_QUERY_URL=https://open.youzanyun.com/api/youzan.users.info.query/1.0.1
-YOUZAN_ACCESS_TOKEN=<有赞托管或刷新后的访问 token>
-YOUZAN_ACCESS_TOKEN_EXPIRES_AT=<ISO 8601 到期时间，发布时至少剩余24小时>
-YOUZAN_GRANT_ID=<ROOT 店铺 ID>
-YOUZAN_TOKEN_MANAGEMENT_MODE=STATIC_ROTATION
-YOUZAN_TOKEN_ROTATION_OWNER=<轮换负责人>
-ROOT_YOUZAN_IDENTITY_RECONCILE_ENABLED=false
-ROOT_YOUZAN_IDENTITY_RECONCILE_REFRESH_HOURS=168
 ```
 
-`STATIC_ROTATION` 下，`YOUZAN_CLIENT_SECRET` 只在受控轮换终端或密码管理器中用于换取 token，不进入 CloudRun 运行容器；容器只持有调用所需的 access token、到期时间与非秘密轮换元数据。
-
-v0.5.12 首发商品展示继续使用已验证的商品镜像和 Root 会员中心短链，正式 Gate 由活跃商品、AppID、购买路径和真机跳转证明共同约束；持续自动商品同步不是本版切流前置。当前商品 Adapter 尚未验证有赞官方 HTTP 200 业务错误与分页响应，027 不配置 `YOUZAN_PRODUCT_LIST_URL`，不执行商品 PREVIEW 或 `sync-execute`。商品读取权限可以先申请；后续候选补齐并验证响应处理后，再分别确认只读 PREVIEW 与商品镜像写入，不能与订单/客户 IMPORT 共用授权。
-
-本轮内测直接使用 CloudBase MySQL，不再以容器临时 SQLite 承接业务数据。小程序始终通过 `wx.cloud.callContainer -> myroot-api -> MySQL`，不允许直连数据库。Store Module 使用连接池、迁移锁、修订号行锁和事务内核心关系表同步；20 并发写、容器重启、双实例、跨实例幂等、结算奖励幂等和数据库恢复均已实测。生产启动还会读取 `SHOW GRANTS FOR CURRENT_USER()`：运行账号必须只在 `MYSQL_DATABASE` 上具备 `SELECT / INSERT / UPDATE / DELETE / CREATE / ALTER`，存在 `*.*` 数据权限、额外 schema 权限或 `GRANT OPTION` 时失败关闭。正式发布仍需关闭真实外部 Adapter、真机跳转、业务回滚和三方签字 Gate。
+本轮内测直接使用 CloudBase MySQL，不再以容器临时 SQLite 承接业务数据。小程序始终通过 `wx.cloud.callContainer -> myroot-api -> MySQL`，不允许直连数据库。Store Module 使用连接池、迁移锁、修订号行锁和事务内核心关系表同步；20 并发写、容器重启、双实例、跨实例幂等、结算奖励幂等和数据库恢复均已实测。生产启动还会读取 `SHOW GRANTS FOR CURRENT_USER()`：运行账号必须只在 `MYSQL_DATABASE` 上具备 `SELECT / INSERT / UPDATE / DELETE / CREATE / ALTER`，存在 `*.*` 数据权限、额外 schema 权限或 `GRANT OPTION` 时失败关闭。正式发布仍需完成真机跳转、业务回滚和批准的外部 Gate。
 
 CloudBase 生产环境与 MySQL Store 决策见 `docs/cloudbase_mysql_store_decision.md`；该文件只记录占位变量、验证步骤和证明要求，真实 secret 仍只放 CloudBase 环境变量或密钥管理。
 
@@ -81,59 +64,26 @@ npm run deploy:prepare-admin
 11. 再执行 `npm run calibrate -- --base-url https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com --target gray`，确认发布记录能返回 ROOT 后端状态。内测环境改用控制台展示的 `myroot-test` 服务域名。
 12. 执行 `npm run jobs:manifest --prefix backend -- --base-url https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com --strict`，确认 CloudBase 定时 Job 的频率、命令和环境变量清单为 `PASS`。内测环境先只生成 Manifest，不开启 execute。
 13. 微信开放平台认证和应用绑定完成后，通过真实 CloudBase 请求访问 `GET /api/v1/admin/cloudbase-identity-probe`，确认返回 `READY`；本地 curl 只能验证路由形状，真实 openid/unionid 必须由 CloudBase 注入，发布记录只保留脱敏预览。
-14. 部署前执行 `npm run rollback:drill --prefix backend`，确认本地业务回滚 `9/9 PASS`。该命令只证明回滚 Implementation，不得替代生产候选的 MySQL 快照、流量、Cloud Function 和运营手工回退联合演练。
 
 ## 1.1 CloudBase 定时 Job
 
 上线前先生成发布 Manifest：
 
 ```bash
-npm run jobs:manifest --prefix backend -- --base-url https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com --campaign ROOT_7D_RESET --strict
+npm run jobs:manifest --prefix backend -- --base-url https://<myroot-api-host> --strict
 ```
 
-Manifest 当前包含 11 个 Job：
+Manifest 只保留一个正式 Job：
 
-1. `adapter_retry_due`：每 10 分钟执行一次，调用 `POST /api/v1/jobs/adapter-retry-due`。
-2. `operational_alerts`：每 30 分钟执行一次，调用 `POST /api/v1/jobs/operational-alerts`。
-3. `checkin_reminders`：每 10 分钟执行一次，调用 `POST /api/v1/jobs/checkin-reminders`。
-4. `wework_touch_due`：每 10 分钟执行一次，调用 `POST /api/v1/jobs/wework-touch-due`。
-5. `lifecycle_settlement_due`：每 15 分钟执行一次，调用 `POST /api/v1/jobs/lifecycle-settlement-due`。
-6. `lifecycle_settlement_cleanup`：每小时执行一次，调用 `POST /api/v1/jobs/lifecycle-settlement-cleanup`。
-7. `lifecycle_users_export`：每天上午执行一次，调用 `POST /api/v1/jobs/lifecycle-users-export`。
-8. `lifecycle_user_exports_delivery_retry`：每 20 分钟执行一次，调用 `POST /api/v1/jobs/lifecycle-user-exports-delivery-retry`。
-9. `lifecycle_user_exports_cleanup`：每天凌晨执行一次，调用 `POST /api/v1/jobs/lifecycle-user-exports-cleanup`。
-10. `health_data_retention_cleanup`：每天凌晨 04:15 执行一次，调用 `POST /api/v1/jobs/health-data-retention-cleanup`；默认 dry-run，正式执行前必须完成隐私主体、联系方式、保存天数和清理开关配置。
-11. `youzan_identity_reconcile`：每小时第 25 分钟执行一次，调用 `POST /api/v1/jobs/youzan-identity-reconcile`；默认每轮最多 5 个 UnionID，成功身份每 168 小时复核一次；重复 Root 归属、缺失用户桥接或已有 `yz_open_id` 归属冲突只创建待办，不自动改绑。
+1. `health_data_retention_cleanup`：每日 04:15 调用 `POST /api/v1/jobs/health-data-retention-cleanup`；正式执行前必须完成隐私配置、dry-run 和单独授权。
 
-CloudBase 控制台配置时必须注入：
-
-```bash
-ROOT_JOB_BASE_URL=https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com
-ROOT_ADMIN_JOB_TOKEN=定时任务专用后台口令
-ROOT_ALERT_CAMPAIGN_ID=ROOT_7D_RESET
-```
-
-提醒模板、微信凭据和发送状态只配置在 CloudRun `myroot-api`；Cloud Function 仅以 Job token 调用后端，不重复保存这些值。
-
-仓库已提供共享代码目录 `cloudfunctions/myroot-job-dispatcher` 与根目录 `cloudbaserc.json`。CloudBase 单函数最多 10 个定时触发器，因此生产拓扑拆为 `myroot-job-dispatcher` 10 个触发器和 `myroot-health-retention` 1 个健康数据清理触发器，合计覆盖 11 个 Job；两个函数复用同一代码目录。配置只保存函数代码、规格和触发器，不保存任何环境变量；否则再次执行 `tcb fn deploy` 可能把生产 token 写进仓库，或用不完整变量覆盖云端配置。`ROOT_JOB_BASE_URL`、`ROOT_ADMIN_JOB_TOKEN`、`ROOT_JOB_DRY_RUN` 等变量统一在 CloudBase 控制台维护。2026-07-13 经单独授权使用 `tcb fn code update` 把两个生产函数对齐到 0.5.10；11/11 个 Job 曾在 025 路由下返回 `releaseVersion=0.5.10`、HTTP 200、业务码 0 和 `dryRun=true`。027 部署后只读回读确认两函数仍为 `Active / Available`、各 6 个变量、10+1 个启用触发器，条件路由已匹配 027 且 `ROOT_JOB_DRY_RUN=true`；本轮未更新 Function 或调用 Job。真实外部 Adapter 完成小批量校准及负责人确认前不得开启 execute。
+生产环境使用 `ROOT_ADMIN_JOB_ROUTE_TOKENS` 为健康数据清理路径配置轮换 token，并启用 `ROOT_REQUIRE_SCOPED_JOB_TOKENS=true`。CloudBase 配置和本地 Manifest 不证明函数已经部署或取得执行授权。
 
 0% 候选验收可使用 CloudBase 官方 URL 参数定向流量：稳定版保持默认版本，候选版只匹配一次性非秘密参数。Cloud Function 临时设置 `ROOT_JOB_ROUTE_QUERY=<key>=<value>`，灰度验证脚本设置同值 `ROOT_CANARY_ROUTE_QUERY` 或传 `--route-query <key>=<value>`；调度器会把参数附加到 Job Interface，默认未配置时 URL 完全不变。验收结束后移除两个变量并恢复百分比流量配置，路由参数不能替代鉴权，也不得承载 token、密码或用户标识。
 
 生产 MySQL 使用私网地址时，CloudRun 候选必须显式继承当前稳定版本的 `VpcConf`。CloudBase CLI `3.5.7` 的差异配置转换不会自动提交 `VpcConf`；2026-07-12 的 `020/021` 因遗漏该项，在应用监听 80 端口前无法连接 MySQL，探针均以 `connection refused` 失败。发布脚本必须从稳定版本 `DescribeVersionDetail` 回读 VPC 配置，在 `UpdateCloudRunServer.Items` 中显式提交 `{ Key: "VpcConf", VpcConf: ... }`，并在候选创建后再次回读 `DescribeVersionDetail.VpcConf`。缺 VPC、稳定版不是默认版本或候选百分比不为 0 时立即停止，不进入探针。
 
 CloudRun 中的 CloudBase 对象存储使用服务端 HTTP Interface，生产候选必须同时配置 `ROOT_CLOUDBASE_STORAGE_TRANSPORT=HTTP`、匹配生产环境的 `ROOT_CLOUDBASE_ENV_ID` 和服务端 `CLOUDBASE_APIKEY`。API Key 只保存于受控密钥存储，不写入仓库、命令参数、发布文档或客户端代码。探针只允许上传一个随机小对象，并按上传授权返回的精确 `cloudObjectId` 删除；上传结果含糊时只对该精确 ID 做补偿删除，禁止按目录或前缀清理。2026-07-13 的 025 候选已完成 HTTP 200、上传确认、删除确认、审计匹配和目录 `total=0` 回读。
-
-有赞身份对账首次开放 execute 前，必须先完成 User Query Interface 权限与 token 生命周期确认，再把 `ROOT_YOUZAN_IDENTITY_RECONCILE_ENABLED` 改为 `true`。自用型无容器 token 由 `client_id + client_secret + grant_id` 换取；当前版本采用单一负责人集中轮换，不允许两个实例各自换 token。生产调用会检查轮换模式与到期时间，缺失或已过期时在请求有赞前失败关闭。建议先运行：
-
-当前有赞接入采用主动拉取与动作调用，没有接收通知、验签和幂等消费的回调 Interface；有赞后台回调地址应保持空白，不能填 CloudRun 根地址或 `/health` 占位。首次真实 PREVIEW 还必须核对有赞“消费者隐私数据/数据加密”状态；当前版本没有有赞隐私字段解密 Implementation，若订单手机号、地址或客户字段返回密文，应停止后续 IMPORT，先完成解密与脱敏验证。
-
-```bash
-ROOT_JOB_BASE_URL=https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com \
-ROOT_ADMIN_JOB_TOKEN=*** \
-npm run youzan-identity-reconcile --prefix backend -- --dry-run --batch-size 5
-```
-
-不要把真实 token 写进命令历史、仓库或发布证据；证据只保留配置存在性、候选数、成功/失败数和冲突数。
 
 ## 生产灰度验证
 
@@ -164,7 +114,7 @@ tcb cloudrun traffic rollback \
 
 脚本退出码：`0` 全部通过；`2` 未命中候选健康探针；`3` 候选 Store 未就绪；`4` CloudBase 对象存储上传或删除未通过；`5` 候选公开隐私说明缺处理者、有效联系方式、正整数保存天数或版本归因。不要把 Admin token 写入命令参数、文档或证据包。
 
-首次开启 execute 前，先确认所有真实外部 Adapter 已完成小批量校准、负责人和告警路由已就绪，再把 Cloud Function 的 `ROOT_JOB_DRY_RUN` 改为 `false`。`ROOT_ADMIN_JOB_TOKEN` 不写入仓库，只放 CloudBase 环境变量或密钥管理；它只允许调用 `/api/v1/jobs/*`，不能访问通用后台 Interface。
+健康数据清理首次开启 execute 前必须完成 dry-run、隐私保存期限核对和单独授权。Job token 不写入仓库，只放 CloudBase 环境变量或密钥管理，并按路径独立配置。
 
 ## 2. 小程序改正式接口
 

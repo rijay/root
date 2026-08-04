@@ -1,3 +1,7 @@
 {
-  "navigationBarTitleText": "ROOT 问卷"
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "page-navigation": "/components/page-navigation/index",
+    "privacy-consent": "/components/privacy-consent/index"
+  }
 }

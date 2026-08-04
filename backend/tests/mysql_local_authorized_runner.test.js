@@ -121,7 +121,7 @@ function tempPacketFixture() {
       enabledTestsFail: 0,
       enabledTestsSkip: 0,
       finalVerificationLabels: FINAL_VERIFICATION_LABELS,
-      finalVerificationPassed: 18,
+      finalVerificationPassed: FINAL_VERIFICATION_LABELS.length,
       finalVerificationFailed: 0,
     },
   };
@@ -792,25 +792,38 @@ test("schema and final verification outputs require exact structured success", (
   }), migrationSetDigest), { code: "MYSQL_LOCAL_RUNNER_SCHEMA_VERIFY_OUTCOME_INVALID" });
 
   const report = {
-    summary: { status: "PASS", passed: 18, failed: 0, total: 18 },
+    summary: {
+      status: "PASS",
+      passed: FINAL_VERIFICATION_LABELS.length,
+      failed: 0,
+      total: FINAL_VERIFICATION_LABELS.length,
+    },
     results: FINAL_VERIFICATION_LABELS.map((label) => ({ label, status: "PASS" })),
   };
-  assert.equal(parseFinalVerificationReport(JSON.stringify(report)).passed, 18);
+  assert.equal(
+    parseFinalVerificationReport(JSON.stringify(report)).passed,
+    FINAL_VERIFICATION_LABELS.length
+  );
   report.results[0].status = "FAIL";
   assert.throws(() => parseFinalVerificationReport(JSON.stringify(report)), {
     code: "MYSQL_LOCAL_RUNNER_FINAL_VERIFY_OUTCOME_INVALID",
   });
-  report.summary = { status: "FAIL", passed: 17, failed: 1, total: 18 };
+  report.summary = {
+    status: "FAIL",
+    passed: FINAL_VERIFICATION_LABELS.length - 1,
+    failed: 1,
+    total: FINAL_VERIFICATION_LABELS.length,
+  };
   assert.deepEqual(parseFinalVerificationFailureLabels(JSON.stringify(report)), [
     FINAL_VERIFICATION_LABELS[0],
   ]);
-  report.results[0].label = "Backend tests";
+  report.results[0].label = "backend tests";
   report.results[0].code = null;
   report.results[0].signal = "SIGTERM";
   report.results[0].errorCode = null;
   report.results[0].stdout = "not ok 1 - exact backend failure\n  ---\n  code: 'ERR_ASSERTION'\n  ...\n";
   const failureDetails = parseFinalVerificationFailureDetails(JSON.stringify(report));
-  assert.equal(failureDetails[0].label, "Backend tests");
+  assert.equal(failureDetails[0].label, "backend tests");
   assert.equal(failureDetails[0].testFailures.failures[0].name, "exact backend failure");
   assert.deepEqual(failureDetails[0].termination, {
     kind: "SIGNAL", exitCode: null, signal: "SIGTERM", errorCode: null,

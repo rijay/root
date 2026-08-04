@@ -6,26 +6,11 @@ const { minimizePersistedExternalEvidence } = require("./externalEvidenceSanitiz
 const { normalizePersistedCredentials } = require("./credentialProtection");
 const { createCommandRequestDigestCodec } = require("./commandRequestDigest");
 const { createCommandResultCodec } = require("./commandResultProtection");
-const {
-  normalizeTaskEventIdempotencyState,
-  validateTaskEventIdempotencyCollection,
-} = require("./taskEventIdempotency");
+const { RETIRED_SNAPSHOT_DEFAULT_KEYS } = require("./formalLaunchDataDisposition");
 const {
   normalizeWechatIdentityAuthority,
   validateWechatIdentityCollection,
 } = require("./wechatIdentityAuthority");
-const {
-  RECIPIENT_BINDING_STATUS,
-  markRecipientBindingUnverified,
-  validateRecipientBindingCollection,
-} = require("./wechatRecipientBinding");
-const {
-  createMysqlSettlementSourceInvalidationReadAdapter,
-} = require("./settlementSourceInvalidationReadAdapter");
-const {
-  createMysqlSettlementSourceInvalidationResolveAdapter,
-} = require("./settlementSourceInvalidationResolveAdapter");
-const { runtimeAlertDeliveryMode } = require("./v1RuntimeAlertPayloadAdapter");
 
 const SQLITE_SCHEMA_VERSION = 1;
 const SQLITE_STORE_KEY = "root-checkin";
@@ -34,86 +19,6 @@ const MYSQL_STORE_KEY = "root-checkin";
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
-}
-
-const SETTLEMENT_AUTHORITY_COLLECTIONS = Object.freeze([
-  Object.freeze({ key: "settlementRecords", id: "settlement_record_id" }),
-  Object.freeze({ key: "rewardGrants", id: "reward_grant_id" }),
-  Object.freeze({
-    key: "rewardInventoryReservations",
-    id: "reward_inventory_reservation_id",
-  }),
-]);
-
-function settlementAuthorityScopes(before, after) {
-  const scopes = new Map();
-  for (const collection of SETTLEMENT_AUTHORITY_COLLECTIONS) {
-    const beforeRows = Array.isArray(before && before[collection.key])
-      ? before[collection.key]
-      : [];
-    const afterRows = Array.isArray(after && after[collection.key])
-      ? after[collection.key]
-      : [];
-    const indexRows = (rows) => {
-      const indexed = new Map();
-      for (const row of rows) {
-        const id = row && row[collection.id];
-        if (typeof id !== "string" || !id.trim()
-          || id !== id.trim() || id.length > 128
-          || /[\u0000-\u001f\u007f]/.test(id)
-          || indexed.has(id)) {
-          const error = new Error("Settlement authority collection identity is invalid");
-          error.code = "SETTLEMENT_SOURCE_INVALIDATION_READ_SCOPE_INVALID";
-          error.status = 503;
-          throw error;
-        }
-        indexed.set(id, row);
-      }
-      return indexed;
-    };
-    const beforeById = indexRows(beforeRows);
-    const afterById = indexRows(afterRows);
-    const ids = new Set([...beforeById.keys(), ...afterById.keys()]);
-    for (const id of ids) {
-      const previous = beforeById.get(id) || null;
-      const current = afterById.get(id) || null;
-      if (JSON.stringify(previous) === JSON.stringify(current)) continue;
-      for (const row of [previous, current].filter(Boolean)) {
-        const rootUserId = row.root_user_id;
-        const campaignId = row.campaign_id;
-        if (typeof rootUserId !== "string" || !rootUserId.trim()
-          || rootUserId !== rootUserId.trim() || rootUserId.length > 32
-          || typeof campaignId !== "string" || !campaignId.trim()
-          || campaignId !== campaignId.trim() || campaignId.length > 64) {
-          const error = new Error("Settlement authority scope is invalid");
-          error.code = "SETTLEMENT_SOURCE_INVALIDATION_READ_SCOPE_INVALID";
-          error.status = 503;
-          throw error;
-        }
-        scopes.set(`${rootUserId}\0${campaignId}`, { rootUserId, campaignId });
-      }
-    }
-  }
-  return [...scopes.values()].sort((left, right) => Buffer.compare(
-    Buffer.from(`${left.rootUserId}\0${left.campaignId}`, "utf8"),
-    Buffer.from(`${right.rootUserId}\0${right.campaignId}`, "utf8")
-  ));
-}
-
-function assertSettlementAuthorityAvailable(candidates) {
-  const rows = Array.isArray(candidates) ? candidates : [];
-  if (rows.some((row) => row.review_type === "SETTLEMENT_STOP_CANDIDATE")) {
-    const error = new Error("活动任务来源已取消，本次结算已停止");
-    error.code = "SETTLEMENT_SOURCE_INVALIDATED";
-    error.status = 409;
-    throw error;
-  }
-  if (rows.length > 0) {
-    const error = new Error("原结算需通过追加调整流程复核，不能自动重算或覆盖");
-    error.code = "SETTLEMENT_RECALCULATION_REQUIRED";
-    error.status = 409;
-    throw error;
-  }
 }
 
 function mergeDefaults(target, defaults) {
@@ -134,60 +39,21 @@ function mergeDefaults(target, defaults) {
 
 function createEmptyData() {
   const data = createSeedData();
-  data.youzanProducts = [];
-  data.youzanSkus = [];
-  data.campaignProductRelations = [];
-  data.productJumpLogs = [];
-  data.youzanCustomers = [];
-  data.youzanIdentityReconciliations = [];
-  data.campaignDefinitions = [];
-  data.campaignParticipants = [];
+  RETIRED_SNAPSHOT_DEFAULT_KEYS.forEach((key) => delete data[key]);
+  data.contentAssets = [];
+  data.contentVersions = [];
+  data.contentPublicationRecords = [];
+  data.contentPreviewRecords = [];
+  data.formalContentItems = [];
   data.activityDefinitionVersions = [];
   data.activitySessions = [];
   data.activitySessionEvents = [];
   data.activityEnrollments = [];
   data.activityEnrollmentEvents = [];
-  data.taskDefinitions = [];
-  data.taskEvents = [];
-  data.taskProgressSnapshots = [];
-  data.notificationTemplates = [];
-  data.notificationSubscriptions = [];
-  data.notificationSubscriptionGrants = [];
-  data.notificationJobs = [];
-  data.notificationDeliveries = [];
   data.questionnaireAnswers = [];
-  data.campaignRuleVersions = [];
-  data.settlementRecords = [];
-  data.rewardInventoryPools = [];
-  data.rewardInventoryReservations = [];
-  data.rewardGrants = [];
-  data.rewardRecoveryRecords = [];
-  data.rewardDeliveryJobs = [];
-  data.manualReviewItems = [];
-  data.adminLifecycleFilterPresets = [];
-  data.adminLifecycleSettlementJobs = [];
-  data.adminLifecycleUserExports = [];
-  data.operationalAlertRules = [];
-  data.operationalAlertRuns = [];
-  data.operationalAlertNotifications = [];
-  data.releaseEvidenceArchives = [];
-  data.releaseSignoffs = [];
-  data.adminLegacyDeprecationDecisions = [];
-  data.productionCutoverProofs = [];
-  data.rootMemberCenterJumpProofs = [];
-  data.legacyDataMigrationDecisions = [];
-  data.legacyDataMigrationExecutions = [];
-  data.consultationAdvisorAssignments = [];
-  data.consultationWeworkWritebacks = [];
-  data.weworkTouchJobs = [];
-  data.orderAfterSalesRecords = [];
-  data.youzanOrders = [];
-  data.orderFulfillments = [];
-  data.events = [];
+  data.healthScaleResponses = [];
+  data.healthContentVersions = [];
   data.commandIdempotencyRecords = [];
-  data.eventOutbox = [];
-  data.eventInbox = [];
-  data.eventConsumerCheckpoints = [];
   return data;
 }
 
@@ -198,22 +64,8 @@ function defaultsForOptions(options = {}) {
 function normalizeStoreData(rawData, options = {}) {
   const normalized = minimizePersistedExternalEvidence(mergeDefaults(clone(rawData || {}), defaultsForOptions(options)));
   normalizePersistedCredentials(normalized);
-  if (Array.isArray(normalized.taskEvents)) {
-    normalized.taskEvents.forEach(normalizeTaskEventIdempotencyState);
-  }
   if (Array.isArray(normalized.wechatIdentities)) {
     normalized.wechatIdentities.forEach(normalizeWechatIdentityAuthority);
-  }
-  if (Array.isArray(normalized.notificationSubscriptionGrants)) {
-    normalized.notificationSubscriptionGrants.forEach((grant) => {
-      if (!grant.recipient_binding_status) markRecipientBindingUnverified(grant);
-      if (grant.recipient_binding_status === RECIPIENT_BINDING_STATUS.UNVERIFIED
-        && grant.status !== "REVIEW_REQUIRED") {
-        grant.status = "REVIEW_REQUIRED";
-        grant.release_reason = grant.release_reason || "RECIPIENT_BINDING_UNVERIFIED";
-        grant.review_required_at = grant.review_required_at || grant.updated_at || grant.created_at || "";
-      }
-    });
   }
   delete normalized.wechatAccessToken;
   return normalized;
@@ -253,12 +105,12 @@ function validateSnapshot(snapshot, options = {}) {
     ["rootUsers", "root_user_id"],
     ["wechatIdentities", "wechat_identity_id"],
     ["privacyConsentRecords", "privacy_consent_record_id"],
-    ["youzanProducts", "youzan_product_id"],
-    ["youzanSkus", "youzan_sku_id"],
-    ["campaignProductRelations", "campaign_product_relation_id"],
-    ["productJumpLogs", "product_jump_log_id"],
-    ["campaignDefinitions", "campaign_id"],
-    ["campaignParticipants", "campaign_participant_id"],
+    ["contentAssets", "content_asset_id"],
+    ["contentVersions", "content_version_id"],
+    ["contentPublicationRecords", "content_publication_record_id"],
+    ["contentPreviewRecords", "content_preview_record_id"],
+    ["healthContentVersions", "health_content_version_id"],
+    ["healthScaleResponses", "health_scale_response_id"],
     ["activityDefinitionVersions", "activity_version_id"],
     ["activitySessions", "activity_session_id"],
     ["activitySessionEvents", "activity_session_event_id"],
@@ -266,68 +118,10 @@ function validateSnapshot(snapshot, options = {}) {
     ["activityEnrollments", "activity_enrollment_id"],
     ["activityEnrollmentEvents", "activity_enrollment_event_id"],
     ["activityEnrollmentEvents", "request_id"],
-    ["taskDefinitions", "task_definition_id"],
-    ["taskEvents", "task_event_id"],
-    ["taskProgressSnapshots", "task_progress_snapshot_id"],
-    ["notificationTemplates", "notification_template_id"],
-    ["notificationSubscriptions", "notification_subscription_id"],
-    ["notificationSubscriptionGrants", "notification_subscription_grant_id"],
-    ["notificationSubscriptionGrants", "idempotency_key"],
-    ["notificationJobs", "notification_job_id"],
-    ["notificationJobs", "idempotency_key"],
-    ["notificationDeliveries", "notification_delivery_id"],
-    ["campaignRuleVersions", "campaign_rule_version_id"],
-    ["settlementRecords", "settlement_record_id"],
-    ["rewardInventoryPools", "reward_inventory_pool_id"],
-    ["rewardInventoryReservations", "reward_inventory_reservation_id"],
-    ["rewardInventoryReservations", "idempotency_key"],
-    ["rewardGrants", "reward_grant_id"],
-    ["rewardRecoveryRecords", "reward_recovery_record_id"],
-    ["rewardRecoveryRecords", "idempotency_key"],
-    ["rewardDeliveryJobs", "reward_delivery_job_id"],
-    ["manualReviewItems", "manual_review_item_id"],
-    ["adminLifecycleFilterPresets", "preset_id"],
-    ["adminLifecycleSettlementJobs", "job_id"],
-    ["adminLifecycleUserExports", "export_id"],
-    ["operationalAlertRules", "alert_rule_id"],
-    ["operationalAlertRuns", "operational_alert_run_id"],
-    ["operationalAlertNotifications", "operational_alert_notification_id"],
-    ["releaseEvidenceArchives", "archive_id"],
-    ["releaseEvidenceArchives", "request_id"],
-    ["releaseSignoffs", "signoff_id"],
-    ["releaseSignoffs", "request_id"],
-    ["adminLegacyDeprecationDecisions", "decision_id"],
-    ["adminLegacyDeprecationDecisions", "request_id"],
-    ["productionCutoverProofs", "proof_id"],
-    ["productionCutoverProofs", "request_id"],
-    ["rootMemberCenterJumpProofs", "proof_id"],
-    ["rootMemberCenterJumpProofs", "request_id"],
-    ["legacyDataMigrationDecisions", "decision_id"],
-    ["legacyDataMigrationDecisions", "request_id"],
-    ["legacyDataMigrationExecutions", "execution_id"],
-    ["legacyDataMigrationExecutions", "request_id"],
-    ["youzanIdentityReconciliations", "reconciliation_id"],
-    ["consultationAdvisorAssignments", "assignment_id"],
-    ["consultationAdvisorAssignments", "request_id"],
-    ["consultationWeworkWritebacks", "writeback_id"],
-    ["consultationWeworkWritebacks", "request_id"],
-    ["weworkTouchJobs", "wework_touch_job_id"],
-    ["weworkTouchJobs", "idempotency_key"],
-    ["orderAfterSalesRecords", "order_after_sales_record_id"],
-    ["orderAfterSalesRecords", "after_sales_no"],
-    ["orderAfterSalesRecords", "idempotency_key"],
-    ["youzanOrders", "order_id"],
-    ["youzanOrders", "youzan_order_no"],
-    ["orderFulfillments", "fulfillment_id"],
-    ["checkinSessions", "session_id"],
-    ["operationTasks", "task_id"],
     ["userContactMethods", "contact_method_id"],
     ["userLifecycleEvents", "lifecycle_event_id"],
-    ["importBatches", "batch_id"],
     ["auditLogs", "audit_id"],
     ["commandIdempotencyRecords", "recordId"],
-    ["eventOutbox", "outbox_event_id"],
-    ["eventInbox", "inbox_receipt_id"],
   ];
   duplicateChecks.forEach(([listKey, idKey]) => {
     const list = snapshot[listKey];
@@ -341,18 +135,10 @@ function validateSnapshot(snapshot, options = {}) {
     });
   });
 
-  const taskEventIdempotency = validateTaskEventIdempotencyCollection(snapshot.taskEvents);
-  errors.push(...taskEventIdempotency.errors);
-  warnings.push(...taskEventIdempotency.warnings);
   const wechatIdentityAuthority = validateWechatIdentityCollection(snapshot.wechatIdentities, {
     env: options.env || process.env,
   });
   errors.push(...wechatIdentityAuthority.errors);
-  const recipientBindings = validateRecipientBindingCollection(snapshot.notificationSubscriptionGrants, {
-    env: options.env || process.env,
-  });
-  errors.push(...recipientBindings.errors);
-
   const activityVersions = new Set();
   const activityVersionIds = new Set();
   const activityPublicationDecisions = new Set();
@@ -362,11 +148,6 @@ function validateSnapshot(snapshot, options = {}) {
       if (activityVersions.has(identity)) errors.push(`duplicate activity version: ${identity}`);
       activityVersions.add(identity);
       if (definition.activity_version_id) activityVersionIds.add(definition.activity_version_id);
-      const preboundTaskDefinitionId = String(definition.prebound_task_definition_id || "").trim();
-      const preboundTaskDefinitionVersion = String(definition.prebound_task_definition_version || "").trim();
-      if (Boolean(preboundTaskDefinitionId) !== Boolean(preboundTaskDefinitionVersion)) {
-        errors.push(`activity task binding is incomplete: ${definition.activity_version_id || "unknown"}`);
-      }
       if (definition.status === "PUBLISHED") {
         const decisionIdentity = `${definition.publication_authorization_adapter_id || ""}:${definition.publication_authorization_decision_ref || ""}`;
         if (activityPublicationDecisions.has(decisionIdentity)) {
@@ -744,15 +525,6 @@ function validateMysqlConfig(config = {}) {
   return config;
 }
 
-function strictOptionalBooleanFlag(env, name) {
-  const value = env && Object.prototype.hasOwnProperty.call(env, name) ? env[name] : "";
-  if (value === undefined || value === null || value === "" || value === "false") return false;
-  if (value === "true") return true;
-  const error = new Error(`${name} must be the exact string true or false`);
-  error.code = "V1_RUNTIME_CONTROL_PLANE_CONFIGURATION_INVALID";
-  throw error;
-}
-
 function resolveMysqlMigrationMode(env = process.env) {
   const raw = String(env.ROOT_MYSQL_MIGRATION_MODE || "").trim().toLowerCase();
   const production = String(env.NODE_ENV || "").trim().toLowerCase() === "production";
@@ -762,51 +534,6 @@ function resolveMysqlMigrationMode(env = process.env) {
   const error = new Error("ROOT_MYSQL_MIGRATION_MODE must be verify_only in production");
   error.code = "MYSQL_MIGRATION_MODE_INVALID";
   throw error;
-}
-
-function v1RuntimeConnectionLimit(env) {
-  const raw = env && Object.prototype.hasOwnProperty.call(env, "MYROOT_V1_RUNTIME_CONNECTION_LIMIT")
-    ? env.MYROOT_V1_RUNTIME_CONNECTION_LIMIT
-    : "3";
-  if (typeof raw !== "string" || !/^\d+$/.test(raw)) {
-    const error = new Error("MYROOT_V1_RUNTIME_CONNECTION_LIMIT must be an integer from 3 to 64");
-    error.code = "V1_RUNTIME_CONTROL_PLANE_CONFIGURATION_INVALID";
-    throw error;
-  }
-  const value = Number(raw);
-  if (!Number.isSafeInteger(value) || value < 3 || value > 64) {
-    const error = new Error("MYROOT_V1_RUNTIME_CONNECTION_LIMIT must be an integer from 3 to 64");
-    error.code = "V1_RUNTIME_CONTROL_PLANE_CONFIGURATION_INVALID";
-    throw error;
-  }
-  return value;
-}
-
-function v1RuntimeAlertRoleMysqlConfig(env, role) {
-  const prefix = `MYROOT_V1_RUNTIME_ALERT_${role}_MYSQL_`;
-  const user = env[`${prefix}USERNAME`];
-  const password = env[`${prefix}PASSWORD`];
-  const expectedCurrentUser = env[`${prefix}CURRENT_USER`];
-  const rawLimit = env[`${prefix}CONNECTION_LIMIT`];
-  const valid = typeof user === "string" && user.length >= 1 && user.length <= 128
-    && user === user.trim()
-    && !/[\u0000-\u001f\u007f]/.test(user)
-    && typeof password === "string" && password.length >= 16 && password.length <= 4096
-    && password === password.trim()
-    && !/[\u0000-\u001f\u007f]/.test(password)
-    && typeof expectedCurrentUser === "string"
-    && expectedCurrentUser.length >= 3 && expectedCurrentUser.length <= 288
-    && expectedCurrentUser.includes("@")
-    && /^[\x21-\x7e]+$/.test(expectedCurrentUser)
-    && typeof rawLimit === "string" && /^[1-9][0-9]*$/.test(rawLimit);
-  const connectionLimit = Number(rawLimit);
-  if (!valid || !Number.isSafeInteger(connectionLimit)
-    || connectionLimit < 1 || connectionLimit > 64) {
-    const error = new Error("V1 runtime alert database authority configuration is invalid");
-    error.code = "V1_RUNTIME_ALERT_DELIVERY_AUTHORITY_CONFIGURATION_INVALID";
-    throw error;
-  }
-  return Object.freeze({ user, password, expectedCurrentUser, connectionLimit });
 }
 
 function parseMysqlPayload(value) {
@@ -823,13 +550,8 @@ async function createMysqlStore(config = {}, options = {}) {
   const migrationModule = require("./mysqlMigrations");
   const projectionModule = require("./mysqlProjection");
   const privilegeModule = require("./mysqlPrivilegePolicy");
-  const eventTransportModule = require("./mysqlEventTransportAdapter");
   const commandIdempotencyModule = require("./mysqlCommandIdempotencyAdapter");
   const commandRecoveryModule = require("./mysqlCommandRecovery");
-  const activityTaskReadModule = require("./activityTaskReadAdapter");
-  const runtimeControlPlaneModule = require("./v1RuntimeControlPlaneFoundation");
-  const runtimePrincipalReadinessModule = require("./mysqlRuntimePrincipalReadiness");
-  const notificationDeliveryModule = require("./mysqlNotificationDeliveryCore");
   const applyMysqlMigrations = dependencies.applyMysqlMigrations || migrationModule.applyMysqlMigrations;
   const verifyMysqlMigrations = dependencies.verifyMysqlMigrations || migrationModule.verifyMysqlMigrations;
   const changedCollectionKeys = dependencies.changedCollectionKeys || projectionModule.changedCollectionKeys;
@@ -838,29 +560,10 @@ async function createMysqlStore(config = {}, options = {}) {
   const readMysqlPrivilegePolicy = dependencies.readMysqlPrivilegePolicy || privilegeModule.readMysqlPrivilegePolicy;
   const readMysqlPrivilegePolicyFromConnection = dependencies.readMysqlPrivilegePolicyFromConnection
     || privilegeModule.readMysqlPrivilegePolicyFromConnection;
-  const createMysqlEventTransportAdapter = dependencies.createMysqlEventTransportAdapter
-    || eventTransportModule.createMysqlEventTransportAdapter;
   const createMysqlCommandIdempotencyAdapter = dependencies.createMysqlCommandIdempotencyAdapter
     || commandIdempotencyModule.createMysqlCommandIdempotencyAdapter;
   const createMysqlCommandRecovery = dependencies.createMysqlCommandRecovery
     || commandRecoveryModule.createMysqlCommandRecovery;
-  const createMysqlActivityTaskReadAdapter = dependencies.createMysqlActivityTaskReadAdapter
-    || activityTaskReadModule.createMysqlActivityTaskReadAdapter;
-  const createV1RuntimeControlPlane = dependencies.createV1RuntimeControlPlane
-    || runtimeControlPlaneModule.createV1RuntimeControlPlane;
-  const createMysqlRuntimePrincipalReadiness = dependencies.createMysqlRuntimePrincipalReadiness
-    || runtimePrincipalReadinessModule.createMysqlRuntimePrincipalReadiness;
-  const assertMysqlRuntimePrincipalReadinessStatus = dependencies
-    .assertMysqlRuntimePrincipalReadinessStatus
-    || runtimePrincipalReadinessModule.assertMysqlRuntimePrincipalReadinessStatus;
-  const createMysqlNotificationDeliveryCore = dependencies.createMysqlNotificationDeliveryCore
-    || notificationDeliveryModule.createMysqlNotificationDeliveryCore;
-  const createSettlementSourceInvalidationReadAdapter = dependencies
-    .createMysqlSettlementSourceInvalidationReadAdapter
-    || createMysqlSettlementSourceInvalidationReadAdapter;
-  const createSettlementSourceInvalidationResolveAdapter = dependencies
-    .createMysqlSettlementSourceInvalidationResolveAdapter
-    || createMysqlSettlementSourceInvalidationResolveAdapter;
   const policyEnvSource = options.env || process.env;
   // Node exposes process.env as a host object whose prototype is not
   // Object.prototype. Internal persistence modules intentionally accept only
@@ -910,11 +613,9 @@ async function createMysqlStore(config = {}, options = {}) {
     keepAliveInitialDelay: 0,
   });
   const pool = mysql.createPool({ ...mysqlPoolOptions });
-  let notificationDeliveryCore;
   let privilegePolicy;
   let migrationState;
   try {
-    notificationDeliveryCore = createMysqlNotificationDeliveryCore(pool, { env: policyEnv });
     privilegePolicy = await readMysqlPrivilegePolicy(pool, { database, env: policyEnv });
     assertMysqlPrivilegePolicy(privilegePolicy);
     migrationState = mysqlMigrationMode === "verify_only"
@@ -922,151 +623,6 @@ async function createMysqlStore(config = {}, options = {}) {
       : await applyMysqlMigrations(pool, { ...options, database });
   } catch (error) {
     await pool.end().catch(() => {});
-    throw error;
-  }
-  let v1RuntimeControlPlane = null;
-  let v1RuntimePool = null;
-  let v1RuntimeHeartbeatPool = null;
-  let v1RuntimeRegistrarPool = null;
-  let v1RuntimeWorkerPool = null;
-  let v1RuntimeInspectorPool = null;
-  let runtimePrincipalReadiness = null;
-  let runtimePrincipalReadinessStatus = runtimePrincipalReadinessModule
-    .disabledMysqlRuntimePrincipalReadinessStatus();
-  try {
-    const runtimeControlEnabled = strictOptionalBooleanFlag(
-      policyEnv,
-      "MYROOT_V1_RUNTIME_CONTROL_PLANE_ENABLED"
-    );
-    const runtimeReadinessRequired = strictOptionalBooleanFlag(
-      policyEnv,
-      "ROOT_V1_RUNTIME_READY_REQUIRED"
-    );
-    if (
-      runtimeControlEnabled
-      || runtimeReadinessRequired
-      || Object.prototype.hasOwnProperty.call(dependencies, "createV1RuntimeControlPlane")
-    ) {
-      // Runtime governance holds a named-lock connection while phase work and
-      // heartbeat renewal need independent capacity. A dedicated pool keeps
-      // ordinary Store traffic from consuming that capacity at this Seam.
-      const runtimeConnectionLimit = v1RuntimeConnectionLimit(policyEnv);
-      const runtimePoolOptions = Object.freeze({
-        ...mysqlPoolOptions,
-        connectionLimit: runtimeConnectionLimit,
-      });
-      v1RuntimePool = mysql.createPool({ ...runtimePoolOptions });
-      const deliveryMode = runtimeAlertDeliveryMode(policyEnv);
-      const controlEnv = {
-        ...policyEnv,
-        MYSQL_DATABASE: database,
-        MYSQL_HOST: String(mergedConfig.host),
-        MYSQL_PORT: String(mergedConfig.port || 3306),
-        MYSQL_USERNAME: String(mergedConfig.user),
-        MYSQL_CONNECTION_LIMIT: String(runtimeConnectionLimit),
-        MYROOT_V1_MAIN_CONNECTION_LIMIT: String(mysqlPoolOptions.connectionLimit),
-        MYROOT_V1_RUNTIME_CONNECTION_LIMIT: String(runtimeConnectionLimit),
-        MYROOT_V1_RUNTIME_HEARTBEAT_CONNECTION_LIMIT: "1",
-      };
-      let controlOptions;
-      if (deliveryMode === "DISABLED") {
-        // renewCycle alone uses this one-connection Adapter, so readiness or
-        // preview traffic cannot consume the lease heartbeat reservation.
-        v1RuntimeHeartbeatPool = mysql.createPool({
-          ...runtimePoolOptions,
-          connectionLimit: 1,
-        });
-        controlOptions = {
-          pool: v1RuntimePool,
-          heartbeatPool: v1RuntimeHeartbeatPool,
-          env: Object.freeze(controlEnv),
-        };
-      } else {
-        const registrar = v1RuntimeAlertRoleMysqlConfig(policyEnv, "REGISTRAR");
-        const inspector = v1RuntimeAlertRoleMysqlConfig(policyEnv, "INSPECTOR");
-        const worker = deliveryMode === "CONTROLLED"
-          ? v1RuntimeAlertRoleMysqlConfig(policyEnv, "WORKER") : null;
-        for (const role of ["REGISTRAR", "WORKER", "INSPECTOR"]) {
-          for (const suffix of ["USERNAME", "PASSWORD", "CURRENT_USER", "CONNECTION_LIMIT"]) {
-            delete controlEnv[`MYROOT_V1_RUNTIME_ALERT_${role}_MYSQL_${suffix}`];
-          }
-        }
-        const rolePoolOptions = (role) => ({
-          ...mysqlPoolOptions,
-          user: role.user,
-          password: role.password,
-          connectionLimit: role.connectionLimit,
-        });
-        v1RuntimeRegistrarPool = mysql.createPool(rolePoolOptions(registrar));
-        v1RuntimeHeartbeatPool = mysql.createPool({
-          ...rolePoolOptions(registrar),
-          connectionLimit: 1,
-        });
-        v1RuntimeInspectorPool = mysql.createPool(rolePoolOptions(inspector));
-        if (worker) v1RuntimeWorkerPool = mysql.createPool(rolePoolOptions(worker));
-        runtimePrincipalReadiness = createMysqlRuntimePrincipalReadiness({
-          database,
-          registrationMode: deliveryMode,
-          registrarPool: v1RuntimeRegistrarPool,
-          registrarCurrentUser: registrar.expectedCurrentUser,
-          ...(worker ? {
-            workerPool: v1RuntimeWorkerPool,
-            workerCurrentUser: worker.expectedCurrentUser,
-          } : {}),
-          inspectorPool: v1RuntimeInspectorPool,
-          inspectorCurrentUser: inspector.expectedCurrentUser,
-        });
-        if (!runtimePrincipalReadiness
-          || typeof runtimePrincipalReadiness.inspect !== "function"
-          || typeof runtimePrincipalReadiness.getStatus !== "function") {
-          throw new Error("MySQL runtime principal readiness Interface is unavailable");
-        }
-        runtimePrincipalReadinessStatus = assertMysqlRuntimePrincipalReadinessStatus(
-          runtimePrincipalReadiness.getStatus(),
-          true
-        );
-        controlEnv.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_CONNECTION_LIMIT =
-          String(registrar.connectionLimit);
-        controlEnv.MYROOT_V1_RUNTIME_ALERT_WORKER_CONNECTION_LIMIT =
-          String(worker ? worker.connectionLimit : 0);
-        controlEnv.MYROOT_V1_RUNTIME_ALERT_INSPECTOR_CONNECTION_LIMIT =
-          String(inspector.connectionLimit);
-        controlOptions = {
-          orchestrationPool: v1RuntimePool,
-          registrarPool: v1RuntimeRegistrarPool,
-          registrarHeartbeatPool: v1RuntimeHeartbeatPool,
-          ...(worker ? { runtimeAlertWorkerPool: v1RuntimeWorkerPool } : {}),
-          runtimeAlertInspectorPool: v1RuntimeInspectorPool,
-          runtimeAlertRegistrarCurrentUser: registrar.expectedCurrentUser,
-          ...(worker ? { runtimeAlertWorkerCurrentUser: worker.expectedCurrentUser } : {}),
-          runtimeAlertInspectorCurrentUser: inspector.expectedCurrentUser,
-          env: Object.freeze(controlEnv),
-        };
-      }
-      const implementation = createV1RuntimeControlPlane(controlOptions);
-      const interfaceKeys = ["inspect", "previewScheduledCycle", "runScheduledCycle"];
-      if (!implementation || interfaceKeys.some((key) => typeof implementation[key] !== "function")) {
-        const error = new Error("v1 Runtime Control Plane Interface is unavailable");
-        error.code = "V1_RUNTIME_CONTROL_PLANE_CONFIGURATION_INVALID";
-        throw error;
-      }
-      // The Store exposes a deliberately narrow Interface. The raw pool and the
-      // control plane implementation remain private to this Module.
-      v1RuntimeControlPlane = Object.freeze({
-        inspect: (...args) => implementation.inspect(...args),
-        previewScheduledCycle: (...args) => implementation.previewScheduledCycle(...args),
-        runScheduledCycle: (...args) => implementation.runScheduledCycle(...args),
-      });
-    }
-  } catch (error) {
-    await Promise.all([
-      v1RuntimeHeartbeatPool ? v1RuntimeHeartbeatPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimeRegistrarPool ? v1RuntimeRegistrarPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimeWorkerPool ? v1RuntimeWorkerPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimeInspectorPool ? v1RuntimeInspectorPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimePool ? v1RuntimePool.end().catch(() => {}) : Promise.resolve(),
-      pool.end().catch(() => {}),
-    ]);
     throw error;
   }
   try {
@@ -1137,18 +693,7 @@ async function createMysqlStore(config = {}, options = {}) {
         throw error;
       }
       const before = normalizeStoreData(parseMysqlPayload(row.payload_json), options);
-      const sourceInvalidationRead = createSettlementSourceInvalidationReadAdapter(connection);
-      const normalizedRequest = normalizeStoreData(clone(snapshot), options);
-      const normalized = normalizeStoreData(
-        sourceInvalidationRead.prepareSnapshotForPersistence(normalizedRequest),
-        options
-      );
-      const authorityScopes = settlementAuthorityScopes(before, normalized);
-      if (authorityScopes.length > 0) {
-        const currentAuthority = await sourceInvalidationRead
-          .assertCurrentScopesAvailable(before, authorityScopes);
-        assertSettlementAuthorityAvailable(currentAuthority.candidates);
-      }
+      const normalized = normalizeStoreData(clone(snapshot), options);
       const changedKeys = changedCollectionKeys(before, normalized);
       const nextRevision = changedKeys.size ? currentRevision + 1 : currentRevision;
       if (changedKeys.size) await writeSnapshot(connection, normalized, nextRevision);
@@ -1245,13 +790,6 @@ async function createMysqlStore(config = {}, options = {}) {
         leastPrivilegeReady: privilegePolicy.ready === true,
         privilegeScope: privilegePolicy.scope,
         privilegePolicyEnforced: privilegePolicy.enforced === true,
-        runtimeAlertDeliveryEnabled: runtimePrincipalReadinessStatus.enabled,
-        runtimePrincipalReady: runtimePrincipalReadinessStatus.ready,
-        runtimePrincipalRequiredRoleCount: runtimePrincipalReadinessStatus.requiredRoleCount,
-        runtimePrincipalVerifiedRoleCount: runtimePrincipalReadinessStatus.verifiedRoleCount,
-        runtimePrincipalRequiredRoutineCount: runtimePrincipalReadinessStatus.requiredRoutineCount,
-        runtimePrincipalVerifiedRoutineCount: runtimePrincipalReadinessStatus.verifiedRoutineCount,
-        runtimePrincipalIssueCount: runtimePrincipalReadinessStatus.issueCount,
         database,
         host: mergedConfig.host,
         port: Number(mergedConfig.port || 3306),
@@ -1266,56 +804,17 @@ async function createMysqlStore(config = {}, options = {}) {
         let phase = "store";
         let transactionActive = false;
         let awaitingResume = false;
-        let transactionEventTransport = null;
-        let transactionEventTransportFacade = null;
         let transactionCommandIdempotency = null;
-        let settlementSourceInvalidationRead = null;
-        let settlementSourceInvalidationResolve = null;
-        let transactionGeneration = 0;
-
-        const createEventTransportFacade = (implementation) => {
-          const generation = ++transactionGeneration;
-          return Object.freeze({
-            stageOutbox(envelope) {
-              if (requestOptions.write === false) {
-                const error = new Error("MySQL Store Event Transport requires a writable request");
-                error.code = "STORE_EVENT_TRANSPORT_READ_ONLY";
-                throw error;
-              }
-              if (
-                !transactionActive ||
-                awaitingResume ||
-                !transactionEventTransport ||
-                transactionEventTransport !== implementation ||
-                transactionGeneration !== generation
-              ) {
-                const error = new Error("MySQL Store Event Transport requires an active transaction generation");
-                error.code = "STORE_EVENT_TRANSPORT_NOT_ACTIVE";
-                throw error;
-              }
-              return implementation.stageOutbox(envelope);
-            },
-          });
-        };
 
         const beginRequestTransaction = async () => {
           await connection.beginTransaction();
           transactionActive = true;
-          transactionEventTransport = createMysqlEventTransportAdapter(connection);
-          transactionEventTransportFacade = createEventTransportFacade(transactionEventTransport);
           transactionCommandIdempotency = createMysqlCommandIdempotencyAdapter(connection, {
             requestDigestCodec: commandRequestDigestCodec,
             resultCodec: commandResultCodec,
           });
           const row = await selectSnapshot(connection, requestOptions.write !== false);
           beforePersisted = normalizeStoreData(parseMysqlPayload(row.payload_json), options);
-          settlementSourceInvalidationRead = createSettlementSourceInvalidationReadAdapter(
-            connection
-          );
-          settlementSourceInvalidationResolve = createSettlementSourceInvalidationResolveAdapter(
-            connection,
-            settlementSourceInvalidationRead
-          );
           before = normalizeStoreData(clone(beforePersisted), options);
           replaceStoreData(data, before, options);
           revision = Number(row.revision || 0);
@@ -1331,35 +830,10 @@ async function createMysqlStore(config = {}, options = {}) {
 
         const commitCurrentTransaction = async (commitOptions = {}) => {
           const after = adapter.exportSnapshot();
-          if (!settlementSourceInvalidationRead) {
-            const error = new Error("Settlement source invalidation read Adapter is unavailable");
-            error.code = "SETTLEMENT_SOURCE_INVALIDATION_READ_NOT_HYDRATED";
-            throw error;
-          }
-          const afterPersisted = normalizeStoreData(
-            settlementSourceInvalidationRead.prepareSnapshotForPersistence(after),
-            options
-          );
-          const authorityScopes = settlementAuthorityScopes(
-            beforePersisted,
-            afterPersisted
-          );
-          if (authorityScopes.length > 0) {
-            const currentAuthority = await settlementSourceInvalidationRead
-              .assertCurrentScopesAvailable(beforePersisted, authorityScopes);
-            assertSettlementAuthorityAvailable(currentAuthority.candidates);
-          }
+          const afterPersisted = normalizeStoreData(after, options);
           const changedKeys = changedCollectionKeys(beforePersisted, afterPersisted);
           if (commitOptions.commandClaimOnly === true) {
             if (changedKeys.size) throw commandClaimCheckpointDirty();
-            try {
-              transactionEventTransport.assertNoStagedFacts();
-            } catch (error) {
-              if (error && error.code === "OUTBOX_STAGED_FACTS_PRESENT") {
-                throw commandClaimCheckpointDirty();
-              }
-              throw error;
-            }
           }
           const nextRevision = changedKeys.size ? revision + 1 : revision;
           if (changedKeys.size) {
@@ -1368,14 +842,10 @@ async function createMysqlStore(config = {}, options = {}) {
               changedKeys,
             });
           }
-          if (transactionEventTransport) await transactionEventTransport.flushBeforeCommit();
           await connection.commit();
           transactionActive = false;
-          if (transactionEventTransport) transactionEventTransport.afterCommit();
-          transactionEventTransport = null;
           if (transactionCommandIdempotency) transactionCommandIdempotency.discard();
           transactionCommandIdempotency = null;
-          settlementSourceInvalidationResolve = null;
           revision = nextRevision;
           replaceStoreData(data, afterPersisted, options);
           before = normalizeStoreData(clone(afterPersisted), options);
@@ -1424,7 +894,7 @@ async function createMysqlStore(config = {}, options = {}) {
             }
             awaitingResume = false;
             phase = "work";
-            return { revision, eventTransport: transactionEventTransportFacade };
+            return { revision };
           };
           const commandRecovery = createMysqlCommandRecovery({
             data,
@@ -1460,43 +930,6 @@ async function createMysqlStore(config = {}, options = {}) {
             checkpoint,
             resume,
             commandRecovery,
-            activityTaskReadAdapter: createMysqlActivityTaskReadAdapter(connection),
-            settlementSourceInvalidationRead: Object.freeze({
-              async loadScopes(scopes) {
-                if (!transactionActive || awaitingResume
-                  || !settlementSourceInvalidationRead) {
-                  const error = new Error(
-                    "Settlement source invalidation read requires an active transaction"
-                  );
-                  error.code = "SETTLEMENT_SOURCE_INVALIDATION_READ_NOT_ACTIVE";
-                  throw error;
-                }
-                const hydrated = await settlementSourceInvalidationRead
-                  .hydrateRequestState(data, scopes);
-                replaceStoreData(data, hydrated.data, options);
-                before = normalizeStoreData(clone(hydrated.data), options);
-                return Object.freeze({
-                  candidateCount: hydrated.candidateCount,
-                  loadedScopeCount: hydrated.loadedScopeCount,
-                });
-              },
-            }),
-            settlementSourceInvalidationResolve: Object.freeze({
-              async resolve(input) {
-                if (!transactionActive || awaitingResume
-                  || !settlementSourceInvalidationResolve) {
-                  const error = new Error(
-                    "Settlement source invalidation resolution requires an active transaction"
-                  );
-                  error.code = "SETTLEMENT_SOURCE_RESOLUTION_NOT_ACTIVE";
-                  throw error;
-                }
-                return settlementSourceInvalidationResolve.resolve(beforePersisted, input);
-              },
-            }),
-            get eventTransport() {
-              return transactionEventTransportFacade;
-            },
           };
           const result = await work(data, transactionControl);
           if (awaitingResume) {
@@ -1510,11 +943,8 @@ async function createMysqlStore(config = {}, options = {}) {
           if (!shouldCommit) {
             if (transactionActive) await connection.rollback();
             transactionActive = false;
-            if (transactionEventTransport) transactionEventTransport.discard();
-            transactionEventTransport = null;
             if (transactionCommandIdempotency) transactionCommandIdempotency.discard();
             transactionCommandIdempotency = null;
-            settlementSourceInvalidationResolve = null;
             replaceStoreData(data, beforePersisted, options);
             lastError = "";
             return result;
@@ -1528,16 +958,12 @@ async function createMysqlStore(config = {}, options = {}) {
             ? await connection.rollback().then(() => null, (failure) => failure)
             : null;
           transactionActive = false;
-          if (transactionEventTransport) transactionEventTransport.discard();
-          transactionEventTransport = null;
           if (transactionCommandIdempotency) transactionCommandIdempotency.discard();
           transactionCommandIdempotency = null;
-          settlementSourceInvalidationResolve = null;
           if (beforePersisted) replaceStoreData(data, beforePersisted, options);
           if (phase === "store" || rollbackError) lastError = (rollbackError || error).message;
           throw error;
         } finally {
-          if (transactionEventTransport) transactionEventTransport.discard();
           if (transactionCommandIdempotency) transactionCommandIdempotency.discard();
           connection.release();
         }
@@ -1553,12 +979,6 @@ async function createMysqlStore(config = {}, options = {}) {
           "SELECT COUNT(*) AS migration_count, MAX(version) AS latest_version FROM schema_migrations"
         );
         const row = await selectSnapshot(connection, false);
-        runtimePrincipalReadinessStatus = runtimePrincipalReadiness
-          ? assertMysqlRuntimePrincipalReadinessStatus(
-            await runtimePrincipalReadiness.inspect(),
-            true
-          )
-          : runtimePrincipalReadinessModule.disabledMysqlRuntimePrincipalReadinessStatus();
         revision = Number(row.revision || 0);
         lastReadAt = new Date().toISOString();
         lastError = "";
@@ -1570,13 +990,6 @@ async function createMysqlStore(config = {}, options = {}) {
           leastPrivilegeReady: privilegePolicy.ready === true,
           privilegeScope: privilegePolicy.scope,
           privilegePolicyEnforced: privilegePolicy.enforced === true,
-          runtimeAlertDeliveryEnabled: runtimePrincipalReadinessStatus.enabled,
-          runtimePrincipalReady: runtimePrincipalReadinessStatus.ready,
-          runtimePrincipalRequiredRoleCount: runtimePrincipalReadinessStatus.requiredRoleCount,
-          runtimePrincipalVerifiedRoleCount: runtimePrincipalReadinessStatus.verifiedRoleCount,
-          runtimePrincipalRequiredRoutineCount: runtimePrincipalReadinessStatus.requiredRoutineCount,
-          runtimePrincipalVerifiedRoutineCount: runtimePrincipalReadinessStatus.verifiedRoutineCount,
-          runtimePrincipalIssueCount: runtimePrincipalReadinessStatus.issueCount,
         };
       } catch (error) {
         lastError = error.message;
@@ -1588,41 +1001,13 @@ async function createMysqlStore(config = {}, options = {}) {
     async close() {
       await operationQueue;
       closing = true;
-      const results = await Promise.allSettled([
-        v1RuntimeHeartbeatPool ? v1RuntimeHeartbeatPool.end() : Promise.resolve(),
-        v1RuntimeRegistrarPool ? v1RuntimeRegistrarPool.end() : Promise.resolve(),
-        v1RuntimeWorkerPool ? v1RuntimeWorkerPool.end() : Promise.resolve(),
-        v1RuntimeInspectorPool ? v1RuntimeInspectorPool.end() : Promise.resolve(),
-        v1RuntimePool ? v1RuntimePool.end() : Promise.resolve(),
-        pool.end(),
-      ]);
-      const failed = results.find((result) => result.status === "rejected");
-      if (failed) throw failed.reason;
+      await pool.end();
     },
   };
-  Object.defineProperty(adapter, "v1RuntimeControlPlane", {
-    value: v1RuntimeControlPlane,
-    enumerable: false,
-    configurable: false,
-    writable: false,
-  });
-  Object.defineProperty(adapter, "notificationDeliveryCore", {
-    value: notificationDeliveryCore,
-    enumerable: false,
-    configurable: false,
-    writable: false,
-  });
   await enqueue(projectLatestSnapshot);
   return adapter;
   } catch (error) {
-    await Promise.all([
-      v1RuntimeHeartbeatPool ? v1RuntimeHeartbeatPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimeRegistrarPool ? v1RuntimeRegistrarPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimeWorkerPool ? v1RuntimeWorkerPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimeInspectorPool ? v1RuntimeInspectorPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimePool ? v1RuntimePool.end().catch(() => {}) : Promise.resolve(),
-      pool.end().catch(() => {}),
-    ]);
+    await pool.end().catch(() => {});
     throw error;
   }
 }

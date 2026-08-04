@@ -70,7 +70,7 @@ jobs:
     name: Full verification
     runs-on: ubuntu-24.04
     # The real-engine matrix applies historical Activity migration subsets plus
-    # the complete 001-066 set. Keep one bounded job, but do not let an old
+    # the complete 001-068 set. Keep one bounded job, but do not let an old
     # pre-058 timeout turn valid InnoDB evidence into a flaky infrastructure
     # failure.
     timeout-minutes: 40
@@ -102,9 +102,9 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          # Full verification exercises the local-only SQLite Adapter, whose
-          # implementation uses the built-in node:sqlite module.
-          node-version: "24.13.1"
+          # Full verification exercises the local-only SQLite Adapter on the
+          # same Node 22 line used for formal-launch development and Cloud Run.
+          node-version: "22.23.2"
           cache: npm
           cache-dependency-path: |
             backend/package-lock.json
@@ -129,21 +129,15 @@ jobs:
         env:
           ACTIVITY_P0_POLICY_MYSQL_INTEGRATION_ENABLED: "true"
 
-      - name: Verify complete 001-066 real-engine group with zero skips
+      - name: Verify complete 001-068 real-engine group with zero skips
         shell: bash
         run: |
           set -o pipefail
-          result="$RUNNER_TEMP/mysql-001-066.tap"
-          npm run v1:mysql-001-066-authorized:check 2>&1 | tee "$result"
-          node -e 'const fs=require("node:fs"); const {parseNodeTestSummary}=require("./backend/src/mysqlLocalAuthorizedRunner"); parseNodeTestSummary(fs.readFileSync(process.argv[1], "utf8"), 13);' "$result"
+          result="$RUNNER_TEMP/mysql-001-068.tap"
+          npm run v1:mysql-001-068-authorized:check 2>&1 | tee "$result"
+          node -e 'const fs=require("node:fs"); const {parseNodeTestSummary}=require("./backend/src/mysqlLocalAuthorizedRunner"); parseNodeTestSummary(fs.readFileSync(process.argv[1], "utf8"), 2);' "$result"
         env:
           MYSQL_LOCAL_READINESS_INTEGRATION_ENABLED: "true"
-          IDENTITY_NOTIFICATION_BINDING_MYSQL_INTEGRATION_ENABLED: "true"
-          NOTIFICATION_PROVIDER_FENCE_MYSQL_INTEGRATION_ENABLED: "true"
-          V1_RUNTIME_ALERT_DELIVERY_MYSQL_INTEGRATION_ENABLED: "true"
-          SETTLEMENT_SOURCE_AUTHORITY_MYSQL_INTEGRATION_ENABLED: "true"
-          V1_RUNTIME_LEDGER_INTEGRATION_ENABLED: "true"
-          MYSQL_RUNTIME_PRINCIPAL_BOOTSTRAP_INTEGRATION_ENABLED: "true"
 
       - name: Verify v1 local Foundation contracts
         run: npm run v1:foundation:check

@@ -13,11 +13,20 @@ const PURPOSE_LABELS = {
   saveImageToPhotosAlbum: "保存分享图到相册",
 };
 
+const PHONE_PRIVACY_COPY = "为完成会员身份验证，myRoot 将在你同意后\n申请获取并验证手机号。头像与昵称可稍后选择，\n拒绝不会影响公开内容浏览。";
+
+function privacyCopyFor(eventInfo = {}) {
+  if (eventInfo.referrer === "button.getPhoneNumber") return PHONE_PRIVACY_COPY;
+  const purpose = PURPOSE_LABELS[eventInfo.referrer] || "相关功能";
+  return `为完成${purpose}，myRoot 将在你同意后申请使用必要信息。头像与昵称可稍后选择，拒绝不会影响公开内容浏览。`;
+}
+
 Component({
   data: {
     visible: false,
     contractName: "ROOT 用户隐私保护指引",
-    purpose: "相关功能",
+    privacyCopy: privacyCopyFor(),
+    showContractLink: true,
   },
 
   lifetimes: {
@@ -28,7 +37,8 @@ Component({
         resolve({ event: "exposureAuthorization" });
         this.setData({
           visible: true,
-          purpose: PURPOSE_LABELS[eventInfo.referrer] || "相关功能",
+          privacyCopy: privacyCopyFor(eventInfo),
+          showContractLink: eventInfo.referrer !== "button.getPhoneNumber",
         });
       };
       initializePrivacyAuthorization();

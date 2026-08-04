@@ -1,6 +1,6 @@
-import { adminRequest, postAdminJson } from "@/api/client";
+import { adminRequest, postAdminJson, postAdminRead } from "@/api/client";
 
-function withQuery(path, filters = {}) {
+function queryString(filters = {}) {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== undefined && value !== null && String(value).trim()) {
@@ -8,74 +8,46 @@ function withQuery(path, filters = {}) {
     }
   });
   const query = params.toString();
-  return `${path}${query ? `?${query}` : ""}`;
+  return query ? `?${query}` : "";
 }
 
-function createAttemptRequestId() {
+function requestId(prefix) {
   const entropy = globalThis.crypto && typeof globalThis.crypto.randomUUID === "function"
     ? globalThis.crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
-  return `activity-attempt-${entropy}`;
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `${prefix}-${entropy}`;
 }
 
-function write(path, payload, idempotencyKey) {
-  if (!idempotencyKey) throw new Error("ACTIVITY_IDEMPOTENCY_KEY_REQUIRED");
-  return postAdminJson(path, payload, {
+export function fetchFormalActivities(filters = {}, options = {}) {
+  return adminRequest(`/api/v1/admin/formal-activities${queryString(filters)}`, options);
+}
+
+export function saveFormalActivityDraft(input = {}) {
+  const id = requestId("formal-activity-draft");
+  return postAdminJson("/api/v1/admin/formal-activities/draft", { ...input, requestId: id }, {
     headers: {
-      "X-Request-Id": createAttemptRequestId(),
-      "X-Idempotency-Key": idempotencyKey,
+      "X-Request-Id": id,
+      "X-Idempotency-Key": id,
     },
   });
 }
 
-export function fetchActivities(filters = {}) {
-  return adminRequest(withQuery("/api/v1/admin/activities", filters));
+export async function fetchActivityEnrollments(filters = {}, options = {}) {
+  const data = await postAdminRead("/api/v1/admin/activity-enrollments/query", filters, options);
+  return { ...data, items: data?.items || data?.enrollments || [] };
 }
 
-export function fetchActivitySessions(filters = {}) {
-  return adminRequest(withQuery("/api/v1/admin/activity-sessions", filters));
+export async function fetchActivityOptions(options = {}) {
+  const data = await adminRequest("/api/v1/admin/activities?status=PUBLISHED&page=1&pageSize=50", options);
+  return { ...data, items: data?.items || data?.activities || [] };
 }
 
-export function fetchActivityEnrollments(filters = {}) {
-  return adminRequest(withQuery("/api/v1/admin/activity-enrollments", filters));
-}
-
-export function saveActivityDraft(payload, idempotencyKey) {
-  return write("/api/v1/admin/activities/draft", payload, idempotencyKey);
-}
-
-export function submitActivityReview(payload, idempotencyKey) {
-  return write("/api/v1/admin/activities/submit-review", payload, idempotencyKey);
-}
-
-export function requestActivityChanges(payload, idempotencyKey) {
-  return write("/api/v1/admin/activities/request-changes", payload, idempotencyKey);
-}
-
-export function publishActivity(payload, idempotencyKey) {
-  return write("/api/v1/admin/activities/publish", payload, idempotencyKey);
-}
-
-export function unpublishActivity(payload, idempotencyKey) {
-  return write("/api/v1/admin/activities/unpublish", payload, idempotencyKey);
-}
-
-export function archiveActivity(payload, idempotencyKey) {
-  return write("/api/v1/admin/activities/archive", payload, idempotencyKey);
-}
-
-export function createActivitySession(payload, idempotencyKey) {
-  return write("/api/v1/admin/activity-sessions/create", payload, idempotencyKey);
-}
-
-export function updateActivitySessionState(payload, idempotencyKey) {
-  return write("/api/v1/admin/activity-sessions/state", payload, idempotencyKey);
-}
-
-export function cancelActivitySession(payload, idempotencyKey) {
-  return write("/api/v1/admin/activity-sessions/cancel", payload, idempotencyKey);
-}
-
-export function reviewActivityEnrollment(payload, idempotencyKey) {
-  return write("/api/v1/admin/activity-enrollments/review", payload, idempotencyKey);
+export function exportActivityEnrollments(filters = {}) {
+  const id = requestId("activity-enrollment-export");
+  return postAdminJson("/api/v1/admin/activity-enrollments/export", { ...filters, requestId: id }, {
+    headers: {
+      "X-Request-Id": id,
+      "X-Idempotency-Key": id,
+    },
+  });
 }

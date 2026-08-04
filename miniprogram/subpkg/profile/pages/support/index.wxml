@@ -1,66 +1,17 @@
-<view class="root-page profile-subpage">
-  <view class="support-hero">
-    <view class="eyebrow">人工协助</view>
-    <view class="support-title">联系 ROOT 顾问</view>
-    <view class="support-copy">订单、打卡、奖励复核或身体反馈问题，都可以联系顾问协助。</view>
-  </view>
+<view class="support-page">
+  <text class="support-page__eyebrow">{{view.eyebrow}}</text>
+  <text class="support-page__title">{{view.title}}</text>
+  <text class="support-page__copy">{{view.copy}}</text>
 
-  <view class="root-card topic-card">
-    <view class="root-section-title">咨询主题</view>
-    <view class="topic-list">
-      <view wx:for="{{options}}" wx:key="value" class="topic-row {{item.className}}" data-type="{{item.value}}" bindtap="selectTopic">
-        <view>
-          <view class="topic-title">{{item.title}}</view>
-          <view class="topic-copy">{{item.description}}</view>
-        </view>
-        <view class="topic-check">{{item.className ? '已选' : '选择'}}</view>
-      </view>
+  <view wx:if="{{mode === 'faq'}}" class="support-faq">
+    <view wx:for="{{faqItems}}" wx:key="question" class="support-faq__item">
+      <text class="support-faq__question">{{item.question}}</text>
+      <text class="support-faq__answer">{{item.answer}}</text>
     </view>
   </view>
 
-  <view class="root-card contact-card">
-    <view class="root-section-title">顾问协助</view>
-    <view class="contact-status {{recorded ? 'done' : ''}}">{{statusText}}</view>
-    <button
-      class="root-button contact-btn"
-      open-type="contact"
-      session-from="{{sessionFrom}}"
-      loading="{{recording}}"
-      bindtap="recordBeforeContact"
-      bindcontact="handleContactResult"
-    >联系顾问</button>
-  </view>
-
-  <view class="root-card follow-card">
-    <view class="root-section-title">跟进状态</view>
-    <view class="follow-summary">
-      <view>
-        <view class="follow-title">{{followSummaryTitle}}</view>
-        <view class="follow-copy">{{followSummaryCopy}}</view>
-      </view>
-      <view wx:if="{{loadingFollowups}}" class="follow-loading">更新中</view>
-    </view>
-    <view wx:if="{{hasConsultations}}" class="follow-list">
-      <view wx:for="{{consultations}}" wx:key="consultationId" class="follow-row">
-        <view>
-          <view class="follow-row-title">{{item.consultationTypeLabel}}</view>
-          <view class="follow-row-copy">{{item.dateLabel}} · {{item.statusCopy}}</view>
-        </view>
-        <view class="follow-status {{item.statusClass}}">{{item.statusLabel}}</view>
-      </view>
-    </view>
-  </view>
-
-  <view class="root-card quick-card">
-    <view class="root-section-title">常用入口</view>
-    <view class="quick-row" bindtap="openOrders">
-      <text>查看订单与物流</text><text class="quick-arrow">›</text>
-    </view>
-    <view class="quick-row" bindtap="openReview">
-      <text>查看状态复核</text><text class="quick-arrow">›</text>
-    </view>
-    <view class="quick-row" bindtap="openTasks">
-      <text>查看任务进度</text><text class="quick-arrow">›</text>
-    </view>
-  </view>
+  <button wx:else class="support-page__contact" open-type="contact" bindcontact="onContact">
+    {{mode === 'feedback' ? '提交建议与反馈' : '联系客服'}}
+  </button>
+  <view wx:if="{{mode !== 'faq'}}" class="support-page__note">客服工作时间与反馈方式由运营统一维护。</view>
 </view>

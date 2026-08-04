@@ -1,95 +1,485 @@
+page {
+  background: #fdfbf6;
+}
+
 .health-page {
-  padding-top: 0;
+  height: 100vh;
+  background: #fdfbf6;
 }
 
-.health-intro {
-  margin: 0 calc(-1 * var(--spacing-md));
-  padding: 72rpx var(--spacing-lg) 64rpx;
-  color: var(--color-root-nav);
-  background: linear-gradient(148deg, #1f271c 0%, var(--color-root-moss) 58%, #819164 100%);
+.health-page--safety {
+  background: #fbf2ed;
 }
 
-.health-kicker,
-.state-eyebrow {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 2rpx;
-}
-
-.health-kicker {
-  color: rgba(253, 251, 246, 0.66);
-}
-
-.health-title {
-  margin-top: 72rpx;
-  font-size: var(--font-size-2xl);
-  font-weight: 750;
-  line-height: 1.16;
-}
-
-.health-copy {
-  max-width: 620rpx;
-  margin-top: var(--spacing-md);
-  color: rgba(253, 251, 246, 0.78);
-  font-size: var(--font-size-sm);
-  line-height: 1.72;
-}
-
-.state-card {
-  margin-top: var(--spacing-lg);
-}
-
-.state-card--gated {
-  border-color: rgba(88, 107, 63, 0.28);
-}
-
-.state-eyebrow {
-  color: var(--color-root-moss);
-}
-
-.state-title {
-  margin-top: var(--spacing-sm);
-}
-
-.state-copy {
-  margin-top: var(--spacing-sm);
-}
-
-.state-action {
-  width: 100%;
-  margin-top: var(--spacing-lg);
-  padding: 0;
-}
-
-.text-action {
-  width: 100%;
-  margin-top: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  color: var(--color-root-moss);
-  background: transparent;
-  border: 0;
-  font-size: var(--font-size-sm);
-  line-height: 1.5;
-}
-
-.text-action::after {
-  border: 0;
-}
-
-.health-note {
+.health-state {
   display: flex;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-lg);
-  padding: 0 var(--spacing-sm);
-  color: var(--color-root-muted);
-  font-size: var(--font-size-xs);
-  line-height: 1.65;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  min-height: calc(100vh - 84px);
+  padding: 40px 20px;
+  box-sizing: border-box;
+  color: #6c6457;
+  font-size: 13px;
+  line-height: 21px;
+  text-align: center;
 }
 
-.health-note-mark {
-  flex: 0 0 24rpx;
-  width: 24rpx;
-  height: 4rpx;
-  margin-top: 17rpx;
-  background: var(--color-root-moss);
+.health-state__retry {
+  height: 40px;
+  margin: 0;
+  padding: 0 24px;
+  color: #586b3f;
+  background: #fff;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 40px;
+}
+
+.health-state__retry::after {
+  border: 0;
+}
+
+.health-entry,
+.health-result-screen,
+.health-safety-screen {
+  position: relative;
+  width: 100%;
+  min-height: 844px;
+  box-sizing: border-box;
+}
+
+.health-entry {
+  padding-bottom: 164px;
+}
+
+.health-entry__wordmark {
+  position: absolute;
+  top: 74px;
+  left: 20px;
+  width: 84px;
+  height: 22px;
+}
+
+.health-entry__eyebrow {
+  position: absolute;
+  top: 134px;
+  left: 20px;
+  width: 350px;
+  color: #586b3f;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: 2px;
+}
+
+.health-entry__title {
+  position: absolute;
+  top: 168px;
+  left: 20px;
+  width: 350px;
+  color: #080806;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 36px;
+  white-space: pre-line;
+}
+
+.health-entry__description {
+  position: absolute;
+  top: 256px;
+  left: 20px;
+  width: 350px;
+  color: #6c6457;
+  font-size: 13px;
+  line-height: 21px;
+  white-space: pre-line;
+}
+
+.health-entry__step {
+  position: absolute;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  width: 350px;
+  height: 74px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  color: #433e34;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.health-entry__step--active {
+  background: #eef1e8;
+}
+
+.health-entry__step--01 {
+  top: 326px;
+}
+
+.health-entry__step--02 {
+  top: 412px;
+}
+
+.health-entry__step--03 {
+  top: 498px;
+}
+
+.health-entry__step-number {
+  flex: 0 0 36px;
+  color: #8a8172;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.health-entry__step-copy {
+  color: #433e34;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 21px;
+  white-space: pre-line;
+}
+
+.health-entry__start,
+.health-safety-screen__return {
+  position: absolute;
+  left: 20px;
+  height: 56px;
+  margin: 0;
+  padding: 0;
+  color: #fff;
+  background: #586b3f;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 56px;
+}
+
+.health-entry__start {
+  top: 610px;
+}
+
+.health-entry__start::after,
+.health-safety-screen__return::after {
+  border: 0;
+}
+
+.health-entry__eligibility {
+  position: absolute;
+  top: 680px;
+  left: 20px;
+  width: 350px;
+  color: #8a8172;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.health-result-screen {
+  min-height: 980px;
+  padding-bottom: 140px;
+}
+
+.health-result-screen__wordmark {
+  position: absolute;
+  top: 78px;
+  left: 20px;
+  color: #080806;
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 34px;
+}
+
+.health-result__classification {
+  position: absolute;
+  top: 132px;
+  left: 20px;
+  width: 350px;
+  height: 164px;
+  padding: 20px;
+  box-sizing: border-box;
+  color: #fff;
+  background: #586b3f;
+  border-radius: 16px;
+}
+
+.health-result__label,
+.health-result__title {
+  display: block;
+}
+
+.health-result__label {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.health-result__title {
+  margin-top: 12px;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+}
+
+.health-result__tags {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.health-result__tags text {
+  display: block;
+  min-width: 70px;
+  height: 30px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 15px;
+  font-size: 11px;
+  line-height: 30px;
+  text-align: center;
+}
+
+.health-result__tips-title {
+  position: absolute;
+  top: 326px;
+  left: 20px;
+  width: 350px;
+  color: #080806;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.health-result__tips {
+  position: absolute;
+  top: 370px;
+  left: 20px;
+  width: 350px;
+}
+
+.health-result__tip {
+  display: flex;
+  align-items: center;
+  width: 350px;
+  min-height: 78px;
+  margin-bottom: 10px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.health-result__tip-number {
+  flex: 0 0 40px;
+  color: #8a8172;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.health-result__tip-copy {
+  color: #433e34;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.health-result__recommendations {
+  position: absolute;
+  top: 644px;
+  left: 20px;
+  width: 350px;
+}
+
+.health-result__recommendation {
+  position: relative;
+  width: 350px;
+  min-height: 86px;
+  margin-bottom: 10px;
+  padding: 15px 110px 14px 16px;
+  box-sizing: border-box;
+  background: #eef1e8;
+  border-radius: 12px;
+}
+
+.health-result__recommendation-title,
+.health-result__recommendation-copy {
+  display: block;
+}
+
+.health-result__recommendation-title {
+  color: #344126;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.health-result__recommendation-copy {
+  margin-top: 5px;
+  overflow: hidden;
+  color: #6c6457;
+  font-size: 11px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.health-result__recommendation-status {
+  position: absolute;
+  top: 32px;
+  right: 16px;
+  color: #8a8172;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.health-result__consent {
+  position: absolute;
+  top: 836px;
+  left: 95px;
+  width: 200px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  color: #586b3f;
+  background: transparent;
+  font-size: 12px;
+  line-height: 36px;
+}
+
+.health-result__consent::after {
+  border: 0;
+}
+
+.health-safety-screen {
+  min-height: 844px;
+  background: #fbf2ed;
+}
+
+.health-safety-screen__eyebrow {
+  position: absolute;
+  top: 142px;
+  left: 20px;
+  color: #b67855;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: 1px;
+}
+
+.health-safety-screen__icon {
+  position: absolute;
+  top: 188px;
+  left: 20px;
+  width: 56px;
+  height: 56px;
+  color: #fff;
+  background: #b67855;
+  border-radius: 50%;
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 56px;
+  text-align: center;
+}
+
+.health-safety-screen__title {
+  position: absolute;
+  top: 278px;
+  left: 20px;
+  width: 350px;
+  color: #080806;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 36px;
+  white-space: pre-line;
+}
+
+.health-safety-screen__body {
+  position: absolute;
+  top: 374px;
+  left: 20px;
+  width: 350px;
+  color: #6c6457;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.health-safety-screen__guidance {
+  position: absolute;
+  top: 474px;
+  left: 20px;
+  width: 350px;
+  min-height: 156px;
+  padding: 17px 16px;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 14px;
+}
+
+.health-safety-screen__guidance-title {
+  display: block;
+  color: #080806;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.health-safety-screen__guidance-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  color: #433e34;
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.health-safety-screen__guidance-row text:first-child {
+  color: #b67855;
+}
+
+.health-safety-screen__notice {
+  position: absolute;
+  top: 654px;
+  left: 20px;
+  width: 350px;
+  color: #8a8172;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.health-safety-screen__return {
+  top: 724px;
+  background: #b67855;
+}
+
+@media (max-width: 374px) {
+  .health-entry,
+  .health-result-screen,
+  .health-safety-screen {
+    transform-origin: top left;
+  }
+
+  .health-entry__eyebrow,
+  .health-entry__title,
+  .health-entry__description,
+  .health-entry__step,
+  .health-entry__eligibility,
+  .health-result__classification,
+  .health-result__tips-title,
+  .health-result__tips,
+  .health-result__tip,
+  .health-result__recommendations,
+  .health-result__recommendation,
+  .health-safety-screen__title,
+  .health-safety-screen__body,
+  .health-safety-screen__guidance,
+  .health-safety-screen__notice {
+    width: calc(100vw - 40px);
+  }
+
+  .health-entry__start,
+  .health-safety-screen__return {
+    width: calc(100vw - 40px) !important;
+  }
 }

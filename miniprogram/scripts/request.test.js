@@ -1,9 +1,11 @@
 const assert = require("node:assert/strict");
 const {
   buildHeader,
+  cancelRequestScope,
   createRequestError,
   parseResponse,
   request,
+  resetRequestStateForTests,
   safeErrorSummary,
 } = require("../utils/request");
 
@@ -49,6 +51,7 @@ assert.ok(!networkError.message.includes("raw-secret-token"));
 assert.ok(!safeErrorSummary(networkError).message.includes("13800138000"));
 
 async function verifyRetryUsesFreshAttemptIdentity() {
+  resetRequestStateForTests();
   const headers = [];
   global.wx = {
     getStorageSync() { return "token"; },
@@ -76,7 +79,125 @@ async function verifyRetryUsesFreshAttemptIdentity() {
   assert.notEqual(headers[0]["X-Request-Id"], headers[1]["X-Request-Id"]);
 }
 
+function nextTurn() {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
+async function verifyReadSchedulingAndDeduplication() {
+  resetRequestStateForTests();
+  const calls = [];
+  global.wx = {
+    getStorageSync() { return "token"; },
+    removeStorageSync() {},
+    cloud: {
+      callContainer(options) {
+        calls.push(options);
+        return { abort() {} };
+      },
+    },
+  };
+  try {
+    const pending = Array.from({ length: 6 }, (_, index) => request({
+      url: `/api/v1/public/${index}`,
+      method: "GET",
+    }));
+    await nextTurn();
+    assert.equal(calls.length, 4);
+    calls[0].success({ statusCode: 200, data: { code: 0, data: { index: 0 } } });
+    await nextTurn();
+    assert.equal(calls.length, 5);
+    calls[1].success({ statusCode: 200, data: { code: 0, data: { index: 1 } } });
+    await nextTurn();
+    assert.equal(calls.length, 6);
+    for (let index = 2; index < calls.length; index += 1) {
+      calls[index].success({ statusCode: 200, data: { code: 0, data: { index } } });
+    }
+    await Promise.all(pending);
+
+    resetRequestStateForTests();
+    calls.length = 0;
+    const first = request({ url: "/api/v1/public/same", method: "GET", data: { page: 1 } });
+    const second = request({ url: "/api/v1/public/same", method: "GET", data: { page: 1 } });
+    await nextTurn();
+    assert.equal(calls.length, 1);
+    calls[0].success({ statusCode: 200, data: { code: 0, data: { ok: true } } });
+    assert.deepEqual(await Promise.all([first, second]), [{ ok: true }, { ok: true }]);
+  } finally {
+    resetRequestStateForTests();
+    delete global.wx;
+  }
+}
+
+async function verifyTimeoutsAndScopeCancellation() {
+  resetRequestStateForTests();
+  const calls = [];
+  let aborts = 0;
+  let inFlightWrite = null;
+  global.wx = {
+    getStorageSync() { return "token"; },
+    removeStorageSync() {},
+    cloud: {
+      callContainer(options) {
+        calls.push(options);
+        if (options.path.includes("cancel-me")) return { abort() { aborts += 1; } };
+        if (options.path.includes("result-unknown")) {
+          options.fail({ errMsg: "request:fail timeout" });
+          return { abort() { aborts += 1; } };
+        }
+        if (options.path.includes("write-in-flight")) {
+          inFlightWrite = options;
+          return { abort() { aborts += 1; } };
+        }
+        options.success({ statusCode: 200, data: { code: 0, data: { ok: true } } });
+        return { abort() { aborts += 1; } };
+      },
+    },
+  };
+  try {
+    await request({ url: "/api/v1/public/read", method: "GET" });
+    await request({ url: "/api/v1/public/write", method: "POST", data: { ok: true } });
+    assert.equal(calls[0].timeout, 8000);
+    assert.equal(calls[1].timeout, 12000);
+
+    const cancelled = request({
+      url: "/api/v1/public/cancel-me",
+      method: "GET",
+      scope: "page:cancel-test",
+    });
+    await nextTurn();
+    assert.equal(cancelRequestScope("page:cancel-test"), 1);
+    await assert.rejects(cancelled, (error) => error.code === "REQUEST_CANCELLED");
+    assert.equal(aborts, 1);
+
+    await assert.rejects(
+      request({
+        url: "/api/v1/public/result-unknown",
+        method: "POST",
+        scope: "page:write-timeout",
+      }),
+      (error) => error.code === "WRITE_RESULT_UNKNOWN" && error.resultUnknown === true,
+    );
+
+    const write = request({
+      url: "/api/v1/public/write-in-flight",
+      method: "POST",
+      scope: "page:write-in-flight",
+    });
+    await nextTurn();
+    assert.equal(cancelRequestScope("page:write-in-flight"), 0);
+    assert.ok(inFlightWrite);
+    inFlightWrite.success({ statusCode: 200, data: { code: 0, data: { ok: true } } });
+    assert.deepEqual(await write, { ok: true });
+    assert.equal(aborts, 1);
+  } finally {
+    resetRequestStateForTests();
+    delete global.wx;
+  }
+}
+
 verifyRetryUsesFreshAttemptIdentity()
+  .then(verifyReadSchedulingAndDeduplication)
+  .then(verifyTimeoutsAndScopeCancellation)
   .then(() => console.log("request tests ok"))
   .catch((error) => {
     console.error(error);

@@ -1,6 +1,5 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const lifecycleExportDelivery = require("../src/adminLifecycleExportDelivery");
 const {
   createCloudbaseObjectStorageAdapter,
   normalizeProvider,
@@ -53,50 +52,6 @@ test("CloudBase object storage adapter uploads and removes export objects", asyn
   assert.equal(calls[0].action, "upload");
   assert.equal(calls[0].body, "user_id\nroot_1");
   assert.deepEqual(calls[1].fileList, [uploaded.externalRef]);
-});
-
-test("lifecycle export delivery selects CloudBase and records cleanup metadata", async () => {
-  const removed = [];
-  const context = {
-    env: {
-      ROOT_CLOUDBASE_ENV_ID: "myroot-prod",
-      ROOT_LIFECYCLE_EXPORT_OBJECT_PROVIDER: "CLOUDBASE",
-      ROOT_LIFECYCLE_EXPORT_OBJECT_PREFIX: "release-exports",
-    },
-    cloudbaseAppFactory() {
-      return {
-        async uploadFile({ cloudPath }) {
-          return { fileID: `cloud://myroot-prod.bucket/${cloudPath}` };
-        },
-        async deleteFile({ fileList }) {
-          removed.push(...fileList);
-          return { fileList: fileList.map((fileID) => ({ fileID, code: "SUCCESS" })) };
-        },
-      };
-    },
-  };
-  const record = {
-    export_id: "export_cloudbase_1",
-    filename: "root-users.csv",
-    content_type: "text/csv; charset=utf-8",
-    csv_text: "user_id\nroot_1",
-    sensitivity: "MASKED",
-    expires_at: "2026-07-18T00:00:00+08:00",
-  };
-  const delivered = await lifecycleExportDelivery.deliverLifecycleExportRecord(record, {
-    deliveryChannel: "OBJECT_STORAGE",
-  }, context);
-  record.delivery_target_json = delivered.deliveryTarget;
-  const deleted = await lifecycleExportDelivery.deleteLifecycleExportObject(record, {}, context);
-
-  assert.equal(delivered.status, "DELIVERED");
-  assert.equal(delivered.deliveryTarget.adapter, "CLOUDBASE");
-  assert.equal(delivered.deliveryTarget.objectProvider, "CLOUDBASE");
-  assert.equal(delivered.deliveryTarget.objectEnvId, "myroot-prod");
-  assert.match(delivered.deliveryTarget.objectKey, /^release-exports\/export_cloudbase_1\//);
-  assert.equal(delivered.deliveryTarget.objectFileId, `cloud://myroot-prod.bucket/${delivered.deliveryTarget.objectKey}`);
-  assert.equal(deleted.status, "DELETED");
-  assert.deepEqual(removed, [delivered.deliveryTarget.objectFileId]);
 });
 
 test("CloudBase object storage adapter fails closed on SDK errors", async () => {

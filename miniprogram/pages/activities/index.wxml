@@ -1,107 +1,76 @@
-<view class="root-page activities-page">
-  <view class="activities-head">
-    <view>
-      <view class="activities-kicker">ROOT OFFLINE</view>
-      <view class="activities-title">在线下，和身体重新相遇</view>
-    </view>
-    <button class="enrollments-link" bindtap="openMyEnrollments">我的报名</button>
+<view class="activity-page">
+  <view class="activity-head">
+    <text class="activity-head__title">活动</text>
+    <text class="activity-head__subtitle">与 Root 一起，把理解带回真实生活</text>
   </view>
 
-  <view class="filter-toolbar">
-    <button class="filter-trigger {{activeFilterCount ? 'filter-trigger--active' : ''}}" bindtap="toggleFilters">
-      筛选<text wx:if="{{activeFilterCount}}"> · {{activeFilterCount}}</text>
-    </button>
-    <button wx:if="{{activeFilterCount}}" class="filter-clear-link" bindtap="clearFilters">清除筛选</button>
+  <view class="activity-filters" role="tablist" aria-label="活动筛选">
+    <button
+      wx:for="{{filters}}"
+      wx:key="key"
+      class="activity-filter {{filterKey === item.key ? 'activity-filter--active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="selectFilter"
+      role="tab"
+      aria-selected="{{filterKey === item.key}}"
+    >{{item.label}}</button>
   </view>
 
-  <view wx:if="{{filterPanelOpen}}" class="root-card filter-panel">
-    <view class="filter-field">
-      <view class="filter-label">城市</view>
-      <input class="filter-input" value="{{draftFilters.city}}" maxlength="40" placeholder="例如：上海" bindinput="updateCity" />
-    </view>
-    <view class="filter-field">
-      <view class="filter-label">日期</view>
-      <view class="filter-date-row">
-        <picker class="filter-date-picker" mode="date" value="{{draftFilters.date}}" bindchange="updateDate">
-          <view class="filter-input filter-input--picker">{{draftFilters.date || '选择活动日期'}}</view>
-        </picker>
-        <button wx:if="{{draftFilters.date}}" class="filter-date-clear" bindtap="clearDate">移除</button>
-      </view>
-    </view>
-    <view class="filter-field">
-      <view class="filter-label">活动类型</view>
-      <input class="filter-input" value="{{draftFilters.activityType}}" maxlength="60" placeholder="例如：WORKSHOP" bindinput="updateActivityType" />
-      <view class="filter-hint">活动类型由运营发布内容决定，可输入页面中看到的类型。</view>
-    </view>
-    <view class="filter-actions">
-      <button class="root-button root-button--secondary filter-action" bindtap="clearFilters">全部活动</button>
-      <button class="root-button filter-action" bindtap="applyFilters">查看结果</button>
-    </view>
+  <view wx:if="{{state === 'loading'}}" class="activity-state">
+    <view class="activity-state__line activity-state__line--wide"></view>
+    <view class="activity-state__line"></view>
+    <text>正在读取近期活动…</text>
   </view>
 
-  <view wx:if="{{viewState === 'loading'}}" class="activity-state">
-    <view class="state-line state-line--wide"></view>
-    <view class="state-line"></view>
-    <view class="root-helper-text state-copy">正在读取运营后台已发布活动...</view>
+  <view wx:elif="{{state === 'error'}}" class="activity-state activity-state--card">
+    <text class="activity-state__title">活动暂时没有读到</text>
+    <text>{{errorText}}</text>
+    <button class="activity-state__action" bindtap="loadActivities">重新加载</button>
   </view>
 
-  <view wx:elif="{{viewState === 'error'}}" class="root-card activity-state">
-    <view class="state-label">数据源不可用</view>
-    <view class="root-section-title state-title">活动暂未加载</view>
-    <view class="root-helper-text state-copy">{{errorText}}</view>
-    <button class="root-button root-button--secondary state-action" bindtap="loadActivities">重新加载</button>
-    <button class="text-action" bindtap="openSupport">联系人工协助</button>
-  </view>
-
-  <view wx:elif="{{viewState === 'empty'}}" class="root-card activity-state">
-    <view class="state-label">运营后台已返回</view>
-    <view class="root-section-title state-title">{{activeFilterCount ? '没有符合筛选的活动' : '近期暂无活动'}}</view>
-    <view wx:if="{{activeFilterCount}}" class="root-helper-text state-copy">换一个城市、日期或活动类型，查看其他已发布活动。</view>
-    <view wx:else class="root-helper-text state-copy">这里只展示运营正式发布的真实活动，不会用示例内容代替。你可以先查看已有任务，或稍后再来。</view>
-    <button wx:if="{{activeFilterCount}}" class="root-button root-button--secondary state-action" bindtap="clearFilters">查看全部活动</button>
-    <button wx:else class="root-button root-button--secondary state-action" bindtap="openTasks">查看已有任务</button>
+  <view wx:elif="{{state === 'empty'}}" class="activity-state activity-state--card">
+    <text class="activity-state__title">近期活动正在准备中</text>
+    <text>活动发布后会第一时间出现在这里。</text>
   </view>
 
   <view wx:else class="activity-list">
-    <view wx:for="{{activities}}" wx:key="sessionId" class="activity-card" data-session-id="{{item.sessionId}}" bindtap="openDetail">
-      <view class="activity-card__visual">
+    <view wx:if="{{visibleActivities.length === 0}}" class="activity-state activity-state--card">
+      <text class="activity-state__title">当前没有可报名活动</text>
+      <text>可以切换到“全部”查看近期活动。</text>
+    </view>
+
+    <view
+      wx:for="{{visibleActivities}}"
+      wx:key="sessionId"
+      class="activity-card {{item.featured ? 'activity-card--featured' : 'activity-card--compact'}}"
+      data-session-id="{{item.sessionId}}"
+      bindtap="openActivity"
+      hover-class="activity-card--pressed"
+    >
+      <view class="activity-card__visual {{item.heroReady ? '' : 'activity-card__visual--placeholder'}}">
         <image
           wx:if="{{item.heroReady}}"
           class="activity-card__image"
           src="{{item.heroAssetUrl}}"
           mode="aspectFill"
-          lazy-load="true"
+          lazy-load="{{!item.featured}}"
           data-session-id="{{item.sessionId}}"
-          binderror="handleHeroError"
+          binderror="handleImageError"
         />
-        <view class="activity-card__shade"></view>
-        <view class="activity-card__visual-copy">
-          <view class="activity-type">{{item.typeLabel}}</view>
-          <view class="activity-city">{{item.city}}</view>
-        </view>
+        <text wx:if="{{!item.heroReady}}" class="activity-card__visual-mark">ROOT OFFLINE</text>
+        <text wx:if="{{item.featured}}" class="activity-card__status activity-card__status--hero activity-card__status--{{item.statusTone}}">{{item.enrollmentLabel || item.statusLabel}}</text>
       </view>
       <view class="activity-card__body">
-        <view class="activity-card__topline">
-          <view class="activity-status activity-status--{{item.statusTone}}">{{item.statusLabel}}</view>
-          <view wx:if="{{item.remainingCapacity !== null}}" class="activity-capacity">余 {{item.remainingCapacity}} 个名额</view>
+        <text class="activity-card__title">{{item.title}}</text>
+        <view class="activity-card__footer">
+          <view>
+            <text class="activity-card__meta">{{item.compactStartText}}</text>
+            <text class="activity-card__meta">{{item.city}} · {{item.venueSummary}}</text>
+          </view>
+          <text class="activity-card__arrow">→</text>
         </view>
-        <view class="activity-card__title">{{item.title}}</view>
-        <view class="activity-card__meta">{{item.startText}}</view>
-        <view class="activity-card__meta">{{item.venueSummary}}</view>
-        <view class="activity-card__meta">{{item.visibility === 'MEMBER' ? ('会员要求：' + item.memberRequirement) : '公开活动'}}</view>
-        <view wx:if="{{item.enrollment}}" class="activity-card__enrollment">我的报名：{{item.enrollment.label}}</view>
-        <view class="activity-card__arrow">查看详情 →</view>
+        <text wx:if="{{!item.featured}}" class="activity-card__compact-status activity-card__compact-status--{{item.statusTone}}">{{item.enrollmentLabel || item.statusLabel}}</text>
       </view>
-    </view>
-
-    <view class="pagination-state">
-      <button wx:if="{{hasMore && !isLoadingMore && !loadMoreError}}" class="load-more" bindtap="loadMore">加载更多活动</button>
-      <view wx:elif="{{isLoadingMore}}" class="root-helper-text">正在加载更多...</view>
-      <view wx:elif="{{loadMoreError}}">
-        <view class="root-helper-text">{{loadMoreError}}</view>
-        <button class="load-more load-more--retry" bindtap="loadMore">重新加载</button>
-      </view>
-      <view wx:elif="{{total !== null && activities.length >= total}}" class="root-helper-text">已显示全部 {{total}} 场活动</view>
     </view>
   </view>
 </view>

@@ -157,8 +157,6 @@ test("Activity Module HTTP Interface publishes only authorized operations conten
     photographyNoticeRef: "PHOTO_REF_HTTP_001",
     contentApprovalRef: "CONTENT_APPROVAL_HTTP_001",
     contactOwnerSignerRef: "CONTACT_SIGNER_HTTP_001",
-    preboundTaskDefinitionId: "task-after-activity",
-    preboundTaskDefinitionVersion: "task-after-activity-v1",
     source: "OPS_BACKEND",
   };
   const draft = await command(baseUrl, "/api/v1/admin/activities/draft", "activity-draft-001", draftBody, operator);
@@ -229,14 +227,17 @@ test("Activity Module HTTP Interface publishes only authorized operations conten
   assert.equal(publicList.body.code, 0);
   assert.equal(publicList.body.data.activities.length, 1);
   assert.equal(publicList.body.data.activities[0].session.listingState, "AVAILABLE");
-  assert.equal(publicList.body.data.activities[0].objective, draftBody.objective);
-  assert.equal(publicList.body.data.activities[0].cancelPolicy, draftBody.cancelPolicy);
+  assert.equal(publicList.body.data.activities[0].objective, undefined);
+  assert.equal(publicList.body.data.activities[0].cancelPolicy, undefined);
   assert.equal(publicList.body.data.activities[0].session.cancelCloseAt, "2099-01-01T12:00:00.000Z");
+  assert.ok(Buffer.byteLength(JSON.stringify(publicList.body.data), "utf8") <= 100 * 1024);
   const detailByActivity = await request(baseUrl, "/api/v1/activities/detail?activityId=activity_http_001");
   assert.equal(detailByActivity.body.code, 0);
   assert.equal(detailByActivity.body.data.activity.session.sessionId, "activity_http_session_001");
   assert.equal(detailByActivity.body.data.activity.privacyNoticeText, draftBody.privacyNoticeText);
   assert.equal(detailByActivity.body.data.activity.photographyNoticeText, draftBody.photographyNoticeText);
+  assert.equal(detailByActivity.body.data.activity.objective, draftBody.objective);
+  assert.equal(detailByActivity.body.data.activity.cancelPolicy, draftBody.cancelPolicy);
 
   const adminJobDenied = await command(baseUrl, "/api/v1/jobs/activity-review-timeouts", "activity-job-admin-denied", {}, admin);
   assert.equal(adminJobDenied.status, 403);
@@ -254,8 +255,7 @@ test("Activity Module HTTP Interface publishes only authorized operations conten
     sessionId: "activity_http_session_001",
   }, { Authorization: `Bearer ${firstToken}` });
   assert.equal(firstEnrollment.body.data.enrollment.status, "CONFIRMED");
-  assert.equal(server.store.eventOutbox.length, 1);
-  assert.equal(server.store.eventOutbox[0].event_type, "activity.enrollment.confirmed.v1");
+  assert.equal(server.store.eventOutbox.length, 0);
 
   const repeated = await command(baseUrl, "/api/v1/activities/enroll", "activity-enroll-http-002", {
     sessionId: "activity_http_session_001",
@@ -266,7 +266,7 @@ test("Activity Module HTTP Interface publishes only authorized operations conten
   assert.equal(repeated.body.data.enrollment.enrollmentId, firstEnrollment.body.data.enrollment.enrollmentId);
   assert.equal(server.store.activityEnrollments.length, 1);
   assert.equal(server.store.activityEnrollmentEvents[0].request_id, "activity-enroll-http-001");
-  assert.equal(server.store.eventOutbox.length, 1);
+  assert.equal(server.store.eventOutbox.length, 0);
 
   const secondToken = await login(baseUrl, "13800010002");
   const full = await command(baseUrl, "/api/v1/activities/enroll", "activity-enroll-http-003", {
@@ -287,8 +287,7 @@ test("Activity Module HTTP Interface publishes only authorized operations conten
   }, { Authorization: `Bearer ${firstToken}` });
   assert.equal(canceled.body.data.enrollment.status, "CANCELED");
   assert.equal(server.store.activityEnrollmentEvents.length, 2);
-  assert.equal(server.store.eventOutbox.length, 2);
-  assert.equal(server.store.eventOutbox[1].event_type, "activity.enrollment.canceled.v1");
+  assert.equal(server.store.eventOutbox.length, 0);
 
   const canceledSession = await command(baseUrl, "/api/v1/admin/activity-sessions/cancel", "activity-session-cancel-001", {
     sessionId: "activity_http_session_001",
@@ -320,14 +319,14 @@ test("Activity Module HTTP Interface publishes only authorized operations conten
     sessionId: "activity_http_session_manual_001",
   }, { Authorization: `Bearer ${secondToken}` });
   assert.equal(pending.body.data.enrollment.status, "PENDING");
-  assert.equal(server.store.eventOutbox.length, 2);
+  assert.equal(server.store.eventOutbox.length, 0);
   const confirmed = await command(baseUrl, "/api/v1/admin/activity-enrollments/review", "activity-manual-review-001", {
     enrollmentId: pending.body.data.enrollment.enrollmentId,
     expectedAttemptGeneration: 1,
     approve: true,
   }, operator);
   assert.equal(confirmed.body.data.enrollment.status, "CONFIRMED");
-  assert.equal(server.store.eventOutbox.length, 3);
+  assert.equal(server.store.eventOutbox.length, 0);
   const reviewReplay = await command(baseUrl, "/api/v1/admin/activity-enrollments/review", "activity-manual-review-retry-001", {
     enrollmentId: pending.body.data.enrollment.enrollmentId,
     expectedAttemptGeneration: 1,
@@ -337,15 +336,13 @@ test("Activity Module HTTP Interface publishes only authorized operations conten
     "X-Idempotency-Key": "activity-manual-review-001-intent",
   });
   assert.equal(reviewReplay.body.data.enrollment.status, "CONFIRMED");
-  assert.equal(server.store.eventOutbox.length, 3);
+  assert.equal(server.store.eventOutbox.length, 0);
   const canceledManualSession = await command(baseUrl, "/api/v1/admin/activity-sessions/cancel", "activity-manual-session-cancel-001", {
     sessionId: "activity_http_session_manual_001",
     reason: "VENUE",
   }, operator);
   assert.equal(canceledManualSession.body.data.session.status, "CANCELED");
-  assert.equal(server.store.eventOutbox.length, 4);
-  assert.equal(server.store.eventOutbox[3].event_type, "activity.enrollment.canceled.v1");
-  assert.equal(server.store.eventOutbox[3].partition_key, server.store.eventOutbox[2].partition_key);
+  assert.equal(server.store.eventOutbox.length, 0);
 
   const spoofedWithdrawOwner = await command(baseUrl, "/api/v1/admin/activities/unpublish", "activity-unpublish-spoofed", {
     activityVersionId: "activity_http_001_v1",
@@ -381,52 +378,6 @@ test("Activity Module HTTP Interface publishes only authorized operations conten
   assert.ok(server.store.auditLogs.some((item) => item.action === "ACTIVITY_PUBLISH"));
   assert.ok(server.store.auditLogs.some((item) => item.action === "ACTIVITY_SESSION_CANCEL"));
   assert.ok(server.store.auditLogs.some((item) => item.action === "ACTIVITY_ARCHIVE"));
-});
-
-test("incomplete frozen task binding rolls back the enrollment event and outbox obligation", async (t) => {
-  t.mock.method(console, "error", () => {});
-  const server = createApp({ env: { ROOT_ALLOW_DIRECT_PHONE_LOGIN: "true" } });
-  const baseUrl = await listen(server);
-  t.after(() => closeServer(server));
-  const token = await login(baseUrl, "13800010009");
-  server.store.activityDefinitionVersions.push({
-    activity_version_id: "activity_incomplete_binding_v1",
-    activity_id: "activity_incomplete_binding",
-    version: 1,
-    status: "PUBLISHED",
-    visibility: "PUBLIC",
-    prebound_task_definition_id: "task-without-frozen-version",
-    prebound_task_definition_version: "",
-  });
-  server.store.activitySessions.push({
-    activity_session_id: "activity_incomplete_binding_session",
-    activity_version_id: "activity_incomplete_binding_v1",
-    status: "OPEN",
-    approval_mode: "AUTO",
-    capacity: 5,
-    registration_open_at: "2020-01-01T00:00:00.000Z",
-    registration_close_at: "2099-01-01T00:00:00.000Z",
-    cancel_close_at: "2099-01-01T12:00:00.000Z",
-    review_deadline: null,
-    session_start_at: "2099-01-02T00:00:00.000Z",
-    session_end_at: "2099-01-02T02:00:00.000Z",
-    allow_reapply: false,
-    created_at: "2026-01-01T00:00:00.000Z",
-    updated_at: "2026-01-01T00:00:00.000Z",
-  });
-
-  const result = await command(baseUrl, "/api/v1/activities/enroll", "activity-incomplete-binding-enroll", {
-    sessionId: "activity_incomplete_binding_session",
-  }, { Authorization: `Bearer ${token}` });
-  assert.equal(result.status, 503);
-  assert.equal(result.body.code, 50301);
-  assert.equal(server.store.activityEnrollments.length, 0);
-  assert.equal(server.store.activityEnrollmentEvents.length, 0);
-  assert.equal(server.store.eventOutbox.length, 0);
-  assert.equal(
-    server.store.auditLogs.filter((item) => item.action === "ACTIVITY_ENROLLMENT_ENROLL").length,
-    0
-  );
 });
 
 test("member-only activity enrollment fails closed without a trusted Member Identity summary", () => {

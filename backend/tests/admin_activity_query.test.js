@@ -26,13 +26,19 @@ function closeServer(server) {
   });
 }
 
-async function request(baseUrl, path, headers = {}) {
-  const response = await fetch(`${baseUrl}${path}`, { headers });
+async function request(baseUrl, path, headers = {}, options = {}) {
+  const response = await fetch(`${baseUrl}${path}`, { headers, ...options });
   return { status: response.status, body: await response.json() };
 }
 
 function seedAdminActivityData() {
   const store = createStore();
+  store.users.push({
+    user_id: "root-user-pseudonym-001",
+    root_user_id: "root-user-pseudonym-001",
+    nickname: "节律体验官",
+    phone: "13800138000",
+  });
   store.activityDefinitionVersions = [
     {
       activity_version_id: "activity-v1-manual",
@@ -62,8 +68,6 @@ function seedAdminActivityData() {
       contact_owner_signer_ref: "CONTACT_OWNER_MANUAL",
       visibility: "PUBLIC",
       member_requirement: "",
-      prebound_task_definition_id: "task-after-activity",
-      prebound_task_definition_version: "task-after-activity-v1",
       source: "OPS_BACKEND",
       created_at: "2026-07-01T00:00:00.000Z",
       updated_at: "2026-07-10T00:00:00.000Z",
@@ -99,8 +103,6 @@ function seedAdminActivityData() {
       contact_owner_signer_ref: "CONTACT_OWNER_AUTO",
       visibility: "MEMBER",
       member_requirement: "ACTIVE",
-      prebound_task_definition_id: "",
-      prebound_task_definition_version: "",
       source: "OPS_BACKEND",
       created_at: "2026-07-02T00:00:00.000Z",
       updated_at: "2026-07-11T00:00:00.000Z",
@@ -134,8 +136,6 @@ function seedAdminActivityData() {
       contact_owner_signer_ref: "CONTACT_OWNER_DRAFT",
       visibility: "PUBLIC",
       member_requirement: "",
-      prebound_task_definition_id: "",
-      prebound_task_definition_version: "",
       source: "OPS_BACKEND",
       created_at: "2026-07-03T00:00:00.000Z",
       updated_at: "2026-07-12T00:00:00.000Z",
@@ -268,7 +268,7 @@ test("Admin Activity Query Module validates bounded pagination and enum filters"
     (error) => error.code === "ACTIVITY_ADMIN_QUERY_INVALID" && error.status === 400
   );
   assert.throws(
-    () => activityModule.listAdminSessions(store, { pageSize: 101 }),
+    () => activityModule.listAdminSessions(store, { pageSize: 51 }),
     (error) => error.code === "ACTIVITY_ADMIN_QUERY_INVALID" && error.status === 400
   );
   assert.throws(
@@ -319,8 +319,7 @@ test("Admin Activity Query HTTP Interface enforces capabilities, filters and exp
     "activityId", "activityType", "activityVersionId", "agenda", "audience", "bringItems", "cancelPolicy",
     "city", "contactDisplay", "contactOwnerSignerRef", "contentApprovalRef", "createdAt", "detailVersion",
     "feeDescription", "heroAssetRef", "memberRequirement", "objective", "organizer",
-    "photographyNoticeRef", "photographyNoticeText", "preboundTaskDefinitionId",
-    "preboundTaskDefinitionVersion", "privacyNoticeRef",
+    "photographyNoticeRef", "photographyNoticeText", "privacyNoticeRef",
     "privacyNoticeText", "publishedAt", "source", "status", "summary", "title", "updatedAt",
     "venueSummary", "version", "visibility",
   ].sort());
@@ -343,6 +342,13 @@ test("Admin Activity Query HTTP Interface enforces capabilities, filters and exp
 
   const viewerEnrollments = await request(baseUrl, "/api/v1/admin/activity-enrollments", VIEWER_HEADERS);
   assert.equal(viewerEnrollments.status, 403);
+  const viewerEnrollmentQuery = await request(
+    baseUrl,
+    "/api/v1/admin/activity-enrollments/query",
+    { ...VIEWER_HEADERS, "Content-Type": "application/json" },
+    { method: "POST", body: JSON.stringify({ search: "13800138000" }) }
+  );
+  assert.equal(viewerEnrollmentQuery.status, 403);
   const viewerQueue = await request(
     baseUrl,
     "/api/v1/admin/activity-enrollments/review-queue",
@@ -358,12 +364,24 @@ test("Admin Activity Query HTTP Interface enforces capabilities, filters and exp
   assert.equal(enrollments.status, 200);
   assert.equal(enrollments.body.data.pagination.total, 1);
   assert.equal(enrollments.body.data.enrollments[0].rootUserId, "root-user-pseudonym-001");
+  assert.equal(enrollments.body.data.enrollments[0].memberNickname, "节律体验官");
+  assert.equal(enrollments.body.data.enrollments[0].memberContact, "138****8000");
   assert.deepEqual(Object.keys(enrollments.body.data.enrollments[0]).sort(), [
     "activityId", "activityTitle", "activityVersionId", "approvalMode", "attemptGeneration", "capacity",
     "capacityState", "city", "confirmedCount", "createdAt", "enrollmentId", "reasonCode",
-    "remainingCapacity", "reviewDeadline", "reviewState", "rootUserId", "sessionId", "sessionStartAt",
+    "memberContact", "memberNickname", "remainingCapacity", "reviewDeadline", "reviewState", "rootUserId", "sessionId", "sessionStartAt",
     "status", "updatedAt",
   ].sort());
+
+  const enrollmentSearch = await request(
+    baseUrl,
+    "/api/v1/admin/activity-enrollments/query",
+    { ...OPERATOR_HEADERS, "Content-Type": "application/json" },
+    { method: "POST", body: JSON.stringify({ search: "13800138000" }) }
+  );
+  assert.equal(enrollmentSearch.status, 200);
+  assert.equal(enrollmentSearch.body.data.pagination.total, 1);
+  assert.equal(enrollmentSearch.body.data.enrollments[0].memberContact, "138****8000");
 
   const readyQueue = await request(
     baseUrl,
@@ -384,6 +402,6 @@ test("Admin Activity Query HTTP Interface enforces capabilities, filters and exp
   assert.equal(unavailableQueue.body.data.pagination.total, 1);
   assert.equal(unavailableQueue.body.data.reviewQueue[0].enrollmentId, "enrollment-manual-canceled-session");
 
-  [definitions.body, sessions.body, enrollments.body, readyQueue.body, unavailableQueue.body]
+  [definitions.body, sessions.body, enrollments.body, enrollmentSearch.body, readyQueue.body, unavailableQueue.body]
     .forEach(assertNoRestrictedActivityFields);
 });

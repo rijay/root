@@ -48,6 +48,20 @@ function dateText(value) {
   return `${year}年${month}月${day}日 ${hour}:${minute}`;
 }
 
+function compactDateText(value) {
+  const text = safeText(value);
+  if (!text) return "时间待确认";
+  const timestamp = Date.parse(text);
+  if (!Number.isFinite(timestamp)) return "时间待确认";
+  const chinaDate = new Date(timestamp + (8 * 60 * 60 * 1000));
+  const month = chinaDate.getUTCMonth() + 1;
+  const day = chinaDate.getUTCDate();
+  const weekday = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][chinaDate.getUTCDay()];
+  const hour = String(chinaDate.getUTCHours()).padStart(2, "0");
+  const minute = String(chinaDate.getUTCMinutes()).padStart(2, "0");
+  return `${month}月${day}日  ${weekday}  ${hour}:${minute}`;
+}
+
 function listingStatus(value) {
   return LISTING_STATUS[safeText(value).toUpperCase()] || { label: "状态待确认", tone: "muted" };
 }
@@ -56,9 +70,10 @@ function enrollmentStatus(value) {
   return ENROLLMENT_STATUS[safeText(value).toUpperCase()] || { label: "状态待确认", tone: "muted" };
 }
 
-function presentActivity(input) {
+function presentActivity(input, options = {}) {
   const activity = plainObject(input);
   const session = plainObject(activity.session);
+  const requireDetail = options.requireDetail !== false;
   const activityId = safeOpaqueId(activity.activityId);
   const sessionId = safeOpaqueId(session.sessionId);
   const title = safeText(activity.title);
@@ -76,10 +91,11 @@ function presentActivity(input) {
   const privacyNoticeText = safeText(activity.privacyNoticeText);
   const photographyNoticeText = safeText(activity.photographyNoticeText);
   const contactDisplay = safeText(activity.contactDisplay);
-  if (!activityId || !sessionId || !title || !summary || !city || !venueSummary || !activityType
-    || !objective || !audience || !agenda || !organizer || !feeDescription || !bringItems
-    || !cancelPolicy || !privacyNoticeText || !photographyNoticeText || !contactDisplay
-    || !session.sessionStartAt || !session.cancelCloseAt) {
+  const commonInvalid = !activityId || !sessionId || !title || !summary || !city || !venueSummary
+    || !activityType || !session.sessionStartAt || !session.cancelCloseAt;
+  const detailInvalid = !objective || !audience || !agenda || !organizer || !feeDescription
+    || !bringItems || !cancelPolicy || !privacyNoticeText || !photographyNoticeText || !contactDisplay;
+  if (commonInvalid || (requireDetail && detailInvalid)) {
     throw new Error("ACTIVITY_ITEM_PAYLOAD_INVALID");
   }
   const status = listingStatus(session.listingState || session.status);
@@ -114,6 +130,7 @@ function presentActivity(input) {
     contactDisplay,
     heroAssetUrl: safePublicImageUrl(activity.heroAssetUrl),
     startText: dateText(session.sessionStartAt),
+    compactStartText: compactDateText(session.sessionStartAt),
     endText: dateText(session.sessionEndAt),
     listingState: safeText(session.listingState || session.status).toUpperCase(),
     definitionStatus: safeText(activity.status).toUpperCase(),
@@ -139,7 +156,7 @@ function presentActivity(input) {
 function presentActivityList(payload) {
   const data = plainObject(payload);
   if (!Array.isArray(data.activities)) throw new Error("ACTIVITY_LIST_PAYLOAD_INVALID");
-  const activities = data.activities.map(presentActivity);
+  const activities = data.activities.map((activity) => presentActivity(activity, { requireDetail: false }));
   if (activities.some((item) => !item.sessionId)) throw new Error("ACTIVITY_LIST_ITEM_INVALID");
   return activities;
 }

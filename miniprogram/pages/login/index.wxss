@@ -1,109 +1,138 @@
+page {
+  background: var(--root-nav);
+}
+
 .login-page {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  box-sizing: border-box;
+  color: var(--root-ink);
+  background: var(--root-nav);
+}
+
+.login-page__wordmark {
+  position: absolute;
+  top: 142px;
+  left: 24px;
+}
+
+.login-page__content {
+  position: absolute;
+  top: 258px;
+  right: 20px;
+  left: 20px;
+}
+
+.login-page__kicker {
+  display: block;
+  margin-left: 4px;
+  color: var(--root-moss);
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.login-page__title {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding-top: 88rpx;
+  margin: 18px 4px 0;
+  font-size: 30px;
+  line-height: 40px;
+  font-weight: 600;
+  white-space: pre-line;
 }
 
-.login-logo {
-  width: 435rpx;
-  height: 84rpx;
-  margin-top: var(--spacing-md);
+.login-page__button {
+  width: 350px;
+  max-width: calc(100vw - 40px);
+  height: 56px;
+  min-height: 56px;
+  margin: 184px 0 0;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+  padding: 0;
+  color: #fff;
+  background: var(--root-moss);
+  border: 0;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 56px;
 }
 
-.login-title {
-  margin-top: 56rpx;
-  color: var(--color-root-ink);
-  font-size: 48rpx;
-  font-weight: 800;
-  line-height: 1.2;
+.login-page__button::after {
+  border: 0;
+}
+
+.login-page__button:active {
+  transform: scale(0.99);
+}
+
+.login-page__button[disabled] {
+  opacity: 0.72;
+}
+
+.login-page__status {
+  margin-top: 10px;
+  color: var(--root-moss);
+  font-size: 13px;
   text-align: center;
 }
 
-.login-copy {
-  width: 590rpx;
-  margin-top: var(--spacing-md);
-  color: var(--color-root-copy);
-  font-size: var(--font-size-base);
-  line-height: 1.65;
+.login-page__privacy {
+  margin: 20px 10px 0;
+  color: var(--root-muted);
+  font-size: 11px;
+  line-height: 18px;
   text-align: center;
+  white-space: pre-line;
 }
 
-.login-card {
-  width: 670rpx;
-  margin-top: 72rpx;
-  box-sizing: border-box;
+.login-page__link {
+  color: var(--root-moss);
 }
 
-.root-card-title {
-  color: var(--color-root-ink);
-  font-size: var(--font-size-lg);
-  font-weight: 700;
+.login-page__conflict {
+  position: absolute;
+  top: 122px;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  padding: 16px;
+  background: var(--root-surface);
+  border: 1px solid var(--root-line);
+  border-radius: 12px;
 }
 
-.root-promise {
-  margin-top: var(--spacing-md);
-  color: var(--color-root-copy);
-  font-size: var(--font-size-base);
-  line-height: 1.45;
+.login-page__conflict-title,
+.login-page__conflict-copy {
+  display: block;
 }
 
-.agreement {
-  display: flex;
-  gap: var(--spacing-sm);
-  align-items: center;
-  flex-wrap: wrap;
-  margin: var(--spacing-lg) 0 var(--spacing-md);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
-  line-height: 1.45;
+.login-page__conflict-title {
+  font-size: 16px;
+  font-weight: 600;
 }
 
-.agreement-check {
-  display: flex;
-  gap: var(--spacing-sm);
-  align-items: center;
+.login-page__conflict-copy {
+  margin-top: 8px;
+  color: var(--root-copy);
+  font-size: 13px;
+  line-height: 21px;
 }
 
-.agreement-link {
-  color: var(--color-root-moss);
-  font-weight: 700;
-}
+@media (max-height: 720px) {
+  .login-page__wordmark {
+    top: 122px;
+  }
 
-.checkbox {
-  display: flex;
-  flex: 0 0 36rpx;
-  align-items: center;
-  justify-content: center;
-  width: 36rpx;
-  height: 36rpx;
-  color: var(--color-surface);
-  border: 2rpx solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
-}
+  .login-page__content {
+    top: 218px;
+  }
 
-.checkbox.checked {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.login-btn {
-  width: 100%;
-  margin-top: var(--spacing-lg);
-}
-
-.login-note {
-  margin-top: var(--spacing-md);
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-xs);
-  text-align: center;
-}
-
-.login-status {
-  margin-top: var(--spacing-md);
-  color: var(--color-root-moss);
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  text-align: center;
+  .login-page__button {
+    margin-top: 128px;
+  }
 }

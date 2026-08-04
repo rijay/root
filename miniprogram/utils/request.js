@@ -1,8 +1,19 @@
 const env = require("../config/env");
+const performanceBudgets = require("../config/performance-runtime-budgets");
 const { appendCloudRoute } = require("./cloud-route");
+const { performanceMonitor } = require("./performance-monitor");
 
-const DEFAULT_REQUEST_TIMEOUT = 10000;
-const CLOUD_REQUEST_TIMEOUT = 30000;
+const MAX_CONCURRENT_REQUESTS = performanceBudgets.network.maxConcurrentRequests;
+const READ_TIMEOUT = performanceBudgets.network.readTimeoutMs;
+const WRITE_TIMEOUT = performanceBudgets.network.writeTimeoutMs;
+const READ_DEDUPE_WINDOW = performanceBudgets.network.sameReadDedupeWindowMs;
+
+let activeRequestCount = 0;
+let queuedRequests = [];
+const activeRequests = new Set();
+const inflightReads = new Map();
+const recentReads = new Map();
+const scopedRequests = new Map();
 
 function getToken() {
   return wx.getStorageSync("ROOT_TOKEN") || "";
@@ -114,7 +125,31 @@ function buildHeader(token, requestId, idempotencyKey, optionsHeader) {
   };
 }
 
-function requestByWxRequest(options, token, requestId, idempotencyKey) {
+function isReadMethod(method) {
+  return ["GET", "HEAD"].includes(String(method || "GET").toUpperCase());
+}
+
+function requestTimeout(options) {
+  const defaultTimeout = isReadMethod(options.method) ? READ_TIMEOUT : WRITE_TIMEOUT;
+  const requested = Number(options.timeout);
+  return Number.isFinite(requested) && requested > 0 ? Math.min(requested, defaultTimeout) : defaultTimeout;
+}
+
+function transportError(error, method, adapter) {
+  const message = stringifyError(error);
+  const timedOut = /timeout|timed out/i.test(message);
+  const write = !isReadMethod(method);
+  const result = createRequestError({
+    code: timedOut
+      ? write ? "WRITE_RESULT_UNKNOWN" : "READ_TIMEOUT"
+      : adapter === "cloudContainer" ? "CLOUD_CONTAINER_REQUEST_FAILED" : "NETWORK_ERROR",
+    message: timedOut && write ? "请求结果确认中，请勿重复操作" : requestFailMessage(error, adapter),
+  });
+  if (timedOut && write) result.resultUnknown = true;
+  return result;
+}
+
+function requestByWxRequest(options, token, requestId, idempotencyKey, setAbort) {
   return new Promise((resolve, reject) => {
     if (!env.apiBaseUrl || /example\.com|\.sh\.run\.tcloudbase\.com/i.test(env.apiBaseUrl)) {
       reject(createRequestError({
@@ -123,10 +158,10 @@ function requestByWxRequest(options, token, requestId, idempotencyKey) {
       }));
       return;
     }
-    wx.request({
+    const task = wx.request({
       url: `${env.apiBaseUrl}${options.url}`,
       method: options.method || "GET",
-      timeout: options.timeout || DEFAULT_REQUEST_TIMEOUT,
+      timeout: requestTimeout(options),
       data: options.data || {},
       header: buildHeader(token, requestId, idempotencyKey, options.header),
       success(res) {
@@ -137,16 +172,14 @@ function requestByWxRequest(options, token, requestId, idempotencyKey) {
         }
       },
       fail(error) {
-        reject(createRequestError({
-          code: "NETWORK_ERROR",
-          message: requestFailMessage(error, "wxRequest"),
-        }));
+        reject(transportError(error, options.method, "wxRequest"));
       },
     });
+    if (task && typeof task.abort === "function") setAbort(() => task.abort());
   });
 }
 
-function requestByCloudContainer(options, token, requestId, idempotencyKey) {
+function requestByCloudContainer(options, token, requestId, idempotencyKey, setAbort) {
   return new Promise((resolve, reject) => {
     if (!wx.cloud || !wx.cloud.callContainer) {
       reject(createRequestError({
@@ -164,13 +197,13 @@ function requestByCloudContainer(options, token, requestId, idempotencyKey) {
     }
 
     const requestPath = appendCloudRoute(options.url, env.envVersion);
-    wx.cloud.callContainer({
+    const task = wx.cloud.callContainer({
       config: {
         env: env.cloudEnvId,
       },
       path: requestPath,
       method: options.method || "GET",
-      timeout: options.timeout || CLOUD_REQUEST_TIMEOUT,
+      timeout: requestTimeout(options),
       data: options.data || {},
       header: {
         ...buildHeader(token, requestId, idempotencyKey, options.header),
@@ -190,16 +223,166 @@ function requestByCloudContainer(options, token, requestId, idempotencyKey) {
           path: String(requestPath || "").split("?")[0],
           error: safeErrorSummary(error),
         });
-        reject(createRequestError({
-          code: "CLOUD_CONTAINER_REQUEST_FAILED",
-          message: requestFailMessage(error, "cloudContainer"),
-        }));
+        reject(transportError(error, options.method, "cloudContainer"));
       },
     });
+    if (task && typeof task.abort === "function") setAbort(() => task.abort());
   });
 }
 
-function request(options) {
+function stableSerialize(value) {
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function readIdentity(options, token) {
+  return stableSerialize({
+    method: String(options.method || "GET").toUpperCase(),
+    url: String(options.url || ""),
+    data: options.data || {},
+    header: options.header || {},
+    scope: String(options.scope || "").trim(),
+    token,
+  });
+}
+
+function unregisterScopes(entry) {
+  for (const scope of entry.scopes) {
+    const entries = scopedRequests.get(scope);
+    if (!entries) continue;
+    entries.delete(entry);
+    if (!entries.size) scopedRequests.delete(scope);
+  }
+  entry.scopes.clear();
+}
+
+function registerScope(entry, scope) {
+  const normalized = String(scope || "").trim();
+  if (!normalized || entry.scopes.has(normalized)) return;
+  entry.scopes.add(normalized);
+  const entries = scopedRequests.get(normalized) || new Set();
+  entries.add(entry);
+  scopedRequests.set(normalized, entries);
+}
+
+function releaseSlot(entry) {
+  if (!entry.started || entry.slotReleased) return;
+  entry.slotReleased = true;
+  activeRequestCount = Math.max(0, activeRequestCount - 1);
+  activeRequests.delete(entry);
+}
+
+function finishEntry(entry, outcome, value) {
+  if (entry.settled) return;
+  entry.settled = true;
+  releaseSlot(entry);
+  unregisterScopes(entry);
+  if (outcome === "resolve") entry.resolve(value);
+  else entry.reject(value);
+  drainQueue();
+}
+
+function cancelEntry(entry, force = false) {
+  if (!entry || entry.settled) return false;
+  if (!force && !entry.cancellable) return false;
+  entry.cancelled = true;
+  if (typeof entry.abort === "function") {
+    try {
+      entry.abort();
+    } catch (error) {
+      // Cancellation is best-effort; the caller still receives a stable result.
+    }
+  }
+  finishEntry(entry, "reject", createRequestError({
+    code: "REQUEST_CANCELLED",
+    message: "请求已取消",
+  }));
+  return true;
+}
+
+function drainQueue() {
+  while (activeRequestCount < MAX_CONCURRENT_REQUESTS && queuedRequests.length) {
+    const entry = queuedRequests.shift();
+    if (!entry || entry.cancelled || entry.settled) continue;
+    entry.started = true;
+    activeRequestCount += 1;
+    activeRequests.add(entry);
+    Promise.resolve()
+      .then(() => entry.run((abort) => { entry.abort = abort; }))
+      .then((value) => finishEntry(entry, "resolve", value))
+      .catch((error) => finishEntry(entry, "reject", error));
+  }
+}
+
+function scheduleRequest(run, scope, options = {}) {
+  const entry = {
+    abort: null,
+    cancellable: options.cancellable !== false,
+    cancelled: false,
+    reject: null,
+    resolve: null,
+    run,
+    scopes: new Set(),
+    settled: false,
+    slotReleased: false,
+    started: false,
+  };
+  const promise = new Promise((resolve, reject) => {
+    entry.resolve = resolve;
+    entry.reject = reject;
+  });
+  promise.cancel = () => cancelEntry(entry);
+  promise.requestEntry = entry;
+  registerScope(entry, scope);
+  queuedRequests.push(entry);
+  drainQueue();
+  return promise;
+}
+
+function cancelRequestScope(scope) {
+  const entries = scopedRequests.get(String(scope || "").trim());
+  if (!entries) return 0;
+  let cancelled = 0;
+  for (const entry of [...entries]) {
+    if (cancelEntry(entry)) cancelled += 1;
+  }
+  return cancelled;
+}
+
+function createScheduledRequest(options, token, requestId, idempotencyKey) {
+  const startedAt = Date.now();
+  const write = !isReadMethod(options.method);
+  return scheduleRequest((setAbort) => {
+    const transport = env.requestAdapter === "cloudContainer"
+      ? requestByCloudContainer(options, token, requestId, idempotencyKey, setAbort)
+      : requestByWxRequest(options, token, requestId, idempotencyKey, setAbort);
+    return transport.then((value) => {
+      if (!options.skipPerformance) performanceMonitor.recordRequest({
+        route: options.url,
+        method: options.method || "GET",
+        durationMs: Date.now() - startedAt,
+        status: "SUCCESS",
+        write,
+      });
+      return value;
+    }, (error) => {
+      if (!options.skipPerformance) performanceMonitor.recordRequest({
+        route: options.url,
+        method: options.method || "GET",
+        durationMs: Date.now() - startedAt,
+        status: error && error.resultUnknown ? "RESULT_UNKNOWN" : "FAILED",
+        errorCode: error && error.code,
+        write,
+      });
+      throw error;
+    });
+  }, write ? "" : options.scope, { cancellable: !write });
+}
+
+function request(options = {}) {
   const token = getToken();
   const requestId = String(options.requestId || `${Date.now()}-${Math.random().toString(16).slice(2)}`)
     .replace(/[^A-Za-z0-9:._-]/g, "")
@@ -213,19 +396,62 @@ function request(options) {
       message: "幂等意图标识不能与当次请求标识相同",
     }));
   }
-  if (env.requestAdapter === "cloudContainer") {
-    return requestByCloudContainer(options, token, requestId, idempotencyKey);
+
+  if (isReadMethod(options.method) && options.dedupe !== false) {
+    const identity = readIdentity(options, token);
+    const recent = recentReads.get(identity);
+    if (recent && recent.expiresAt > Date.now()) {
+      const cached = Promise.resolve(recent.value);
+      cached.cancel = () => false;
+      return cached;
+    }
+    if (recent) recentReads.delete(identity);
+    const inflight = inflightReads.get(identity);
+    if (inflight) {
+      registerScope(inflight.requestEntry, options.scope);
+      return inflight;
+    }
+    const scheduled = createScheduledRequest(options, token, requestId, idempotencyKey);
+    inflightReads.set(identity, scheduled);
+    scheduled.then((value) => {
+      recentReads.set(identity, { value, expiresAt: Date.now() + READ_DEDUPE_WINDOW });
+    }).finally(() => {
+      if (inflightReads.get(identity) === scheduled) inflightReads.delete(identity);
+    }).catch(() => {});
+    return scheduled;
   }
-  return requestByWxRequest(options, token, requestId, idempotencyKey);
+  return createScheduledRequest(options, token, requestId, idempotencyKey);
 }
+
+function resetRequestStateForTests() {
+  const entries = [...activeRequests, ...queuedRequests];
+  queuedRequests = [];
+  for (const entry of entries) cancelEntry(entry, true);
+  activeRequestCount = 0;
+  activeRequests.clear();
+  inflightReads.clear();
+  recentReads.clear();
+  scopedRequests.clear();
+}
+
+performanceMonitor.configureUploader((batch) => request({
+  url: "/api/v1/performance/events",
+  method: "POST",
+  data: { schemaVersion: batch.schemaVersion, events: batch.events },
+  header: { "X-Performance-Session": batch.sessionId },
+  scope: "performance-monitor",
+  skipPerformance: true,
+}));
 
 module.exports = {
   buildHeader,
+  cancelRequestScope,
   clearToken,
   createRequestError,
   getToken,
   parseResponse,
   request,
+  resetRequestStateForTests,
   safeErrorSummary,
   setToken,
   stringifyError,

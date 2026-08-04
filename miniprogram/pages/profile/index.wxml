@@ -1,141 +1,50 @@
-<view class="root-page profile-page">
-  <view wx:if="{{viewState === 'loading'}}" class="root-card public-state-card">
-    <view class="public-state-kicker">MY ROOT</view>
-    <view class="root-section-title public-state-title">正在读取账号信息</view>
-    <view class="root-helper-text public-state-copy">此过程不会创建健康、活动或任务记录。</view>
-  </view>
+<scroll-view class="profile-page" scroll-y enhanced show-scrollbar="false">
+  <view class="profile-page__content profile-page__content--{{!loggedIn ? 'guest' : (memberLinkFailure ? 'failure' : 'member')}}">
+    <text class="profile-page__title">我的</text>
 
-  <view wx:elif="{{viewState === 'error'}}" class="root-card public-state-card">
-    <view class="public-state-kicker">读取失败</view>
-    <view class="root-section-title public-state-title">账号信息暂不可用</view>
-    <view class="root-helper-text public-state-copy">{{errorText}}</view>
-    <button class="root-button root-button--secondary public-state-action" bindtap="retryLoad">重新加载</button>
-    <button class="public-text-action" bindtap="openPrivacy">查看隐私说明</button>
-  </view>
+    <view class="profile-identity" bindtap="handleIdentityTap">
+      <view class="profile-identity__avatar">
+        <image wx:if="{{loggedIn && profile.avatarUrl}}" src="{{profile.avatarUrl}}" mode="aspectFill" />
+        <view wx:else class="profile-identity__default"><root-wordmark tone="light" /></view>
+      </view>
+      <view class="profile-identity__copy">
+        <text class="profile-identity__name">{{loggedIn ? (profile.nickname || 'Root用户') : '未登录'}}</text>
+        <text class="profile-identity__hint">{{loggedIn ? '已登录' : '登录后管理个人资料'}}</text>
+      </view>
+      <view wx:if="{{loggedIn}}" class="profile-identity__edit">
+        <text>编辑资料</text><view class="profile-row__arrow"></view>
+      </view>
+    </view>
 
-  <view wx:elif="{{viewState === 'guest'}}">
-    <view class="guest-hero">
-      <image class="guest-logo" src="/static/brand/root-logo-horizontal-light.png" mode="aspectFit" />
-      <view class="guest-kicker">MY ROOT</view>
-      <view class="guest-title">身份、权益与记录，在这里归于一处</view>
-      <view class="guest-copy">登录后可查看本人会员信息、报名、任务与历史。登录不会自动报名、提交健康信息或开启提醒。</view>
-    </view>
-    <view class="root-card guest-action-card">
-      <button class="root-button guest-primary" bindtap="goLogin">微信身份进入</button>
-      <button class="root-button root-button--secondary guest-secondary" bindtap="browseProducts">先浏览 ROOT 商品</button>
-    </view>
-    <view class="root-cell-group guest-menu">
-      <view class="menu-row" bindtap="openPrivacy">
-        <text class="menu-label">隐私说明</text><text class="menu-arrow">›</text>
-      </view>
-      <view class="menu-row" data-url="/subpkg/profile/pages/about/index" bindtap="goLink">
-        <text class="menu-label">关于 ROOT</text><text class="menu-arrow">›</text>
-      </view>
-      <view class="menu-row contact-menu-row">
-        <text class="menu-label">人工协助</text><text class="menu-arrow">›</text>
-        <button class="contact-hitarea" open-type="contact" session-from="profile-guest" plain="true" hover-class="none" aria-label="人工协助"></button>
-      </view>
-    </view>
-    <view class="version">v{{appVersion}}</view>
-  </view>
+    <button wx:if="{{!loggedIn}}" class="profile-login" style="width: 350px;" bindtap="openLogin">登录 / 注册</button>
 
-  <block wx:else>
-  <view class="profile-hero">
-    <image class="profile-logo" src="/static/brand/root-logo-horizontal-light.png" mode="aspectFit" />
-    <view class="profile-identity">
-      <image class="avatar {{hasCustomAvatar ? 'avatar--photo' : 'avatar--default'}}" src="{{avatarSrc}}" mode="{{hasCustomAvatar ? 'aspectFill' : 'aspectFit'}}" />
-      <view class="user-main">
-        <view class="nickname">{{user.nickname || 'ROOT体验官'}}</view>
-        <view class="phone">{{user.phone || '未绑定手机号'}}</view>
+    <view class="profile-card profile-card--member">
+      <view class="profile-row" data-key="orders" bindtap="openMemberEntry">
+        <text class="profile-row__label">我的订单</text>
+        <text class="profile-row__hint">{{loggedIn ? '会员中心' : '登录后前往'}}</text>
+        <view class="profile-row__arrow"></view>
       </view>
-      <view class="state-badge">{{statusBadge}}</view>
+      <view class="profile-row" data-key="coupons" bindtap="openMemberEntry">
+        <text class="profile-row__label">优惠券</text>
+        <text class="profile-row__hint">{{loggedIn ? '会员中心' : '登录后前往'}}</text>
+        <view class="profile-row__arrow"></view>
+      </view>
     </view>
-    <view class="profile-quote">身体自有其序，记录会让它被看见。</view>
-  </view>
 
-  <view wx:if="{{showDisplayProfileCard}}" class="root-card display-profile-card">
-    <form bindsubmit="submitDisplayProfile">
-      <view class="root-section-title">完善头像和昵称</view>
-      <view class="root-helper-text display-profile-note">用于“我的”页面展示，可跳过，之后也能继续使用 ROOT。</view>
-      <view class="display-profile-form">
-        <view class="avatar-picker">
-          <image class="avatar-picker-image {{displayForm.avatarFilePath || hasCustomAvatar ? 'avatar-picker-image--photo' : ''}}" src="{{displayForm.avatarPreview}}" mode="{{displayForm.avatarFilePath || hasCustomAvatar ? 'aspectFill' : 'aspectFit'}}" />
-          <text class="avatar-picker-text">选择头像</text>
-          <button class="avatar-picker-hitarea" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" hover-class="none" aria-label="选择头像"></button>
-        </view>
-        <view class="nickname-field">
-          <view class="field-label">昵称</view>
-          <input
-            class="nickname-input"
-            type="nickname"
-            name="nickname"
-            value="{{displayForm.nickname}}"
-            maxlength="24"
-            placeholder="填写昵称"
-            bindinput="onNicknameInput"
-          />
-        </view>
-      </view>
-      <button class="root-button display-save-btn" form-type="submit" loading="{{displaySaving}}">保存资料</button>
-    </form>
-  </view>
+    <view wx:if="{{memberLinkFailure}}" class="profile-member-failure">
+      <text class="profile-member-failure__title">暂时无法打开 Root 会员中心</text>
+      <text class="profile-member-failure__copy">请稍后重试，当前页面内容不会丢失。</text>
+      <button class="profile-member-failure__retry" style="width: 96px;" bindtap="retryMemberEntry">重试打开</button>
+    </view>
 
-  <view class="root-card status-card">
-    <view class="root-section-title">当前记录状态</view>
-    <view wx:if="{{progress.length}}" class="mini-progress">
-      <view wx:for="{{progress}}" wx:key="dayIndex" class="mini-dot {{item.className}}"></view>
+    <view class="profile-card profile-card--support">
+      <view class="profile-row" data-type="faq" bindtap="openSupport"><text class="profile-row__label">常见问题</text><view class="profile-row__arrow"></view></view>
+      <view class="profile-row" data-type="contact" bindtap="openSupport"><text class="profile-row__label">联系客服</text><view class="profile-row__arrow"></view></view>
+      <view class="profile-row" data-type="feedback" bindtap="openSupport"><text class="profile-row__label">建议与反馈</text><view class="profile-row__arrow"></view></view>
+      <view class="profile-row" bindtap="openAbout"><text class="profile-row__label">关于 Root</text><view class="profile-row__arrow"></view></view>
     </view>
-    <view wx:elif="{{dailyStats}}" class="daily-status">
-      <view class="daily-status-item">
-        <text class="num">{{dailyStats.totalDays}}</text>
-        <text>累计</text>
-      </view>
-      <view class="daily-status-item">
-        <text class="num">{{dailyStats.currentStreak}}</text>
-        <text>当前连续</text>
-      </view>
-      <view class="daily-status-item">
-        <text class="num">{{dailyStats.longestStreak}}</text>
-        <text>最长连续</text>
-      </view>
-    </view>
-    <view wx:else class="root-helper-text">完成登录和画像后，即可开启 7 日重启计划。</view>
-    <view class="status-meta">
-      <text>累计记录 {{dailyStats ? dailyStats.totalDays : checkedDays}} 天</text>
-      <text>免单状态：{{refundStatus}}</text>
-    </view>
-  </view>
 
-  <view class="root-cell-group menu-card">
-    <view wx:if="{{showRecords}}" class="menu-row" data-url="/subpkg/checkin/pages/history/index" bindtap="goLink">
-      <text class="menu-label">记录历史</text><text class="menu-arrow">›</text>
-    </view>
-    <view class="menu-row" data-url="/subpkg/profile/pages/tags/index" bindtap="goLink">
-      <text class="menu-label">身体反馈画像</text><text class="menu-arrow">›</text>
-    </view>
-    <view class="menu-row" data-url="/pages/products/index" bindtap="goLink">
-      <text class="menu-label">Root 会员中心商品</text><text class="menu-arrow">›</text>
-    </view>
-    <view wx:if="{{showOrders}}" class="menu-row" data-url="/subpkg/profile/pages/orders/index" bindtap="goLink">
-      <text class="menu-label">订单与物流</text><text class="menu-arrow">›</text>
-    </view>
-    <view class="menu-row" data-url="/subpkg/profile/pages/review/index" bindtap="goLink">
-      <text class="menu-label">状态复核</text><text class="menu-arrow">›</text>
-    </view>
-    <view class="menu-row contact-menu-row">
-      <text class="menu-label">人工协助</text><text class="menu-arrow">›</text>
-      <button class="contact-hitarea" open-type="contact" session-from="profile" plain="true" hover-class="none" aria-label="人工协助"></button>
-    </view>
-    <view class="menu-row" data-url="/subpkg/profile/pages/about/index" bindtap="goLink">
-      <text class="menu-label">关于 ROOT</text><text class="menu-arrow">›</text>
-    </view>
-    <view class="menu-row" data-url="/pages/health-consent/index?mode=manage" bindtap="goLink">
-      <text class="menu-label">隐私与身体记录授权</text><text class="menu-arrow">›</text>
-    </view>
+    <button wx:if="{{loggedIn}}" class="profile-logout" style="width: 350px;" bindtap="logout">退出登录</button>
+    <text class="profile-version">myRoot v{{version}}</text>
   </view>
-
-  <button class="root-button root-button--secondary logout-btn" bindtap="logout">退出登录</button>
-  <view class="version">v{{appVersion}}</view>
-  </block>
-</view>
-<privacy-consent />
+</scroll-view>

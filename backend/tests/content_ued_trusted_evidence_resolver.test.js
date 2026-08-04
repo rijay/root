@@ -52,7 +52,7 @@ function inputBinding() {
     designDigest: sha256("trusted-design"),
     authorizationPacketDigest: sha256("trusted-authorization-packet"),
     candidateManifestDigest: sha256("trusted-candidate-manifest"),
-    routeRegistryDigest: sha256("trusted-route-registry"),
+    formalRoutesDigest: sha256("trusted-route-registry"),
     artifactProvenanceDigest: sha256("trusted-artifact-provenance"),
   };
 }

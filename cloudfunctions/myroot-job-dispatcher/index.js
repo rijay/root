@@ -2,67 +2,10 @@ const https = require("node:https");
 const { version: RELEASE_VERSION } = require("./package.json");
 
 const DEFAULT_BASE_URL = "https://myroot-api-273748-8-1437260454.sh.run.tcloudbase.com";
-const DEFAULT_CAMPAIGN_ID = "ROOT_7D_RESET";
-
 const JOBS = Object.freeze({
-  adapter_retry_due: {
-    path: "/api/v1/jobs/adapter-retry-due",
-    body: { batchSize: 5, maxAttempts: 5 },
-  },
-  operational_alerts: {
-    path: "/api/v1/jobs/operational-alerts",
-    body: { campaignId: DEFAULT_CAMPAIGN_ID },
-  },
-  checkin_reminders: {
-    path: "/api/v1/jobs/checkin-reminders",
-    body: { limit: 50 },
-  },
-  wework_touch_due: {
-    path: "/api/v1/jobs/wework-touch-due",
-    body: { limit: 50, batchSize: 20, cooldownHours: 24 },
-  },
-  lifecycle_settlement_due: {
-    path: "/api/v1/jobs/lifecycle-settlement-due",
-    body: { campaignId: DEFAULT_CAMPAIGN_ID, batchSize: 20, jobLimit: 3 },
-  },
-  lifecycle_settlement_cleanup: {
-    path: "/api/v1/jobs/lifecycle-settlement-cleanup",
-    body: {
-      campaignId: DEFAULT_CAMPAIGN_ID,
-      staleMinutes: 120,
-      cancelAfterMinutes: 1440,
-      jobLimit: 20,
-    },
-  },
-  lifecycle_users_export: {
-    path: "/api/v1/jobs/lifecycle-users-export",
-    body: {
-      filters: { campaignId: DEFAULT_CAMPAIGN_ID },
-      retentionDays: 7,
-      sensitivity: "MASKED",
-      limit: 200,
-    },
-  },
-  lifecycle_user_exports_delivery_retry: {
-    path: "/api/v1/jobs/lifecycle-user-exports-delivery-retry",
-    body: {
-      limit: 20,
-      deliveryRetryEnabled: true,
-      deliveryMaxAttempts: 3,
-      deliveryRetryDelaySeconds: 300,
-    },
-  },
-  lifecycle_user_exports_cleanup: {
-    path: "/api/v1/jobs/lifecycle-user-exports-cleanup",
-    body: { limit: 50, objectCleanup: false },
-  },
   health_data_retention_cleanup: {
     path: "/api/v1/jobs/health-data-retention-cleanup",
     body: { limit: 50, objectCleanup: true },
-  },
-  youzan_identity_reconcile: {
-    path: "/api/v1/jobs/youzan-identity-reconcile",
-    body: { batchSize: 5 },
   },
 });
 
@@ -284,13 +227,10 @@ async function dispatch(event = {}, env = process.env, request = postJson) {
   const token = currentJobToken(env, job.path);
 
   const dryRun = boolEnv(env.ROOT_JOB_DRY_RUN, true);
-  const campaignId = String(env.ROOT_JOB_CAMPAIGN_ID || DEFAULT_CAMPAIGN_ID).trim();
   const timeoutMs = Math.max(1000, Math.min(60000, Number(env.ROOT_JOB_TIMEOUT_MS) || 15000));
   const requestId = requestIdFor(job.jobId, event);
   const body = {
     ...job.body,
-    ...(job.body.campaignId ? { campaignId } : {}),
-    ...(job.body.filters ? { filters: { ...job.body.filters, campaignId } } : {}),
     dryRun,
     ...(dryRun ? {} : { requestId }),
   };

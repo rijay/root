@@ -1,0 +1,6 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "page-navigation": "/components/page-navigation/index"
+  }
+}

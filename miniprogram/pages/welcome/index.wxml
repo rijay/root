@@ -1,0 +1,38 @@
+<view class="welcome">
+  <swiper class="welcome__swiper" current="{{current}}" duration="280" bindchange="onSlideChange">
+    <swiper-item>
+      <view class="welcome__slide welcome__slide--first">
+        <view class="welcome__media welcome__media--first" data-release-asset="{{screens[0].assetState}}">
+          <image wx:if="{{screens[0].assetUrl}}" class="welcome__image" src="{{screens[0].assetUrl}}" mode="aspectFill" />
+        </view>
+        <view class="welcome__shade welcome__shade--first"></view>
+        <immersive-header tone="light" />
+        <view class="welcome__copy welcome__copy--first">
+          <text class="welcome__kicker">ROOT MEMBER CLUB</text>
+          <text class="welcome__title">{{screens[0].copy || '欢迎加入\nRoot Member Club'}}</text>
+          <text class="welcome__subtitle">Sustained Foundation Balance</text>
+        </view>
+      </view>
+    </swiper-item>
+    <swiper-item>
+      <view class="welcome__slide welcome__slide--second">
+        <view class="welcome__media welcome__media--second" data-release-asset="{{screens[1].assetState}}">
+          <image wx:if="{{screens[1].assetUrl}}" class="welcome__image" src="{{screens[1].assetUrl}}" mode="aspectFill" />
+        </view>
+        <view class="welcome__shade welcome__shade--second"></view>
+        <immersive-header tone="light" />
+        <scroll-view class="welcome__long-copy-scroll" scroll-y enhanced show-scrollbar="false">
+          <view class="welcome__copy welcome__copy--second">
+            <text class="welcome__lead">平衡不是控制，而是理解。</text>
+            <text class="welcome__body">{{screens[1].copy}}</text>
+          </view>
+        </scroll-view>
+      </view>
+    </swiper-item>
+  </swiper>
+  <view class="welcome__dots welcome__dots--{{current}}" aria-label="第 {{current + 1}} 屏，共 2 屏">
+    <view class="welcome__dot {{current === 0 ? 'is-active' : ''}}"></view>
+    <view class="welcome__dot {{current === 1 ? 'is-active' : ''}}"></view>
+  </view>
+  <button class="welcome__skip" bindtap="skipWelcome">跳过</button>
+</view>

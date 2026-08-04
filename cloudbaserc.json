@@ -7,69 +7,18 @@
     {
       "name": "myroot-job-dispatcher",
       "dir": "cloudfunctions/myroot-job-dispatcher",
-      "description": "myRoot CloudBase scheduled Job dispatcher; defaults to dry-run",
+      "description": "Retired dispatcher artifact; no triggers and no legacy Job implementation",
       "runtime": "Nodejs18.15",
       "handler": "index.main",
       "timeout": 30,
       "memorySize": 256,
       "installDependency": false,
-      "triggers": [
-        {
-          "name": "adapter_retry_due",
-          "type": "timer",
-          "config": "0 */10 * * * * *"
-        },
-        {
-          "name": "operational_alerts",
-          "type": "timer",
-          "config": "0 */30 * * * * *"
-        },
-        {
-          "name": "checkin_reminders",
-          "type": "timer",
-          "config": "0 */10 * * * * *"
-        },
-        {
-          "name": "wework_touch_due",
-          "type": "timer",
-          "config": "0 */10 * * * * *"
-        },
-        {
-          "name": "lifecycle_settlement_due",
-          "type": "timer",
-          "config": "0 */15 * * * * *"
-        },
-        {
-          "name": "lifecycle_settlement_cleanup",
-          "type": "timer",
-          "config": "0 5 * * * * *"
-        },
-        {
-          "name": "lifecycle_users_export",
-          "type": "timer",
-          "config": "0 30 9 * * * *"
-        },
-        {
-          "name": "lifecycle_user_exports_delivery_retry",
-          "type": "timer",
-          "config": "0 */20 * * * * *"
-        },
-        {
-          "name": "lifecycle_user_exports_cleanup",
-          "type": "timer",
-          "config": "0 45 3 * * * *"
-        },
-        {
-          "name": "youzan_identity_reconcile",
-          "type": "timer",
-          "config": "0 25 * * * * *"
-        }
-      ]
+      "triggers": []
     },
     {
       "name": "myroot-health-retention",
       "dir": "cloudfunctions/myroot-job-dispatcher",
-      "description": "myRoot health-data retention scheduler; reuses the dry-run Job dispatcher",
+      "description": "myRoot health-data retention scheduler; defaults to dry-run",
       "runtime": "Nodejs18.15",
       "handler": "index.main",
       "timeout": 30,
@@ -80,23 +29,6 @@
           "name": "health_data_retention_cleanup",
           "type": "timer",
           "config": "0 15 4 * * * *"
-        }
-      ]
-    },
-    {
-      "name": "myroot-v1-runtime-scheduler",
-      "dir": "cloudfunctions/myroot-v1-runtime-scheduler",
-      "description": "myRoot v1 Runtime Control timer-only scheduler; defaults to preview",
-      "runtime": "Nodejs18.15",
-      "handler": "index.main",
-      "timeout": 30,
-      "memorySize": 256,
-      "installDependency": false,
-      "triggers": [
-        {
-          "name": "v1_runtime_cycle",
-          "type": "timer",
-          "config": "0 * * * * * *"
         }
       ]
     }

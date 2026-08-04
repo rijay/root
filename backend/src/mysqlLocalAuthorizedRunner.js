@@ -28,7 +28,7 @@ const POST_SUCCESS_COMMANDS = Object.freeze([
 ]);
 const EXECUTION_PLAN = Object.freeze([
   Object.freeze({ id: "REAL_ENGINE_TESTS", executable: "npm",
-    args: Object.freeze(["run", "v1:mysql-001-066-authorized:check"]) }),
+    args: Object.freeze(["run", "v1:mysql-001-068-authorized:check"]) }),
   Object.freeze({ id: "SCHEMA_SNAPSHOT_WRITE", executable: "node",
     args: Object.freeze(["backend/scripts/mysql-schema-snapshot.js", "--write"]) }),
   Object.freeze({ id: "SCHEMA_SNAPSHOT_VERIFY", executable: "node",
@@ -37,24 +37,11 @@ const EXECUTION_PLAN = Object.freeze([
     args: Object.freeze(["scripts/final-verification.js", "--json"]) }),
 ]);
 const FINAL_VERIFICATION_LABELS = Object.freeze([
-  "JavaScript syntax check",
-  "Release version alignment",
-  "Immutable migration checksums",
-  "Generated MySQL schema snapshot provenance",
-  "CloudBase config secret check",
-  "CloudBase trigger topology",
-  "CloudBase job manifest",
-  "Production env matrix",
-  "Backend tests",
-  "Production dependency audit",
-  "Element Plus admin validation",
-  "Element Plus admin build",
-  "Backend admin dist bundle",
-  "Mini-program validation",
-  "v1 Route Registry contract",
-  "Mini-program release source manifest",
-  "WeChat trial QR release contract",
-  "HTTP Interface smoke",
+  "formal route surface",
+  "backend tests",
+  "miniprogram formal scope and performance",
+  "admin checks",
+  "admin production build",
 ]);
 const EXECUTION_INPUT_ROOTS = Object.freeze([
   "package.json",
@@ -713,7 +700,7 @@ function parseFinalVerificationFailureDetails(value) {
       stdout: channelMetadata(item.stdout),
       stderr: channelMetadata(item.stderr),
     };
-    if (item.label === "Backend tests") {
+    if (item.label === "backend tests") {
       detail.testFailures = parseTapFailureLabels(item.stdout || "");
       detail.testSummary = parseObservedNodeTestSummary(item.stdout || "");
     }

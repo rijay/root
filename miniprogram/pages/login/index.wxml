@@ -1,31 +1,36 @@
-<view class="page login-page">
-  <image class="login-logo" src="/static/brand/root-logo-horizontal.png" mode="aspectFit" />
-  <view class="login-title">身体，自有其序</view>
-  <view class="login-copy">Root 希望你不只是服用补剂，而是在 7 天里重新建立与身体的关系。</view>
+<view class="login-page">
+  <page-navigation />
+  <view class="login-page__wordmark"><root-wordmark tone="dark" /></view>
 
-  <view class="section root-card login-card">
-    <view class="root-card-title">7 天身体重启计划</view>
-    <view class="root-promise">记录服用、排便和真实感受</view>
-    <view class="root-promise">不追求完美答案，只关注身体反馈</view>
-    <view class="root-promise">异常状态可进入人工协助</view>
+  <view class="login-page__content">
+    <text class="login-page__kicker">ROOT MEMBER CLUB</text>
+    <view class="login-page__title">
+      <text>注册Root会员</text>
+      <text>探索更多可能</text>
+    </view>
 
-    <view class="agreement">
-      <view class="agreement-check" bindtap="toggleAgree">
-        <view class="checkbox {{agreed ? 'checked' : ''}}">{{agreed ? '✓' : ''}}</view>
-        <text>我已阅读并同意</text>
-      </view>
-      <text class="agreement-link" catchtap="openUserAgreement">《用户协议》</text>
-      <text>和</text>
-      <text class="agreement-link" catchtap="openPrivacyPolicy">《隐私政策》</text>
+    <view wx:if="{{identityConflict}}" class="login-page__conflict" role="alert">
+      <text class="login-page__conflict-title">资料核验中</text>
+      <text class="login-page__conflict-copy">当前微信身份与会员资料存在冲突，我们不会自动覆盖。你仍可返回首页浏览公开内容，或联系客服处理。</text>
     </view>
 
     <button
-      class="root-button login-btn"
+      class="login-page__button"
+      style="width: 350px;"
+      open-type="getPhoneNumber"
       loading="{{loading}}"
       disabled="{{loading}}"
-      bindtap="loginWithWechat"
-    >{{loading ? '正在进入…' : '微信身份进入'}}</button>
-    <view wx:if="{{loading && loginStatusText}}" class="login-status" aria-live="polite">{{loginStatusText}}</view>
-    <view class="login-note">手机号后续可选补充，用于咨询协助和活动联系。</view>
+      bindgetphonenumber="loginWithPhone"
+    >{{loading ? '正在验证…' : '手机号快捷登录'}}</button>
+    <view wx:if="{{loading && loginStatusText}}" class="login-page__status" aria-live="polite">{{loginStatusText}}</view>
+
+    <view class="login-page__privacy">
+      <text>继续即表示你已阅读</text>
+      <text class="login-page__link" catchtap="openUserAgreement">《用户协议》</text>
+      <text>与</text>
+      <text class="login-page__link" catchtap="openPrivacyPolicy">《隐私政策》</text>
+      <text>\n手机号授权将在隐私保护提示后发起</text>
+    </view>
   </view>
+  <privacy-consent id="root-privacy-consent" />
 </view>

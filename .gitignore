@@ -10,6 +10,7 @@ miniprogram_npm/
 tmp/
 .codex/
 .local-state/
+.superpowers/
 /release-artifacts/
 miniprogram/project.private.config.json
 backend/data/*.json

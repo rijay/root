@@ -29,9 +29,9 @@ const REQUIRED_ARTIFACT_MODULE_IDS = Object.freeze([
   "BACKEND",
   "CLOUD_FUNCTION",
   "CONTENT",
+  "FORMAL_ROUTES",
   "MIGRATION",
   "MINIPROGRAM",
-  "ROUTE_REGISTRY",
 ]);
 const ADAPTER_REQUIREMENT_LEVELS = Object.freeze(["REQUIRED", "OPTIONAL", "DISABLED"]);
 const FORBIDDEN_SECRET_FIELD_PATTERNS = Object.freeze([
@@ -56,7 +56,7 @@ const CANDIDATE_FIELDS = Object.freeze([
   "relationalSchemaDigest",
   "releaseId",
   "rollbackArtifactId",
-  "routeRegistryDigest",
+  "formalRoutesDigest",
   "runtimeConfigDigest",
   "secretReferenceVersionDigest",
   "sourceCommit",
@@ -158,7 +158,7 @@ const OBSERVED_CANDIDATE_FIELDS = Object.freeze([
   "migrationSetDigest",
   "relationalSchemaDigest",
   "rollbackArtifactId",
-  "routeRegistryDigest",
+  "formalRoutesDigest",
   "runtimeConfigDigest",
   "secretReferenceVersionDigest",
   "sourceCommit",
@@ -173,7 +173,7 @@ const INVALIDATION_RULES = Object.freeze([
   Object.freeze({ ruleId: "MIGRATION_SET_CHANGED", candidateField: "migrationSetDigest" }),
   Object.freeze({ ruleId: "RELATIONAL_SCHEMA_CHANGED", candidateField: "relationalSchemaDigest" }),
   Object.freeze({ ruleId: "EVENT_SCHEMA_SET_CHANGED", candidateField: "eventSchemaSetDigest" }),
-  Object.freeze({ ruleId: "ROUTE_REGISTRY_CHANGED", candidateField: "routeRegistryDigest" }),
+  Object.freeze({ ruleId: "FORMAL_ROUTES_CHANGED", candidateField: "formalRoutesDigest" }),
   Object.freeze({ ruleId: "RUNTIME_CONFIG_CHANGED", candidateField: "runtimeConfigDigest" }),
   Object.freeze({
     ruleId: "SECRET_REFERENCE_VERSION_CHANGED",
@@ -455,7 +455,7 @@ function normalizeCandidate(document) {
       document.migrationSetDigest,
       document.relationalSchemaDigest,
       document.eventSchemaSetDigest,
-      document.routeRegistryDigest,
+      document.formalRoutesDigest,
       document.runtimeConfigDigest,
       document.secretReferenceVersionDigest,
     ].every(sha256)) throw contractError();

@@ -30,66 +30,95 @@ export function setAdminToken(token) {
   }
 }
 
-function invalidResponseEnvelope(method, status) {
-  const error = new Error(method === "GET" ? "后台返回无法校验" : "后台返回无法校验，结果待确认");
+function invalidResponseEnvelope(isRead, status) {
+  const error = new Error(isRead ? "后台返回无法校验" : "后台返回无法校验，结果待确认");
   error.code = "ADMIN_RESPONSE_INVALID";
   error.status = status;
-  error.outcomeUnknown = method !== "GET";
+  error.outcomeUnknown = !isRead;
   return error;
 }
 
 export async function adminRequest(path, options = {}) {
   const adminToken = getAdminToken();
   const method = String(options.method || "GET").toUpperCase();
+  const isRead = options.readOnly === true || method === "GET";
+  const {
+    readOnly: _,
+    timeoutMs: __,
+    signal: externalSignal,
+    ...requestOptions
+  } = options;
+  const isFormBody = typeof FormData !== "undefined" && requestOptions.body instanceof FormData;
   const controller = new AbortController();
   const timeoutMs = Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 15000;
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const abortFromCaller = () => controller.abort();
+  if (externalSignal?.aborted) controller.abort();
+  else externalSignal?.addEventListener("abort", abortFromCaller, { once: true });
+  const cleanup = () => {
+    clearTimeout(timeout);
+    externalSignal?.removeEventListener("abort", abortFromCaller);
+  };
   let response;
   try {
     response = await fetch(path, {
-      ...options,
+      ...requestOptions,
       signal: controller.signal,
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormBody ? {} : { "Content-Type": "application/json" }),
         ...(adminToken ? { "X-Admin-Token": adminToken } : {}),
-        ...(options.headers || {}),
+        ...(requestOptions.headers || {}),
       },
     });
   } catch (_) {
-    clearTimeout(timeout);
-    const error = new Error(method === "GET" ? "后台连接失败" : "后台写入结果待确认，请先刷新权威记录");
+    cleanup();
+    if (externalSignal?.aborted) {
+      const error = new Error("后台读取已取消");
+      error.code = "ADMIN_ABORTED";
+      error.status = 0;
+      error.outcomeUnknown = false;
+      throw error;
+    }
+    const error = new Error(isRead ? "后台连接失败" : "后台写入结果待确认，请先刷新权威记录");
     error.code = "ADMIN_NETWORK_ERROR";
     error.status = 0;
-    error.outcomeUnknown = method !== "GET";
+    error.outcomeUnknown = !isRead;
     throw error;
   }
   let payload;
   try {
     payload = await response.json();
   } catch (_) {
-    clearTimeout(timeout);
-    throw invalidResponseEnvelope(method, response.status);
+    cleanup();
+    if (externalSignal?.aborted) {
+      const error = new Error("后台读取已取消");
+      error.code = "ADMIN_ABORTED";
+      error.status = 0;
+      error.outcomeUnknown = false;
+      throw error;
+    }
+    throw invalidResponseEnvelope(isRead, response.status);
   }
-  clearTimeout(timeout);
+  cleanup();
   if (!payload
     || typeof payload !== "object"
     || Array.isArray(payload)
     || !Object.prototype.hasOwnProperty.call(payload, "code")
     || typeof payload.code !== "number") {
-    throw invalidResponseEnvelope(method, response.status);
+    throw invalidResponseEnvelope(isRead, response.status);
   }
   if (!response.ok && payload.code === 0) {
-    const error = new Error(method === "GET" ? "后台读取失败" : "后台写入未获有效确认");
+    const error = new Error(isRead ? "后台读取失败" : "后台写入未获有效确认");
     error.code = "ADMIN_HTTP_ERROR";
     error.status = response.status;
-    error.outcomeUnknown = method !== "GET" && response.status >= 500;
+    error.outcomeUnknown = !isRead && response.status >= 500;
     throw error;
   }
   if (payload.code !== 0) {
     const error = new Error(payload.message || "后台 Interface 返回异常");
     error.code = payload.code;
     error.status = response.status;
-    error.outcomeUnknown = method !== "GET" && response.status >= 500;
+    error.outcomeUnknown = !isRead && response.status >= 500;
     throw error;
   }
   return payload.data;
@@ -105,5 +134,24 @@ export function postAdminJson(path, body, options = {}) {
     method: "POST",
     headers: options.headers || {},
     body: JSON.stringify(body || {}),
+  });
+}
+
+export function postAdminRead(path, body, options = {}) {
+  return adminRequest(path, {
+    ...options,
+    method: "POST",
+    readOnly: true,
+    headers: options.headers || {},
+    body: JSON.stringify(body || {}),
+  });
+}
+
+export function postAdminForm(path, body, options = {}) {
+  return adminRequest(path, {
+    ...options,
+    method: "POST",
+    headers: options.headers || {},
+    body,
   });
 }

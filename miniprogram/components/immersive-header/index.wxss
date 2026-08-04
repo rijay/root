@@ -1,0 +1,19 @@
+:host {
+  pointer-events: none;
+}
+
+.immersive-header {
+  position: absolute;
+  z-index: 4;
+  right: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.immersive-header root-wordmark,
+.immersive-header slot {
+  pointer-events: auto;
+}

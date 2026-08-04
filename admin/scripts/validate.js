@@ -1,11 +1,10 @@
-#!/usr/bin/env node
-
+import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const adminRoot = path.resolve(__dirname, "..");
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 
 const requiredFiles = [
   "index.html",
@@ -15,341 +14,228 @@ const requiredFiles = [
   "src/App.vue",
   "src/api/client.js",
   "src/modules/access.js",
-  "src/modules/activities/adminActivityApi.js",
-  "src/modules/activities/ActivityWorkbench.vue",
-  "src/modules/activities/pendingActivityCommands.js",
-  "src/modules/adapters/adminAdapterApi.js",
-  "src/modules/adapters/AdapterRunPage.vue",
-  "src/modules/analytics/adminAnalyticsApi.js",
-  "src/modules/analytics/OperationalAnalytics.vue",
-  "src/modules/audit/adminAuditApi.js",
-  "src/modules/audit/AuditLogPage.vue",
-  "src/modules/config/adminConfigApi.js",
-  "src/modules/config/ConfigWorkbench.vue",
-  "src/modules/release/adminReleaseApi.js",
   "src/modules/release/ReleaseWorkbench.vue",
-  "src/modules/users/adminLifecycleApi.js",
-  "src/modules/users/UserLifecycle.vue",
+  "src/modules/content/WelcomeContentPage.vue",
+  "src/modules/content/HomeCarouselPage.vue",
+  "src/modules/content/SharedDetailPage.vue",
+  "src/modules/content/adminContentApi.js",
+  "src/modules/activities/ActivityManagementPage.vue",
+  "src/modules/activities/ActivityRegistrationsPage.vue",
+  "src/modules/activities/adminActivityApi.js",
+  "src/modules/health/InitializationPage.vue",
+  "src/modules/health/ScaleManagementPage.vue",
+  "src/modules/health/RecommendationRulesPage.vue",
+  "src/modules/health/LifestyleAdvicePage.vue",
+  "src/modules/health/adminHealthApi.js",
+  "src/modules/users/UserQueryPage.vue",
+  "src/modules/users/adminUserQueryApi.js",
+  "src/modules/audit/AuditLogPage.vue",
+  "src/modules/audit/adminAuditApi.js",
   "src/styles/theme.css",
 ];
 
-function read(relativePath) {
-  return fs.readFileSync(path.join(adminRoot, relativePath), "utf8");
+for (const file of requiredFiles) {
+  assert.equal(fs.existsSync(path.join(root, file)), true, `${file} must exist`);
 }
 
-function assert(condition, message) {
-  if (!condition) throw new Error(message);
+const removedFiles = [
+  "src/modules/activities/ActivityWorkbench.vue",
+  "src/modules/config/ConfigWorkbench.vue",
+  "src/modules/config/adminConfigApi.js",
+  "src/modules/adapters/AdapterRunPage.vue",
+  "src/modules/adapters/adminAdapterApi.js",
+  "src/modules/analytics/OperationalAnalytics.vue",
+  "src/modules/analytics/adminAnalyticsApi.js",
+  "src/modules/users/UserLifecycle.vue",
+  "src/modules/users/adminLifecycleApi.js",
+];
+for (const file of removedFiles) {
+  assert.equal(fs.existsSync(path.join(root, file)), false, `${file} must stay removed`);
 }
 
-function validatePackage() {
-  const pkg = JSON.parse(read("package.json"));
-  const vite = read("vite.config.js");
-  assert(pkg.dependencies && pkg.dependencies.vue, "package.json must depend on vue");
-  assert(pkg.dependencies && pkg.dependencies["element-plus"], "package.json must depend on element-plus");
-  assert(pkg.scripts && pkg.scripts.dev && pkg.scripts.build && pkg.scripts.check, "package.json must expose dev/build/check scripts");
-  assert(vite.includes('base: "/admin/"'), "vite config must build Element Plus Admin assets under /admin/");
+const pkg = JSON.parse(read("package.json"));
+assert.equal(pkg.dependencies.vue.startsWith("^3"), true);
+assert.equal(pkg.dependencies["element-plus"].startsWith("^2"), true);
+assert.equal(pkg.scripts.check.includes("scripts/validate.js"), true);
+
+const app = read("src/App.vue");
+for (const value of [
+  "defineAsyncComponent",
+  "发布工作台",
+  "内容运营",
+  "活动运营",
+  "健康运营",
+  "用户查询",
+  "操作审计",
+  "UserQueryPage",
+  "ActivityManagementPage",
+  "ActivityRegistrationsPage",
+  "InitializationPage",
+  "ScaleManagementPage",
+  "RecommendationRulesPage",
+  "LifestyleAdvicePage",
+  "ReleaseWorkbench",
+  "WelcomeContentPage",
+  "HomeCarouselPage",
+  "SharedDetailPage",
+  "AuditLogPage",
+]) assert.equal(app.includes(value), true, `App must include ${value}`);
+for (const value of [
+  "ConfigWorkbench",
+  "UserLifecycle",
+  "AdapterRunPage",
+  "OperationalAnalytics",
+  "运营配置",
+  "用户生命周期",
+  "Adapter 运行",
+  "运营数据",
+]) assert.equal(app.includes(value), false, `App must not expose ${value}`);
+
+const releasePage = read("src/modules/release/ReleaseWorkbench.vue");
+const releaseApi = read("src/modules/release/adminReleaseApi.js");
+for (const value of [
+  "未发布修改",
+  "发布阻断",
+  "未来 7 天定时上线",
+  "草稿",
+  "系统校验",
+  "小程序预览",
+  "二次确认并发布",
+  "确认发布内容版本",
+  "不代表代码部署、微信审核、正式发布或流量切换",
+  "previewConfirmed",
+  "outcomeUnknown",
+]) assert.equal(releasePage.includes(value), true, `release workbench must include ${value}`);
+for (const value of [
+  "外部动作 Adapter 校准",
+  "生产证据收口",
+  "发布证据包",
+  "发布签字",
+  "身份探针",
+  "运营 Gate",
+]) assert.equal(releasePage.includes(value), false, `release workbench must not expose ${value}`);
+assert.equal(releaseApi.includes("/api/v1/admin/content-release/publish"), true);
+
+const welcomePage = read("src/modules/content/WelcomeContentPage.vue");
+const carouselPage = read("src/modules/content/HomeCarouselPage.vue");
+const detailPage = read("src/modules/content/SharedDetailPage.vue");
+const contentApi = read("src/modules/content/adminContentApi.js");
+for (const value of ["[emptyScreen(1), emptyScreen(2)]", "不支持新增第三屏", "600KB", "安全区", "保存草稿"]) {
+  assert.equal(welcomePage.includes(value), true, `welcome content must include ${value}`);
+}
+for (const value of ["搜索内部名称或展示文案", "关联共用详情", "2 行", "3 行", "600KB", "500KB", "安全区", "AbortController", "300"]) {
+  assert.equal(carouselPage.includes(value), true, `home carousel must include ${value}`);
+}
+for (const value of [
+  "MINIPROGRAM_PAGE",
+  "ROOT_MEMBER_CENTER",
+  "WEBVIEW_ALLOWLIST",
+  "热点只负责内容跳转",
+  "安全区",
+  "AbortController",
+  "startHotspot",
+  "validationStatus !== \"PASS\"",
+]) assert.equal(detailPage.includes(value), true, `shared detail must include ${value}`);
+for (const value of ["script", "style", "javascript:"]) {
+  assert.equal(contentApi.includes(value), false, `content Interface must not expose arbitrary ${value}`);
+}
+for (const route of [
+  "/api/v1/admin/content/welcome",
+  "/api/v1/admin/content/home-carousel",
+  "/api/v1/admin/content/shared-details",
+  "/api/v1/admin/content/targets/validate",
+  "/api/v1/admin/content/assets",
+]) assert.equal(contentApi.includes(route), true, `content Interface must include ${route}`);
+
+const access = read("src/modules/access.js");
+for (const capability of [
+  "ADMIN_READ",
+  "AUDIT_READ",
+  "ACTIVITY_CONTENT_WRITE",
+  "ACTIVITY_PUBLISH",
+  "ACTIVITY_SESSION_CONTROL",
+  "ACTIVITY_ENROLLMENT_REVIEW",
+]) assert.equal(access.includes(capability), true, `access must include ${capability}`);
+for (const capability of [
+  "CONFIG_WRITE",
+  "REVIEW_RESOLVE",
+  "REWARD_DELIVERY_WRITE",
+  "SETTLEMENT_EXECUTE",
+  "DATA_EXPORT_APPROVE",
+]) assert.equal(access.includes(capability), false, `access must remove ${capability}`);
+
+const client = read("src/api/client.js");
+for (const value of ["ROOT_ADMIN_TOKEN", "sessionStorage", "outcomeUnknown", "postAdminRead", "postAdminForm", "ADMIN_ABORTED", "readOnly: true"]) {
+  assert.equal(client.includes(value), true, `admin request module must include ${value}`);
 }
 
-function validateSourceContracts() {
-  const client = read("src/api/client.js");
-  const access = read("src/modules/access.js");
-  const api = read("src/modules/config/adminConfigApi.js");
-  const page = read("src/modules/config/ConfigWorkbench.vue");
-  const app = read("src/App.vue");
-  const adapterApi = read("src/modules/adapters/adminAdapterApi.js");
-  const activityApi = read("src/modules/activities/adminActivityApi.js");
-  const activityPage = read("src/modules/activities/ActivityWorkbench.vue");
-  const activityRecovery = read("src/modules/activities/pendingActivityCommands.js");
-  const adapterPage = read("src/modules/adapters/AdapterRunPage.vue");
-  const analyticsApi = read("src/modules/analytics/adminAnalyticsApi.js");
-  const analyticsPage = read("src/modules/analytics/OperationalAnalytics.vue");
-  const auditApi = read("src/modules/audit/adminAuditApi.js");
-  const auditPage = read("src/modules/audit/AuditLogPage.vue");
-  const releaseApi = read("src/modules/release/adminReleaseApi.js");
-  const releasePage = read("src/modules/release/ReleaseWorkbench.vue");
-  const lifecycleApi = read("src/modules/users/adminLifecycleApi.js");
-  const lifecyclePage = read("src/modules/users/UserLifecycle.vue");
-
-  assert(client.includes("X-Admin-Token") && !client.includes("X-ROOT-ADMIN-TOKEN"), "admin client must send only the canonical admin token header");
-  assert(client.includes("window.sessionStorage") && !client.includes("window.localStorage"), "admin token must be scoped to the browser tab session");
-  assert(client.includes("/api/v1/admin/me") && client.includes("fetchAdminProfile"), "admin client must read the admin profile Interface");
-  assert(client.includes("outcomeUnknown") && client.includes("ADMIN_NETWORK_ERROR") && client.includes("ADMIN_RESPONSE_INVALID"), "admin client must distinguish unknown write outcomes from definitive failures");
-  assert(access.includes("ADMIN_CAPABILITIES") && access.includes("createAdminAccess") && access.includes("useAdminAccess"), "admin access Module must expose capability helpers");
-  assert(access.includes("CONFIG_WRITE") && access.includes("REVIEW_RESOLVE") && access.includes("REWARD_DELIVERY_WRITE") && access.includes("SETTLEMENT_EXECUTE") && access.includes("DATA_EXPORT_APPROVE") && access.includes("ACTIVITY_CONTENT_WRITE") && access.includes("ACTIVITY_PUBLISH") && access.includes("ACTIVITY_SESSION_CONTROL") && access.includes("ACTIVITY_ENROLLMENT_REVIEW"), "admin access Module must mirror backend capabilities");
-  assert(api.includes("/api/v1/admin/config-workbench"), "config Module must read the backend config workbench Interface");
-  assert(api.includes("/api/v1/admin/campaign-rules/publish"), "config Module must publish rule versions through backend Interface");
-  assert(api.includes("/api/v1/admin/manual-reviews/"), "config Module must resolve manual reviews through backend Interface");
-  assert(api.includes("/api/v1/admin/manual-reviews/batch-resolve") && api.includes("X-Request-Id"), "config Module must resolve manual review batches with request id");
-  assert(api.includes("/api/v1/admin/reward-delivery/execute") && api.includes("X-Request-Id"), "config Module must execute reward delivery with request id");
-  assert(api.includes("/api/v1/admin/reward-delivery/status-query") && api.includes("queryRewardDeliveryStatus"), "config Module must query reward delivery external status");
-  assert(api.includes("/api/v1/admin/products/sync-preview"), "config Module must preview product sync through backend Interface");
-  assert(api.includes("/api/v1/admin/products/sync-execute") && api.includes("X-Request-Id"), "config Module must execute product sync with request id");
-  assert(api.includes("/api/v1/admin/settlement/batch-preview"), "config Module must preview batch settlement through backend Interface");
-  assert(api.includes("/api/v1/admin/settlement/batch-execute") && api.includes("X-Request-Id"), "config Module must execute batch settlement with request id");
-  assert(page.includes("<el-tabs") && page.includes("<el-form") && page.includes("<el-table"), "config page must use Element Plus tabs, forms and tables");
-  assert(page.includes("productSyncForm") && page.includes("productSyncResult") && page.includes("submitProductSyncExecute"), "config page must expose product sync controls");
-  assert(page.includes("ruleBuilder") && page.includes("applyRuleBuilder") && page.includes("完成任一互动") && page.includes("QUESTIONNAIRE_COMPLETED"), "config page must expose AND/OR settlement rule builder controls");
-  assert(
-    page.includes("ruleTree")
-    && page.includes("draggable=\"true\"")
-    && page.includes("startRuleDrag")
-    && page.includes("dropRuleNode")
-    && page.includes("addRootGroup")
-    && page.includes("TASK_STREAK"),
-    "config page must expose draggable settlement rule tree editor controls",
-  );
-  assert(page.includes("rewardStockLimit") && page.includes("stockLimit") && page.includes("quotaKey"), "config page must expose reward quota controls in the rule builder");
-  assert(page.includes("freeOrderChancePercent") && page.includes("chanceRate"), "config page must expose free order lottery controls in the rule builder");
-  assert(page.includes("confirmRisk") && page.includes("batchSettlementForm"), "config page must require batch settlement confirmation");
-  assert(page.includes("batchReviewForm") && page.includes("selectedReviewIds"), "config page must expose batch manual review controls");
-  assert(page.includes("publicNote") && page.includes("expectedResolutionAt"), "config page must expose manual review public notes and SLA time");
-  assert(page.includes("explanationTitle") && page.includes("operatorGuidance") && page.includes("review-explainer"), "config page must expose manual review explanation template and operator guidance");
-  assert(page.includes("manualReviewExplanationTemplates") && page.includes("templateIssues") && page.includes("复核解释模板校准"), "config page must expose manual review explanation template validation");
-  assert(page.includes("deliveryForm") && page.includes("selectedDeliveryJobIds") && page.includes("deliveryMode"), "config page must expose reward delivery controls");
-  assert(page.includes("statusQueryForm") && page.includes("selectedStatusJobIds") && page.includes("externalStatus"), "config page must expose reward status query controls");
-  assert(
-    page.includes("selectedWeworkTagJobIds")
-    && page.includes("externalContactId")
-    && page.includes("tagId")
-    && page.includes("tagName")
-    && page.includes("fillWeworkTagForm")
-    && page.includes("WEWORK_TAG"),
-    "config page must expose WeWork tag delivery controls",
-  );
-  assert(app.includes("activeModule") && app.includes("UserLifecycle") && app.includes("AuditLogPage") && app.includes("AdapterRunPage") && app.includes("OperationalAnalytics") && app.includes("ActivityWorkbench") && app.includes("ReleaseWorkbench"), "admin shell must expose a module routing seam");
-  assert(app.includes("ADMIN_MODULES") && app.includes("visibleModules") && app.includes("capabilities") && app.includes("principal-tags"), "admin shell must hide modules by admin capabilities and show the current principal");
-  assert(app.includes("createAdminAccess") && app.includes("ADMIN_ACCESS_KEY") && app.includes("provide("), "admin shell must provide admin access Interface to child modules");
-  assert(page.includes("useAdminAccess") && page.includes("requireCapability") && page.includes("canConfigWrite"), "config page must gate write buttons through admin access Interface");
-  assert(page.includes("canReviewResolve") && page.includes("canRewardDeliveryWrite") && page.includes("canSettlementExecute"), "config page must gate review, reward, and settlement actions by capability");
-  assert(!app.includes('index="adapters" disabled'), "admin shell must enable the Adapter run Module");
-  assert(!app.includes('index="analytics" disabled'), "admin shell must enable the analytics Module");
-  assert(!app.includes('index="release" disabled'), "admin shell must enable the release Module");
-  assert(activityApi.includes("/api/v1/admin/activities") && activityApi.includes("/api/v1/admin/activity-sessions") && activityApi.includes("/api/v1/admin/activity-enrollments"), "activity Module must read activity, session, and enrollment Interfaces");
-  assert(activityApi.includes("/activities/draft") && activityApi.includes("/activities/submit-review") && activityApi.includes("/activities/request-changes") && activityApi.includes("/activities/publish") && activityApi.includes("/activities/unpublish") && activityApi.includes("/activities/archive"), "activity Module must expose all activity definition write Interfaces");
-  assert(activityApi.includes("/activity-sessions/create") && activityApi.includes("/activity-sessions/state") && activityApi.includes("/activity-sessions/cancel") && activityApi.includes("/activity-enrollments/review") && activityApi.includes("X-Request-Id") && activityApi.includes("X-Idempotency-Key"), "activity Module must expose session and enrollment writes with separated attempt and idempotency identities");
-  assert(activityPage.includes("OPS_BACKEND") && activityPage.includes("UED 占位") && activityPage.includes("containsUedPlaceholder"), "activity page must reject UED placeholders and label OPS_BACKEND content");
-  assert(activityPage.includes("publishGateAcknowledged") && activityPage.includes("controlledApprovalRef") && activityPage.includes("contentAuthorizationDigest") && activityPage.includes("uedAcceptanceDigest") && activityPage.includes("photographyAuthorizationDigest") && activityPage.includes("artifactProvenanceDigest"), "activity page must keep publication Gate closed until controlled evidence is acknowledged");
-  assert(!activityPage.includes("operatorId") && !activityPage.includes("publishOwnerSignerRef") && !activityPage.includes("verifiedAt"), "activity page must not accept trusted publication principal or authorization decision fields from operators");
-  assert(activityPage.includes("expectedAttemptGeneration") && activityPage.includes("attemptGeneration"), "activity enrollment review must carry the expected attempt generation");
-  assert(activityPage.includes("activityPagination") && activityPage.includes("sessionPagination") && activityPage.includes("enrollmentPagination") && activityPage.includes("<el-pagination"), "activity workbench must expose server-backed pagination for every managed collection");
-  assert(activityPage.includes("pendingCommands.claim") && activityPage.includes("pendingCommands.clear") && activityPage.includes("error.outcomeUnknown") && activityPage.includes("commandReachedAdminAuthority"), "activity workbench must retain idempotency intents until a write response or authoritative read proves the outcome");
-  assert(activityPage.includes("retryPendingCommand") && activityPage.includes("voidPendingCommand") && activityPage.includes("审计检索标识"), "activity workbench must expose explicit reuse and void paths with an audit lookup hook");
-  assert(activityRecovery.includes("createPendingActivityCommandRegistry") && activityRecovery.includes("activityCommandKey") && activityRecovery.includes("idempotencyKey") && activityRecovery.includes("tombstones") && activityRecovery.includes("BroadcastChannel") && activityRecovery.includes("lockManager.request"), "activity command recovery Module must synchronize revisioned tombstones and serialize first claims across tabs");
-  assert(activityPage.includes("ACTIVITY_CONTENT_WRITE") && activityPage.includes("ACTIVITY_PUBLISH") && activityPage.includes("ACTIVITY_SESSION_CONTROL") && activityPage.includes("ACTIVITY_ENROLLMENT_REVIEW"), "activity page must gate all writes through the four activity capabilities");
-  assert(adapterApi.includes("/api/v1/admin/external-adapters"), "adapter Module must read the backend adapter catalog Interface");
-  assert(adapterApi.includes("/api/v1/admin/orders/increment-preview"), "adapter Module must preview order increment sync through backend Interface");
-  assert(adapterApi.includes("/api/v1/admin/orders/increment-execute") && adapterApi.includes("X-Request-Id"), "adapter Module must execute order increment sync with request id");
-  assert(adapterApi.includes("/api/v1/admin/external-adapters/run") && adapterApi.includes("runExternalAdapter"), "adapter Module must rerun adapters through backend Interface");
-  assert(adapterApi.includes("/api/v1/admin/external-adapters/retry-due") && adapterApi.includes("runDueExternalAdapterRetries"), "adapter Module must execute due adapter retries through backend Interface");
-  assert(adapterApi.includes("/api/v1/admin/external-adapters/rollback") && adapterApi.includes("rollbackExternalAdapterRun"), "adapter Module must rollback adapter runs through backend Interface");
-  assert(adapterApi.includes("/api/v1/admin/external-sample-reviews") && adapterApi.includes("fetchExternalSampleReviews"), "adapter Module must read sample review detail through backend Interface");
-  assert(adapterApi.includes("/api/v1/admin/youzan-customers") && adapterApi.includes("fetchYouzanCustomers"), "adapter Module must read Youzan customer mirror through backend Interface");
-  assert(adapterPage.includes("orderForm") && adapterPage.includes("YOUZAN_OPEN") && adapterPage.includes("MANUAL_SAMPLE"), "adapter page must expose order increment controls");
-  assert(adapterPage.includes("useAdminAccess") && adapterPage.includes("canConfigWrite") && adapterPage.includes("requireConfigWrite"), "adapter page must gate write actions through admin access Interface");
-  assert(adapterPage.includes("filteredRuns") && adapterPage.includes("runFilters") && adapterPage.includes("cursor_value"), "adapter page must expose run ledger filters and cursors");
-  assert(adapterPage.includes("<el-drawer") && adapterPage.includes("selectedRun") && adapterPage.includes("rerunAdapter"), "adapter page must expose run detail and retry actions");
-  assert(adapterPage.includes("rollbackRun") && adapterPage.includes("canRollbackRun") && adapterPage.includes("rollback_targets"), "adapter page must expose adapter rollback actions");
-  assert(adapterPage.includes("retry_status") && adapterPage.includes("next_retry_at") && adapterPage.includes("retrySourceRunId"), "adapter page must expose adapter retry strategy and retry lineage");
-  assert(adapterPage.includes("retryScheduler") && adapterPage.includes("previewDueRetries") && adapterPage.includes("executeDueRetries"), "adapter page must expose due retry scheduler controls");
-  assert(adapterPage.includes("selectedReview") && adapterPage.includes("field_coverage") && adapterPage.includes("missing_required_fields"), "adapter page must expose sample review detail");
-  assert(adapterPage.includes("reviewRowFilters") && adapterPage.includes("filteredReviewRows") && adapterPage.includes("selectedReviewRow"), "adapter page must expose sample review row troubleshooting");
-  assert(adapterPage.includes("syncRunDeepLink") && adapterPage.includes("runId") && app.includes("initialModule"), "adapter page must support run_id deep links");
-  assert(adapterPage.includes("youzanCustomers") && adapterPage.includes("customerFilters") && adapterPage.includes("linkStatus") && adapterPage.includes("orderSummary"), "adapter page must expose Youzan customer mirror troubleshooting");
-  assert(analyticsApi.includes("/api/v1/admin/operational-analytics") && analyticsApi.includes("fetchOperationalAnalytics"), "analytics Module must read the backend operational analytics Interface");
-  assert(analyticsApi.includes("/api/v1/admin/operational-analytics/export") && analyticsApi.includes("exportOperationalAnalyticsCsv"), "analytics Module must export operational analytics CSV");
-  assert(analyticsApi.includes("/api/v1/admin/operational-alert-rules/upsert") && analyticsApi.includes("upsertOperationalAlertRule"), "analytics Module must configure operational alert rules through backend Interface");
-  assert(analyticsApi.includes("/api/v1/jobs/operational-alerts") && analyticsApi.includes("runOperationalAlertJob"), "analytics Module must run the operational alert job Interface");
-  assert(analyticsPage.includes("stages") && analyticsPage.includes("bottlenecks") && analyticsPage.includes("recentActivity"), "analytics page must expose funnel stages, bottlenecks, and recent activity");
-  assert(analyticsPage.includes("useAdminAccess") && analyticsPage.includes("canConfigWrite") && analyticsPage.includes("requireConfigWrite"), "analytics page must gate alert write actions through admin access Interface");
-  assert(analyticsPage.includes("alerts") && analyticsPage.includes("trend") && analyticsPage.includes("downloadCsv") && analyticsPage.includes("autoRefresh"), "analytics page must expose alerts, trend, CSV export and auto refresh");
-  assert(analyticsPage.includes("retentionSegments") && analyticsPage.includes("funnelBars") && analyticsPage.includes("trendSeriesRows") && analyticsPage.includes("segmentBars"), "analytics page must expose chart and segment retention views");
-  assert(analyticsPage.includes("alertRuleForm") && analyticsPage.includes("submitAlertRule") && analyticsPage.includes("previewAlertJob") && analyticsPage.includes("executeAlertJob"), "analytics page must expose alert threshold and job controls");
-  assert(
-    analyticsPage.includes("ownerRole") &&
-      analyticsPage.includes("ownerContact") &&
-      analyticsPage.includes("routeKey") &&
-      analyticsPage.includes("externalRef") &&
-      analyticsPage.includes("error") &&
-      analyticsPage.includes("ADAPTER_RETRY_EXHAUSTED") &&
-      analyticsPage.includes("LIFECYCLE_SETTLEMENT_JOB_FAILED") &&
-      analyticsPage.includes("LIFECYCLE_SETTLEMENT_JOB_STALLED") &&
-      analyticsPage.includes("CONSULTATION_SLA_OVERDUE") &&
-      analyticsPage.includes("CONSULTATION_SLA_ESCALATION"),
-    "analytics page must expose alert owner routing controls, lifecycle settlement job targets and consultation SLA targets",
-  );
-  assert(analyticsPage.includes("campaignId") && analyticsPage.includes("dateFrom") && analyticsPage.includes("dateTo"), "analytics page must expose campaign and date filters");
-  assert(auditApi.includes("/api/v1/admin/audit-logs"), "audit Module must read the backend audit log Interface");
-  assert(auditPage.includes("<el-drawer") && auditPage.includes("request_id") && auditPage.includes("BATCH_MANUAL_REVIEW_RESOLVE") && auditPage.includes("REWARD_DELIVERY_BATCH_EXECUTE"), "audit page must expose searchable audit detail");
-  assert(releaseApi.includes("/api/v1/admin/release-record") && releaseApi.includes("fetchReleaseRecord"), "release Module must read the release record Interface");
-  assert(releaseApi.includes("/api/v1/admin/launch-readiness") && releaseApi.includes("fetchLaunchReadiness"), "release Module must read the launch readiness Interface");
-  assert(releaseApi.includes("/api/v1/admin/action-adapter-calibration") && releaseApi.includes("fetchActionAdapterCalibration"), "release Module must read the action adapter calibration Interface");
-  assert(releaseApi.includes("/api/v1/admin/cloudbase-identity-probe") && releaseApi.includes("X-WX-OPENID") && releaseApi.includes("X-WX-UNIONID"), "release Module must run the CloudBase identity probe Interface");
-  assert(releasePage.includes("probeForm") && releasePage.includes("runProbe") && releasePage.includes("readyForUnionPrimaryKey"), "release page must expose CloudBase identity probe controls");
-  assert(releasePage.includes("releaseBlockers") && releasePage.includes("readinessChecks") && releasePage.includes("productionEnvMatrix"), "release page must expose release blockers, readiness checks, and production env matrix status");
-  assert(releasePage.includes("actionAdapterCalibrationGate") && releasePage.includes("外部动作 Adapter 校准") && releasePage.includes("actionAdapterCalibrationActions"), "release page must expose action adapter calibration readiness");
-  assert(releasePage.includes("productionEvidenceIntake") && releasePage.includes("生产证据收口") && releasePage.includes("productionEvidenceItems"), "release page must expose production evidence intake readiness");
-  assert(releasePage.includes("legacyMigrationGate") && releasePage.includes("旧数据迁移评估") && releasePage.includes("legacyMigrationRows") && releasePage.includes("submitLegacyDecision") && releasePage.includes("submitLegacyExecution"), "release page must expose legacy data migration assessment, decision recording, and execution history recording");
-  assert(releaseApi.includes("/api/v1/admin/legacy-data-migration-decisions") && releaseApi.includes("recordLegacyDataMigrationDecision"), "release Module must record legacy data migration decisions through backend Interface");
-  assert(releaseApi.includes("/api/v1/admin/legacy-data-migration-executions") && releaseApi.includes("recordLegacyDataMigrationExecution"), "release Module must record legacy data migration execution history through backend Interface");
-  assert(releaseApi.includes("/api/v1/admin/admin-legacy-deprecation-decisions") && releaseApi.includes("recordAdminLegacyDeprecationDecision"), "release Module must record admin legacy deprecation decisions through backend Interface");
-  assert(releasePage.includes("adminLegacyDecisionForm") && releasePage.includes("submitAdminLegacyDecision") && releasePage.includes("下线决策"), "release page must expose admin legacy deprecation decision recording");
-  assert(releasePage.includes("cloudbaseStoreGate") && releasePage.includes("CloudBase Store 决策") && releasePage.includes("cloudbaseStoreChecks"), "release page must expose CloudBase Store decision readiness");
-  assert(releasePage.includes("rootMemberCenterGate") && releasePage.includes("Root 会员中心购买跳转") && releasePage.includes("rootMemberCenterProducts") && releasePage.includes("submitRootJumpProof"), "release page must expose Root member center purchase jump readiness and proof recording");
-  assert(releaseApi.includes("/api/v1/admin/production-cutover-proofs") && releasePage.includes("生产切换 Gate"), "release Module must expose production cutover proof controls");
-  assert(releasePage.includes("cutoverProofSubmissionDisabled") && releasePage.includes("VERIFIED 必填"), "release page must block proof submission without required evidence");
-  assert(releasePage.includes("proofScope") && releasePage.includes("releaseVersion") && releasePage.includes("绑定版本"), "release page must expose production proof scope and release binding");
-  assert(releaseApi.includes("/api/v1/admin/root-member-center-jump-proofs") && releaseApi.includes("recordRootMemberCenterJumpProof"), "release Module must record Root member center jump proofs through backend Interface");
-  assert(lifecycleApi.includes("/api/v1/admin/lifecycle-users"), "lifecycle Module must read the backend lifecycle Interface");
-  assert(lifecycleApi.includes("/api/v1/admin/lifecycle-users/export") && lifecycleApi.includes("exportLifecycleUsersCsv"), "lifecycle Module must export filtered lifecycle CSV");
-  assert(lifecycleApi.includes("/api/v1/admin/consultation-wework-writebacks") && lifecycleApi.includes("recordConsultationWeworkWriteback"), "lifecycle Module must record consultation WeWork writeback through backend Interface");
-  assert(lifecycleApi.includes("/api/v1/admin/consultation-advisor-assignments") && lifecycleApi.includes("assignConsultationAdvisor"), "lifecycle Module must assign consultation advisors through backend Interface");
-  assert(lifecycleApi.includes("/api/v1/admin/consultation-sla") && lifecycleApi.includes("fetchConsultationSla"), "lifecycle Module must read consultation SLA through backend Interface");
-  assert(lifecycleApi.includes("/api/v1/admin/consultation-sla-escalations") && lifecycleApi.includes("fetchConsultationSlaEscalations"), "lifecycle Module must read consultation SLA escalations through backend Interface");
-  assert(lifecycleApi.includes("/api/v1/admin/consultation-advisor-workbench") && lifecycleApi.includes("fetchConsultationAdvisorWorkbench"), "lifecycle Module must read consultation advisor workbench through backend Interface");
-  assert(
-    lifecycleApi.includes("/api/v1/admin/lifecycle-user-exports") &&
-      lifecycleApi.includes("/api/v1/admin/lifecycle-user-exports/create") &&
-      lifecycleApi.includes("/api/v1/admin/lifecycle-user-exports/review") &&
-      lifecycleApi.includes("/api/v1/admin/lifecycle-user-exports/deliver") &&
-      lifecycleApi.includes("/download") &&
-      lifecycleApi.includes("fetchLifecycleUserExports") &&
-      lifecycleApi.includes("createLifecycleUserExport") &&
-      lifecycleApi.includes("reviewLifecycleUserExport") &&
-      lifecycleApi.includes("deliverLifecycleUserExport") &&
-      lifecycleApi.includes("downloadLifecycleUserExportCsv"),
-    "lifecycle Module must expose scheduled lifecycle export records through backend Interface",
-  );
-  assert(
-      lifecycleApi.includes("/api/v1/admin/lifecycle-filter-presets") &&
-      lifecycleApi.includes("/api/v1/admin/lifecycle-filter-presets/upsert") &&
-      lifecycleApi.includes("/api/v1/admin/lifecycle-filter-presets/copy") &&
-      lifecycleApi.includes("/api/v1/admin/lifecycle-filter-presets/delete") &&
-      lifecycleApi.includes("fetchLifecycleFilterPresets") &&
-      lifecycleApi.includes("upsertLifecycleFilterPreset") &&
-      lifecycleApi.includes("copyLifecycleFilterPreset") &&
-      lifecycleApi.includes("deleteLifecycleFilterPreset"),
-    "lifecycle Module must persist operator filter presets through backend Interface",
-  );
-  assert(
-    lifecyclePage.includes("teamShared") &&
-      lifecyclePage.includes("presetForm.pinned") &&
-      lifecyclePage.includes("sortOrder") &&
-      lifecyclePage.includes("copySelectedPreset") &&
-      lifecyclePage.includes("selectedPresetReadonly") &&
-      lifecyclePage.includes("presetOptionLabel"),
-    "lifecycle Module must expose team shared, pinned, sorted, copyable filter presets with readonly protection",
-  );
-  assert(
-      lifecyclePage.includes("sensitivityLabel") &&
-      lifecyclePage.includes("字段策略") &&
-      lifecyclePage.includes("字段默认脱敏") &&
-      lifecyclePage.includes("approvalLabel") &&
-      lifecyclePage.includes("deliveryLabel") &&
-      lifecyclePage.includes("reviewLifecycleExport") &&
-      lifecyclePage.includes("deliverLifecycleExportRecord") &&
-      lifecyclePage.includes("DATA_EXPORT_APPROVE"),
-    "lifecycle Module must expose lifecycle export field sensitivity, approval and delivery status",
-  );
-  assert(
-    lifecyclePage.includes("questionnaireSummary") &&
-      lifecyclePage.includes("新版问卷答卷") &&
-      lifecyclePage.includes("answerSummary"),
-    "lifecycle Module must expose new questionnaire answers in user detail",
-  );
-  assert(
-    lifecycleApi.includes("/api/v1/admin/settlement/batch-preview") &&
-      lifecycleApi.includes("/api/v1/admin/settlement/batch-execute") &&
-      lifecycleApi.includes("previewLifecycleSettlementBatch") &&
-      lifecycleApi.includes("executeLifecycleSettlementBatch"),
-    "lifecycle Module must route current results into settlement batch Interface",
-  );
-  assert(
-    lifecycleApi.includes("/api/v1/admin/lifecycle-users/settlement-batch-preview") &&
-      lifecycleApi.includes("/api/v1/admin/lifecycle-users/settlement-batch-execute") &&
-      lifecycleApi.includes("previewLifecycleFilterSettlementBatch") &&
-      lifecycleApi.includes("executeLifecycleFilterSettlementBatch"),
-    "lifecycle Module must route filtered results into settlement batch Interface",
-  );
-  assert(
-    lifecycleApi.includes("/api/v1/admin/lifecycle-settlement-jobs") &&
-      lifecycleApi.includes("/api/v1/admin/lifecycle-settlement-jobs/create") &&
-      lifecycleApi.includes("/api/v1/admin/lifecycle-settlement-jobs/run") &&
-      lifecycleApi.includes("/api/v1/admin/lifecycle-settlement-jobs/cancel") &&
-    lifecycleApi.includes("/api/v1/admin/lifecycle-settlement-jobs/retry-failed") &&
-      lifecycleApi.includes("/api/v1/jobs/lifecycle-settlement-due") &&
-      lifecycleApi.includes("/api/v1/jobs/lifecycle-settlement-cleanup") &&
-      lifecycleApi.includes("fetchLifecycleSettlementJobs") &&
-      lifecycleApi.includes("createLifecycleSettlementJob") &&
-      lifecycleApi.includes("runLifecycleSettlementJob") &&
-      lifecycleApi.includes("cancelLifecycleSettlementJob") &&
-      lifecycleApi.includes("retryFailedLifecycleSettlementJob") &&
-      lifecycleApi.includes("runLifecycleSettlementScheduler") &&
-      lifecycleApi.includes("runLifecycleSettlementCleanup"),
-    "lifecycle Module must expose settlement job queue, scheduler, and cleanup Interface",
-  );
-  assert(lifecyclePage.includes("<el-drawer") && lifecyclePage.includes("<el-progress") && lifecyclePage.includes("unionidStatus"), "lifecycle page must expose identity, progress, and detail views");
-  assert(lifecyclePage.includes("consultationSummary") && lifecyclePage.includes("pendingConsultations"), "lifecycle page must expose consultation follow-up status");
-  assert(lifecyclePage.includes("consultationSla") && lifecyclePage.includes("loadConsultationSlaForSelected") && lifecyclePage.includes("slaOverdueMinutes"), "lifecycle page must expose consultation SLA status and refresh controls");
-  assert(lifecyclePage.includes("advisorWorkbench") && lifecyclePage.includes("openAdvisorWorkbench") && lifecyclePage.includes("selectAdvisorWorkbenchAdvisor"), "lifecycle page must expose consultation advisor workbench summary and advisor filters");
-  assert(lifecyclePage.includes("consultationEscalations") && lifecyclePage.includes("loadConsultationEscalations") && lifecyclePage.includes("escalationAction"), "lifecycle page must expose consultation SLA escalation chain");
-  assert(lifecyclePage.includes("advisorAssignmentForm") && lifecyclePage.includes("submitAdvisorAssignment") && lifecyclePage.includes("assignmentMode") && lifecyclePage.includes("REVIEW_RESOLVE"), "lifecycle page must expose consultation advisor assignment controls gated by review capability");
-  assert(lifecyclePage.includes("weworkWritebackForm") && lifecyclePage.includes("submitWeworkWriteback") && lifecyclePage.includes("WEWORK_CONTACT_WRITEBACK") && lifecyclePage.includes("REVIEW_RESOLVE"), "lifecycle page must expose consultation WeWork writeback controls gated by review capability");
-  assert(
-    lifecyclePage.includes("campaignId") &&
-      lifecyclePage.includes("taskProgress") &&
-      lifecyclePage.includes("consultationStatus") &&
-      lifecyclePage.includes("settlementStatus") &&
-      lifecyclePage.includes("rewardStatus") &&
-      lifecyclePage.includes("openTasks") &&
-      lifecyclePage.includes("resetFilters") &&
-      lifecyclePage.includes("downloadCsv") &&
-      lifecyclePage.includes("exportLoading") &&
-      lifecyclePage.includes("createLifecycleUserExportRecord") &&
-      lifecyclePage.includes("loadLifecycleUserExports") &&
-      lifecyclePage.includes("downloadStoredLifecycleExport") &&
-      lifecyclePage.includes("lifecycleExportDrawerVisible") &&
-      lifecyclePage.includes("exportRecordLoading") &&
-      lifecyclePage.includes("filterPresets") &&
-      lifecyclePage.includes("saveCurrentPreset") &&
-      lifecyclePage.includes("applySelectedPreset") &&
-      lifecyclePage.includes("deleteSelectedPreset") &&
-      lifecyclePage.includes("previewBatchSettlement") &&
-      lifecyclePage.includes("executeBatchSettlement") &&
-      lifecyclePage.includes("previewFilterBatchSettlement") &&
-      lifecyclePage.includes("executeFilterBatchSettlement") &&
-      lifecyclePage.includes("selectionLimit") &&
-      lifecyclePage.includes("batchSize") &&
-      lifecyclePage.includes("createFilterSettlementJob") &&
-      lifecyclePage.includes("loadSettlementJobs") &&
-      lifecyclePage.includes("runSettlementJob") &&
-      lifecyclePage.includes("cancelSettlementJob") &&
-      lifecyclePage.includes("retrySettlementJob") &&
-      lifecyclePage.includes("previewSettlementScheduler") &&
-      lifecyclePage.includes("executeSettlementScheduler") &&
-      lifecyclePage.includes("previewSettlementCleanup") &&
-      lifecyclePage.includes("executeSettlementCleanup") &&
-      lifecyclePage.includes("settlementSchedulerResult") &&
-      lifecyclePage.includes("settlementCleanupResult") &&
-      lifecyclePage.includes("settlementJobDrawerVisible") &&
-      lifecyclePage.includes("SETTLEMENT_EXECUTE") &&
-      lifecyclePage.includes("batchSettlementResult"),
-    "lifecycle page must expose complete operational filters, CSV export, settlement batch actions and queue actions",
-  );
-  assert(!page.includes("localStorage.setItem(\"rootUsers\""), "admin page must not store backend domain data directly");
+const activityApi = read("src/modules/activities/adminActivityApi.js");
+const activityPage = read("src/modules/activities/ActivityManagementPage.vue");
+const registrationsPage = read("src/modules/activities/ActivityRegistrationsPage.vue");
+for (const route of [
+  "/api/v1/admin/formal-activities",
+  "/api/v1/admin/formal-activities/draft",
+  "/api/v1/admin/activity-enrollments/query",
+  "/api/v1/admin/activity-enrollments/export",
+]) assert.equal(activityApi.includes(route), true, `activity query module must include ${route}`);
+assert.equal(activityApi.includes("postAdminRead"), true, "activity phone search must avoid URL query logging");
+for (const value of ["活动主视觉", "180KB", "报名规则", "发布共用详情", "报名时段", "AbortController"]) {
+  assert.equal(activityPage.includes(value), true, `activity management must include ${value}`);
+}
+for (const value of ["手机号", "默认脱敏", "不显示会员资产或健康答案", "查看状态审计", "导出当前名单", "AbortController"]) {
+  assert.equal(registrationsPage.includes(value), true, `activity registrations must include ${value}`);
 }
 
-function main() {
-  for (const file of requiredFiles) {
-    assert(fs.existsSync(path.join(adminRoot, file)), `missing required file: ${file}`);
-  }
-  validatePackage();
-  validateSourceContracts();
-  process.stdout.write("admin validation ok\n");
+const healthApi = read("src/modules/health/adminHealthApi.js");
+const initializationPage = read("src/modules/health/InitializationPage.vue");
+const scalePage = read("src/modules/health/ScaleManagementPage.vue");
+const recommendationPage = read("src/modules/health/RecommendationRulesPage.vue");
+const lifestylePage = read("src/modules/health/LifestyleAdvicePage.vue");
+for (const route of [
+  "/api/v1/admin/formal-health/initialization",
+  "/api/v1/admin/formal-health/initialization/draft",
+  "/api/v1/admin/formal-health/initialization/publish",
+  "/api/v1/admin/formal-health/scales",
+  "/api/v1/admin/formal-health/scales/draft",
+  "/api/v1/admin/formal-health/scales/publish",
+  "/api/v1/admin/formal-health/recommendation-rules",
+  "/api/v1/admin/formal-health/recommendation-rules/draft",
+  "/api/v1/admin/formal-health/recommendation-rules/publish",
+  "/api/v1/admin/formal-health/lifestyle-advice",
+  "/api/v1/admin/formal-health/lifestyle-advice/draft",
+  "/api/v1/admin/formal-health/lifestyle-advice/publish",
+]) assert.equal(healthApi.includes(route), true, `health Interface must include ${route}`);
+for (const value of ["12 问", "安全分流", "固定指引版本", "联合签署", "发布当前草稿", "expectedRevision", "AbortController", "300"]) {
+  assert.equal(initializationPage.includes(value), true, `initialization page must include ${value}`);
+}
+for (const value of ["题目与选项", "计分与结果分层", "适用与版本", "建议内容版本", "确认发布", "expectedRevision", "100", "20 题", "AbortController"]) {
+  assert.equal(scalePage.includes(value), true, `scale page must include ${value}`);
+}
+for (const value of ["主分类", "辅助标签", "不使用手机号、昵称或原始健康答案", "最多 3", "已发布且有效", "确认发布", "expectedRevision", "AbortController"]) {
+  assert.equal(recommendationPage.includes(value), true, `recommendation page must include ${value}`);
+}
+for (const value of ["模型配置", "不输入或显示模型密钥", "最少字段", "三条轮换", "固定降级内容", "健康安全", "确认发布", "expectedRevision", "AbortController"]) {
+  assert.equal(lifestylePage.includes(value), true, `lifestyle page must include ${value}`);
+}
+for (const forbidden of ["apiKey", "apiSecret", "modelSecret", "type=\"password\""]) {
+  assert.equal(lifestylePage.includes(forbidden), false, `lifestyle page must not expose ${forbidden}`);
 }
 
-try {
-  main();
-} catch (error) {
-  process.stderr.write(`admin validation failed: ${error.message}\n`);
-  process.exitCode = 1;
+const userApi = read("src/modules/users/adminUserQueryApi.js");
+const userPage = read("src/modules/users/UserQueryPage.vue");
+assert.equal(userApi.includes("postAdminRead"), true);
+assert.equal(userApi.includes("/api/v1/admin/formal-users/query"), true);
+assert.equal(userPage.includes("^1\\d{10}$"), true);
+for (const value of ["maskedPhone", "rootUserId", "profileComplete", "accountStatus"]) {
+  assert.equal(userPage.includes(value), true, `user query must show ${value}`);
 }
+for (const value of ["task", "reward", "settlement", "birthDate", "gender"]) {
+  assert.equal(userPage.includes(value), false, `user query must not include legacy/private field ${value}`);
+}
+
+const auditPage = read("src/modules/audit/AuditLogPage.vue");
+for (const value of ["BATCH_SETTLEMENT_EXECUTE", "REWARD_DELIVERY_BATCH_EXECUTE", "PUBLISH_CAMPAIGN_RULE_VERSION"]) {
+  assert.equal(auditPage.includes(value), false, `audit filters must not prescribe ${value}`);
+}
+
+console.log("admin validation ok");

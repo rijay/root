@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "我的"
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "root-wordmark": "/components/root-wordmark/index"
+  }
 }

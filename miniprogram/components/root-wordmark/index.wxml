@@ -1,0 +1,4 @@
+<view class="root-wordmark" role="img" aria-label="Root">
+  <image wx:if="{{tone === 'light'}}" class="root-wordmark__source" src="/static/brand/root-logo-horizontal-light.png" mode="heightFix" />
+  <image wx:else class="root-wordmark__source" src="/static/brand/root-logo-horizontal.png" mode="heightFix" />
+</view>
