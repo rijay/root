@@ -31,9 +31,7 @@ const {
   requireAdminCapability,
 } = require("./adminAccessControl");
 const {
-  adminLaunchReadiness,
   archiveActivity,
-  archiveReleaseEvidencePack,
   cancelActivityEnrollment,
   cancelActivitySession,
   createActivitySession,
@@ -52,8 +50,6 @@ const {
   getFormalContentAction,
   getFormalProfile,
   getPrivacyNotice,
-  getReleaseEvidenceArchive,
-  getReleaseEvidencePack,
   getReleaseRecord,
   getUserState,
   enrollActivity,
@@ -73,23 +69,16 @@ const {
   listAdminContentSharedDetails,
   listFormalHomeContent,
   listFormalWelcomeContent,
-  listAdminLegacyDeprecationDecisions,
   listAuditLogs,
-  listProductionCutoverProofs,
-  listRootMemberCenterJumpProofs,
   publishActivity,
   publishAdminFormalHealthInitialization,
   publishAdminFormalHealthLifestyleAdvice,
   publishAdminFormalHealthRecommendationRule,
   publishAdminFormalHealthScale,
   publishAdminContentCandidate,
-  recordAdminLegacyDeprecationDecision,
-  recordProductionCutoverProof,
-  recordRootMemberCenterJumpProof,
   recordHealthConsentDecision,
   requestActivityChanges,
   reviewActivityEnrollment,
-  signReleaseRecord,
   stableRootUserIdForToken,
   runHealthDataRetentionCleanup,
   submitFormalProfile,
@@ -1305,9 +1294,6 @@ function createApp(options = {}) {
         }, { ...runtimeContext, adminPrincipal, requestId }), requestId);
         return ok(res, { code: 0, message: "ok", data: result });
       }
-      if (route === "GET /api/v1/admin/launch-readiness") {
-        return ok(res, adminLaunchReadiness(data, { ...runtimeContext, target: url.searchParams.get("target") || "production" }));
-      }
       if (route === "POST /api/v1/admin/formal-users/query") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
         return ok(res, {
@@ -1524,81 +1510,6 @@ function createApp(options = {}) {
       }
       if (route === "GET /api/v1/admin/release-record") {
         return ok(res, getReleaseRecord(data, { ...runtimeContext, target: url.searchParams.get("target") || "production" }));
-      }
-      if (route === "GET /api/v1/admin/release-evidence-pack") {
-        return ok(res, getReleaseEvidencePack(data, {
-          ...runtimeContext,
-          target: url.searchParams.get("target") || "production",
-          baseUrl: url.searchParams.get("baseUrl") || "",
-          strict: ["1", "true", "yes"].includes(String(url.searchParams.get("strict") || "").toLowerCase()),
-        }));
-      }
-      if (route === "GET /api/v1/admin/release-evidence-pack/archive") {
-        const archiveId = url.searchParams.get("archiveId") || url.searchParams.get("archive_id") || "";
-        if (!archiveId) throw Object.assign(new Error("archiveId 必填"), { code: 400 });
-        return ok(res, getReleaseEvidenceArchive(data, archiveId));
-      }
-      if (route === "POST /api/v1/admin/release-evidence-pack/archive") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => archiveReleaseEvidencePack(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, {
-          ...runtimeContext,
-          target: body.target || "production",
-          baseUrl: body.baseUrl || "",
-          strict: Boolean(body.strict),
-        }), requestId));
-      }
-      if (route === "POST /api/v1/admin/release-signoffs") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => signReleaseRecord(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }), requestId));
-      }
-      if (route === "GET /api/v1/admin/admin-legacy-deprecation-decisions") {
-        return ok(res, listAdminLegacyDeprecationDecisions(data, Object.fromEntries(url.searchParams)));
-      }
-      if (route === "POST /api/v1/admin/admin-legacy-deprecation-decisions") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => recordAdminLegacyDeprecationDecision(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }), requestId));
-      }
-      if (route === "GET /api/v1/admin/production-cutover-proofs") {
-        return ok(res, listProductionCutoverProofs(data, Object.fromEntries(url.searchParams)));
-      }
-      if (route === "POST /api/v1/admin/production-cutover-proofs") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => recordProductionCutoverProof(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-          releaseVersion: runtimeMetadata.version,
-          releaseId: runtimeMetadata.releaseId,
-          releaseIdConfigured: runtimeMetadata.releaseIdConfigured,
-        }), requestId));
-      }
-      if (route === "GET /api/v1/admin/root-member-center-jump-proofs") {
-        return ok(res, listRootMemberCenterJumpProofs(data, Object.fromEntries(url.searchParams)));
-      }
-      if (route === "POST /api/v1/admin/root-member-center-jump-proofs") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => recordRootMemberCenterJumpProof(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }), requestId));
       }
       if (route === "GET /api/v1/admin/audit-logs") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.AUDIT_READ);

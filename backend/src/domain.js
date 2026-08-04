@@ -61,10 +61,6 @@ const healthDataRetention = require("./healthDataRetention");
 const privacyConsent = require("./privacyConsent");
 const profileModule = require("./profileModule");
 const questionnaire = require("./questionnaire");
-const releaseEvidenceArchive = require("./releaseEvidenceArchive");
-const releaseEvidencePack = require("./releaseEvidencePack");
-const releaseRecord = require("./releaseRecord");
-const releaseSignoff = require("./releaseSignoff");
 const rootMemberCenterJumpProof = require("./rootMemberCenterJumpProof");
 const sessionModule = require("./sessionModule");
 const refundWorkItem = require("./refundWorkItem");
@@ -72,11 +68,6 @@ const { fetchWechatJson } = require("./wechatHttp");
 const { resolveWechatAccessToken } = require("./wechatAccessToken");
 const weworkTouch = require("./weworkTouch");
 const youzanCustomerMirror = require("./youzanCustomerMirror");
-const { buildProductionEnvMatrix } = require("./productionEnvMatrix");
-const {
-  buildCloudbaseJobManifest,
-  validateCloudbaseJobManifest,
-} = require("../scripts/cloudbase-job-manifest");
 const { createId, createSeedData } = require("./seed");
 const { isProtectedRuntime, sessionTokenDigest } = require("./credentialProtection");
 const {
@@ -2523,85 +2514,19 @@ function getActionAdapterCalibration(data, context = {}) {
 }
 
 function getReleaseRecord(data, context = {}) {
-  const record = releaseRecord.buildReleaseRecord(data, {
-    ...context,
-    env: context.env || process.env,
-    adapterImplementations: context.adapterImplementations || {},
-    fetchImpl: context.fetchImpl,
+  const contentRelease = contentModule.buildReleaseSummary(data, context);
+  const status = contentRelease.blockerCount > 0
+    ? "BLOCKED"
+    : contentRelease.status === "EMPTY" || (contentRelease.draftCount > 0 && contentRelease.previewStatus !== "COMPLETED")
+      ? "NEEDS_REVIEW"
+      : "READY";
+  return response({
+    title: "myRoot 内容发布记录",
+    status,
     target: context.target || "production",
+    generatedAt: nowISO(),
+    contentRelease,
   });
-  return response({ ...record, contentRelease: contentModule.buildReleaseSummary(data, context) });
-}
-
-function getReleaseEvidencePack(data, context = {}) {
-  const env = context.env || process.env;
-  const target = context.target || "production";
-  const baseUrl = context.baseUrl || env.ROOT_RELEASE_EVIDENCE_BASE_URL || env.ROOT_PUBLIC_BASE_URL || env.ROOT_JOB_BASE_URL || "";
-  const release = releaseRecord.buildReleaseRecord(data, {
-    ...context,
-    env,
-    adapterImplementations: context.adapterImplementations || {},
-    fetchImpl: context.fetchImpl,
-    target,
-  });
-  const calibration = adapterCalibration.buildAdapterCalibration(data, {
-    env,
-    adapterImplementations: context.adapterImplementations || {},
-    fetchImpl: context.fetchImpl,
-  });
-  const actionCalibration = actionAdapterCalibration.buildActionAdapterCalibration(data, {
-    env,
-    target,
-  });
-  const productionEnvMatrix = buildProductionEnvMatrix(env, { target });
-  const cloudbaseJobManifest = buildCloudbaseJobManifest({ baseUrl, env });
-  const cloudbaseJobValidation = validateCloudbaseJobManifest(cloudbaseJobManifest, { strict: Boolean(context.strict) });
-  const pack = releaseEvidencePack.buildReleaseEvidencePack({
-    target,
-    baseUrl,
-    releaseRecord: release,
-    adapterCalibration: calibration,
-    actionAdapterCalibration: actionCalibration,
-    productionEnvMatrix,
-    cloudbaseJobManifest,
-    cloudbaseJobValidation,
-  });
-  return response({
-    pack,
-    validation: releaseEvidencePack.validateReleaseEvidencePack(pack),
-    archives: releaseEvidenceArchive.listReleaseEvidenceArchives(data, { target }),
-  });
-}
-
-function archiveReleaseEvidencePack(data, input = {}, context = {}) {
-  const bundle = getReleaseEvidencePack(data, context).data;
-  const result = releaseEvidenceArchive.saveReleaseEvidenceArchive(data, {
-    pack: bundle.pack,
-    validation: bundle.validation,
-    requestId: input.requestId || input.request_id,
-    operatorId: input.operatorId || input.operator_id,
-    note: input.note,
-  });
-  return response(result);
-}
-
-function getReleaseEvidenceArchive(data, archiveId) {
-  const archive = releaseEvidenceArchive.getReleaseEvidenceArchive(data, archiveId);
-  if (!archive) {
-    const error = new Error("发布证据包留档不存在");
-    error.code = 404;
-    error.status = 404;
-    throw error;
-  }
-  return response({
-    archive: releaseEvidenceArchive.archiveSummary(archive),
-    pack: archive.pack,
-    validation: archive.validation || {},
-  });
-}
-
-function signReleaseRecord(data, input = {}) {
-  return response(releaseSignoff.createReleaseSignoff(data, input));
 }
 
 function listAdminLegacyDeprecationDecisions(data, query = {}) {
@@ -3066,7 +2991,6 @@ function adminDashboard(data, context = {}) {
       target: context.target || "production",
     }),
     launchReadiness: launchReadiness.buildLaunchReadiness(data, { ...context, target: context.target || "production" }),
-    releaseRecord: releaseRecord.buildReleaseRecord(data, { ...context, target: context.target || "production" }),
   });
 }
 
@@ -3140,7 +3064,6 @@ module.exports = {
   applyCorrection,
   applyRefund,
   archiveActivity,
-  archiveReleaseEvidencePack,
   approveRefund,
   claimCoupon,
   completeOperationTask,
@@ -3199,8 +3122,6 @@ module.exports = {
   getAdapterCalibration,
   getCouponStatus,
   getProduct,
-  getReleaseEvidenceArchive,
-  getReleaseEvidencePack,
   getReleaseRecord,
   getQuestionnaire,
   getQuestionnaireAnswerStatus,
@@ -3311,7 +3232,6 @@ module.exports = {
   runDueExternalAdapterRetries,
   runDueWeWorkTouches,
   runExternalAdapter,
-  signReleaseRecord,
   stableRootUserIdForToken,
   syncOrderAfterSalesBatch,
   trackEvent,

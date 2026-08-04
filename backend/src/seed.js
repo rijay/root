@@ -85,8 +85,6 @@ function createSeedData() {
     operationalAlertRules: [],
     operationalAlertRuns: [],
     operationalAlertNotifications: [],
-    releaseEvidenceArchives: [],
-    releaseSignoffs: [],
     adminLegacyDeprecationDecisions: [],
     productionCutoverProofs: [],
     rootMemberCenterJumpProofs: [],

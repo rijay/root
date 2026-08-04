@@ -323,6 +323,17 @@ test("retired task, settlement, reward, order, check-in and legacy operations HT
     ["POST", "/api/v1/admin/corrections/preview"],
     ["POST", "/api/v1/admin/corrections/apply"],
     ["POST", "/api/v1/admin/external-status-mappings"],
+    ["GET", "/api/v1/admin/launch-readiness"],
+    ["GET", "/api/v1/admin/release-evidence-pack"],
+    ["GET", "/api/v1/admin/release-evidence-pack/archive?archiveId=retired-archive"],
+    ["POST", "/api/v1/admin/release-evidence-pack/archive"],
+    ["POST", "/api/v1/admin/release-signoffs"],
+    ["GET", "/api/v1/admin/admin-legacy-deprecation-decisions"],
+    ["POST", "/api/v1/admin/admin-legacy-deprecation-decisions"],
+    ["GET", "/api/v1/admin/production-cutover-proofs"],
+    ["POST", "/api/v1/admin/production-cutover-proofs"],
+    ["GET", "/api/v1/admin/root-member-center-jump-proofs"],
+    ["POST", "/api/v1/admin/root-member-center-jump-proofs"],
   ];
   for (const [method, route] of routes) {
     const response = await request(baseUrl, route, {
@@ -344,6 +355,29 @@ test("retired task, settlement, reward, order, check-in and legacy operations HT
     const response = await textRequest(baseUrl, route, { headers });
     assert.equal(response.status, 404, `GET ${route}`);
   }
+});
+
+test("formal admin release record exposes only content publication scope", async (t) => {
+  const server = createApp({ env: {} });
+  const baseUrl = await listen(server);
+  t.after(() => server.close());
+
+  const response = await request(baseUrl, "/api/v1/admin/release-record?target=production");
+
+  assert.equal(response.code, 0);
+  assert.deepEqual(Object.keys(response.data).sort(), [
+    "contentRelease",
+    "generatedAt",
+    "status",
+    "target",
+    "title",
+  ]);
+  assert.equal(response.data.target, "production");
+  assert.equal(response.data.status, "NEEDS_REVIEW");
+  assert.equal(response.data.contentRelease.status, "EMPTY");
+  assert.equal("evidence" in response.data, false);
+  assert.equal("checklist" in response.data, false);
+  assert.equal("rollback" in response.data, false);
 });
 
 test("MySQL Store verifier accepts mysql2 JSON object payloads", async () => {
@@ -1707,7 +1741,7 @@ test("production and CloudBase admin Interface rejects unconfigured admin tokens
   assert.equal(allowed.data.tokenConfigured, true);
 });
 
-test("serves formal REST Interfaces and admin release evidence", async (t) => {
+test("serves formal REST Interfaces and Element Plus Admin assets", async (t) => {
   const tempAdminDir = fs.mkdtempSync(path.join(os.tmpdir(), "root-admin-dist-"));
   fs.mkdirSync(path.join(tempAdminDir, "assets"), { recursive: true });
   fs.writeFileSync(path.join(tempAdminDir, "index.html"), "<!doctype html><title>myRoot Admin</title><div id=\"app\"></div><script type=\"module\" src=\"/admin/assets/app.js\"></script>");
@@ -1780,266 +1814,6 @@ test("serves formal REST Interfaces and admin release evidence", async (t) => {
   assert.notEqual(cloudbaseProbe.data.unionidPreview, rawProbeUnionid);
   assert.equal(JSON.stringify(cloudbaseProbe.data).includes(rawProbeOpenid), false);
   assert.equal(JSON.stringify(cloudbaseProbe.data).includes(rawProbeUnionid), false);
-
-  const readiness = await request(baseUrl, "/api/v1/admin/launch-readiness?target=production");
-  assert.equal(readiness.code, 0);
-  assert.equal(readiness.data.target, "production");
-  assert.equal(readiness.data.status, "BLOCKED");
-  assert.ok(readiness.data.checks.some((item) => item.id === "store_adapter" && item.status === "BLOCKER"));
-
-  const releaseRecord = await request(baseUrl, "/api/v1/admin/release-record?target=gray");
-  assert.equal(releaseRecord.code, 0);
-  assert.equal(releaseRecord.data.target, "gray");
-  assert.equal(releaseRecord.data.status, "BLOCKED");
-  assert.ok(releaseRecord.data.evidence.launchReadiness.summary.total > 0);
-  assert.ok(releaseRecord.data.evidence.externalChannelReadiness.summary.alertRulesReviewed >= 1);
-  assert.ok(releaseRecord.data.evidence.externalChannelReadiness.alertOwnerRoutes.some((item) => item.targetType === "LIFECYCLE_EXPORT_DELIVERY_HEALTH"));
-  assert.ok(releaseRecord.data.evidence.externalChannelReadiness.alertOwnerRoutes.some((item) => item.targetType === "CONSULTATION_SLA_OVERDUE"));
-  assert.ok(releaseRecord.data.evidence.externalChannelReadiness.alertOwnerRoutes.some((item) => item.targetType === "CONSULTATION_SLA_ESCALATION"));
-  assert.equal(releaseRecord.data.evidence.adminTransitionReadiness.summary.readyModuleCount, 6);
-  assert.equal(releaseRecord.data.evidence.adminTransitionReadiness.summary.legacyFallbackAvailable, true);
-  assert.equal(releaseRecord.data.evidence.adminTransitionReadiness.legacyDeprecationDecision.status, "PENDING");
-  assert.equal(releaseRecord.data.evidence.adminTransitionReadiness.summary.deprecationSource, "NONE");
-  assert.equal(releaseRecord.data.evidence.productionCutoverReadiness.status, "NEEDS_REVIEW");
-  assert.equal(releaseRecord.data.evidence.productionCutoverReadiness.summary.requiredProofCount, 13);
-  assert.ok(releaseRecord.data.evidence.productionCutoverReadiness.items.some((item) => item.proofEnv === "ROOT_CUTOVER_CLOUDBASE_UNIONID_VERIFIED"));
-  assert.equal(releaseRecord.data.evidence.actionAdapterCalibration.status, "NEEDS_REVIEW");
-  assert.equal(releaseRecord.data.evidence.actionAdapterCalibration.actions.length, 1);
-  assert.equal(releaseRecord.data.evidence.productionEvidenceIntake.items.length, 12);
-  assert.equal(releaseRecord.data.evidence.cloudbaseStoreReadiness.status, "NEEDS_REVIEW");
-  assert.equal(releaseRecord.data.evidence.cloudbaseStoreReadiness.selectedDecision, "UNDECIDED");
-  assert.equal(releaseRecord.data.evidence.rootMemberCenterReadiness.status, "NEEDS_REVIEW");
-  assert.equal(releaseRecord.data.evidence.rootMemberCenterReadiness.summary.missingAppIdCount, 1);
-  assert.equal(releaseRecord.data.signoffGate.status, "NEEDS_REVIEW");
-  assert.equal(releaseRecord.data.signoffGate.summary.pendingCount, 3);
-  assert.equal(releaseRecord.data.mustFixBeforeRelease.length, releaseRecord.data.checklist.mustFixBeforeRelease.length);
-  assert.ok(releaseRecord.data.rollback.some((item) => item.includes("Store 快照")));
-
-  const evidencePack = await request(baseUrl, "/api/v1/admin/release-evidence-pack?target=gray&baseUrl=https%3A%2F%2Froot.example.com%3Ftoken%3Dsecret&strict=true");
-  assert.equal(evidencePack.code, 0);
-  assert.equal(evidencePack.data.pack.baseUrl, "https://root.example.com");
-  assert.equal(evidencePack.data.pack.status, "BLOCKED");
-  assert.equal(evidencePack.data.validation.status, "PASS");
-  assert.ok(evidencePack.data.pack.evidence.commands.some((item) => item.includes("release:evidence")));
-  assert.ok(evidencePack.data.pack.evidence.externalChannelReadiness.alertOwnerRoutes.some((item) => item.targetType === "LIFECYCLE_EXPORT_DELIVERY_HEALTH"));
-  assert.ok(evidencePack.data.pack.evidence.externalChannelReadiness.alertOwnerRoutes.some((item) => item.targetType === "CONSULTATION_SLA_OVERDUE"));
-  assert.ok(evidencePack.data.pack.evidence.externalChannelReadiness.alertOwnerRoutes.some((item) => item.targetType === "CONSULTATION_SLA_ESCALATION"));
-  assert.equal(evidencePack.data.pack.summary.signoffGateStatus, "NEEDS_REVIEW");
-  assert.equal(evidencePack.data.pack.evidence.signoffGate.summary.pendingCount, 3);
-  assert.equal(evidencePack.data.pack.evidence.adminTransitionReadiness.summary.readyModuleCount, 6);
-  assert.equal(evidencePack.data.pack.evidence.adminTransitionReadiness.legacyDeprecationDecision.status, "PENDING");
-  assert.equal(evidencePack.data.pack.summary.productionCutoverStatus, "NEEDS_REVIEW");
-  assert.equal(evidencePack.data.pack.evidence.productionCutoverReadiness.summary.requiredProofCount, 13);
-  assert.equal(evidencePack.data.pack.summary.actionAdapterCalibrationStatus, "NEEDS_REVIEW");
-  assert.equal(evidencePack.data.pack.evidence.actionAdapterCalibration.actions.length, 1);
-  assert.equal(evidencePack.data.pack.summary.productionEvidenceIntakeStatus, "BLOCKED");
-  assert.equal(evidencePack.data.pack.evidence.productionEvidenceIntake.items.length, 12);
-  assert.equal(evidencePack.data.pack.summary.cloudbaseStoreStatus, "NEEDS_REVIEW");
-  assert.equal(evidencePack.data.pack.evidence.cloudbaseStoreReadiness.selectedDecision, "UNDECIDED");
-  assert.equal(evidencePack.data.pack.summary.rootMemberCenterStatus, "NEEDS_REVIEW");
-  assert.equal(evidencePack.data.pack.evidence.rootMemberCenterReadiness.summary.missingAppIdCount, 1);
-  assert.equal(JSON.stringify(evidencePack.data).includes("token=secret"), false);
-  assert.equal(evidencePack.data.archives.length, 0);
-  const archivedPayload = {
-    target: "gray",
-    baseUrl: "https://root.example.com?token=secret",
-    strict: true,
-    note: "HTTP 灰度证据留档",
-    requestId: "http-release-evidence-archive-1",
-  };
-  const archivedEvidence = await request(baseUrl, "/api/v1/admin/release-evidence-pack/archive", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-release-evidence-archive-1" },
-    body: JSON.stringify(archivedPayload),
-  });
-  const archivedEvidenceRepeated = await request(baseUrl, "/api/v1/admin/release-evidence-pack/archive", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-release-evidence-archive-1" },
-    body: JSON.stringify(archivedPayload),
-  });
-  const archivedEvidenceDetail = await request(baseUrl, `/api/v1/admin/release-evidence-pack/archive?archiveId=${archivedEvidence.data.archive.archiveId}`);
-  const releaseSignoff = await request(baseUrl, "/api/v1/admin/release-signoffs", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-release-signoff-1" },
-    body: JSON.stringify({
-      target: "gray",
-      role: "PRODUCT",
-      status: "APPROVED",
-      archiveId: archivedEvidence.data.archive.archiveId,
-      note: "HTTP 产品确认灰度证据",
-      requestId: "http-release-signoff-1",
-    }),
-  });
-  const releaseSignoffRepeated = await request(baseUrl, "/api/v1/admin/release-signoffs", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-release-signoff-1" },
-    body: JSON.stringify({
-      target: "gray",
-      role: "PRODUCT",
-      status: "APPROVED",
-      archiveId: archivedEvidence.data.archive.archiveId,
-      note: "HTTP 产品确认灰度证据",
-      requestId: "http-release-signoff-1",
-    }),
-  });
-  const adminLegacyDecision = await request(baseUrl, "/api/v1/admin/admin-legacy-deprecation-decisions", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-admin-legacy-deprecation-decision-1" },
-    body: JSON.stringify({
-      target: "gray",
-      status: "APPROVED",
-      evidenceRef: "https://root.example.com/admin-legacy/deprecation?token=secret",
-      rollbackRef: "https://root.example.com/admin-legacy/rollback?token=secret",
-      note: "HTTP 旧后台下线批准 openid=raw-openid",
-      requestId: "http-admin-legacy-deprecation-decision-1",
-    }),
-  });
-  const adminLegacyDecisionRepeated = await request(baseUrl, "/api/v1/admin/admin-legacy-deprecation-decisions", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-admin-legacy-deprecation-decision-1" },
-    body: JSON.stringify({
-      target: "gray",
-      status: "APPROVED",
-      evidenceRef: "https://root.example.com/admin-legacy/deprecation?token=secret",
-      rollbackRef: "https://root.example.com/admin-legacy/rollback?token=secret",
-      note: "HTTP 旧后台下线批准 openid=raw-openid",
-      requestId: "http-admin-legacy-deprecation-decision-1",
-    }),
-  });
-  const adminLegacyDecisions = await request(baseUrl, "/api/v1/admin/admin-legacy-deprecation-decisions?target=gray");
-  const cutoverProofWithoutEvidence = await request(baseUrl, "/api/v1/admin/production-cutover-proofs", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-production-cutover-proof-without-evidence" },
-    body: JSON.stringify({
-      target: "production",
-      itemId: "cloudbase_unionid",
-      status: "VERIFIED",
-      requestId: "http-production-cutover-proof-without-evidence",
-    }),
-  });
-  const cutoverProof = await request(baseUrl, "/api/v1/admin/production-cutover-proofs", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-production-cutover-proof-1" },
-    body: JSON.stringify({
-      target: "gray",
-      itemId: "cloudbase_unionid",
-      status: "VERIFIED",
-      evidenceRef: "https://root.example.com/probe?token=secret",
-      note: "HTTP CloudBase unionid 脱敏探针通过 token=secret",
-      requestId: "http-production-cutover-proof-1",
-    }),
-  });
-  const releaseScopedCutoverProof = await request(baseUrl, "/api/v1/admin/production-cutover-proofs", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-production-cutover-release-proof-1" },
-    body: JSON.stringify({
-      target: "production",
-      itemId: "cloudrun_candidate_runtime",
-      status: "VERIFIED",
-      evidenceRef: "https://root.example.com/releases/candidate?token=secret",
-      releaseVersion: "0.0.0-client-spoof",
-      releaseId: "client-spoof",
-      requestId: "http-production-cutover-release-proof-1",
-    }),
-  });
-  const cutoverProofRepeated = await request(baseUrl, "/api/v1/admin/production-cutover-proofs", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-production-cutover-proof-1" },
-    body: JSON.stringify({
-      target: "gray",
-      itemId: "cloudbase_unionid",
-      status: "VERIFIED",
-      evidenceRef: "https://root.example.com/probe?token=secret",
-      note: "HTTP CloudBase unionid 脱敏探针通过 token=secret",
-      requestId: "http-production-cutover-proof-1",
-    }),
-  });
-  const cutoverProofs = await request(baseUrl, "/api/v1/admin/production-cutover-proofs?target=gray");
-  const rootJumpProof = await request(baseUrl, "/api/v1/admin/root-member-center-jump-proofs", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-root-member-center-jump-proof-1" },
-    body: JSON.stringify({
-      target: "gray",
-      productId: "ROOT_PREBIOTIC_TRIAL",
-      status: "VERIFIED",
-      appId: "wx_root_member_center",
-      path: "pages/product/detail?id=ROOT_PREBIOTIC",
-      evidenceRef: "https://root.example.com/root-member-center/jump?token=secret",
-      note: "HTTP 体验版跳转通过 openid=raw-openid",
-      requestId: "http-root-member-center-jump-proof-1",
-    }),
-  });
-  const rootJumpProofRepeated = await request(baseUrl, "/api/v1/admin/root-member-center-jump-proofs", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-root-member-center-jump-proof-1" },
-    body: JSON.stringify({
-      target: "gray",
-      productId: "ROOT_PREBIOTIC_TRIAL",
-      status: "VERIFIED",
-      appId: "wx_root_member_center",
-      path: "pages/product/detail?id=ROOT_PREBIOTIC",
-      evidenceRef: "https://root.example.com/root-member-center/jump?token=secret",
-      note: "HTTP 体验版跳转通过 openid=raw-openid",
-      requestId: "http-root-member-center-jump-proof-1",
-    }),
-  });
-  const rootJumpProofs = await request(baseUrl, "/api/v1/admin/root-member-center-jump-proofs?target=gray");
-  const signedReleaseRecord = await request(baseUrl, "/api/v1/admin/release-record?target=gray");
-  const evidencePackAfterArchive = await request(baseUrl, "/api/v1/admin/release-evidence-pack?target=gray&baseUrl=https%3A%2F%2Froot.example.com&strict=true");
-  assert.equal(archivedEvidence.code, 0);
-  assert.equal(archivedEvidence.data.archive.status, "BLOCKED");
-  assert.equal(archivedEvidence.data.archive.note, "HTTP 灰度证据留档");
-  assert.equal(archivedEvidence.data.audit.action, "RELEASE_EVIDENCE_ARCHIVE_CREATE");
-  assert.equal(archivedEvidenceRepeated.data.archive.archiveId, archivedEvidence.data.archive.archiveId);
-  assert.equal(archivedEvidenceDetail.data.archive.archiveId, archivedEvidence.data.archive.archiveId);
-  assert.equal(archivedEvidenceDetail.data.pack.status, "BLOCKED");
-  assert.equal(archivedEvidenceDetail.data.validation.status, "PASS");
-  assert.equal(releaseSignoff.code, 0);
-  assert.equal(releaseSignoff.data.signoff.status, "APPROVED");
-  assert.equal(releaseSignoff.data.signoff.archiveId, archivedEvidence.data.archive.archiveId);
-  assert.equal(releaseSignoffRepeated.data.signoff.signoffId, releaseSignoff.data.signoff.signoffId);
-  assert.equal(adminLegacyDecision.code, 0);
-  assert.equal(adminLegacyDecision.data.decision.status, "APPROVED");
-  assert.equal(adminLegacyDecision.data.decision.evidenceRef, "https://root.example.com/admin-legacy/deprecation");
-  assert.equal(adminLegacyDecision.data.decision.rollbackRef, "https://root.example.com/admin-legacy/rollback");
-  assert.equal(adminLegacyDecisionRepeated.data.decision.decisionId, adminLegacyDecision.data.decision.decisionId);
-  assert.equal(adminLegacyDecisions.data.latest[0].status, "APPROVED");
-  assert.equal(cutoverProofWithoutEvidence.code, 400);
-  assert.match(cutoverProofWithoutEvidence.message, /evidence_ref/);
-  assert.equal(cutoverProof.code, 0);
-  assert.equal(cutoverProof.data.proof.status, "VERIFIED");
-  assert.equal(cutoverProof.data.proof.evidenceRef, "https://root.example.com/probe");
-  assert.equal(releaseScopedCutoverProof.code, 0);
-  assert.equal(releaseScopedCutoverProof.data.proof.proofScope, "RELEASE");
-  assert.equal(releaseScopedCutoverProof.data.proof.releaseVersion, "0.5.13");
-  assert.equal(releaseScopedCutoverProof.data.proof.releaseId, "myroot-api-test-http");
-  assert.equal(releaseScopedCutoverProof.data.proof.releaseIdConfigured, true);
-  assert.equal(JSON.stringify(releaseScopedCutoverProof.data).includes("client-spoof"), false);
-  assert.equal(cutoverProofRepeated.data.proof.proofId, cutoverProof.data.proof.proofId);
-  assert.equal(cutoverProofs.data.latest.find((item) => item.itemId === "cloudbase_unionid").status, "VERIFIED");
-  assert.equal(rootJumpProof.code, 0);
-  assert.equal(rootJumpProof.data.proof.status, "VERIFIED");
-  assert.equal(rootJumpProof.data.proof.evidenceRef, "https://root.example.com/root-member-center/jump");
-  assert.equal(rootJumpProofRepeated.data.proof.proofId, rootJumpProof.data.proof.proofId);
-  assert.equal(rootJumpProofs.data.latest.find((item) => item.productId === "ROOT_PREBIOTIC_TRIAL").status, "VERIFIED");
-  assert.equal(signedReleaseRecord.data.signoffs.find((item) => item.role === "PRODUCT").status, "APPROVED");
-  assert.equal(signedReleaseRecord.data.signoffGate.summary.approvedCount, 1);
-  assert.equal(signedReleaseRecord.data.signoffGate.summary.pendingCount, 2);
-  assert.equal(signedReleaseRecord.data.evidence.signoffGate.summary.approvedCount, 1);
-  assert.equal(signedReleaseRecord.data.evidence.adminTransitionReadiness.legacyDeprecationDecision.status, "APPROVED");
-  assert.equal(signedReleaseRecord.data.evidence.adminTransitionReadiness.summary.deprecationSource, "RECORD");
-  assert.equal(signedReleaseRecord.data.evidence.productionEvidenceIntake.items.find((item) => item.backlogId === "T-008").status, "READY");
-  assert.equal(signedReleaseRecord.data.evidence.productionCutoverReadiness.items.find((item) => item.id === "cloudbase_unionid").proofSource, "RECORD");
-  assert.equal(evidencePackAfterArchive.data.archives.length, 1);
-  assert.equal(evidencePackAfterArchive.data.pack.evidence.signoffGate.summary.approvedCount, 1);
-  assert.equal(evidencePackAfterArchive.data.pack.evidence.productionCutoverReadiness.summary.readyProofCount, 1);
-  assert.equal(JSON.stringify(archivedEvidence.data).includes("token=secret"), false);
-  assert.equal(JSON.stringify(archivedEvidenceDetail.data).includes("token=secret"), false);
-  assert.equal(JSON.stringify(cutoverProof.data).includes("token=secret"), false);
-  assert.equal(JSON.stringify(rootJumpProof.data).includes("token=secret"), false);
-  assert.equal(JSON.stringify(rootJumpProof.data).includes("raw-openid"), false);
-  assert.equal(JSON.stringify(adminLegacyDecision.data).includes("token=secret"), false);
-  assert.equal(JSON.stringify(adminLegacyDecision.data).includes("raw-openid"), false);
 
 });
 

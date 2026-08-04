@@ -20,13 +20,6 @@ npm run deploy:prepare-admin
 
 该命令会把 `admin/dist` 复制到 `backend/public/admin-dist`。运行时也可以通过 `ROOT_ADMIN_DIST_DIR` 指定其他 Admin build 目录。
 
-本地后台启动后，可以生成发布校准报告：
-
-```bash
-npm run calibrate -- --base-url http://127.0.0.1:8788 --target gray
-npm run calibrate -- --base-url http://127.0.0.1:8788 --target production --strict
-```
-
 拿到真实导出文件后，可以批量跑样本准入：
 
 ```bash

@@ -84,8 +84,6 @@ function createEmptyData() {
   data.operationalAlertRules = [];
   data.operationalAlertRuns = [];
   data.operationalAlertNotifications = [];
-  data.releaseEvidenceArchives = [];
-  data.releaseSignoffs = [];
   data.adminLegacyDeprecationDecisions = [];
   data.productionCutoverProofs = [];
   data.rootMemberCenterJumpProofs = [];
@@ -202,10 +200,6 @@ function validateSnapshot(snapshot, options = {}) {
     ["operationalAlertRules", "alert_rule_id"],
     ["operationalAlertRuns", "operational_alert_run_id"],
     ["operationalAlertNotifications", "operational_alert_notification_id"],
-    ["releaseEvidenceArchives", "archive_id"],
-    ["releaseEvidenceArchives", "request_id"],
-    ["releaseSignoffs", "signoff_id"],
-    ["releaseSignoffs", "request_id"],
     ["adminLegacyDeprecationDecisions", "decision_id"],
     ["adminLegacyDeprecationDecisions", "request_id"],
     ["productionCutoverProofs", "proof_id"],

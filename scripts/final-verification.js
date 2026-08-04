@@ -66,6 +66,12 @@ const RETIRED_ADMIN_ROUTES = Object.freeze([
   "/api/v1/admin/imports",
   "/api/v1/admin/corrections",
   "/api/v1/admin/external-status-mappings",
+  "/api/v1/admin/launch-readiness",
+  "/api/v1/admin/release-evidence-pack",
+  "/api/v1/admin/release-signoffs",
+  "/api/v1/admin/admin-legacy-deprecation-decisions",
+  "/api/v1/admin/production-cutover-proofs",
+  "/api/v1/admin/root-member-center-jump-proofs",
 ]);
 
 const RETIRED_USER_ROUTES = Object.freeze([
