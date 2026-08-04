@@ -56,16 +56,13 @@ async function authenticateWechat({ request, phoneCode = "", onStage = () => {} 
   });
 }
 
-function showLoginFailure(message, retry) {
+function showLoginFailure(message) {
   const detail = String(message || "登录失败，请重试").trim().slice(0, 80);
   wx.showModal({
     title: "登录未完成",
-    content: `${detail}\n\n请检查网络后重新登录。`,
-    confirmText: "重新登录",
+    content: `${detail}\n\n请关闭提示后，再次点击“手机号快捷登录”重新授权。`,
+    confirmText: "知道了",
     cancelText: "稍后再试",
-    success(result) {
-      if (result && result.confirm && typeof retry === "function") retry();
-    },
   });
 }
 
