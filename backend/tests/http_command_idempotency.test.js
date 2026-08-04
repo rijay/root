@@ -20,27 +20,19 @@ async function request(baseUrl, pathname, options = {}) {
   };
 }
 
-function seedTask(data) {
-  data.users.push({
-    user_id: "usr_http_command_idempotency",
-    root_user_id: "usr_http_command_idempotency",
-    phone: "",
-    nickname: "HTTP 幂等测试用户",
-    state: "REGISTERED",
-  });
-  data.operationTasks.push({
-    task_id: "tsk_http_command_idempotency",
-    task_type: "FEEDBACK_FOLLOW",
-    user_id: "usr_http_command_idempotency",
-    order_id: "",
-    task_date: "2026-07-15",
-    status: "OPEN",
-    reason: "验证 HTTP 命令幂等",
-    metadata: {},
-    created_at: "2026-07-15T08:00:00.000Z",
-    completed_at: "",
-    result: "",
-    note: "",
+function seedContentAsset(data) {
+  data.contentAssets.push({
+    content_asset_id: "content_asset_http_idempotency",
+    scope: "welcome-1",
+    name: "welcome.png",
+    mime_type: "image/png",
+    byte_size: 68,
+    width: 1,
+    height: 1,
+    data_base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    state: "AUTHORIZED",
+    created_at: "2026-08-04T08:00:00.000Z",
+    created_by: "test",
   });
 }
 
@@ -55,11 +47,11 @@ test("HTTP write seam scopes idempotency by command, trusted actor and request d
       ROOT_COMMAND_RESULT_KEY_ID: "http-command-result-v1",
     },
   });
-  seedTask(server.store);
+  seedContentAsset(server.store);
   const baseUrl = await listen(server);
   t.after(() => server.close());
 
-  const pathname = "/api/v1/admin/tasks/tsk_http_command_idempotency/complete";
+  const pathname = "/api/v1/admin/content/welcome/draft";
   const headers = {
     "X-Admin-Token": "operator-http-idempotency-secret",
     "X-Request-Id": "http-command-idempotency-001",
@@ -67,14 +59,14 @@ test("HTTP write seam scopes idempotency by command, trusted actor and request d
   const command = {
     method: "POST",
     headers,
-    body: JSON.stringify({ status: "DONE", note: "首次完成" }),
+    body: JSON.stringify({ slot: 1, copy: "首次完成", assetId: "content_asset_http_idempotency" }),
   };
 
   const first = await request(baseUrl, pathname, command);
   const repeated = await request(baseUrl, pathname, command);
   const conflict = await request(baseUrl, pathname, {
     ...command,
-    body: JSON.stringify({ status: "DONE", note: "相同键但不同请求" }),
+    body: JSON.stringify({ slot: 1, copy: "相同键但不同请求", assetId: "content_asset_http_idempotency" }),
   });
 
   assert.equal(first.status, 200);
@@ -85,14 +77,14 @@ test("HTTP write seam scopes idempotency by command, trusted actor and request d
 
   assert.equal(server.store.commandIdempotencyRecords.length, 1);
   const [record] = server.store.commandIdempotencyRecords;
-  assert.equal(record.commandName, "TASK_COMPLETE");
+  assert.equal(record.commandName, "CONTENT_WELCOME_DRAFT_SAVE");
   assert.equal(record.actorId, "admin:operator");
   assert.equal(record.idempotencyKey, headers["X-Request-Id"]);
   assert.equal(record.attempts, 1);
   assert.equal(record.status, "SUCCEEDED");
   assert.equal(record.result.protection, "A256GCM");
   assert.doesNotMatch(JSON.stringify(record), /首次完成/);
-  assert.equal(server.store.auditLogs.filter((item) => item.action === "OPERATION_TASK_COMPLETE").length, 1);
+  assert.equal(server.store.auditLogs.filter((item) => item.action === "CONTENT_WELCOME_DRAFT_SAVE").length, 1);
   assert.equal(JSON.stringify(record).includes("operator-http-idempotency-secret"), false);
 });
 
@@ -105,22 +97,22 @@ test("protected runtime refuses an unprotected command result and rolls back bus
       }),
     },
   });
-  seedTask(server.store);
+  seedContentAsset(server.store);
   const baseUrl = await listen(server);
   t.after(() => server.close());
 
-  const response = await request(baseUrl, "/api/v1/admin/tasks/tsk_http_command_idempotency/complete", {
+  const response = await request(baseUrl, "/api/v1/admin/content/welcome/draft", {
     method: "POST",
     headers: {
       "X-Admin-Token": "operator-missing-result-key-secret",
       "X-Request-Id": "missing-command-result-key-001",
     },
-    body: JSON.stringify({ status: "DONE", note: "不得落库的结果" }),
+    body: JSON.stringify({ slot: 1, copy: "不得落库的结果", assetId: "content_asset_http_idempotency" }),
   });
 
   assert.equal(response.status, 503);
   assert.equal(response.body.code, "COMMAND_RESULT_KEY_REQUIRED");
-  assert.equal(server.store.operationTasks.find((item) => item.task_id === "tsk_http_command_idempotency").status, "OPEN");
+  assert.equal(server.store.contentVersions.length, 0);
   assert.equal(server.store.commandIdempotencyRecords[0].status, "FAILED");
   assert.deepEqual(server.store.commandIdempotencyRecords[0].error, {
     code: "COMMAND_RESULT_KEY_REQUIRED",
@@ -159,8 +151,8 @@ test("authenticated command scope follows the stable Root user across session ro
   const secondLogin = await request(baseUrl, "/api/v1/auth/login", loginOptions);
   assert.notEqual(firstLogin.body.data.token, secondLogin.body.data.token);
 
-  const pathname = "/api/v1/user/display-profile";
-  const commandBody = JSON.stringify({ nickname: "稳定主体", avatarUrl: "" });
+  const pathname = "/api/v1/user/formal-profile";
+  const commandBody = JSON.stringify({ nickname: "稳定主体", avatarUrl: "", birthDate: "1990-01-01", gender: "MALE" });
   const first = await request(baseUrl, pathname, {
     method: "POST",
     headers: {

@@ -25,26 +25,18 @@ function safeAggregateCount(value) {
   return Number.isSafeInteger(value) && value >= 0 ? value : 0;
 }
 const {
-  ADMIN_COMMANDS,
   ADMIN_CAPABILITIES,
   capabilityListForRole,
   normalizeRole,
   requireAdminCapability,
-  requireAdminCommandCapability,
 } = require("./adminAccessControl");
 const {
   adminDashboard,
   adminLaunchReadiness,
   applyCorrection,
-  applyRefund,
   archiveActivity,
   archiveReleaseEvidencePack,
-  approveRefund,
-  claimCoupon,
-  completeOperationTask,
-  confirmAdminOrderMatch,
   confirmImport,
-  continueAsDailyUser,
   cancelActivityEnrollment,
   cancelActivitySession,
   copyAdminLifecycleFilterPreset,
@@ -52,13 +44,8 @@ const {
   createActivitySession,
   createFeedbackFollowTask,
   createStore,
-  dailyHistory,
-  dailyStats,
-  dailyTrend,
   deleteAdminLifecycleFilterPreset,
   deliverAdminLifecycleUserExport,
-  executeAdminOrderIncrementSync,
-  executeAdminProductSync,
   expireActivityEnrollmentReviews,
   downloadAdminLifecycleUserExport,
   downloadSignedAdminLifecycleUserExport,
@@ -67,7 +54,6 @@ const {
   listAdminLifecycleFilterPresets,
   upsertAdminOperationalAlertRule,
   upsertAdminLifecycleFilterPreset,
-  getActiveCampaign,
   getActivityDetail,
   getActivityEnrollments,
   getActionAdapterCalibration,
@@ -85,37 +71,23 @@ const {
   getFormalContentAction,
   getFormalProfile,
   getPrivacyNotice,
-  getProfile,
   getAdapterCalibration,
-  getCouponStatus,
   getExternalAdapters,
   getExternalSampleTemplate,
   getAdminUserDetail,
   getImportBatch,
-  getProduct,
   exportImportFailuresCsv,
-  getQuestionnaire,
-  getQuestionnaireAnswerStatus,
-  getQuestionnaireStatus,
-  getReadyToStartUsers,
   getReleaseEvidenceArchive,
   getReleaseEvidencePack,
   getReleaseRecord,
-  getUserOrders,
-  getUserConsultations,
   getConsultationSla,
   getConsultationSlaEscalations,
   getConsultationAdvisorWorkbench,
-  getRecordDetail,
-  getRecordList,
-  getRefundStatus,
-  getSession,
   getUserState,
   importExternalSamples,
   enrollActivity,
   loginWithWechat,
   prepareWechatLoginExternalInputs,
-  joinCampaign,
   listActivities,
   listAdminActivityDefinitions,
   listAdminActivityEnrollments,
@@ -138,17 +110,9 @@ const {
   listAdminLifecycleUserExports,
   listAuditLogs,
   listConsultationWeworkWritebacks,
-  listOrderAfterSalesRecords,
   listWeWorkTouchJobs,
-  listProducts,
   listProductionCutoverProofs,
   listRootMemberCenterJumpProofs,
-  listOperationTasks,
-  markCouponUsed,
-  matchOrder,
-  previewAdminOrderIncrementSync,
-  previewAdminOrderMatch,
-  previewAdminProductSync,
   previewCorrection,
   previewExternalSamples,
   previewImport,
@@ -162,14 +126,11 @@ const {
   recordConsultationAdvisorAssignment,
   recordConsultationWeworkWriteback,
   recordAdminLegacyDeprecationDecision,
-  recordCouponRepurchaseClick,
   recordProductionCutoverProof,
   recordRootMemberCenterJumpProof,
-  recordProductJump,
   recordHealthConsentDecision,
   requestActivityChanges,
   rollbackExternalAdapterRun,
-  resolveManualReview,
   reviewActivityEnrollment,
   runDueExternalAdapterRetries,
   runExternalAdapter,
@@ -178,12 +139,6 @@ const {
   runDueWeWorkTouches,
   runHealthDataRetentionCleanup,
   reviewAdminLifecycleUserExportApproval,
-  searchAdminOrderMatching,
-  startCheckin,
-  syncManualOrder,
-  syncOrderAfterSalesBatch,
-  submitCheckin,
-  submitDailyCheckin,
   submitFormalProfile,
   submitFormalHealthInitialAssessment,
   submitFormalHealthScale,
@@ -198,20 +153,12 @@ const {
   validateAdminContentTarget,
   markAdminContentPreviewCompleted,
   unpublishAdminContentVersion,
-  submitProfile,
-  submitQuestionnaireAnswer,
-  submitQuestionnaire,
-  upsertOrderAfterSalesRecord,
-  trackEvent,
-  updateDisplayProfile,
-  updateOrderFulfillment,
   upsertExternalStatusMapping,
   submitActivityForReview,
   unpublishActivity,
   updateActivitySessionState,
   upsertActivityDraft,
   upsertProduct,
-  uploadImage,
 } = require("./domain");
 
 const publicDir = path.join(__dirname, "..", "public");
@@ -809,47 +756,6 @@ function hasAdminAccess(req, env = process.env, pathname = "") {
   return Boolean(getAdminPrincipal(req, env, pathname));
 }
 
-function resolveMemberCenterProductPath(env = process.env) {
-  return textEnv(
-    env,
-    "ROOT_MEMBER_CENTER_PRODUCT_PATH",
-    textEnv(env, "ROOT_YOUZAN_PRODUCT_PATH", textEnv(env, "YOUZAN_PRODUCT_PATH", textEnv(env, "YOUZAN_MINIPROGRAM_PRODUCT_PATH")))
-  );
-}
-
-function ensureDefaultMemberCenterProduct(data, context = {}) {
-  const env = context.env || process.env;
-  if (boolEnv(env.ROOT_DISABLE_MEMBER_CENTER_PRODUCT_SEED)) return false;
-  const pathValue = resolveMemberCenterProductPath(env);
-  if (!pathValue && !boolEnv(env.ROOT_MEMBER_CENTER_PRODUCT_AUTO_SEED)) return false;
-
-  const productId = textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_PRODUCT_ID", "ROOT_MEMBER_CENTER_DEFAULT");
-  const title = textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_PRODUCT_TITLE", "Root 会员中心商品");
-  const skuId = textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_SKU_ID", `${productId}_SKU`);
-  upsertProduct(data, {
-    productId,
-    title,
-    subtitle: textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_PRODUCT_SUBTITLE", "跳转 Root 会员中心购买"),
-    summary: textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_PRODUCT_SUMMARY", "myRoot 展示商品，购买在 Root 会员中心完成。"),
-    description: textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_PRODUCT_DESCRIPTION", "商品、库存、价格与优惠以 Root 会员中心展示为准。"),
-    imageUrl: textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_PRODUCT_IMAGE_URL", "/static/icon/shop.png"),
-    priceText: textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_PRODUCT_PRICE_TEXT", "以 Root 会员中心为准"),
-    status: textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_PRODUCT_STATUS", "ACTIVE"),
-    badge: textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_PRODUCT_BADGE", "Root会员中心"),
-    youzanAppId: textEnv(env, "ROOT_MEMBER_CENTER_APPID", textEnv(env, "ROOT_YOUZAN_APP_ID", textEnv(env, "YOUZAN_MINIPROGRAM_APPID"))),
-    youzanPath: pathValue,
-    campaignId: textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_CAMPAIGN_ID", "ROOT_ROADSHOW_DEFAULT"),
-    displayOrder: Number(textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_PRODUCT_DISPLAY_ORDER", "10")),
-    skus: [{
-      skuId,
-      skuName: textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_SKU_NAME", "默认规格"),
-      priceText: textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_SKU_PRICE_TEXT", "以 Root 会员中心为准"),
-      stockStatus: textEnv(env, "ROOT_MEMBER_CENTER_DEFAULT_SKU_STOCK_STATUS", "UNKNOWN"),
-    }],
-  }, context);
-  return true;
-}
-
 function adminOperatorId(principal, body = {}) {
   if (principal && principal.tokenConfigured) return principal.operatorId;
   return body.operatorId || body.operator_id || (principal ? principal.operatorId : "");
@@ -1043,11 +949,7 @@ function createApp(options = {}) {
       legacyAdminFile: path.join(publicDir, "admin.html"),
     },
   };
-  const initialPersistPromise = typeof storeAdapter.runRequest === "function"
-    ? storeAdapter.runRequest({ write: true }, () => ensureDefaultMemberCenterProduct(data, runtimeContext))
-    : ensureDefaultMemberCenterProduct(data, runtimeContext)
-      ? Promise.resolve().then(() => storeAdapter.save())
-      : Promise.resolve();
+  const initialPersistPromise = Promise.resolve();
 
   async function handleRequest(req, res, requestContext = {}) {
     const url = new URL(req.url, "http://localhost");
@@ -1249,7 +1151,6 @@ function createApp(options = {}) {
       if (route === "GET /api/v1/user/state") return ok(res, getUserState(data, token, runtimeContext));
       if (route === "GET /api/v1/privacy/health-consent") return ok(res, getHealthConsentStatus(data, token, runtimeContext));
       if (route === "POST /api/v1/privacy/health-consent") return ok(res, withIdempotency(data, req, () => recordHealthConsentDecision(data, token, body, runtimeContext)));
-      if (route === "GET /api/v1/user/profile") return ok(res, getProfile(data, token));
       if (route === "GET /api/v1/user/formal-profile") return ok(res, getFormalProfile(data, token));
       if (route === "GET /api/v1/health/root4u") return ok(res, getFormalHealthBootstrap(data, token, runtimeContext));
       if (route === "GET /api/v1/health/root4u/initial-assessment") {
@@ -1276,8 +1177,6 @@ function createApp(options = {}) {
           runtimeContext,
         )));
       }
-      if (route === "GET /api/v1/user/orders") return ok(res, getUserOrders(data, token));
-      if (route === "GET /api/v1/user/consultations") return ok(res, getUserConsultations(data, token));
       if (route === "GET /api/v1/activities") {
         return ok(res, listActivities(data, token, Object.fromEntries(url.searchParams), runtimeContext));
       }
@@ -1315,49 +1214,7 @@ function createApp(options = {}) {
           idempotencyKey
         ));
       }
-      if (route === "GET /api/v1/campaigns/active") return ok(res, getActiveCampaign(data, token, Object.fromEntries(url.searchParams), runtimeContext));
-      if (route === "POST /api/v1/campaigns/join") return ok(res, withIdempotency(data, req, () => joinCampaign(data, token, body, runtimeContext)));
-      if (route === "GET /api/v1/products") return ok(res, listProducts(data, token, Object.fromEntries(url.searchParams), runtimeContext));
-      if (method === "GET" && url.pathname.startsWith("/api/v1/products/") && url.pathname !== "/api/v1/products/jump") {
-        return ok(res, getProduct(data, token, url.pathname.split("/").pop(), runtimeContext));
-      }
-      if (route === "POST /api/v1/products/jump") return ok(res, withIdempotency(data, req, () => recordProductJump(data, token, body, runtimeContext)));
-      if (route === "POST /api/v1/user/profile") return ok(res, withIdempotency(data, req, () => submitProfile(data, token, body, runtimeContext)));
       if (route === "POST /api/v1/user/formal-profile") return ok(res, withIdempotency(data, req, () => submitFormalProfile(data, token, body)));
-      if (route === "POST /api/v1/user/display-profile") return ok(res, withIdempotency(data, req, () => updateDisplayProfile(data, token, body)));
-      if (route === "POST /api/v1/order/match") return ok(res, withIdempotency(data, req, () => matchOrder(data, token, body)));
-      if (route === "POST /api/v1/checkin/start") return ok(res, withIdempotency(data, req, () => startCheckin(data, token, body)));
-      if (route === "GET /api/v1/checkin/session") return ok(res, getSession(data, token));
-      if (route === "POST /api/v1/checkin/submit") return ok(res, withIdempotency(data, req, () => submitCheckin(data, token, body, undefined, runtimeContext)));
-      if (route === "GET /api/v1/checkin/records") return ok(res, getRecordList(data, token));
-      if (method === "GET" && url.pathname.startsWith("/api/v1/checkin/records/")) {
-        return ok(res, getRecordDetail(data, token, url.pathname.split("/").pop()));
-      }
-      if (route === "GET /api/v1/questionnaire") return ok(res, getQuestionnaire(data, token, url.searchParams.get("type")));
-      if (route === "GET /api/v1/questionnaire/answers/status") return ok(res, getQuestionnaireAnswerStatus(data, token, Object.fromEntries(url.searchParams)));
-      if (route === "POST /api/v1/questionnaire/answers") {
-        return ok(res, withIdempotency(data, req, () => submitQuestionnaireAnswer(
-          data,
-          token,
-          body,
-          undefined,
-          runtimeContext
-        )));
-      }
-      if (route === "GET /api/v1/questionnaire/status") return ok(res, getQuestionnaireStatus(data, token));
-      if (route === "POST /api/v1/questionnaire/submit") return ok(res, withIdempotency(data, req, () => submitQuestionnaire(data, token, body, undefined, runtimeContext)));
-      if (route === "POST /api/v1/refund/apply") return ok(res, withIdempotency(data, req, () => applyRefund(data, token)));
-      if (route === "GET /api/v1/refund/status") return ok(res, getRefundStatus(data, token));
-      if (route === "GET /api/v1/coupon/status") return ok(res, getCouponStatus(data, token));
-      if (route === "POST /api/v1/coupon/claim") return ok(res, withIdempotency(data, req, () => claimCoupon(data, token, body)));
-      if (route === "POST /api/v1/coupon/repurchase-click") return ok(res, recordCouponRepurchaseClick(data, token, body));
-      if (route === "POST /api/v1/user/continue-daily") return ok(res, withIdempotency(data, req, () => continueAsDailyUser(data, token)));
-      if (route === "GET /api/v1/daily/stats") return ok(res, dailyStats(data, token));
-      if (route === "POST /api/v1/daily/submit") return ok(res, withIdempotency(data, req, () => submitDailyCheckin(data, token, body)));
-      if (route === "GET /api/v1/daily/history") return ok(res, dailyHistory(data, token, Object.fromEntries(url.searchParams)));
-      if (route === "GET /api/v1/daily/trend") return ok(res, dailyTrend(data, token, url.searchParams.get("range") || "7d"));
-      if (route === "POST /api/v1/event/track") return ok(res, trackEvent(data, token, body));
-      if (route === "POST /api/v1/upload/image") return ok(res, uploadImage(data, token, body, runtimeContext));
       if (route === `POST ${V1_RUNTIME_CYCLE_ROUTE}`) {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
         if (!runtimeContext.v1RuntimeControlPlane) {
@@ -1606,7 +1463,6 @@ function createApp(options = {}) {
       if (route === "GET /api/v1/admin/launch-readiness") {
         return ok(res, adminLaunchReadiness(data, { ...runtimeContext, target: url.searchParams.get("target") || "production" }));
       }
-      if (route === "GET /api/v1/admin/ready-to-start") return ok(res, getReadyToStartUsers(data, url.searchParams.get("date") || undefined));
       if (route === "POST /api/v1/admin/formal-users/query") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
         return ok(res, {
@@ -1614,36 +1470,6 @@ function createApp(options = {}) {
           message: "ok",
           data: adminFormalUserQuery.queryByPhone(data, body),
         });
-      }
-      if (route === "GET /api/v1/admin/tasks") return ok(res, listOperationTasks(data, Object.fromEntries(url.searchParams)));
-      if (route === "GET /api/v1/admin/order-matching/search") return ok(res, searchAdminOrderMatching(data, Object.fromEntries(url.searchParams)));
-      if (route === "POST /api/v1/admin/order-matching/preview") return ok(res, previewAdminOrderMatch(data, body));
-      if (route === "POST /api/v1/admin/order-matching/confirm") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, withIdempotency(data, req, () => confirmAdminOrderMatch(data, body)));
-      }
-      if (route === "GET /api/v1/admin/order-after-sales") {
-        return ok(res, listOrderAfterSalesRecords(data, Object.fromEntries(url.searchParams)));
-      }
-      if (route === "POST /api/v1/admin/order-after-sales/upsert") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        if (!requestId) throw Object.assign(new Error("order after-sales request_id 必填"), { code: 400 });
-        return ok(res, withIdempotency(data, req, () => upsertOrderAfterSalesRecord(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/admin/order-after-sales/sync") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        if (!requestId) throw Object.assign(new Error("order after-sales sync request_id 必填"), { code: 400 });
-        return ok(res, withIdempotency(data, req, () => syncOrderAfterSalesBatch(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
       }
       if (method === "GET" && url.pathname.startsWith("/api/v1/admin/users/") && url.pathname.endsWith("/detail")) {
         const userId = url.pathname.split("/").at(-2);
@@ -1709,27 +1535,6 @@ function createApp(options = {}) {
           operatorId: adminOperatorId(adminPrincipal, body),
           requestId,
         }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/admin/orders/sync") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, withIdempotency(data, req, () => syncManualOrder(data, body, runtimeContext)));
-      }
-      if (route === "POST /api/v1/admin/orders/fulfillment") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, withIdempotency(data, req, () => updateOrderFulfillment(data, body)));
-      }
-      if (route === "POST /api/v1/admin/orders/increment-preview") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, await previewAdminOrderIncrementSync(data, body, runtimeContext));
-      }
-      if (route === "POST /api/v1/admin/orders/increment-execute") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, await withIdempotency(data, req, () => executeAdminOrderIncrementSync(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId })));
       }
       if (route === "POST /api/v1/admin/formal-health/initialization/draft") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_CONTENT_WRITE);
@@ -1937,23 +1742,6 @@ function createApp(options = {}) {
           command.idempotencyKey
         ));
       }
-      if (route === "POST /api/v1/admin/products/upsert") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, withIdempotency(data, req, () => upsertProduct(data, body, runtimeContext)));
-      }
-      if (route === "POST /api/v1/admin/products/sync-preview") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, await previewAdminProductSync(data, body, runtimeContext));
-      }
-      if (route === "POST /api/v1/admin/products/sync-execute") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, await withIdempotency(data, req, () => executeAdminProductSync(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId })));
-      }
       if (route === "GET /api/v1/admin/adapter-calibration") return ok(res, getAdapterCalibration(data, runtimeContext));
       if (route === "GET /api/v1/admin/action-adapter-calibration") {
         return ok(res, getActionAdapterCalibration(data, {
@@ -2110,30 +1898,6 @@ function createApp(options = {}) {
       if (route === "POST /api/v1/admin/external-status-mappings") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
         return ok(res, withIdempotency(data, req, () => upsertExternalStatusMapping(data, body)));
-      }
-      if (method === "POST" && url.pathname.startsWith("/api/v1/admin/tasks/") && url.pathname.endsWith("/complete")) {
-        requireAdminCommandCapability(adminPrincipal, ADMIN_COMMANDS.TASK_COMPLETE);
-        const taskId = url.pathname.split("/").at(-2);
-        const commandBody = prepareAdminCommandBody(req, adminPrincipal, body, "待办完成", ADMIN_COMMANDS.TASK_COMPLETE);
-        return ok(res, withIdempotency(data, req, () => completeOperationTask(data, taskId, commandBody), commandBody.requestId));
-      }
-      if (method === "POST" && url.pathname.startsWith("/api/v1/admin/tasks/") && url.pathname.endsWith("/resolve")) {
-        requireAdminCommandCapability(adminPrincipal, ADMIN_COMMANDS.TASK_RESOLVE);
-        const taskId = url.pathname.split("/").at(-2);
-        const commandBody = prepareAdminCommandBody(req, adminPrincipal, body, "人工待办处理", ADMIN_COMMANDS.TASK_RESOLVE);
-        return ok(res, withIdempotency(data, req, () => resolveManualReview(data, taskId, commandBody), commandBody.requestId));
-      }
-      if (method === "POST" && url.pathname.startsWith("/api/v1/admin/refunds/") && url.pathname.endsWith("/approve")) {
-        requireAdminCommandCapability(adminPrincipal, ADMIN_COMMANDS.REFUND_APPROVE);
-        const refundId = url.pathname.split("/").at(-2);
-        const commandBody = prepareAdminCommandBody(req, adminPrincipal, body, "退款审批", ADMIN_COMMANDS.REFUND_APPROVE);
-        return ok(res, withIdempotency(data, req, () => approveRefund(data, refundId, commandBody), commandBody.requestId));
-      }
-      if (method === "POST" && url.pathname.startsWith("/api/v1/admin/coupons/") && url.pathname.endsWith("/use")) {
-        requireAdminCommandCapability(adminPrincipal, ADMIN_COMMANDS.COUPON_USE);
-        const couponId = url.pathname.split("/").at(-2);
-        const commandBody = prepareAdminCommandBody(req, adminPrincipal, body, "优惠券核销", ADMIN_COMMANDS.COUPON_USE);
-        return ok(res, withIdempotency(data, req, () => markCouponUsed(data, couponId, commandBody), commandBody.requestId));
       }
 
       send(res, 404, { code: 404, message: "接口不存在", data: null });

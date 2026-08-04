@@ -17,8 +17,8 @@ assert.equal(
   `/api/v1/user/state?myroot_canary=${validValue}`
 );
 assert.equal(
-  appendCloudRoute("/api/v1/products?limit=2", "develop"),
-  `/api/v1/products?limit=2&myroot_canary=${validValue}`
+  appendCloudRoute("/api/v1/activities?limit=2", "develop"),
+  `/api/v1/activities?limit=2&myroot_canary=${validValue}`
 );
 assert.equal(refreshCloudRoute({}, "trial"), true);
 assert.equal(appendCloudRoute("/health", "trial"), `/health?myroot_canary=${validValue}`);

@@ -40,6 +40,13 @@ const RETIRED_ADMIN_ROUTES = Object.freeze([
   "/api/v1/admin/manual-reviews/batch-resolve",
   "/api/v1/admin/manual-reviews/",
   "/api/v1/admin/settlement-source-invalidations/",
+  "/api/v1/admin/tasks",
+  "/api/v1/admin/order-matching",
+  "/api/v1/admin/order-after-sales",
+  "/api/v1/admin/orders/",
+  "/api/v1/admin/products/",
+  "/api/v1/admin/refunds/",
+  "/api/v1/admin/coupons/",
 ]);
 
 const RETIRED_USER_ROUTES = Object.freeze([
@@ -49,6 +56,21 @@ const RETIRED_USER_ROUTES = Object.freeze([
   "/api/v1/settlement/evaluate",
   "/api/v1/notifications/checkin-reminder-template",
   "/api/v1/notifications/subscriptions",
+  "/api/v1/user/orders",
+  "/api/v1/user/profile",
+  "/api/v1/user/display-profile",
+  "/api/v1/user/consultations",
+  "/api/v1/campaigns/",
+  "/api/v1/products",
+  "/api/v1/order/match",
+  "/api/v1/checkin/",
+  "/api/v1/questionnaire",
+  "/api/v1/refund/",
+  "/api/v1/coupon/",
+  "/api/v1/user/continue-daily",
+  "/api/v1/daily/",
+  "/api/v1/event/track",
+  "/api/v1/upload/image",
 ]);
 
 const RETIRED_PACKAGE_COMMANDS = Object.freeze([

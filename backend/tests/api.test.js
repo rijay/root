@@ -75,6 +75,31 @@ async function verifiedCloudbaseHeaderIdentityAdapter({ request: incomingRequest
   };
 }
 
+function listen(server) {
+  return new Promise((resolve) => {
+    server.listen(0, "127.0.0.1", () => {
+      resolve(`http://127.0.0.1:${server.address().port}`);
+    });
+  });
+}
+
+async function request(baseUrl, requestPath, options = {}) {
+  const response = await fetch(`${baseUrl}${requestPath}`, {
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options,
+  });
+  return response.json();
+}
+
+async function textRequest(baseUrl, requestPath, options = {}) {
+  const response = await fetch(`${baseUrl}${requestPath}`, options);
+  return {
+    status: response.status,
+    contentType: response.headers.get("content-type") || "",
+    body: await response.text(),
+  };
+}
+
 test("cloud hosting MySQL variables select the MySQL Store Adapter", () => {
   const env = {
     MYSQL_ADDRESS: "10.11.103.164:3306",
@@ -132,34 +157,6 @@ test("Store normalization removes persisted WeChat access-token cache without mu
   assert.equal(source.wechatAccessToken.token, "must-not-persist");
 });
 
-test("startup defaults use the transactional Store Interface when available", async () => {
-  const base = createMemoryStore(undefined, { seedSampleData: false });
-  let transactionCount = 0;
-  let saveCount = 0;
-  const storeAdapter = {
-    ...base,
-    async runRequest(options, work) {
-      transactionCount += 1;
-      assert.equal(options.write, true);
-      return work(base.data);
-    },
-    save() {
-      saveCount += 1;
-    },
-  };
-  const server = createApp({
-    storeAdapter,
-    env: {
-      ROOT_MEMBER_CENTER_APPID: "wxfb75c0b432670215",
-      ROOT_MEMBER_CENTER_PRODUCT_PATH: "pages/goods/detail/index.html?alias=mysql-startup-product",
-    },
-  });
-  await server.readyPromise;
-
-  assert.equal(transactionCount, 1);
-  assert.equal(saveCount, 0);
-  assert.equal(server.store.youzanProducts.length, 1);
-});
 
 test("formal Job HTTP Interfaces expose only retention and V1 runtime cycle", async (t) => {
   const server = createApp({
@@ -205,7 +202,7 @@ test("formal Job HTTP Interfaces expose only retention and V1 runtime cycle", as
   assert.equal(runtimeCycle.code, 50351);
 });
 
-test("retired task, settlement, reward, reminder and legacy-migration HTTP Interfaces return 404", async (t) => {
+test("retired task, settlement, reward, order, check-in and legacy operations HTTP Interfaces return 404", async (t) => {
   const server = createApp({ env: { ROOT_ADMIN_TOKEN: "admin-secret" } });
   const baseUrl = await listen(server);
   t.after(() => server.close());
@@ -241,6 +238,57 @@ test("retired task, settlement, reward, reminder and legacy-migration HTTP Inter
     ["POST", "/api/v1/admin/legacy-data-migration-decisions"],
     ["GET", "/api/v1/admin/legacy-data-migration-executions"],
     ["POST", "/api/v1/admin/legacy-data-migration-executions"],
+    ["GET", "/api/v1/user/orders"],
+    ["GET", "/api/v1/user/profile"],
+    ["POST", "/api/v1/user/profile"],
+    ["POST", "/api/v1/user/display-profile"],
+    ["GET", "/api/v1/user/consultations"],
+    ["GET", "/api/v1/campaigns/active"],
+    ["POST", "/api/v1/campaigns/join"],
+    ["GET", "/api/v1/products"],
+    ["GET", "/api/v1/products/retired-product"],
+    ["POST", "/api/v1/products/jump"],
+    ["POST", "/api/v1/order/match"],
+    ["POST", "/api/v1/checkin/start"],
+    ["GET", "/api/v1/checkin/session"],
+    ["POST", "/api/v1/checkin/submit"],
+    ["GET", "/api/v1/checkin/records"],
+    ["GET", "/api/v1/checkin/records/retired-record"],
+    ["GET", "/api/v1/questionnaire"],
+    ["GET", "/api/v1/questionnaire/answers/status"],
+    ["POST", "/api/v1/questionnaire/answers"],
+    ["GET", "/api/v1/questionnaire/status"],
+    ["POST", "/api/v1/questionnaire/submit"],
+    ["POST", "/api/v1/refund/apply"],
+    ["GET", "/api/v1/refund/status"],
+    ["GET", "/api/v1/coupon/status"],
+    ["POST", "/api/v1/coupon/claim"],
+    ["POST", "/api/v1/coupon/repurchase-click"],
+    ["POST", "/api/v1/user/continue-daily"],
+    ["GET", "/api/v1/daily/stats"],
+    ["POST", "/api/v1/daily/submit"],
+    ["GET", "/api/v1/daily/history"],
+    ["GET", "/api/v1/daily/trend"],
+    ["POST", "/api/v1/event/track"],
+    ["POST", "/api/v1/upload/image"],
+    ["GET", "/api/v1/admin/tasks"],
+    ["POST", "/api/v1/admin/tasks/retired-task/complete"],
+    ["POST", "/api/v1/admin/tasks/retired-task/resolve"],
+    ["GET", "/api/v1/admin/order-matching/search"],
+    ["POST", "/api/v1/admin/order-matching/preview"],
+    ["POST", "/api/v1/admin/order-matching/confirm"],
+    ["GET", "/api/v1/admin/order-after-sales"],
+    ["POST", "/api/v1/admin/order-after-sales/upsert"],
+    ["POST", "/api/v1/admin/order-after-sales/sync"],
+    ["POST", "/api/v1/admin/orders/sync"],
+    ["POST", "/api/v1/admin/orders/fulfillment"],
+    ["POST", "/api/v1/admin/orders/increment-preview"],
+    ["POST", "/api/v1/admin/orders/increment-execute"],
+    ["POST", "/api/v1/admin/products/upsert"],
+    ["POST", "/api/v1/admin/products/sync-preview"],
+    ["POST", "/api/v1/admin/products/sync-execute"],
+    ["POST", "/api/v1/admin/refunds/retired-refund/approve"],
+    ["POST", "/api/v1/admin/coupons/retired-coupon/use"],
   ];
   for (const [method, route] of routes) {
     const response = await request(baseUrl, route, {
@@ -1462,65 +1510,6 @@ test("store snapshot validation catches missing keys and script arguments", () =
   assert.deepEqual(parseStoreMigrateArgs(["--json", "/tmp/root.json", "--dry-run"]), { mode: "json", filePath: "/tmp/root.json", normalize: false, dryRun: true });
 });
 
-test("startup can seed the Root member-center product snapshot from environment", async (t) => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "root-member-center-seed-"));
-  const storePath = path.join(tempDir, "store.json");
-  const storeAdapter = createJsonFileStore(storePath, { seedSampleData: false });
-  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
-
-  const server = createApp({
-    storeAdapter,
-    env: {
-      ROOT_ALLOW_OPENID_LOGIN: "true",
-      ROOT_MEMBER_CENTER_APPID: "wxfb75c0b432670215",
-      ROOT_MEMBER_CENTER_PRODUCT_PATH: "#小程序://ROOT会员中心/lnQOjYsk8gZoABH",
-      ROOT_MEMBER_CENTER_DEFAULT_PRODUCT_TITLE: "Root 会员中心商品",
-    },
-  });
-  const baseUrl = await listen(server);
-  t.after(() => server.close());
-
-  const login = await request(baseUrl, "/api/v1/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ openid: "member_center_seed_openid", appCode: "MYROOT" }),
-  });
-  const products = await request(baseUrl, "/api/v1/products", {
-    headers: { Authorization: `Bearer ${login.data.token}` },
-  });
-  const saved = JSON.parse(fs.readFileSync(storePath, "utf8"));
-
-  assert.equal(products.code, 0);
-  assert.equal(products.data.products[0].productId, "ROOT_MEMBER_CENTER_DEFAULT");
-  assert.equal(products.data.products[0].title, "Root 会员中心商品");
-  assert.equal(products.data.products[0].youzan.appId, "wxfb75c0b432670215");
-  assert.equal(products.data.products[0].youzan.shortLink, "#小程序://ROOT会员中心/lnQOjYsk8gZoABH");
-  assert.equal(saved.youzanProducts.some((product) => product.youzan_product_id === "ROOT_MEMBER_CENTER_DEFAULT"), true);
-});
-
-function listen(server) {
-  return new Promise((resolve) => {
-    server.listen(0, "127.0.0.1", () => {
-      resolve(`http://127.0.0.1:${server.address().port}`);
-    });
-  });
-}
-
-async function request(baseUrl, path, options = {}) {
-  const response = await fetch(`${baseUrl}${path}`, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    ...options,
-  });
-  return response.json();
-}
-
-async function textRequest(baseUrl, path, options = {}) {
-  const response = await fetch(`${baseUrl}${path}`, options);
-  return {
-    status: response.status,
-    contentType: response.headers.get("content-type") || "",
-    body: await response.text(),
-  };
-}
 
 test("public privacy notice exposes approved controller metadata without login", async (t) => {
   const server = createApp({
@@ -1719,35 +1708,19 @@ test("serves the REST API and admin dashboard data", async (t) => {
   assert.equal(login.code, 0);
   assert.equal(login.data.user.state, "UNREGISTERED");
 
-  const displayProfile = await request(baseUrl, "/api/v1/user/display-profile", {
+  const profile = await request(baseUrl, "/api/v1/user/formal-profile", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({
       nickname: "Root体验同学",
       avatarUrl: "cloud://prod-d3grtjkva76c93e00.avatars/avatar.jpg",
+      birthDate: "1990-01-01",
+      gender: "FEMALE",
     }),
   });
-  assert.equal(displayProfile.data.user.nickname, "Root体验同学");
-  assert.equal(displayProfile.data.user.avatarUrl, "cloud://prod-d3grtjkva76c93e00.avatars/avatar.jpg");
-
-  const profile = await request(baseUrl, "/api/v1/user/profile", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body: JSON.stringify({
-      joinReasons: ["health"],
-      gutHealthStatus: "normal",
-      improvementMethods: ["diet"],
-      stoolType: "type4",
-    }),
-  });
-  assert.equal(profile.data.user.state, "REGISTERED_IDLE");
-
-  const dashboard = await request(baseUrl, "/api/v1/admin/dashboard");
-  assert.equal(dashboard.code, 0);
-  assert.equal(dashboard.data.metrics.users, 1);
-  assert.equal(dashboard.data.launchReadiness.status, "BLOCKED");
-  assert.equal(Array.isArray(dashboard.data.opsUsers), true);
-  assert.equal(dashboard.data.opsUsers[0].currentBlockage, "已送达未开始");
+  assert.equal(profile.data.profile.nickname, "Root体验同学");
+  assert.equal(profile.data.profile.avatarUrl, "cloud://prod-d3grtjkva76c93e00.avatars/avatar.jpg");
+  assert.equal(profile.data.profile.complete, true);
 
   const rawProbeOpenid = "openid_http_probe_123456";
   const rawProbeUnionid = "unionid_http_probe_abcdef";
@@ -2299,366 +2272,11 @@ test("cloud container openid login can enter before phone authorization", async 
   assert.equal(server.store.wechatIdentities[0].unionid, "cloud_unionid_no_phone");
 });
 
-test("image upload Interface rejects local temporary paths and accepts CloudBase file IDs", async (t) => {
-  const server = createApp({ trustedWechatIdentityAdapter: verifiedCloudbaseHeaderIdentityAdapter });
-  const baseUrl = await listen(server);
-  t.after(() => server.close());
-  const login = await request(baseUrl, "/api/v1/auth/login", {
-    method: "POST",
-    headers: { "x-wx-openid": "cloud_media_openid", "x-wx-unionid": "cloud_media_unionid" },
-    body: JSON.stringify({ appCode: "MYROOT" }),
-  });
-  const headers = { Authorization: `Bearer ${login.data.token}` };
-  const rejected = await request(baseUrl, "/api/v1/upload/image", {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ url: "wxfile://tmp/checkin.jpg" }),
-  });
-  const accepted = await request(baseUrl, "/api/v1/upload/image", {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ url: "cloud://myroot-prod.bucket/checkins/root-user/checkin.jpg" }),
-  });
-  assert.equal(rejected.code, 400);
-  assert.equal(accepted.code, 0);
-  assert.equal(accepted.data.url, "cloud://myroot-prod.bucket/checkins/root-user/checkin.jpg");
-});
 
-test("product mirror HTTP Interface lists products and records Youzan jumps", async (t) => {
-  const server = createApp({
-    env: {
-      ...verifiedWechatTestEnv,
-      ROOT_ALLOW_OPENID_LOGIN: "true",
-      ...verifiedWechatTestEnv,
-      ROOT_MEMBER_CENTER_APPID: "wx_root_member_center",
-    },
-    trustedWechatIdentityAdapter: verifiedCloudbaseHeaderIdentityAdapter,
-  });
-  const baseUrl = await listen(server);
-  t.after(() => server.close());
 
-  const login = await request(baseUrl, "/api/v1/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ openid: "http_product_openid", appCode: "MYROOT" }),
-  });
-  const auth = { Authorization: `Bearer ${login.data.token}` };
-  const products = await request(baseUrl, "/api/v1/products", { headers: auth });
-  const detail = await request(baseUrl, "/api/v1/products/ROOT_PREBIOTIC_TRIAL", { headers: auth });
-  const jumped = await request(baseUrl, "/api/v1/products/jump", {
-    method: "POST",
-    headers: auth,
-    body: JSON.stringify({ productId: "ROOT_PREBIOTIC_TRIAL" }),
-  });
 
-  assert.equal(products.code, 0);
-  assert.equal(products.data.products[0].productId, "ROOT_PREBIOTIC_TRIAL");
-  assert.equal(products.data.products[0].youzan.appId, "wx_root_member_center");
-  assert.equal(detail.data.product.title, "ROOT 益生菌试饮装");
-  assert.equal(jumped.data.jumpTarget.appId, "wx_root_member_center");
-  assert.equal(server.store.productJumpLogs.length, 1);
-  assert.equal(server.store.youzanOrders.some((order) => order.user_id === login.data.user.userId), false);
-});
 
-test("admin product upsert HTTP Interface supports manual product import", async (t) => {
-  const server = createApp({
-    env: {
-      ROOT_ALLOW_OPENID_LOGIN: "true",
-      ROOT_MEMBER_CENTER_APPID: "wx_root_member_center",
-    },
-  });
-  const baseUrl = await listen(server);
-  t.after(() => server.close());
 
-  const imported = await request(baseUrl, "/api/v1/admin/products/upsert", {
-    method: "POST",
-    body: JSON.stringify({
-      youzanProductId: "ROOT_PRODUCT_HTTP",
-      title: "ROOT 路演体验装",
-      summary: "后台手工导入的商品快照",
-      priceText: "价格以 Root 会员中心为准",
-      campaignId: "ROOT_HTTP_CAMPAIGN",
-      displayOrder: 1,
-      youzanPath: "pages/product/detail?id=ROOT_PRODUCT_HTTP",
-      skus: [{ skuId: "ROOT_PRODUCT_HTTP_DEFAULT", skuName: "默认规格", stockStatus: "UNKNOWN" }],
-    }),
-  });
-  const login = await request(baseUrl, "/api/v1/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ openid: "http_product_import_openid", appCode: "MYROOT" }),
-  });
-  const products = await request(baseUrl, "/api/v1/products?campaignId=ROOT_HTTP_CAMPAIGN", {
-    headers: { Authorization: `Bearer ${login.data.token}` },
-  });
-
-  assert.equal(imported.code, 0);
-  assert.equal(imported.data.product.productId, "ROOT_PRODUCT_HTTP");
-  assert.equal(products.data.products.length, 1);
-  assert.equal(products.data.products[0].productId, "ROOT_PRODUCT_HTTP");
-});
-
-test("admin product sync HTTP Interface previews and idempotently imports products", async (t) => {
-  const server = createApp({
-    env: {
-      ROOT_ALLOW_OPENID_LOGIN: "true",
-      ROOT_MEMBER_CENTER_APPID: "wx_root_member_center",
-    },
-  });
-  const baseUrl = await listen(server);
-  t.after(() => server.close());
-  const sampleProducts = [
-    {
-      youzanProductId: "ROOT_PRODUCT_SYNC_HTTP",
-      title: "ROOT 同步路演套装",
-      priceText: "¥299",
-      youzanPath: "pages/goods/detail?id=ROOT_PRODUCT_SYNC_HTTP",
-      skus: [{ skuId: "ROOT_PRODUCT_SYNC_HTTP_DEFAULT", skuName: "默认规格", stockStatus: "UNKNOWN" }],
-    },
-  ];
-
-  const preview = await request(baseUrl, "/api/v1/admin/products/sync-preview", {
-    method: "POST",
-    body: JSON.stringify({
-      campaignId: "ROOT_HTTP_SYNC_CAMPAIGN",
-      products: sampleProducts,
-    }),
-  });
-  const imported = await request(baseUrl, "/api/v1/admin/products/sync-execute", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-product-sync-1" },
-    body: JSON.stringify({
-      campaignId: "ROOT_HTTP_SYNC_CAMPAIGN",
-      products: sampleProducts,
-      confirmRisk: true,
-      reason: "HTTP 商品同步",
-    }),
-  });
-  const repeated = await request(baseUrl, "/api/v1/admin/products/sync-execute", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-product-sync-1" },
-    body: JSON.stringify({
-      campaignId: "ROOT_HTTP_SYNC_CAMPAIGN",
-      products: sampleProducts,
-      confirmRisk: true,
-      reason: "HTTP 商品同步",
-    }),
-  });
-  const login = await request(baseUrl, "/api/v1/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ openid: "http_product_sync_openid", appCode: "MYROOT" }),
-  });
-  const products = await request(baseUrl, "/api/v1/products?campaignId=ROOT_HTTP_SYNC_CAMPAIGN", {
-    headers: { Authorization: `Bearer ${login.data.token}` },
-  });
-  const audit = await request(baseUrl, "/api/v1/admin/audit-logs?action=YOUZAN_PRODUCT_SYNC");
-
-  assert.equal(preview.code, 0);
-  assert.equal(preview.data.total, 1);
-  assert.equal(preview.data.rows[0].importable, true);
-  assert.equal(imported.code, 0);
-  assert.equal(imported.data.importedCount, 1);
-  assert.equal(repeated.data.audit.audit_log_id, imported.data.audit.audit_log_id);
-  assert.equal(products.data.products.length, 1);
-  assert.equal(products.data.products[0].productId, "ROOT_PRODUCT_SYNC_HTTP");
-  assert.equal(audit.data.auditLogs[0].target_id, "http-product-sync-1");
-  assert.equal(server.store.auditLogs.filter((log) => log.action === "YOUZAN_PRODUCT_SYNC").length, 1);
-});
-
-test("questionnaire answer HTTP Interface stores independently from retired task assignments", async (t) => {
-  const server = createApp({
-    env: {
-      ROOT_ALLOW_OPENID_LOGIN: "true",
-    },
-  });
-  const baseUrl = await listen(server);
-  t.after(() => server.close());
-
-  const login = await request(baseUrl, "/api/v1/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ openid: "http_questionnaire_answer_openid", appCode: "MYROOT" }),
-  });
-  const auth = { Authorization: `Bearer ${login.data.token}` };
-  const failed = await request(baseUrl, "/api/v1/questionnaire/answers", {
-    method: "POST",
-    headers: auth,
-    body: JSON.stringify({
-      questionnaireType: "DAY4_MIDPOINT",
-      answers: { stoolChange: "better" },
-      idempotencyKey: "http-questionnaire-answer-missing",
-    }),
-  });
-  const branchFailed = await request(baseUrl, "/api/v1/questionnaire/answers", {
-    method: "POST",
-    headers: auth,
-    body: JSON.stringify({
-      campaignId: "ROOT_7D_RESET",
-      questionnaireType: "DAY4_MIDPOINT",
-      taskDate: "2026-06-22",
-      answers: { stoolChange: "worse", comfortScore: 2, needsContact: true },
-      idempotencyKey: "http-questionnaire-answer-branch-missing",
-    }),
-  });
-  const submitted = await request(baseUrl, "/api/v1/questionnaire/answers", {
-    method: "POST",
-    headers: auth,
-    body: JSON.stringify({
-      campaignId: "ROOT_7D_RESET",
-      questionnaireType: "DAY4_MIDPOINT",
-      taskDate: "2026-06-22",
-      taskActivityAssignmentId: "retired-assignment-must-not-be-loaded",
-      taskDefinitionVersion: "retired-task-version-v1",
-      answers: { stoolChange: "worse", comfortScore: 2, needsContact: true, contactReason: "舒适度低", feedback: "需要顾问联系" },
-      idempotencyKey: "http-questionnaire-answer-day4",
-    }),
-  });
-  const repeated = await request(baseUrl, "/api/v1/questionnaire/answers", {
-    method: "POST",
-    headers: auth,
-    body: JSON.stringify({
-      campaignId: "ROOT_7D_RESET",
-      questionnaireType: "DAY4_MIDPOINT",
-      taskDate: "2026-06-22",
-      answers: { stoolChange: "better", comfortScore: 5 },
-      idempotencyKey: "http-questionnaire-answer-day4",
-    }),
-  });
-  const status = await request(baseUrl, "/api/v1/questionnaire/answers/status?campaignId=ROOT_7D_RESET", { headers: auth });
-
-  assert.equal(failed.code, 6002);
-  assert.equal(branchFailed.code, 6002);
-  assert.equal(submitted.code, 0);
-  assert.equal(submitted.data.created, true);
-  assert.equal(repeated.data.created, false);
-  assert.equal(status.data.DAY4_MIDPOINT, true);
-  assert.equal(status.data.answers.length, 1);
-  assert.equal(server.store.questionnaireAnswers.length, 1);
-  assert.equal(server.store.questionnaireResponses.length, 0);
-  assert.equal(server.store.taskEvents.filter((event) => event.task_type === "QUESTIONNAIRE").length, 0);
-  assert.equal(Object.hasOwn(submitted.data, "taskEvent"), false);
-  assert.equal(Object.hasOwn(submitted.data, "progress"), false);
-  assert.equal(server.store.operationTasks.some((task) => task.task_type === "QUESTIONNAIRE_FOLLOW"), true);
-});
-
-test("consultation follow-up HTTP Interface records support consultations as admin tasks", async (t) => {
-  const server = createApp({
-    env: {
-      ROOT_ALLOW_OPENID_LOGIN: "true",
-    },
-  });
-  const baseUrl = await listen(server);
-  t.after(() => server.close());
-
-  const login = await request(baseUrl, "/api/v1/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ openid: "http_consultation_followup_openid", appCode: "MYROOT" }),
-  });
-  const auth = { Authorization: `Bearer ${login.data.token}` };
-  const recorded = domain.recordUserConsultation(server.store, login.data.token, {
-    taskDate: "2026-06-19",
-    sourceChannel: "MINIPROGRAM_SUPPORT",
-    payload: { taskDate: "2026-06-19", consultationType: "BODY_FEEDBACK", scene: "SUPPORT_PAGE" },
-    idempotencyKey: "http-consultation-followup-body-feedback",
-  });
-  const pending = await request(baseUrl, "/api/v1/user/consultations", { headers: auth });
-  const lifecycle = await request(baseUrl, "/api/v1/admin/lifecycle-users");
-
-  assert.equal(recorded.code, 0);
-  assert.equal(recorded.data.created, true);
-  assert.equal(recorded.data.task.task_type, "CONSULTATION_FOLLOW");
-  assert.equal(pending.data.summary.pendingCount, 1);
-  assert.equal(pending.data.consultations[0].consultationTypeLabel, "身体反馈");
-  assert.equal(lifecycle.data.metrics.pendingConsultations, 1);
-
-  const taskId = recorded.data.task.task_id;
-  const assignment = await request(baseUrl, "/api/v1/admin/consultation-advisor-assignments", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-consultation-advisor-assignment-1" },
-    body: JSON.stringify({
-      taskId,
-      advisorId: "advisor-http",
-      advisorName: "HTTP顾问",
-      requestId: "http-consultation-advisor-assignment-1",
-    }),
-  });
-  const repeatedAssignment = await request(baseUrl, "/api/v1/admin/consultation-advisor-assignments", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-consultation-advisor-assignment-1" },
-    body: JSON.stringify({
-      taskId,
-      advisorId: "advisor-http",
-      advisorName: "HTTP顾问",
-      requestId: "http-consultation-advisor-assignment-1",
-    }),
-  });
-  const assignmentList = await request(baseUrl, `/api/v1/admin/consultation-advisor-assignments?taskId=${taskId}`);
-  const assignedLifecycle = await request(baseUrl, "/api/v1/admin/lifecycle-users");
-
-  assert.equal(assignment.code, 0);
-  assert.equal(assignment.data.assignment.advisorId, "advisor-http");
-  assert.equal(assignment.data.task.metadata.assignedAdvisorName, "HTTP顾问");
-  assert.equal(repeatedAssignment.data.assignment.assignmentId, assignment.data.assignment.assignmentId);
-  assert.equal(assignmentList.data.assignments.length, 1);
-  assert.equal(assignedLifecycle.data.users[0].consultationSummary.latest.assignedAdvisorName, "HTTP顾问");
-
-  server.store.operationTasks.find((item) => item.task_id === taskId).created_at = "2026-01-01T08:00:00+08:00";
-  const consultationSla = await request(baseUrl, `/api/v1/admin/consultation-sla?rootUserId=${login.data.user.rootUserId}&slaMinutes=120&now=2026-01-01T11%3A30%3A00%2B08%3A00`);
-  const consultationEscalation = await request(baseUrl, `/api/v1/admin/consultation-sla-escalations?rootUserId=${login.data.user.rootUserId}&slaMinutes=120&now=2026-01-01T11%3A30%3A00%2B08%3A00`);
-  const advisorWorkbench = await request(baseUrl, "/api/v1/admin/consultation-advisor-workbench?slaMinutes=120&now=2026-01-01T11%3A30%3A00%2B08%3A00");
-  const slaAnalytics = await request(baseUrl, "/api/v1/admin/operational-analytics?campaignId=ROOT_7D_RESET");
-
-  assert.equal(consultationSla.code, 0);
-  assert.equal(consultationSla.data.summary.overdueCount, 1);
-  assert.equal(consultationSla.data.items[0].assignedAdvisorName, "HTTP顾问");
-  assert.equal(consultationSla.data.items[0].overdueMinutes, 90);
-  assert.equal(consultationEscalation.code, 0);
-  assert.equal(consultationEscalation.data.summary.escalatedCount, 1);
-  assert.equal(consultationEscalation.data.items[0].escalationLevel, 2);
-  assert.equal(consultationEscalation.data.items[0].escalationOwnerRole, "运营");
-  assert.equal(advisorWorkbench.code, 0);
-  assert.equal(advisorWorkbench.data.summary.activeAdvisorCount, 1);
-  assert.equal(advisorWorkbench.data.advisors[0].advisorName, "HTTP顾问");
-  assert.equal(advisorWorkbench.data.advisors[0].status, "ATTENTION");
-  assert.equal(advisorWorkbench.data.items[0].taskId, taskId);
-  assert.ok(slaAnalytics.data.alertRules.some((item) => item.alertRuleId === "op_alert_consultation_sla_overdue"));
-  assert.ok(slaAnalytics.data.alertRules.some((item) => item.alertRuleId === "op_alert_consultation_sla_escalation"));
-  assert.ok(slaAnalytics.data.alerts.some((item) => item.key === `consultation_sla_overdue_${taskId}` && item.assignedAdvisorName === "HTTP顾问"));
-  assert.ok(slaAnalytics.data.alerts.some((item) => item.key.startsWith(`consultation_sla_escalation_${taskId}_`) && item.escalationLevel >= 2));
-
-  const completed = await request(baseUrl, "/api/v1/admin/consultation-wework-writebacks", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-consultation-wework-writeback-1" },
-    body: JSON.stringify({
-      taskId,
-      adapterMode: "MANUAL",
-      result: "WEWORK_CONTACTED",
-      note: "已跟进用户身体反馈 token=secret-token",
-      requestId: "http-consultation-wework-writeback-1",
-    }),
-  });
-  const repeated = await request(baseUrl, "/api/v1/admin/consultation-wework-writebacks", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-consultation-wework-writeback-1" },
-    body: JSON.stringify({
-      taskId,
-      adapterMode: "MANUAL",
-      result: "WEWORK_CONTACTED",
-      note: "已跟进用户身体反馈 token=secret-token",
-      requestId: "http-consultation-wework-writeback-1",
-    }),
-  });
-  const writebacks = await request(baseUrl, `/api/v1/admin/consultation-wework-writebacks?taskId=${taskId}`);
-  const done = await request(baseUrl, "/api/v1/user/consultations", { headers: auth });
-
-  assert.equal(completed.code, 0);
-  assert.equal(completed.data.writeback.status, "DELIVERED");
-  assert.equal(completed.data.task.taskType, "CONSULTATION_FOLLOW");
-  assert.equal(repeated.data.writeback.writebackId, completed.data.writeback.writebackId);
-  assert.equal(writebacks.code, 0);
-  assert.equal(writebacks.data.writebacks.length, 1);
-  assert.equal(done.data.summary.pendingCount, 0);
-  assert.equal(done.data.summary.handledCount, 1);
-  assert.equal(done.data.consultations[0].statusCopy, "已跟进用户身体反馈 token=***");
-  assert.equal(JSON.stringify(writebacks.data).includes("secret-token"), false);
-});
 
 test("rebuild feature flag can keep legacy unregistered route over HTTP", async (t) => {
   const server = createApp({
@@ -2749,137 +2367,7 @@ test("formal launch login and profile HTTP Interface stays outside legacy order 
   assert.equal(returningLogin.data.autoMatch, null);
 });
 
-test("admin order matching HTTP Interface searches, previews, and confirms", async (t) => {
-  const server = createApp({ env: directPhoneLoginEnv });
-  const baseUrl = await listen(server);
-  t.after(() => server.close());
 
-  const login = await request(baseUrl, "/api/v1/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ phone: "13800000001" }),
-  });
-  await request(baseUrl, "/api/v1/user/profile", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${login.data.token}` },
-    body: JSON.stringify({
-      joinReasons: ["health"],
-      gutHealthStatus: "normal",
-      improvementMethods: ["diet"],
-      stoolType: "type4",
-    }),
-  });
-
-  const search = await request(baseUrl, "/api/v1/admin/order-matching/search?q=YZROOT202604260001");
-  const preview = await request(baseUrl, "/api/v1/admin/order-matching/preview", {
-    method: "POST",
-    body: JSON.stringify({ orderId: "ord_root_001", userId: login.data.user.userId }),
-  });
-  const confirmed = await request(baseUrl, "/api/v1/admin/order-matching/confirm", {
-    method: "POST",
-    body: JSON.stringify({ orderId: "ord_root_001", userId: login.data.user.userId }),
-  });
-
-  assert.equal(search.code, 0);
-  assert.equal(search.data.orders[0].youzanOrderNo, "YZROOT202604260001");
-  assert.equal(preview.code, 0);
-  assert.equal(preview.data.canConfirm, true);
-  assert.equal(confirmed.code, 0);
-  assert.equal(confirmed.data.order.userId, login.data.user.userId);
-  assert.equal(confirmed.data.task.task_type, "DELIVERED_NOT_STARTED");
-});
-
-test("admin order after-sales HTTP Interface mirrors status without legacy side effects", async (t) => {
-  const server = createApp({ env: directPhoneLoginEnv });
-  const baseUrl = await listen(server);
-  t.after(() => server.close());
-
-  const login = await request(baseUrl, "/api/v1/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ phone: "13800000931" }),
-  });
-  const auth = { Authorization: `Bearer ${login.data.token}` };
-  const syncedOrder = await request(baseUrl, "/api/v1/admin/orders/sync", {
-    method: "POST",
-    body: JSON.stringify({
-      userId: login.data.user.userId,
-      youzanOrderNo: "YZ_HTTP_AFTER_SALES_001",
-      receiverPhone: "13800000931",
-      receiverName: "HTTP售后用户",
-      amount: 199,
-      deliveryStatus: "DELIVERED",
-    }),
-  });
-  server.store.refundWorkItems.push({
-    refund_work_item_id: "rwi_http_after_sales_001",
-    session_id: "session_http_after_sales_001",
-    user_id: login.data.user.userId,
-    order_id: syncedOrder.data.order.orderId,
-    youzan_order_no: syncedOrder.data.order.youzanOrderNo,
-    amount: 199,
-    status: "PENDING",
-    created_at: "2026-06-20T10:00:00.000Z",
-    paid_at: "",
-    note: "",
-  });
-
-  const requested = await request(baseUrl, "/api/v1/admin/order-after-sales/upsert", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-after-sales-requested-1" },
-    body: JSON.stringify({
-      youzanOrderNo: "YZ_HTTP_AFTER_SALES_001",
-      afterSalesNo: "AS_HTTP_001",
-      rawStatus: "WAIT_SELLER_AGREE",
-      refundAmount: 199,
-      reason: "用户申请售后",
-      requestId: "http-after-sales-requested-1",
-    }),
-  });
-  const refunded = await request(baseUrl, "/api/v1/admin/order-after-sales/upsert", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-after-sales-refunded-1" },
-    body: JSON.stringify({
-      youzanOrderNo: "YZ_HTTP_AFTER_SALES_001",
-      afterSalesNo: "AS_HTTP_001",
-      rawStatus: "REFUND_SUCCESS",
-      refundAmount: 199,
-      reason: "有赞售后退款成功",
-      requestId: "http-after-sales-refunded-1",
-    }),
-  });
-  const batch = await request(baseUrl, "/api/v1/admin/order-after-sales/sync", {
-    method: "POST",
-    headers: { "X-Request-Id": "http-after-sales-batch-1" },
-    body: JSON.stringify({
-      requestId: "http-after-sales-batch-1",
-      records: [{
-        youzanOrderNo: "YZ_HTTP_AFTER_SALES_001",
-        afterSalesNo: "AS_HTTP_002",
-        rawStatus: "PARTIAL_REFUNDED",
-        refundAmount: 20,
-        reason: "部分退款记录",
-      }],
-    }),
-  });
-  const records = await request(baseUrl, "/api/v1/admin/order-after-sales?youzanOrderNo=YZ_HTTP_AFTER_SALES_001");
-  const userOrders = await request(baseUrl, "/api/v1/user/orders", { headers: auth });
-
-  assert.equal(syncedOrder.code, 0);
-  assert.equal(requested.code, 0);
-  assert.equal(requested.data.record.status, "REQUESTED");
-  assert.equal(Object.hasOwn(requested.data, "followTask"), false);
-  assert.equal(refunded.code, 0);
-  assert.equal(refunded.data.record.status, "REFUNDED");
-  assert.equal(refunded.data.refundWorkItem.status, "PAID");
-  assert.equal(Object.hasOwn(refunded.data, "rewardRecovery"), false);
-  assert.equal(batch.code, 0);
-  assert.equal(batch.data.total, 1);
-  assert.equal(records.code, 0);
-  assert.equal(records.data.records.length, 2);
-  assert.equal(userOrders.data.orders.some((order) => order.youzanOrderNo === "YZ_HTTP_AFTER_SALES_001" && order.afterSalesStatus === "PARTIAL_REFUND"), true);
-  assert.equal(Object.hasOwn(batch.data, "recoveredCount"), false);
-  assert.equal(server.store.operationTasks.some((task) => task.task_type === "ORDER_AFTER_SALES_FOLLOW"), false);
-  assert.equal(validateSnapshot(server.store).valid, true);
-});
 
 test("admin bulk order paste previews and imports orders into matching queue", async (t) => {
   const server = createApp({ env: directPhoneLoginEnv });
@@ -2961,83 +2449,6 @@ test("admin Youzan customer samples import into customer mirror", async (t) => {
   assert.equal(customers.data.customers[0].orderSummary.totalOrders, 0);
 });
 
-test("admin CSV import batches preview, confirm once, and expose batch detail", async (t) => {
-  const server = createApp({ env: directPhoneLoginEnv });
-  const baseUrl = await listen(server);
-  t.after(() => server.close());
-  const text = [
-    "订单号,订单状态,订单实付金额,全部商品名称,收货人/提货人,收货人手机号/提货人手机号,详细收货地址/提货地址",
-    "YZROOT202605280001,待发货,199,ROOT 7日试饮装,批次用户,13800028001,批次地址",
-    "YZROOT202605280002,待发货,199,ROOT 7日试饮装,缺手机号,,批次地址",
-  ].join("\n");
-
-  const preview = await request(baseUrl, "/api/v1/admin/imports/preview", {
-    method: "POST",
-    body: JSON.stringify({ sourceType: "YOUZAN_ORDER", text, fileName: "youzan.csv" }),
-  });
-  const beforeConfirm = await request(baseUrl, "/api/v1/admin/dashboard");
-  const confirmed = await request(baseUrl, `/api/v1/admin/imports/${preview.data.batchId}/confirm`, {
-    method: "POST",
-    body: JSON.stringify({ operatorId: "ops" }),
-  });
-  const confirmedAgain = await request(baseUrl, `/api/v1/admin/imports/${preview.data.batchId}/confirm`, {
-    method: "POST",
-    body: JSON.stringify({ operatorId: "ops" }),
-  });
-  const failureCsv = await textRequest(baseUrl, `/api/v1/admin/imports/${preview.data.batchId}/failures.csv`);
-  const detail = await request(baseUrl, `/api/v1/admin/imports/${preview.data.batchId}`);
-  const afterConfirm = await request(baseUrl, "/api/v1/admin/dashboard");
-  const fulfillmentText = [
-    "快递公司,获取时间,电子面单号,订单号,运输状态,收件人姓名,收件人联系方式",
-    "顺丰速运,2026-05-28 19:00:00,SF202605280001,YZROOT202605280001,已签收,批次用户,13800028001",
-  ].join("\n");
-  const fulfillmentPreview = await request(baseUrl, "/api/v1/admin/imports/preview", {
-    method: "POST",
-    body: JSON.stringify({ sourceType: "FULFILLMENT", text: fulfillmentText, fileName: "fulfillment.csv" }),
-  });
-  const fulfillmentConfirmed = await request(baseUrl, `/api/v1/admin/imports/${fulfillmentPreview.data.batchId}/confirm`, {
-    method: "POST",
-    body: JSON.stringify({ operatorId: "ops" }),
-  });
-  const afterFulfillment = await request(baseUrl, "/api/v1/admin/dashboard");
-
-  assert.equal(preview.code, 0);
-  assert.match(preview.data.batchId, /^imp_/);
-  assert.match(preview.data.contentHash, /^[a-f0-9]{64}$/);
-  assert.equal(preview.data.preview.importableCount, 1);
-  assert.equal(preview.data.preview.errorCount, 1);
-  assert.equal(beforeConfirm.data.orders.some((order) => order.youzanOrderNo === "YZROOT202605280001"), false);
-  assert.equal(confirmed.data.status, "CONFIRMED");
-  assert.equal(confirmed.data.result.importedCount, 1);
-  assert.equal(confirmedAgain.data.result.importedCount, 1);
-  assert.match(failureCsv.contentType, /text\/csv/);
-  assert.match(failureCsv.body, /receiverPhone/);
-  assert.match(failureCsv.body, /缺手机号/);
-  assert.equal(detail.data.batchId, preview.data.batchId);
-  assert.equal(afterConfirm.data.orders.some((order) => order.youzanOrderNo === "YZROOT202605280001"), true);
-  assert.equal(afterConfirm.data.importBatches[0].batchId, preview.data.batchId);
-  assert.equal(fulfillmentPreview.data.preview.importableCount, 1);
-  assert.equal(fulfillmentConfirmed.data.result.importedCount, 1);
-  assert.equal(
-    afterFulfillment.data.orders.find((order) => order.youzanOrderNo === "YZROOT202605280001").deliveryStatus,
-    "DELIVERED"
-  );
-  assert.equal(
-    afterFulfillment.data.orders.find((order) => order.youzanOrderNo === "YZROOT202605280001").deliveryStatusLabel,
-    "已送达"
-  );
-  assert.equal(afterFulfillment.data.importBatches[0].batchId, fulfillmentPreview.data.batchId);
-
-  const login = await request(baseUrl, "/api/v1/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ phone: "13800028001" }),
-  });
-  const userOrders = await request(baseUrl, "/api/v1/user/orders", {
-    headers: { Authorization: `Bearer ${login.data.token}` },
-  });
-  assert.equal(userOrders.data.orders[0].fulfillment.carrier, "顺丰速运");
-  assert.equal(userOrders.data.orders[0].fulfillment.trackingNo, "SF202605280001");
-});
 
 test("admin correction HTTP Interface previews, applies, and lists audit logs", async (t) => {
   const server = createApp({ env: directPhoneLoginEnv });
@@ -3306,74 +2717,6 @@ test("admin external Adapter rollback HTTP Interface enforces roles and idempote
   assert.equal(audit.data.auditLogs[0].operator_id, "operator");
 });
 
-test("admin order increment HTTP Interface enforces roles and idempotency", async (t) => {
-  const server = createApp({
-    env: {
-      ROOT_ADMIN_TOKENS: JSON.stringify({
-        viewer: { token: "viewer-secret", role: "viewer" },
-        operator: { token: "operator-secret", role: "operator" },
-      }),
-    },
-  });
-  const baseUrl = await listen(server);
-  t.after(() => server.close());
-  const viewerHeaders = { "X-Admin-Token": "viewer-secret" };
-  const operatorHeaders = { "X-Admin-Token": "operator-secret" };
-  const text = [
-    "有赞订单号,收货人,收货手机号,商品名称,实付金额,订单状态,物流状态,收货地址",
-    "YZ_HTTP_INCREMENT_001,订单增量用户,13800077101,ROOT 7日试饮装,199,已支付,已发货,上海市增量地址",
-  ].join("\n");
-
-  const preview = await request(baseUrl, "/api/v1/admin/orders/increment-preview", {
-    method: "POST",
-    headers: operatorHeaders,
-    body: JSON.stringify({ text }),
-  });
-  const denied = await request(baseUrl, "/api/v1/admin/orders/increment-execute", {
-    method: "POST",
-    headers: { ...viewerHeaders, "X-Request-Id": "http-order-increment-viewer" },
-    body: JSON.stringify({
-      text,
-      requestId: "http-order-increment-viewer",
-      confirmRisk: true,
-    }),
-  });
-  const executed = await request(baseUrl, "/api/v1/admin/orders/increment-execute", {
-    method: "POST",
-    headers: { ...operatorHeaders, "X-Request-Id": "http-order-increment-1" },
-    body: JSON.stringify({
-      text,
-      requestId: "http-order-increment-1",
-      confirmRisk: true,
-      reason: "HTTP 有赞订单增量同步",
-    }),
-  });
-  const repeated = await request(baseUrl, "/api/v1/admin/orders/increment-execute", {
-    method: "POST",
-    headers: { ...operatorHeaders, "X-Request-Id": "http-order-increment-1" },
-    body: JSON.stringify({
-      text,
-      requestId: "http-order-increment-1",
-      confirmRisk: true,
-      reason: "HTTP 有赞订单增量同步",
-    }),
-  });
-  const audit = await request(baseUrl, "/api/v1/admin/audit-logs?action=YOUZAN_ORDER_INCREMENT_SYNC", {
-    headers: viewerHeaders,
-  });
-
-  assert.equal(preview.code, 0);
-  assert.equal(preview.data.summary.importableCount, 1);
-  assert.equal(preview.data.summary.importedCount, 0);
-  assert.equal(denied.code, 40301);
-  assert.equal(executed.code, 0);
-  assert.equal(executed.data.summary.importedCount, 1);
-  assert.equal(repeated.data.audit.audit_log_id, executed.data.audit.audit_log_id);
-  assert.equal(server.store.youzanOrders.filter((order) => order.youzan_order_no === "YZ_HTTP_INCREMENT_001").length, 1);
-  assert.equal(audit.data.auditLogs[0].target_id, "http-order-increment-1");
-  assert.equal(audit.data.auditLogs[0].operator_id, "operator");
-  assert.equal(server.store.auditLogs.filter((log) => log.action === "YOUZAN_ORDER_INCREMENT_SYNC").length, 1);
-});
 
 test("sample calibration report summarizes file previews and readiness", async (t) => {
   const server = createApp({ env: {} });
@@ -3430,22 +2773,24 @@ test("JSON file store persists HTTP mutations across app restarts", async (t) =>
     body: JSON.stringify({ phone: "13800000001" }),
   });
   const token = login.data.token;
-  await request(baseUrl, "/api/v1/user/profile", {
+  const rootUserId = login.data.user.rootUserId;
+  await request(baseUrl, "/api/v1/user/formal-profile", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({
-      joinReasons: ["health"],
-      gutHealthStatus: "normal",
-      improvementMethods: ["diet"],
-      stoolType: "type4",
+      nickname: "持久化用户",
+      birthDate: "1990-01-01",
+      gender: "FEMALE",
     }),
   });
 
   const reloadedStore = createJsonFileStore(storePath);
-  const user = reloadedStore.data.users.find((item) => item.phone === "13800000001");
+  const profile = reloadedStore.data.formalProfiles.find((item) => item.rootUserId === rootUserId);
 
   assert.ok(fs.existsSync(storePath));
-  assert.equal(user.state, "REGISTERED_IDLE");
+  assert.equal(profile.nickname, "持久化用户");
+  assert.equal(profile.birthDate, "1990-01-01");
+  assert.equal(profile.complete, true);
   assert.equal(reloadedStore.kind, "json-file");
 });
 
@@ -3485,24 +2830,26 @@ test("SQLite store persists HTTP mutations across app restarts", async () => {
     body: JSON.stringify({ phone: "13800000002" }),
   });
   const token = login.data.token;
-  await request(baseUrl, "/api/v1/user/profile", {
+  const rootUserId = login.data.user.rootUserId;
+  await request(baseUrl, "/api/v1/user/formal-profile", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({
-      joinReasons: ["health"],
-      gutHealthStatus: "normal",
-      improvementMethods: ["diet"],
-      stoolType: "type4",
+      nickname: "SQLite 持久化用户",
+      birthDate: "1991-02-03",
+      gender: "MALE",
     }),
   });
   await new Promise((resolve) => server.close(resolve));
   firstStore.close();
 
   const reloadedStore = createSqliteStore(storePath);
-  const user = reloadedStore.data.users.find((item) => item.phone === "13800000002");
+  const profile = reloadedStore.data.formalProfiles.find((item) => item.rootUserId === rootUserId);
 
   assert.ok(fs.existsSync(storePath));
-  assert.equal(user.state, "REGISTERED_IDLE");
+  assert.equal(profile.nickname, "SQLite 持久化用户");
+  assert.equal(profile.birthDate, "1991-02-03");
+  assert.equal(profile.complete, true);
   assert.equal(reloadedStore.kind, "sqlite");
   reloadedStore.close();
 });
