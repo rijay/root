@@ -86,7 +86,7 @@ page {
 
 .activity-card {
   position: relative;
-  width: 350px;
+  width: 100%;
   overflow: hidden;
   background: #fff;
   border-radius: 16px;
@@ -118,7 +118,7 @@ page {
 }
 
 .activity-card--featured .activity-card__visual {
-  width: 350px;
+  width: 100%;
   height: 238px;
 }
 
@@ -190,7 +190,7 @@ page {
   position: absolute;
   top: 24px;
   left: 16px;
-  width: 318px;
+  width: calc(100% - 32px);
   max-height: 52px;
   overflow: hidden;
   color: #080806;

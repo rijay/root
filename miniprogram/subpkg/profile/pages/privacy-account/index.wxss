@@ -14,7 +14,7 @@ page,
   position: absolute;
   top: 130px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   height: 38px;
   color: #080806;
   font-size: 30px;
@@ -26,7 +26,7 @@ page,
   position: absolute;
   top: 180px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   height: 44px;
   color: #433e34;
   font-size: 14px;
@@ -37,7 +37,7 @@ page,
 .privacy-account-page__section-tag {
   position: absolute;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   height: 18px;
   color: #586b3f;
   font-size: 12px;
@@ -56,7 +56,7 @@ page,
 .privacy-account-page__menu {
   position: absolute;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   overflow: hidden;
   box-sizing: border-box;
   padding: 0 16px;
@@ -73,7 +73,7 @@ page,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 318px;
+  width: 100%;
   height: 57.33px;
   color: #433e34;
   border-bottom: 1px solid #e8e0d0;
@@ -99,7 +99,7 @@ page,
   position: absolute;
   top: 534px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   height: 94px;
   box-sizing: border-box;
   padding: 18px 16px;
@@ -139,7 +139,7 @@ page,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 350px;
+  width: calc(100% - 40px);
   height: 76px;
   box-sizing: border-box;
   padding: 0 20px;
@@ -156,7 +156,7 @@ page,
   position: absolute;
   top: 790px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   height: 18px;
   color: #8a8172;
   font-size: 11px;
@@ -173,9 +173,9 @@ page,
 
 .cancellation-sheet {
   position: absolute;
-  top: 248px;
+  bottom: 0;
   left: 0;
-  width: 390px;
+  width: 100%;
   height: 596px;
   overflow: hidden;
   background: #fdfbf6;
@@ -185,11 +185,12 @@ page,
 .cancellation-sheet__handle {
   position: absolute;
   top: 12px;
-  left: 169px;
+  left: 50%;
   width: 52px;
   height: 4px;
   background: #e8e0d0;
   border-radius: 2px;
+  transform: translateX(-50%);
 }
 
 .cancellation-sheet__tag,
@@ -202,7 +203,7 @@ page,
 .cancellation-sheet__tag {
   top: 44px;
   left: 24px;
-  width: 342px;
+  width: calc(100% - 48px);
   height: 18px;
   color: #b5523c;
   font-size: 12px;
@@ -213,7 +214,7 @@ page,
 .cancellation-sheet__title {
   top: 78px;
   left: 24px;
-  width: 342px;
+  width: calc(100% - 48px);
   height: 32px;
   color: #080806;
   font-size: 22px;
@@ -224,7 +225,7 @@ page,
 .cancellation-sheet__introduction {
   top: 122px;
   left: 24px;
-  width: 342px;
+  width: calc(100% - 48px);
   height: 40px;
   color: #433e34;
   font-size: 13px;
@@ -236,7 +237,7 @@ page,
   position: absolute;
   top: 180px;
   left: 24px;
-  width: 342px;
+  width: calc(100% - 48px);
   height: 178px;
   box-sizing: border-box;
   padding: 18px 16px;
@@ -253,7 +254,7 @@ page,
   top: 380px;
   left: 24px;
   display: flex;
-  width: 342px;
+  width: calc(100% - 48px);
   height: 38px;
   color: #433e34;
   font-size: 12px;
@@ -290,6 +291,7 @@ page,
   padding: 0;
   box-sizing: border-box;
   border-radius: 12px;
+  width: calc(100% - 40px) !important;
 }
 
 .cancellation-sheet__keep::after,
@@ -323,7 +325,7 @@ page,
 .cancellation-sheet__support {
   top: 564px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   height: 18px;
   color: #8a8172;
   font-size: 11px;

@@ -45,8 +45,7 @@ page {
 }
 
 .login-page__button {
-  width: 350px;
-  max-width: calc(100vw - 40px);
+  width: 100% !important;
   height: 56px;
   min-height: 56px;
   margin: 184px 0 0;

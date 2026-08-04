@@ -66,7 +66,7 @@ page {
   position: absolute;
   top: 134px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   color: #586b3f;
   font-size: 12px;
   font-weight: 600;
@@ -78,7 +78,7 @@ page {
   position: absolute;
   top: 168px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   color: #080806;
   font-size: 26px;
   font-weight: 600;
@@ -90,7 +90,7 @@ page {
   position: absolute;
   top: 256px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   color: #6c6457;
   font-size: 13px;
   line-height: 21px;
@@ -102,7 +102,7 @@ page {
   left: 20px;
   display: flex;
   align-items: center;
-  width: 350px;
+  width: calc(100% - 40px);
   height: 74px;
   padding: 0 16px;
   box-sizing: border-box;
@@ -155,6 +155,7 @@ page {
   font-size: 14px;
   font-weight: 500;
   line-height: 56px;
+  width: calc(100% - 40px) !important;
 }
 
 .health-entry__start {
@@ -170,7 +171,7 @@ page {
   position: absolute;
   top: 680px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   color: #8a8172;
   font-size: 11px;
   line-height: 18px;
@@ -196,7 +197,7 @@ page {
   position: absolute;
   top: 132px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   height: 164px;
   padding: 20px;
   box-sizing: border-box;
@@ -246,7 +247,7 @@ page {
   position: absolute;
   top: 326px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   color: #080806;
   font-size: 20px;
   font-weight: 600;
@@ -257,13 +258,13 @@ page {
   position: absolute;
   top: 370px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
 }
 
 .health-result__tip {
   display: flex;
   align-items: center;
-  width: 350px;
+  width: 100%;
   min-height: 78px;
   margin-bottom: 10px;
   padding: 14px 16px;
@@ -289,12 +290,12 @@ page {
   position: absolute;
   top: 644px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
 }
 
 .health-result__recommendation {
   position: relative;
-  width: 350px;
+  width: 100%;
   min-height: 86px;
   margin-bottom: 10px;
   padding: 15px 110px 14px 16px;
@@ -337,7 +338,7 @@ page {
 .health-result__consent {
   position: absolute;
   top: 836px;
-  left: 95px;
+  left: 50%;
   width: 200px;
   height: 36px;
   margin: 0;
@@ -346,6 +347,7 @@ page {
   background: transparent;
   font-size: 12px;
   line-height: 36px;
+  transform: translateX(-50%);
 }
 
 .health-result__consent::after {
@@ -387,7 +389,7 @@ page {
   position: absolute;
   top: 278px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   color: #080806;
   font-size: 26px;
   font-weight: 600;
@@ -399,7 +401,7 @@ page {
   position: absolute;
   top: 374px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   color: #6c6457;
   font-size: 14px;
   line-height: 22px;
@@ -409,7 +411,7 @@ page {
   position: absolute;
   top: 474px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   min-height: 156px;
   padding: 17px 16px;
   box-sizing: border-box;
@@ -442,7 +444,7 @@ page {
   position: absolute;
   top: 654px;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px);
   color: #8a8172;
   font-size: 11px;
   line-height: 18px;
@@ -458,24 +460,6 @@ page {
   .health-result-screen,
   .health-safety-screen {
     transform-origin: top left;
-  }
-
-  .health-entry__eyebrow,
-  .health-entry__title,
-  .health-entry__description,
-  .health-entry__step,
-  .health-entry__eligibility,
-  .health-result__classification,
-  .health-result__tips-title,
-  .health-result__tips,
-  .health-result__tip,
-  .health-result__recommendations,
-  .health-result__recommendation,
-  .health-safety-screen__title,
-  .health-safety-screen__body,
-  .health-safety-screen__guidance,
-  .health-safety-screen__notice {
-    width: calc(100vw - 40px);
   }
 
   .health-entry__start,
