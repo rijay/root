@@ -31,35 +31,16 @@ const {
   requireAdminCapability,
 } = require("./adminAccessControl");
 const {
-  adminDashboard,
   adminLaunchReadiness,
-  applyCorrection,
   archiveActivity,
   archiveReleaseEvidencePack,
-  confirmImport,
   cancelActivityEnrollment,
   cancelActivitySession,
-  copyAdminLifecycleFilterPreset,
-  createAdminLifecycleUserExport,
   createActivitySession,
-  createFeedbackFollowTask,
   createStore,
-  deleteAdminLifecycleFilterPreset,
-  deliverAdminLifecycleUserExport,
   expireActivityEnrollmentReviews,
-  downloadAdminLifecycleUserExport,
-  downloadSignedAdminLifecycleUserExport,
-  exportAdminLifecycleUsersCsv,
-  exportAdminOperationalAnalyticsCsv,
-  listAdminLifecycleFilterPresets,
-  upsertAdminOperationalAlertRule,
-  upsertAdminLifecycleFilterPreset,
   getActivityDetail,
   getActivityEnrollments,
-  getActionAdapterCalibration,
-  getAdminLifecycleExportDeliveryHealth,
-  getAdminLifecycleWorkbench,
-  getAdminOperationalAnalytics,
   getCloudbaseIdentityProbe,
   getHealthConsentStatus,
   getFormalHealthBootstrap,
@@ -71,20 +52,10 @@ const {
   getFormalContentAction,
   getFormalProfile,
   getPrivacyNotice,
-  getAdapterCalibration,
-  getExternalAdapters,
-  getExternalSampleTemplate,
-  getAdminUserDetail,
-  getImportBatch,
-  exportImportFailuresCsv,
   getReleaseEvidenceArchive,
   getReleaseEvidencePack,
   getReleaseRecord,
-  getConsultationSla,
-  getConsultationSlaEscalations,
-  getConsultationAdvisorWorkbench,
   getUserState,
-  importExternalSamples,
   enrollActivity,
   loginWithWechat,
   prepareWechatLoginExternalInputs,
@@ -100,45 +71,27 @@ const {
   listAdminContentWelcome,
   listAdminContentHomeCarousel,
   listAdminContentSharedDetails,
-  listConsultationAdvisorAssignments,
-  listExternalSampleReviews,
   listFormalHomeContent,
   listFormalWelcomeContent,
-  listImportBatches,
   listAdminLegacyDeprecationDecisions,
-  listAdminYouzanCustomers,
-  listAdminLifecycleUserExports,
   listAuditLogs,
-  listConsultationWeworkWritebacks,
-  listWeWorkTouchJobs,
   listProductionCutoverProofs,
   listRootMemberCenterJumpProofs,
-  previewCorrection,
-  previewExternalSamples,
-  previewImport,
-  planWeWorkTouches,
   publishActivity,
   publishAdminFormalHealthInitialization,
   publishAdminFormalHealthLifestyleAdvice,
   publishAdminFormalHealthRecommendationRule,
   publishAdminFormalHealthScale,
   publishAdminContentCandidate,
-  recordConsultationAdvisorAssignment,
-  recordConsultationWeworkWriteback,
   recordAdminLegacyDeprecationDecision,
   recordProductionCutoverProof,
   recordRootMemberCenterJumpProof,
   recordHealthConsentDecision,
   requestActivityChanges,
-  rollbackExternalAdapterRun,
   reviewActivityEnrollment,
-  runDueExternalAdapterRetries,
-  runExternalAdapter,
   signReleaseRecord,
   stableRootUserIdForToken,
-  runDueWeWorkTouches,
   runHealthDataRetentionCleanup,
-  reviewAdminLifecycleUserExportApproval,
   submitFormalProfile,
   submitFormalHealthInitialAssessment,
   submitFormalHealthScale,
@@ -153,12 +106,10 @@ const {
   validateAdminContentTarget,
   markAdminContentPreviewCompleted,
   unpublishAdminContentVersion,
-  upsertExternalStatusMapping,
   submitActivityForReview,
   unpublishActivity,
   updateActivitySessionState,
   upsertActivityDraft,
-  upsertProduct,
 } = require("./domain");
 
 const publicDir = path.join(__dirname, "..", "public");
@@ -1283,7 +1234,6 @@ function createApp(options = {}) {
         message: "ok",
         data: adminPrincipalProfile(adminPrincipal),
       });
-      if (route === "GET /api/v1/admin/dashboard") return ok(res, adminDashboard(data, runtimeContext));
       if (route === "GET /api/v1/admin/activities") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
         return ok(res, listAdminActivityDefinitions(data, Object.fromEntries(url.searchParams), runtimeContext));
@@ -1344,70 +1294,6 @@ function createApp(options = {}) {
           trustedWechatIdentity,
         }));
       }
-      if (route === "GET /api/v1/admin/lifecycle-filter-presets") {
-        return ok(res, listAdminLifecycleFilterPresets(data, {
-          ...Object.fromEntries(url.searchParams),
-          operatorId: adminOperatorId(adminPrincipal, {}),
-        }));
-      }
-      if (route === "GET /api/v1/admin/lifecycle-user-exports") {
-        return ok(res, listAdminLifecycleUserExports(data, Object.fromEntries(url.searchParams), { ...runtimeContext, adminPrincipal }));
-      }
-      if (route === "GET /api/v1/admin/lifecycle-user-exports/delivery-health") {
-        return ok(res, getAdminLifecycleExportDeliveryHealth(data, Object.fromEntries(url.searchParams), { ...runtimeContext, adminPrincipal }));
-      }
-      if (route === "GET /api/v1/admin/lifecycle-users/export") {
-        return send(res, 200, exportAdminLifecycleUsersCsv(data, Object.fromEntries(url.searchParams), { ...runtimeContext, adminPrincipal }), {
-          "Content-Type": "text/csv; charset=utf-8",
-          "Content-Disposition": "attachment; filename=\"root-lifecycle-users.csv\"",
-        });
-      }
-      if (method === "GET" && url.pathname.startsWith("/api/v1/lifecycle-user-exports/") && url.pathname.endsWith("/signed-download")) {
-        const exportId = url.pathname.split("/").at(-2);
-        const result = downloadSignedAdminLifecycleUserExport(data, exportId, Object.fromEntries(url.searchParams), runtimeContext);
-        return send(res, 200, result.csvText, {
-          "Content-Type": result.contentType,
-          "Content-Disposition": `attachment; filename="${result.filename}"`,
-        });
-      }
-      if (method === "GET" && url.pathname.startsWith("/api/v1/admin/lifecycle-user-exports/") && url.pathname.endsWith("/download")) {
-        const exportId = url.pathname.split("/").at(-2);
-        const result = downloadAdminLifecycleUserExport(data, exportId, { ...runtimeContext, adminPrincipal });
-        return send(res, 200, result.csvText, {
-          "Content-Type": result.contentType,
-          "Content-Disposition": `attachment; filename="${result.filename}"`,
-        });
-      }
-      if (route === "GET /api/v1/admin/lifecycle-users") {
-        return ok(res, getAdminLifecycleWorkbench(data, Object.fromEntries(url.searchParams), runtimeContext));
-      }
-      if (route === "POST /api/v1/admin/lifecycle-user-exports/create") {
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => createAdminLifecycleUserExport(data, {
-          ...body,
-          dryRun: false,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, adminPrincipal, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/admin/lifecycle-user-exports/review") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.DATA_EXPORT_APPROVE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => reviewAdminLifecycleUserExportApproval(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, adminPrincipal, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/admin/lifecycle-user-exports/deliver") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.DATA_EXPORT_APPROVE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, await withIdempotency(data, req, () => deliverAdminLifecycleUserExport(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, adminPrincipal, requestId }), requestId));
-      }
       if (route === "POST /api/v1/admin/cloudbase-object-storage/probe") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
         const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
@@ -1419,47 +1305,6 @@ function createApp(options = {}) {
         }, { ...runtimeContext, adminPrincipal, requestId }), requestId);
         return ok(res, { code: 0, message: "ok", data: result });
       }
-      if (route === "POST /api/v1/admin/lifecycle-filter-presets/upsert") {
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => upsertAdminLifecycleFilterPreset(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }), requestId));
-      }
-      if (route === "POST /api/v1/admin/lifecycle-filter-presets/copy") {
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => copyAdminLifecycleFilterPreset(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }), requestId));
-      }
-      if (route === "POST /api/v1/admin/lifecycle-filter-presets/delete") {
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => deleteAdminLifecycleFilterPreset(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }), requestId));
-      }
-      if (route === "GET /api/v1/admin/operational-analytics") return ok(res, getAdminOperationalAnalytics(data, Object.fromEntries(url.searchParams)));
-      if (route === "GET /api/v1/admin/operational-analytics/export") {
-        return send(res, 200, exportAdminOperationalAnalyticsCsv(data, Object.fromEntries(url.searchParams)), {
-          "Content-Type": "text/csv; charset=utf-8",
-          "Content-Disposition": "attachment; filename=\"root-operational-analytics.csv\"",
-        });
-      }
-      if (route === "POST /api/v1/admin/operational-alert-rules/upsert") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        if (!requestId) throw Object.assign(new Error("operational alert rule request_id 必填"), { code: 400 });
-        return ok(res, withIdempotency(data, req, () => upsertAdminOperationalAlertRule(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }), requestId));
-      }
       if (route === "GET /api/v1/admin/launch-readiness") {
         return ok(res, adminLaunchReadiness(data, { ...runtimeContext, target: url.searchParams.get("target") || "production" }));
       }
@@ -1470,71 +1315,6 @@ function createApp(options = {}) {
           message: "ok",
           data: adminFormalUserQuery.queryByPhone(data, body),
         });
-      }
-      if (method === "GET" && url.pathname.startsWith("/api/v1/admin/users/") && url.pathname.endsWith("/detail")) {
-        const userId = url.pathname.split("/").at(-2);
-        return ok(res, getAdminUserDetail(data, userId));
-      }
-      if (method === "POST" && url.pathname.startsWith("/api/v1/admin/users/") && url.pathname.endsWith("/follow")) {
-        const userId = url.pathname.split("/").at(-2);
-        return ok(res, createFeedbackFollowTask(data, userId, body));
-      }
-      if (route === "GET /api/v1/admin/consultation-wework-writebacks") {
-        return ok(res, listConsultationWeworkWritebacks(data, Object.fromEntries(url.searchParams)));
-      }
-      if (route === "GET /api/v1/admin/wework-touch-jobs") {
-        return ok(res, listWeWorkTouchJobs(data, Object.fromEntries(url.searchParams)));
-      }
-      if (route === "POST /api/v1/admin/wework-touch-jobs/plan") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, withIdempotency(data, req, () => planWeWorkTouches(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/admin/wework-touch-jobs/run") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        if (!(body.dryRun === true || body.dry_run === true) && !requestId) throw Object.assign(new Error("wework touch run request_id 必填"), { code: 400 });
-        return ok(res, await withIdempotency(data, req, () => runDueWeWorkTouches(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "GET /api/v1/admin/consultation-advisor-assignments") {
-        return ok(res, listConsultationAdvisorAssignments(data, Object.fromEntries(url.searchParams)));
-      }
-      if (route === "GET /api/v1/admin/consultation-sla") {
-        return ok(res, getConsultationSla(data, Object.fromEntries(url.searchParams), runtimeContext));
-      }
-      if (route === "GET /api/v1/admin/consultation-sla-escalations") {
-        return ok(res, getConsultationSlaEscalations(data, Object.fromEntries(url.searchParams), runtimeContext));
-      }
-      if (route === "GET /api/v1/admin/consultation-advisor-workbench") {
-        return ok(res, getConsultationAdvisorWorkbench(data, Object.fromEntries(url.searchParams), runtimeContext));
-      }
-      if (route === "POST /api/v1/admin/consultation-advisor-assignments") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.REVIEW_RESOLVE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        if (!requestId) throw Object.assign(new Error("consultation advisor assignment request_id 必填"), { code: 400 });
-        return ok(res, withIdempotency(data, req, () => recordConsultationAdvisorAssignment(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/admin/consultation-wework-writebacks") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.REVIEW_RESOLVE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        if (!requestId) throw Object.assign(new Error("consultation wework writeback request_id 必填"), { code: 400 });
-        return ok(res, await withIdempotency(data, req, () => recordConsultationWeworkWriteback(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
       }
       if (route === "POST /api/v1/admin/formal-health/initialization/draft") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_CONTENT_WRITE);
@@ -1742,13 +1522,6 @@ function createApp(options = {}) {
           command.idempotencyKey
         ));
       }
-      if (route === "GET /api/v1/admin/adapter-calibration") return ok(res, getAdapterCalibration(data, runtimeContext));
-      if (route === "GET /api/v1/admin/action-adapter-calibration") {
-        return ok(res, getActionAdapterCalibration(data, {
-          ...runtimeContext,
-          target: url.searchParams.get("target") || "production",
-        }));
-      }
       if (route === "GET /api/v1/admin/release-record") {
         return ok(res, getReleaseRecord(data, { ...runtimeContext, target: url.searchParams.get("target") || "production" }));
       }
@@ -1827,77 +1600,9 @@ function createApp(options = {}) {
           requestId,
         }), requestId));
       }
-      if (route === "GET /api/v1/admin/external-adapters") return ok(res, getExternalAdapters(data, runtimeContext));
-      if (route === "GET /api/v1/admin/youzan-customers") {
-        return ok(res, listAdminYouzanCustomers(data, Object.fromEntries(url.searchParams)));
-      }
-      if (route === "POST /api/v1/admin/external-adapters/run") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, await withIdempotency(data, req, () => runExternalAdapter(data, body, runtimeContext)));
-      }
-      if (route === "POST /api/v1/admin/external-adapters/retry-due") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, await withIdempotency(data, req, () => runDueExternalAdapterRetries(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        }, { ...runtimeContext, requestId }), requestId));
-      }
-      if (route === "POST /api/v1/admin/external-adapters/rollback") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
-        return ok(res, await withIdempotency(data, req, () => rollbackExternalAdapterRun(data, {
-          ...body,
-          operatorId: adminOperatorId(adminPrincipal, body),
-          requestId,
-        })));
-      }
-      if (route === "GET /api/v1/admin/external-samples/template") return ok(res, getExternalSampleTemplate(url.searchParams.get("sourceType") || ""));
-      if (route === "GET /api/v1/admin/external-sample-reviews") {
-        return ok(res, listExternalSampleReviews(data, Object.fromEntries(url.searchParams)));
-      }
-      if (route === "POST /api/v1/admin/external-samples/preview") return ok(res, previewExternalSamples(data, body));
-      if (route === "POST /api/v1/admin/external-samples/import") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, withIdempotency(data, req, () => importExternalSamples(data, body, undefined, runtimeContext)));
-      }
-      if (route === "GET /api/v1/admin/imports") return ok(res, listImportBatches(data, Object.fromEntries(url.searchParams)));
-      if (route === "POST /api/v1/admin/imports/preview") return ok(res, withIdempotency(data, req, () => previewImport(data, body)));
-      if (method === "GET" && url.pathname.startsWith("/api/v1/admin/imports/") && url.pathname.endsWith("/failures.csv")) {
-        const batchId = url.pathname.split("/").at(-2);
-        return send(res, 200, exportImportFailuresCsv(data, batchId), {
-          "Content-Type": "text/csv; charset=utf-8",
-          "Content-Disposition": `attachment; filename="${batchId}-failures.csv"`,
-        });
-      }
-      if (method === "GET" && url.pathname.startsWith("/api/v1/admin/imports/")) {
-        const batchId = url.pathname.split("/").at(-1);
-        return ok(res, getImportBatch(data, batchId));
-      }
-      if (method === "POST" && url.pathname.startsWith("/api/v1/admin/imports/") && url.pathname.endsWith("/confirm")) {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        const batchId = url.pathname.split("/").at(-2);
-        return ok(res, withIdempotency(data, req, () => confirmImport(
-          data,
-          batchId,
-          { ...body, operatorId: adminOperatorId(adminPrincipal, body) },
-          undefined,
-          runtimeContext
-        )));
-      }
-      if (route === "POST /api/v1/admin/corrections/preview") return ok(res, previewCorrection(data, body));
-      if (route === "POST /api/v1/admin/corrections/apply") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, withIdempotency(data, req, () => applyCorrection(data, { ...body, operatorId: adminOperatorId(adminPrincipal, body) })));
-      }
       if (route === "GET /api/v1/admin/audit-logs") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.AUDIT_READ);
         return ok(res, listAuditLogs(data, Object.fromEntries(url.searchParams)));
-      }
-      if (route === "POST /api/v1/admin/external-status-mappings") {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        return ok(res, withIdempotency(data, req, () => upsertExternalStatusMapping(data, body)));
       }
 
       send(res, 404, { code: 404, message: "接口不存在", data: null });
