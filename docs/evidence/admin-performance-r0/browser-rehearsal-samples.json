@@ -8,6 +8,8 @@
     "evidenceClass": "LOCAL_REHEARSAL",
     "targetOrigin": "http://127.0.0.1:4173",
     "artifactCommit": "",
+    "releaseId": "",
+    "releaseIdConfigured": false,
     "browser": "Chrome",
     "browserVersion": "150.0.7871.187",
     "hardwareConcurrency": 10,

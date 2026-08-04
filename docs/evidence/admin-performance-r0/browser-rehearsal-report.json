@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-04T10:36:49.454Z",
+  "generatedAt": "2026-08-04T10:49:57.684Z",
   "evidenceClass": "LOCAL_REHEARSAL",
   "gate": "BUILD",
   "status": "PASS",
@@ -228,6 +228,8 @@
       "observedEvidenceClass": "",
       "targetOrigin": "",
       "artifactCommit": "",
+      "releaseId": "",
+      "releaseIdConfigured": false,
       "status": "BLOCK",
       "reason": "EVIDENCE_PROVENANCE_MISSING_OR_MIXED"
     },
@@ -276,6 +278,8 @@
       "evidenceClass": "LOCAL_REHEARSAL",
       "targetOrigin": "http://127.0.0.1:4173",
       "artifactCommit": "",
+      "releaseId": "",
+      "releaseIdConfigured": false,
       "browsers": [
         "Chrome"
       ],
@@ -297,6 +301,8 @@
       "observedEvidenceClass": "LOCAL_REHEARSAL",
       "targetOrigin": "http://127.0.0.1:4173",
       "artifactCommit": "",
+      "releaseId": "",
+      "releaseIdConfigured": false,
       "status": "PASS"
     },
     "resources": {

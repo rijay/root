@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "dimensions": {
+    "browser": "Chrome",
+    "browserVersion": "",
+    "hardwareConcurrency": 0,
+    "deviceMemoryGiB": 0,
+    "viewportWidth": 1240,
+    "viewportHeight": 820
+  },
+  "resources": {
+    "initialDomNodes": null,
+    "pageDomNodes": null,
+    "maxTaskMs": null,
+    "maxFreezeMs": null,
+    "stableMemoryMiB": null,
+    "fps": null,
+    "memoryGrowthRatio": null,
+    "menuCycles": 10,
+    "editCycles": 10,
+    "journeyDurationMinutes": 30
+  },
+  "capacity": {
+    "sessionCount": 5,
+    "maxConcurrentReads": 10,
+    "conflictScenarios": 2
+  },
+  "networks": {
+    "office": {
+      "rttMs": 80,
+      "downlinkMbps": 10,
+      "uplinkMbps": 5,
+      "packetLossRatio": 0,
+      "networkEmulationComplete": true,
+      "limitations": []
+    },
+    "weak": {
+      "rttMs": 200,
+      "downlinkMbps": 2,
+      "uplinkMbps": 1,
+      "packetLossRatio": 0.01,
+      "networkEmulationComplete": true,
+      "limitations": []
+    }
+  },
+  "journeys": {
+    "coldStart": { "office": [], "weak": [] },
+    "cachedRefresh": { "office": [], "weak": [] },
+    "loadedMenuSwitch": { "office": [], "weak": [] },
+    "firstAsyncPage": { "office": [], "weak": [] }
+  },
+  "limitations": []
+}

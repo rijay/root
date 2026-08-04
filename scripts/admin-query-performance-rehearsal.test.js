@@ -29,6 +29,8 @@ test("rehearsal emits candidate-compatible dimensions without user data", async 
     assert.equal(event.evidenceClass, "LOCAL_REHEARSAL");
     assert.match(event.targetOrigin, /^http:\/\/127\.0\.0\.1:\d+$/);
     assert.equal(event.artifactCommit, "");
+    assert.equal(event.releaseId, "");
+    assert.equal(event.releaseIdConfigured, false);
     assert.equal(event.datasetVersion, FIXTURE_VERSION);
     assert.equal(Number.isFinite(event.durationMs), true);
     assert.equal(Number.isFinite(event.responseBytes), true);

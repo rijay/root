@@ -59,6 +59,8 @@ test("candidate query and browser evidence only pass with complete bounded sampl
     evidenceClass: "FORMAL_LAUNCH_CANDIDATE",
     targetOrigin: "https://candidate.root.example",
     artifactCommit,
+    releaseId: "myroot-candidate-abcdef123456",
+    releaseIdConfigured: true,
   };
   const queryEvents = ["list", "detail", "write", "audit"].flatMap((scenario) => (
     Array.from({ length: 20 }, () => ({
@@ -126,6 +128,8 @@ test("candidate mode rejects complete local rehearsal metrics", () => {
     evidenceClass: "LOCAL_REHEARSAL",
     targetOrigin: "http://127.0.0.1:4173",
     artifactCommit: "",
+    releaseId: "",
+    releaseIdConfigured: false,
   };
   assert.equal(evaluateEvidenceProvenance([local], "LOCAL_REHEARSAL").status, "PASS");
   const rejected = evaluateEvidenceProvenance([local], "FORMAL_LAUNCH_CANDIDATE");
@@ -136,6 +140,8 @@ test("candidate mode rejects complete local rehearsal metrics", () => {
     ...local,
     evidenceClass: "FORMAL_LAUNCH_CANDIDATE",
     artifactCommit: "abcdef1",
+    releaseId: "myroot-candidate-abcdef1",
+    releaseIdConfigured: true,
   };
   const relabeledRejected = evaluateEvidenceProvenance([relabeledLocal], "FORMAL_LAUNCH_CANDIDATE");
   assert.equal(relabeledRejected.status, "BLOCK");
@@ -145,16 +151,17 @@ test("candidate mode rejects complete local rehearsal metrics", () => {
 test("candidate query and browser evidence must bind to the same deployed artifact", () => {
   const query = {
     provenance: { status: "PASS" },
-    dimensions: { artifactCommit: "abcdef1", targetOrigin: "https://candidate.root.example" },
+    dimensions: { artifactCommit: "abcdef1", targetOrigin: "https://candidate.root.example", releaseId: "myroot-candidate-abcdef1" },
   };
   const browser = {
     provenance: { status: "PASS" },
-    dimensions: { artifactCommit: "abcdef1", targetOrigin: "https://candidate.root.example" },
+    dimensions: { artifactCommit: "abcdef1", targetOrigin: "https://candidate.root.example", releaseId: "myroot-candidate-abcdef1" },
   };
   assert.deepEqual(evaluateCandidateBinding(query, browser, "FORMAL_LAUNCH_CANDIDATE"), {
     status: "PASS",
     artifactCommit: "abcdef1",
     targetOrigin: "https://candidate.root.example",
+    releaseId: "myroot-candidate-abcdef1",
   });
   assert.equal(evaluateCandidateBinding(query, {
     ...browser,
@@ -171,6 +178,8 @@ test("compact browser sessions expand without duplicating sensitive data", () =>
       evidenceClass: "LOCAL_REHEARSAL",
       targetOrigin: "http://127.0.0.1:4173",
       artifactCommit: "",
+      releaseId: "",
+      releaseIdConfigured: false,
       browser: "Chrome",
       browserVersion: "150",
       hardwareConcurrency: 10,
@@ -190,6 +199,7 @@ test("compact browser sessions expand without duplicating sensitive data", () =>
   assert.equal(events[0].hardwareConcurrency, 10);
   assert.equal(events[0].evidenceClass, "LOCAL_REHEARSAL");
   assert.equal(events[0].targetOrigin, "http://127.0.0.1:4173");
+  assert.equal(events[0].releaseIdConfigured, false);
   assert.deepEqual(events[0].evidenceLimitations, ["LOCAL_ONLY"]);
 });
 

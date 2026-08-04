@@ -8,7 +8,7 @@
 2. **查询证据**：使用 `ADMIN_PERFORMANCE_R0` 固定数据规模，为列表、详情、写入、审计四类场景各采集至少 20 次，记录 `version`、`environment`、`datasetVersion`、`scenario`、`durationMs`、`responseBytes`。使用 `--query-events` 生成 P75、P95 与响应体报告。
 3. **浏览器证据**：覆盖 Chrome、标准办公网络和弱网，记录冷启动、缓存刷新、已加载菜单切换、首次异步页面四类场景；同时记录 DOM 节点、最长同步任务、最长卡顿、稳定内存、菜单循环后的内存增长、帧率和持续操作时间。使用 `--browser-events` 汇总。Edge 不在首发支持与验收范围内。
 
-候选查询与浏览器证据必须同时携带 `evidenceClass=FORMAL_LAUNCH_CANDIDATE`、非本机 HTTPS `targetOrigin` 和 7–40 位 Git `artifactCommit`。两类证据的目标 Origin 与提交必须完全一致；本地、测试、开发环境或回环地址即使指标全部达标，也不能关闭候选 Gate。
+候选查询与浏览器证据必须同时携带 `evidenceClass=FORMAL_LAUNCH_CANDIDATE`、非本机 HTTPS `targetOrigin`、完整 40 位 Git `artifactCommit` 和由 `/health` 回读的显式 `releaseId`。两类证据的目标 Origin、提交和 `releaseId` 必须完全一致；本地、测试、开发环境或回环地址即使指标全部达标，也不能关闭候选 Gate。
 
 候选报告命令示例：
 
@@ -19,6 +19,58 @@ node scripts/admin-performance-report.js \
   --browser-events docs/evidence/admin-performance-r0/browser-events.json \
   --output docs/evidence/admin-performance-r0/candidate-report.json
 ```
+
+## 候选采集入口
+
+候选采集分为四步，默认命令不连接网络：
+
+1. **零网络预检**：校验 HTTPS 候选 Origin、完整 40 位 Git 提交、环境、版本和显式 `releaseId`，并提示候选运行时必须配置 `ROOT_ADMIN_PERFORMANCE_DATASET_VERSION=ADMIN_PERFORMANCE_R0`；只报告四项敏感环境变量是否已配置，不打印其值。
+2. **查询采集**：取得单独候选写入授权后，先从 `/health` 回读版本和显式 `releaseId`，再采集列表、精确用户查询、审计和草稿写入各 20 次。写入只对 `ROOT_ADMIN_PERFORMANCE_DRAFT_ID` 指定的专用欢迎页草稿保存相同内容，不发布、不下线，但会产生 20 次 revision 和审计记录。
+3. **浏览器封装**：按 `candidate-browser-capture.template.json` 完成 Chrome、两个网络档位、五会话、两类冲突和 30 分钟稳定性原始记录；封装器拒绝原始文件自行声明候选来源，只接受查询采集产生的 `/health` 回读。
+4. **报告**：查询和浏览器证据绑定同一 Origin、Git 提交和 `releaseId` 后，再由 `--candidate` 生成三层报告。
+
+预检命令：
+
+```sh
+npm run evidence:admin-candidate:query -- \
+  --preflight \
+  --target https://candidate.example.com \
+  --artifact-commit FULL_40_CHAR_GIT_COMMIT \
+  --environment candidate-staging \
+  --version 0.5.13 \
+  --release-id myroot-candidate-COMMIT_PREFIX
+```
+
+查询执行还要求以下值由受控凭据渠道注入环境，禁止把真实值写入仓库、证据文件或命令历史：
+
+- `ROOT_ADMIN_PERFORMANCE_TOKEN`：候选后台测试口令；
+- `ROOT_ADMIN_PERFORMANCE_TEST_PHONE`：固定测试用户手机号；
+- `ROOT_ADMIN_PERFORMANCE_DRAFT_ID`：专用、可产生 revision 的欢迎页草稿；
+- `ROOT_ADMIN_PERFORMANCE_CANDIDATE_WRITE_ACK=I_UNDERSTAND_CANDIDATE_DRAFT_WILL_BE_REVISED`：本次写入确认。
+
+候选运行时的 `ROOT_ADMIN_PERFORMANCE_DATASET_VERSION=ADMIN_PERFORMANCE_R0` 不是秘密，但必须随候选部署显式配置并由 `/health` 回读；缺失或不一致时，查询采集器在任何后台读写前停止。
+
+取得明确授权后，将预检命令中的 `--preflight` 改为 `--execute-query`，并增加全新的 `--output-dir`。采集器使用独占创建，拒绝覆盖已有证据文件。
+
+浏览器原始记录封装：
+
+```sh
+npm run evidence:admin-candidate:browser -- \
+  --runtime-readback CANDIDATE_OUTPUT_DIR/runtime-readback.json \
+  --capture BROWSER_CAPTURE.json \
+  --output CANDIDATE_OUTPUT_DIR/browser-events.json
+```
+
+最终候选报告：
+
+```sh
+npm run evidence:admin-candidate:report -- \
+  --query-events CANDIDATE_OUTPUT_DIR/query-events.json \
+  --browser-events CANDIDATE_OUTPUT_DIR/browser-events.json \
+  --output CANDIDATE_OUTPUT_DIR/candidate-report.json
+```
+
+候选查询执行属于外部、带写入的操作；本地实现和预检完成不构成执行授权。浏览器封装与报告只读本地证据文件，也不会部署、送审、发布或切流。
 
 `npm run evidence:local:write` 会生成当前构建快照，并把缺失的查询与浏览器证据保持为 `BLOCK`；`npm run evidence:local:check` 校验这些本地证据是否仍与当前构建和 20 个 UED 映射一致。
 
@@ -56,7 +108,7 @@ node scripts/admin-performance-report.js \
 
 - 构建通过只说明静态资源未越过硬上限，不等于正式上线性能门禁通过。
 - 查询和浏览器样本缺失、样本数不足或任一硬上限超标时，候选报告必须失败。
-- 查询与浏览器证据来源不一致、目标为本机/测试环境、缺少候选证据类别或未绑定同一 Git 提交时，候选报告必须失败。
+- 查询与浏览器证据来源不一致、目标为本机/测试环境、缺少候选证据类别，或未绑定同一 Git 提交和显式 `releaseId` 时，候选报告必须失败。
 - 旧后台、本地临时数据和人工主观感受只能作为参考，不可作为候选版本通过证据。
 - 本阶段不设置“运营操作 Gate”，也不引入 Redis、WebSocket、APM、虚拟列表或复杂全局状态管理。
 - 报告不包含手机号、健康答案、令牌或其他个人信息；正式证据只保留性能维度和版本标识。

@@ -39,12 +39,16 @@ function evaluateEvidenceProvenance(events, expectedEvidenceClass) {
   const shared = Boolean(events.length)
     && events.every((event) => event.evidenceClass === first.evidenceClass
       && event.targetOrigin === first.targetOrigin
-      && event.artifactCommit === first.artifactCommit);
+      && event.artifactCommit === first.artifactCommit
+      && event.releaseId === first.releaseId
+      && event.releaseIdConfigured === first.releaseIdConfigured);
   const base = {
     expectedEvidenceClass,
     observedEvidenceClass: String(first.evidenceClass || ""),
     targetOrigin: String(first.targetOrigin || ""),
     artifactCommit: String(first.artifactCommit || ""),
+    releaseId: String(first.releaseId || ""),
+    releaseIdConfigured: first.releaseIdConfigured === true,
   };
   if (!shared || first.evidenceClass !== expectedEvidenceClass || !target) {
     return { ...base, status: "BLOCK", reason: "EVIDENCE_PROVENANCE_MISSING_OR_MIXED" };
@@ -55,7 +59,10 @@ function evaluateEvidenceProvenance(events, expectedEvidenceClass) {
     const candidateEnvironment = Boolean(environment)
       && !/(^|[-_])(local|localhost|test|development|dev)([-_]|$)/.test(environment);
     const candidateCommit = /^[0-9a-f]{7,40}$/i.test(String(first.artifactCommit || ""));
-    if (!candidateTarget || !candidateEnvironment || !candidateCommit) {
+    const candidateRelease = first.releaseIdConfigured === true
+      && Boolean(String(first.releaseId || ""))
+      && String(first.releaseId).toLowerCase().includes(String(first.artifactCommit || "").slice(0, 7).toLowerCase());
+    if (!candidateTarget || !candidateEnvironment || !candidateCommit || !candidateRelease) {
       return { ...base, status: "BLOCK", reason: "CANDIDATE_PROVENANCE_INVALID" };
     }
   }
@@ -173,6 +180,8 @@ function aggregateQueryEvidence(events, budgets, expectedEvidenceClass = "") {
     evidenceClass: String(events[0].evidenceClass || ""),
     targetOrigin: String(events[0].targetOrigin || ""),
     artifactCommit: String(events[0].artifactCommit || ""),
+    releaseId: String(events[0].releaseId || ""),
+    releaseIdConfigured: events[0].releaseIdConfigured === true,
   } : { version: "", environment: "", datasetVersion: "" };
   const provenance = evaluateEvidenceProvenance(events, expectedEvidenceClass);
   const dimensionsValid = Boolean(evidenceDimensions.version && evidenceDimensions.environment)
@@ -224,6 +233,8 @@ function expandBrowserEvidence(input) {
         evidenceClass: dimensions.evidenceClass,
         targetOrigin: dimensions.targetOrigin,
         artifactCommit: dimensions.artifactCommit,
+        releaseId: dimensions.releaseId,
+        releaseIdConfigured: dimensions.releaseIdConfigured,
         browser: dimensions.browser,
         browserVersion: dimensions.browserVersion || "",
         hardwareConcurrency: dimensions.hardwareConcurrency,
@@ -260,6 +271,8 @@ function aggregateBrowserEvidence(events, budgets, expectedEvidenceClass = "") {
     evidenceClass: String(first.evidenceClass || ""),
     targetOrigin: String(first.targetOrigin || ""),
     artifactCommit: String(first.artifactCommit || ""),
+    releaseId: String(first.releaseId || ""),
+    releaseIdConfigured: first.releaseIdConfigured === true,
   };
   const provenance = evaluateEvidenceProvenance(events, expectedEvidenceClass);
   const valid = events.filter((event) => requiredNumbers.every((field) => Number.isFinite(event?.[field]))
@@ -387,11 +400,13 @@ function evaluateCandidateBinding(query, browser, evidenceClass) {
   const matches = query?.provenance?.status === "PASS"
     && browser?.provenance?.status === "PASS"
     && queryDimensions.artifactCommit === browserDimensions.artifactCommit
-    && queryDimensions.targetOrigin === browserDimensions.targetOrigin;
+    && queryDimensions.targetOrigin === browserDimensions.targetOrigin
+    && queryDimensions.releaseId === browserDimensions.releaseId;
   return {
     status: matches ? "PASS" : "BLOCK",
     artifactCommit: matches ? queryDimensions.artifactCommit : "",
     targetOrigin: matches ? queryDimensions.targetOrigin : "",
+    releaseId: matches ? queryDimensions.releaseId : "",
   };
 }
 
