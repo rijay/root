@@ -7,6 +7,7 @@ const runtimeBudgets = require("../config/performance-runtime-budgets");
 const projectConfig = require("../project.config.json");
 const {
   buildPackageBudgetReport,
+  evaluateMeasurementStatus,
   evaluateMetric,
 } = require("../../scripts/miniprogram-performance-report");
 
@@ -41,6 +42,12 @@ assert.deepEqual(evaluateMetric(100, { target: 100, hardLimit: 120 }), {
 });
 assert.equal(evaluateMetric(110, { target: 100, hardLimit: 120 }).status, "WARN");
 assert.equal(evaluateMetric(121, { target: 100, hardLimit: 120 }).status, "BLOCK");
+assert.equal(evaluateMeasurementStatus([]), "BLOCKED_MISSING_SAMPLES");
+assert.equal(
+  evaluateMeasurementStatus([{ sampleCount: 29 }]),
+  "BLOCKED_INSUFFICIENT_SAMPLES",
+);
+assert.equal(evaluateMeasurementStatus([{ sampleCount: 30 }]), "CANDIDATE_SAMPLES_READY");
 
 const legacyReport = buildPackageBudgetReport({
   projectRoot,
