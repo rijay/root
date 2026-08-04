@@ -17,6 +17,7 @@ export default defineConfig({
     },
   },
   build: {
+    cssCodeSplit: false,
     manifest: true,
     rollupOptions: {
       output: {

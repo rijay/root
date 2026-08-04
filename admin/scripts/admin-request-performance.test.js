@@ -2,6 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 globalThis.window = {
+  location: {
+    origin: "https://admin.example.com",
+    search: "",
+  },
   sessionStorage: {
     getItem() { return null; },
     setItem() {},

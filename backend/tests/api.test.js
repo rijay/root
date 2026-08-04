@@ -84,6 +84,7 @@ async function textRequest(baseUrl, requestPath, options = {}) {
   return {
     status: response.status,
     contentType: response.headers.get("content-type") || "",
+    contentSecurityPolicy: response.headers.get("content-security-policy") || "",
     body: await response.text(),
   };
 }
@@ -1026,8 +1027,10 @@ test("production and CloudBase admin Interface rejects unconfigured admin tokens
 test("serves formal REST Interfaces and Element Plus Admin assets", async (t) => {
   const tempAdminDir = fs.mkdtempSync(path.join(os.tmpdir(), "root-admin-dist-"));
   fs.mkdirSync(path.join(tempAdminDir, "assets"), { recursive: true });
-  fs.writeFileSync(path.join(tempAdminDir, "index.html"), "<!doctype html><title>myRoot Admin</title><div id=\"app\"></div><script type=\"module\" src=\"/admin/assets/app.js\"></script>");
+  fs.writeFileSync(path.join(tempAdminDir, "index.html"), "<!doctype html><title>myRoot Admin</title><link rel=\"stylesheet\" href=\"/admin/assets/app.css\"><div id=\"app\"></div><script type=\"module\" src=\"/admin/assets/app.js\"></script>");
   fs.writeFileSync(path.join(tempAdminDir, "assets", "app.js"), "window.__ROOT_ADMIN_DIST__ = true;");
+  fs.writeFileSync(path.join(tempAdminDir, "assets", "chunk.js"), "export const chunk = true;");
+  fs.writeFileSync(path.join(tempAdminDir, "assets", "app.css"), "body { margin: 0; }");
   const server = createApp({
     env: { ...directPhoneLoginEnv, ROOT_RELEASE_ID: "myroot-api-test-http" },
     adminDistDir: tempAdminDir,
@@ -1048,6 +1051,14 @@ test("serves formal REST Interfaces and Element Plus Admin assets", async (t) =>
   assert.equal(elementAdmin.status, 200);
   assert.match(elementAdmin.body, /myRoot Admin/);
   assert.doesNotMatch(elementAdmin.body, /ROOT 7日打卡后台/);
+  assert.doesNotMatch(elementAdmin.body, /type="importmap"/);
+  const candidateAdmin = await textRequest(baseUrl, "/admin/?myroot_canary=candidateRoute42");
+  assert.equal(candidateAdmin.status, 200);
+  assert.match(candidateAdmin.body, /type="importmap" nonce="[A-Za-z0-9_-]+"/);
+  assert.match(candidateAdmin.body, /\/admin\/assets\/app\.js\?myroot_canary=candidateRoute42/);
+  assert.match(candidateAdmin.body, /\/admin\/assets\/chunk\.js\?myroot_canary=candidateRoute42/);
+  assert.match(candidateAdmin.body, /\/admin\/assets\/app\.css\?myroot_canary=candidateRoute42/);
+  assert.match(candidateAdmin.contentSecurityPolicy, /script-src 'self' 'nonce-[A-Za-z0-9_-]+'/);
   const elementAdminAsset = await textRequest(baseUrl, "/admin/assets/app.js");
   assert.equal(elementAdminAsset.status, 200);
   assert.match(elementAdminAsset.contentType, /javascript/);

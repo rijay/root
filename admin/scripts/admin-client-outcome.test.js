@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 
 const storage = new Map();
 globalThis.window = {
+  location: {
+    origin: "https://admin.example.com",
+    search: "",
+  },
   sessionStorage: {
     getItem(key) { return storage.get(key) || null; },
     setItem(key, value) { storage.set(key, value); },
@@ -10,11 +14,33 @@ globalThis.window = {
   },
 };
 
-const { adminRequest, getAdminToken, postAdminForm, postAdminRead, setAdminToken } = await import("../src/api/client.js");
+const {
+  adminRequest,
+  candidateAdminRequestPath,
+  getAdminToken,
+  postAdminForm,
+  postAdminRead,
+  setAdminToken,
+} = await import("../src/api/client.js");
 
 function response(payload, { status = 200, ok = status >= 200 && status < 300 } = {}) {
   return { status, ok, async json() { return payload; } };
 }
+
+test("candidate admin requests preserve the private candidate route on every API call", () => {
+  globalThis.window.location.search = "?module=welcome&myroot_canary=candidateRoute42";
+  assert.equal(
+    candidateAdminRequestPath("/api/v1/admin/content/home-carousel?page=1&pageSize=20"),
+    "/api/v1/admin/content/home-carousel?page=1&pageSize=20&myroot_canary=candidateRoute42",
+  );
+  globalThis.window.location.search = "";
+});
+
+test("invalid candidate route values are not forwarded", () => {
+  globalThis.window.location.search = "?myroot_canary=invalid%20route";
+  assert.equal(candidateAdminRequestPath("/api/v1/admin/me"), "/api/v1/admin/me");
+  globalThis.window.location.search = "";
+});
 
 for (const payload of [{}, [], { code: "0", data: {} }]) {
   test(`a parseable invalid POST envelope remains outcome-unknown: ${JSON.stringify(payload)}`, async () => {
