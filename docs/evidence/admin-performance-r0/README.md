@@ -18,6 +18,8 @@ node scripts/admin-performance-report.js \
   --output docs/evidence/admin-performance-r0/candidate-report.json
 ```
 
+`npm run evidence:local:write` 会生成当前构建快照，并把缺失的查询与浏览器证据保持为 `BLOCK`；`npm run evidence:local:check` 校验这些本地证据是否仍与当前构建和 20 个 UED 映射一致。
+
 ## 判定边界
 
 - 构建通过只说明静态资源未越过硬上限，不等于正式上线性能门禁通过。

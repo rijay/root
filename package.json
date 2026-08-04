@@ -7,6 +7,8 @@
     "admin:check": "npm run check --prefix admin",
     "admin:build": "npm run build --prefix admin",
     "deploy:prepare-admin": "node scripts/prepare-backend-admin-dist.js --clean",
+    "evidence:local:write": "npm run build --prefix admin && node scripts/formal-launch-local-evidence.js --write",
+    "evidence:local:check": "node scripts/formal-launch-local-evidence.js --check",
     "db:schema-snapshot:write": "node backend/scripts/mysql-schema-snapshot.js --write",
     "db:schema-snapshot:verify": "node backend/scripts/mysql-schema-snapshot.js --verify",
     "db:formal-disposition:cloudbase": "node backend/scripts/cloudbase-formal-launch-disposition.js",

@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-04T08:08:49.418Z",
+  "evidenceClass": "VISUAL_REVIEW_PENDING",
+  "status": "BLOCK",
+  "releaseGateEligible": false,
+  "requiredReviewCount": 20,
+  "completedReviewCount": 0,
+  "reviews": [
+    {
+      "key": "welcome",
+      "sectionNode": "368:3",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "home-and-shared-detail",
+      "sectionNode": "368:50",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "wechat-login-register",
+      "sectionNode": "369:40",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "root4u-entry-assessment",
+      "sectionNode": "372:2",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "root4u-result-safety",
+      "sectionNode": "372:14",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "activity-discovery-enrollment",
+      "sectionNode": "372:143",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "profile-guest-member",
+      "sectionNode": "372:240",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "profile-privacy-account",
+      "sectionNode": "372:254",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "admin-release-workbench",
+      "sectionNode": "372:502",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "admin-content-operations",
+      "sectionNode": "372:593",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "admin-shared-detail",
+      "sectionNode": "372:747",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "admin-activities",
+      "sectionNode": "372:945",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "admin-registrations",
+      "sectionNode": "372:1096",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "admin-initialization",
+      "sectionNode": "372:1248",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "admin-scales",
+      "sectionNode": "372:1399",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "admin-recommendations",
+      "sectionNode": "372:1550",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "admin-lifestyle",
+      "sectionNode": "372:1701",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "admin-user-query",
+      "sectionNode": "372:1853",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "admin-audit",
+      "sectionNode": "372:2004",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    },
+    {
+      "key": "admin-publish-confirmation",
+      "sectionNode": "372:2155",
+      "status": "PENDING_CONTROLLED_CAPTURE",
+      "ownerRole": "ENGINEERING_AND_QA",
+      "reviewedAt": null,
+      "screenshotRefs": [],
+      "differences": []
+    }
+  ]
+}

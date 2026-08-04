@@ -171,6 +171,7 @@ function main() {
     runCommand("miniprogram formal scope and performance", "npm", ["run", "check", "--prefix", "miniprogram"]),
     runCommand("admin checks", "npm", ["run", "check", "--prefix", "admin"]),
     runCommand("admin production build and performance gate", "npm", ["run", "build:verify", "--prefix", "admin"]),
+    runCommand("formal launch local evidence", "npm", ["run", "evidence:local:check"]),
   ];
 
   for (const check of checks) {
