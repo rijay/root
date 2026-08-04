@@ -30,19 +30,33 @@ function privacyNoticeResponse(version = "0.5.5", overrides = {}) {
 
 test("canary verifier attributes candidate health and executes the candidate-only object probe", async () => {
   const counts = { health: 0, ready: 0, object: 0 };
+  const candidateReleaseId = "v1.0.0+candidate";
+  const stableReleaseId = "v1.0.0+stable";
   const fetchImpl = async (url) => {
     const parsedUrl = new URL(url);
     const path = parsedUrl.pathname;
-    assert.equal(parsedUrl.searchParams.get("myroot_candidate"), "v0.5.6");
+    const routed = parsedUrl.searchParams.get("myroot_candidate") === "v0.5.6";
+    if (path === "/health" && !routed) {
+      return jsonResponse(200, { code: 0, data: {
+        service: "root-checkin",
+        version: "0.5.5",
+        releaseId: stableReleaseId,
+      } });
+    }
+    assert.equal(routed, true);
     if (path === "/health") {
       counts.health += 1;
       if (counts.health === 1) return jsonResponse(200, { code: 0, data: { service: "root-checkin" } });
-      return jsonResponse(200, { code: 0, data: { service: "root-checkin", version: "0.5.5", releaseId: "0.5.5" } });
+      return jsonResponse(200, { code: 0, data: {
+        service: "root-checkin",
+        version: "0.5.5",
+        releaseId: candidateReleaseId,
+      } });
     }
     if (path === "/ready") {
       counts.ready += 1;
       if (counts.ready === 1) return jsonResponse(200, { code: 0, data: { service: "root-checkin" } });
-      return jsonResponse(200, { code: 0, data: { service: "root-checkin", version: "0.5.5", releaseId: "0.5.5", store: {
+      return jsonResponse(200, { code: 0, data: { service: "root-checkin", version: "0.5.5", releaseId: candidateReleaseId, store: {
         kind: "mysql",
         connected: true,
         migrationVersion: "068_formal_launch_confirmed_prelaunch_cleanup.sql",
@@ -51,7 +65,9 @@ test("canary verifier attributes candidate health and executes the candidate-onl
         privilegePolicyEnforced: true,
       } } });
     }
-    if (path === "/api/v1/privacy/notice") return privacyNoticeResponse("0.5.5");
+    if (path === "/api/v1/privacy/notice") {
+      return privacyNoticeResponse("0.5.5", { releaseId: candidateReleaseId });
+    }
     counts.object += 1;
     if (counts.object === 1) return jsonResponse(404, { code: 404, message: "Not Found" });
     return jsonResponse(200, { code: 0, data: { probe: {
@@ -62,7 +78,7 @@ test("canary verifier attributes candidate health and executes the candidate-onl
       deleteConfirmed: true,
       residualObjectPossible: false,
       version: "0.5.5",
-      releaseId: "0.5.5",
+      releaseId: candidateReleaseId,
       requestId: "canary-object-1",
       checkedAt: "2026-07-11T21:00:00+08:00",
       error: "",
@@ -71,7 +87,10 @@ test("canary verifier attributes candidate health and executes the candidate-onl
   const options = parseArgs([
     "--base-url", "https://root.example.com",
     "--expected-version", "0.5.5",
+    "--expected-release-id", candidateReleaseId,
+    "--stable-release-id", stableReleaseId,
     "--attempts", "3",
+    "--default-protection-attempts", "3",
     "--interval-ms", "0",
     "--execute-object-probe",
     "--object-probe-attempts", "3",
@@ -91,8 +110,100 @@ test("canary verifier attributes candidate health and executes the candidate-onl
   assert.equal(report.privacyNotice.privacyNotice.contactValid, true);
   assert.equal(report.objectProbe.status, "PASS");
   assert.equal(report.objectProbe.stableNotFoundCount, 1);
+  assert.equal(report.defaultProtection.status, "PASS");
+  assert.equal(report.defaultProtection.stableHits, 3);
+  assert.equal(report.defaultProtection.candidateHits, 0);
   assert.equal(JSON.stringify(report).includes("do-not-print"), false);
   assert.equal(determineExitCode(report), 0);
+});
+
+test("canary verifier rejects a routed response from the same-version stable release", async () => {
+  const candidateReleaseId = "v1.0.0+candidate";
+  const stableReleaseId = "v1.0.0+stable";
+  const options = parseArgs([
+    "--base-url", "https://root.example.com",
+    "--expected-version", "0.5.13",
+    "--expected-release-id", candidateReleaseId,
+    "--stable-release-id", stableReleaseId,
+    "--attempts", "1",
+    "--default-protection-attempts", "1",
+    "--interval-ms", "0",
+    "--route-query", "myroot_canary=route-042",
+  ], {});
+  const fetchImpl = async () => jsonResponse(200, { code: 0, data: {
+    service: "root-checkin",
+    version: "0.5.13",
+    releaseId: stableReleaseId,
+  } });
+
+  const report = await runCanaryVerification(options, { fetchImpl });
+
+  assert.equal(report.status, "FAIL");
+  assert.equal(report.health.status, "FAIL");
+  assert.equal(report.health.observedVersions["0.5.13"], 1);
+  assert.equal(report.health.observedReleaseIds[stableReleaseId], 1);
+  assert.equal(report.defaultProtection.status, "PASS");
+  assert.equal(determineExitCode(report), 2);
+});
+
+test("canary verifier fails when default traffic reaches the candidate release", async () => {
+  const candidateReleaseId = "v1.0.0+candidate";
+  const stableReleaseId = "v1.0.0+stable";
+  const options = parseArgs([
+    "--base-url", "https://root.example.com",
+    "--expected-version", "0.5.13",
+    "--expected-release-id", candidateReleaseId,
+    "--stable-release-id", stableReleaseId,
+    "--attempts", "1",
+    "--default-protection-attempts", "2",
+    "--interval-ms", "0",
+    "--route-query", "myroot_canary=route-042",
+  ], {});
+  const fetchImpl = async (url) => {
+    const path = new URL(url).pathname;
+    if (path === "/api/v1/privacy/notice") {
+      return privacyNoticeResponse("0.5.13", { releaseId: candidateReleaseId });
+    }
+    return jsonResponse(200, { code: 0, data: {
+      service: "root-checkin",
+      version: "0.5.13",
+      releaseId: candidateReleaseId,
+      ...(path === "/ready" ? { store: {
+        kind: "mysql",
+        connected: true,
+        migrationVersion: "068_formal_launch_confirmed_prelaunch_cleanup.sql",
+        leastPrivilegeReady: true,
+        privilegeScope: "SCHEMA",
+        privilegePolicyEnforced: true,
+      } } : {}),
+    } });
+  };
+
+  const report = await runCanaryVerification(options, { fetchImpl });
+
+  assert.equal(report.health.status, "PASS");
+  assert.equal(report.defaultProtection.status, "FAIL");
+  assert.equal(report.defaultProtection.candidateHits, 2);
+  assert.equal(report.defaultProtection.stableHits, 0);
+  assert.equal(determineExitCode(report), 6);
+});
+
+test("candidate routes require distinct candidate and stable release ids", () => {
+  const base = [
+    "--base-url", "https://root.example.com",
+    "--expected-version", "0.5.13",
+    "--route-query", "myroot_canary=route-042",
+  ];
+  assert.throws(() => parseArgs(base, {}), /expected-release-id/);
+  assert.throws(() => parseArgs([
+    ...base,
+    "--expected-release-id", "same-release",
+  ], {}), /stable-release-id/);
+  assert.throws(() => parseArgs([
+    ...base,
+    "--expected-release-id", "same-release",
+    "--stable-release-id", "same-release",
+  ], {}), /must differ/);
 });
 
 test("canary verifier is read-only unless the object probe flag is explicit", async () => {

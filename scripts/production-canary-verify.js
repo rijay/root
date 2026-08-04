@@ -28,9 +28,12 @@ function parseArgs(argv = process.argv.slice(2), env = process.env) {
   const args = {
     baseUrl: text(env.ROOT_PUBLIC_BASE_URL),
     expectedVersion: text(env.ROOT_CANARY_EXPECTED_VERSION),
+    expectedReleaseId: text(env.ROOT_CANARY_EXPECTED_RELEASE_ID),
+    stableReleaseId: text(env.ROOT_CANARY_STABLE_RELEASE_ID),
     expectedStoreKind: text(env.ROOT_CANARY_EXPECTED_STORE_KIND, "mysql").toLowerCase(),
     expectedMigrationVersion: text(env.ROOT_CANARY_EXPECTED_MIGRATION_VERSION, latestMigrationVersion()),
     attempts: 120,
+    defaultProtectionAttempts: 15,
     intervalMs: 100,
     timeoutMs: 5000,
     executeObjectProbe: false,
@@ -45,9 +48,14 @@ function parseArgs(argv = process.argv.slice(2), env = process.env) {
     const next = () => argv[++index];
     if (item === "--base-url") args.baseUrl = text(next());
     else if (item === "--expected-version") args.expectedVersion = text(next());
+    else if (item === "--expected-release-id") args.expectedReleaseId = text(next());
+    else if (item === "--stable-release-id") args.stableReleaseId = text(next());
     else if (item === "--expected-store-kind") args.expectedStoreKind = text(next()).toLowerCase();
     else if (item === "--expected-migration-version") args.expectedMigrationVersion = text(next());
     else if (item === "--attempts") args.attempts = clampNumber(next(), 120, 1, 1000);
+    else if (item === "--default-protection-attempts") {
+      args.defaultProtectionAttempts = clampNumber(next(), 15, 1, 100);
+    }
     else if (item === "--interval-ms") args.intervalMs = clampNumber(next(), 100, 0, 10000);
     else if (item === "--timeout-ms") args.timeoutMs = clampNumber(next(), 5000, 500, 30000);
     else if (item === "--execute-object-probe") args.executeObjectProbe = true;
@@ -60,6 +68,18 @@ function parseArgs(argv = process.argv.slice(2), env = process.env) {
   args.baseUrl = args.baseUrl.replace(/\/$/, "");
   if (!args.baseUrl) throw new Error("--base-url or ROOT_PUBLIC_BASE_URL is required");
   if (!args.expectedVersion) throw new Error("--expected-version or ROOT_CANARY_EXPECTED_VERSION is required");
+  if (args.routeQuery && !args.expectedReleaseId) {
+    throw new Error("--expected-release-id or ROOT_CANARY_EXPECTED_RELEASE_ID is required with a candidate route");
+  }
+  if (args.routeQuery && !args.stableReleaseId) {
+    throw new Error("--stable-release-id or ROOT_CANARY_STABLE_RELEASE_ID is required with a candidate route");
+  }
+  if (args.stableReleaseId && !args.routeQuery) {
+    throw new Error("--stable-release-id requires a candidate route");
+  }
+  if (args.expectedReleaseId && args.stableReleaseId && args.expectedReleaseId === args.stableReleaseId) {
+    throw new Error("candidate and stable release ids must differ");
+  }
   if (args.executeObjectProbe && !args.adminToken) throw new Error("ROOT_ADMIN_TOKEN is required for --execute-object-probe");
   if (args.executeObjectProbe && !args.requestId) {
     args.requestId = `canary-object-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
@@ -107,6 +127,7 @@ function probeUrl(baseUrl, path, attempt, routeQuery = "") {
 
 async function waitForVersion(path, options, fetchImpl) {
   const observedVersions = {};
+  const observedReleaseIds = {};
   const errors = [];
   for (let attempt = 1; attempt <= options.attempts; attempt += 1) {
     try {
@@ -120,15 +141,18 @@ async function waitForVersion(path, options, fetchImpl) {
       }, options.timeoutMs);
       const data = body && body.data && typeof body.data === "object" ? body.data : {};
       const version = text(data.version, "UNVERSIONED");
+      const releaseId = text(data.releaseId, "UNRELEASED");
       observedVersions[version] = (observedVersions[version] || 0) + 1;
-      if (response.ok && body.code === 0 && version === options.expectedVersion) {
+      observedReleaseIds[releaseId] = (observedReleaseIds[releaseId] || 0) + 1;
+      const releaseMatches = !options.expectedReleaseId || releaseId === options.expectedReleaseId;
+      if (response.ok && body.code === 0 && version === options.expectedVersion && releaseMatches) {
         return {
           status: "PASS",
           path,
           attempt,
           httpStatus: response.status,
           version,
-          releaseId: text(data.releaseId),
+          releaseId,
           service: text(data.service),
           store: data.store ? {
             kind: text(data.store.kind),
@@ -146,6 +170,7 @@ async function waitForVersion(path, options, fetchImpl) {
             policyVersionPresent: Boolean(text(data.policyVersion)),
           } : null,
           observedVersions,
+          observedReleaseIds,
           errors,
         };
       }
@@ -164,6 +189,45 @@ async function waitForVersion(path, options, fetchImpl) {
     store: null,
     privacyNotice: null,
     observedVersions,
+    observedReleaseIds,
+    errors: errors.slice(-5),
+  };
+}
+
+async function verifyDefaultTraffic(options, fetchImpl) {
+  if (!options.routeQuery) {
+    return { status: "NOT_REQUESTED", attempts: 0, candidateHits: 0, stableHits: 0 };
+  }
+  const observedReleaseIds = {};
+  const errors = [];
+  let candidateHits = 0;
+  let stableHits = 0;
+  for (let attempt = 1; attempt <= options.defaultProtectionAttempts; attempt += 1) {
+    try {
+      const { response, body } = await fetchJson(fetchImpl, probeUrl(
+        options.baseUrl,
+        "/health",
+        attempt,
+      ), {
+        headers: { "Cache-Control": "no-cache", Connection: "close" },
+      }, options.timeoutMs);
+      const data = body && body.data && typeof body.data === "object" ? body.data : {};
+      const releaseId = text(data.releaseId, "UNRELEASED");
+      observedReleaseIds[releaseId] = (observedReleaseIds[releaseId] || 0) + 1;
+      if (releaseId === options.expectedReleaseId) candidateHits += 1;
+      if (response.ok && body.code === 0 && releaseId === options.stableReleaseId) stableHits += 1;
+      else errors.push(`attempt ${attempt}: HTTP ${response.status}, releaseId ${releaseId}`);
+    } catch (error) {
+      errors.push(`attempt ${attempt}: ${text(error && error.message, "request failed").slice(0, 160)}`);
+    }
+    await delay(options.intervalMs);
+  }
+  return {
+    status: stableHits === options.defaultProtectionAttempts && candidateHits === 0 ? "PASS" : "FAIL",
+    attempts: options.defaultProtectionAttempts,
+    stableHits,
+    candidateHits,
+    observedReleaseIds,
     errors: errors.slice(-5),
   };
 }
@@ -195,8 +259,12 @@ async function waitForObjectProbe(options, fetchImpl) {
       }
       const probe = body && body.data && body.data.probe ? body.data.probe : {};
       if (response.ok && body.code === 0 && probe.version === options.expectedVersion) {
+        const releaseMatches = !options.expectedReleaseId || probe.releaseId === options.expectedReleaseId;
         return {
-          status: probe.status === "VERIFIED" && probe.uploadConfirmed === true && probe.deleteConfirmed === true ? "PASS" : "FAIL",
+          status: probe.status === "VERIFIED"
+            && probe.uploadConfirmed === true
+            && probe.deleteConfirmed === true
+            && releaseMatches ? "PASS" : "FAIL",
           attempt,
           httpStatus: response.status,
           probeStatus: text(probe.status),
@@ -288,12 +356,16 @@ async function runCanaryVerification(options, context = {}) {
       status: options.executeObjectProbe ? "SKIPPED" : "NOT_REQUESTED",
       reason: options.executeObjectProbe ? "candidate readiness did not pass" : "--execute-object-probe was not provided",
     };
+  const defaultProtection = await verifyDefaultTraffic(options, fetchImpl);
   const required = [health.status, ready.status, privacyNotice.status];
   if (options.executeObjectProbe) required.push(objectProbe.status);
+  if (options.routeQuery) required.push(defaultProtection.status);
   return {
     status: required.every((status) => status === "PASS") ? "PASS" : "FAIL",
     baseUrl: options.baseUrl,
     expectedVersion: options.expectedVersion,
+    expectedReleaseId: options.expectedReleaseId,
+    stableReleaseId: options.stableReleaseId,
     expectedStoreKind: options.expectedStoreKind,
     expectedMigrationVersion: options.expectedMigrationVersion,
     trafficChanged: false,
@@ -305,6 +377,7 @@ async function runCanaryVerification(options, context = {}) {
     ready,
     privacyNotice,
     objectProbe,
+    defaultProtection,
   };
 }
 
@@ -313,6 +386,7 @@ function determineExitCode(report) {
   if (report.ready.status !== "PASS") return 3;
   if (report.privacyNotice.status !== "PASS") return 5;
   if (report.executeObjectProbe && report.objectProbe.status !== "PASS") return 4;
+  if (report.routeQueryConfigured && report.defaultProtection.status !== "PASS") return 6;
   return report.status === "PASS" ? 0 : 1;
 }
 
@@ -320,12 +394,16 @@ function printHuman(report) {
   process.stdout.write("# myRoot 生产灰度验证\n\n");
   process.stdout.write(`状态：${report.status}\n`);
   process.stdout.write(`目标版本：${report.expectedVersion}\n`);
+  if (report.expectedReleaseId) process.stdout.write(`候选发布标识：${report.expectedReleaseId}\n`);
   process.stdout.write(`流量变更：否\n`);
   process.stdout.write(`定向路由：${report.routeQueryConfigured ? "是" : "否"}\n`);
   process.stdout.write(`健康探针：${report.health.status}，第 ${report.health.attempt || 0} 次命中\n`);
   process.stdout.write(`就绪探针：${report.ready.status}，第 ${report.ready.attempt || 0} 次命中\n`);
   process.stdout.write(`隐私说明：${report.privacyNotice.status}，第 ${report.privacyNotice.attempt || 0} 次命中\n`);
   process.stdout.write(`对象存储探针：${report.objectProbe.status}\n`);
+  process.stdout.write(`默认流量保护：${report.defaultProtection.status}`
+    + `（稳定 ${report.defaultProtection.stableHits || 0}/${report.defaultProtection.attempts || 0}`
+    + `，候选误命中 ${report.defaultProtection.candidateHits || 0}）\n`);
   if (report.objectProbe.requestId) process.stdout.write(`请求号：${report.objectProbe.requestId}\n`);
 }
 
@@ -349,6 +427,7 @@ module.exports = {
   determineExitCode,
   parseArgs,
   runCanaryVerification,
+  verifyDefaultTraffic,
   waitForObjectProbe,
   waitForVersion,
 };
