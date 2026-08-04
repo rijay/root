@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-04T12:41:01.600Z",
+  "generatedAt": "2026-08-04T14:50:36.438Z",
   "evidenceClass": "LOCAL_FORMAL_BUILD",
   "gate": "BUILD",
   "status": "PASS",
@@ -9,19 +9,19 @@
   "metrics": {
     "initialCompressed": {
       "status": "PASS",
-      "value": 227286,
+      "value": 227292,
       "target": 430080,
       "hardLimit": 532480
     },
     "firstScreenCompressed": {
       "status": "PASS",
-      "value": 227614,
+      "value": 227621,
       "target": 512000,
       "hardLimit": 665600
     },
     "totalCompressed": {
       "status": "PASS",
-      "value": 282762,
+      "value": 282660,
       "target": 819200,
       "hardLimit": 1048576
     }
@@ -29,7 +29,7 @@
   "initialFiles": [
     "assets/element-DhW6rax2.css",
     "assets/element-S1uxt_2J.js",
-    "assets/index-BWWitWaR.js",
+    "assets/index-DvcAj4IQ.js",
     "assets/index-eJah-qYD.css",
     "assets/vue-DBlZkBQZ.js"
   ],
@@ -37,13 +37,13 @@
     {
       "source": "src/modules/content/SharedDetailPage.vue",
       "files": [
-        "assets/SharedDetailPage-oMDPYkLU.js",
-        "assets/adminContentApi-BqWwfGex.js"
+        "assets/SharedDetailPage-DDNurp42.js",
+        "assets/adminContentApi-D6ay1kZx.js"
       ],
-      "compressedBytes": 7298,
+      "compressedBytes": 7301,
       "budget": {
         "status": "PASS",
-        "value": 7298,
+        "value": 7301,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -51,14 +51,14 @@
     {
       "source": "src/modules/activities/ActivityManagementPage.vue",
       "files": [
-        "assets/ActivityManagementPage-CltT25vI.js",
-        "assets/adminActivityApi-EUz2VIkC.js",
-        "assets/adminContentApi-BqWwfGex.js"
+        "assets/ActivityManagementPage-_VsHzOAq.js",
+        "assets/adminActivityApi-eS6ZhKux.js",
+        "assets/adminContentApi-D6ay1kZx.js"
       ],
-      "compressedBytes": 6834,
+      "compressedBytes": 6835,
       "budget": {
         "status": "PASS",
-        "value": 6834,
+        "value": 6835,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -66,15 +66,15 @@
     {
       "source": "src/modules/health/ScaleManagementPage.vue",
       "files": [
-        "assets/ScaleManagementPage-CHQxQcbf.js",
+        "assets/ScaleManagementPage-CKNwfVm4.js",
         "assets/ScaleManagementPage-uwCHYnAH.css",
         "assets/_plugin-vue_export-helper-DlAUqK2U.js",
-        "assets/adminHealthApi-Ciyh50m9.js"
+        "assets/adminHealthApi-BpvHHkvf.js"
       ],
-      "compressedBytes": 6740,
+      "compressedBytes": 6741,
       "budget": {
         "status": "PASS",
-        "value": 6740,
+        "value": 6741,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -82,13 +82,13 @@
     {
       "source": "src/modules/content/HomeCarouselPage.vue",
       "files": [
-        "assets/HomeCarouselPage-bcCCxEwh.js",
-        "assets/adminContentApi-BqWwfGex.js"
+        "assets/HomeCarouselPage-CD-qifDN.js",
+        "assets/adminContentApi-D6ay1kZx.js"
       ],
-      "compressedBytes": 5516,
+      "compressedBytes": 5517,
       "budget": {
         "status": "PASS",
-        "value": 5516,
+        "value": 5517,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -96,8 +96,8 @@
     {
       "source": "src/modules/activities/ActivityRegistrationsPage.vue",
       "files": [
-        "assets/ActivityRegistrationsPage-DHgnv21R.js",
-        "assets/adminActivityApi-EUz2VIkC.js"
+        "assets/ActivityRegistrationsPage-BJ7x5j6p.js",
+        "assets/adminActivityApi-eS6ZhKux.js"
       ],
       "compressedBytes": 5189,
       "budget": {
@@ -108,29 +108,29 @@
       }
     },
     {
-      "source": "src/modules/health/LifestyleAdvicePage.vue",
+      "source": "src/modules/health/RecommendationRulesPage.vue",
       "files": [
-        "assets/LifestyleAdvicePage-CIM3Wt_J.js",
-        "assets/adminHealthApi-Ciyh50m9.js"
+        "assets/RecommendationRulesPage-CzHDtwxt.js",
+        "assets/adminHealthApi-BpvHHkvf.js"
       ],
-      "compressedBytes": 5083,
+      "compressedBytes": 4994,
       "budget": {
         "status": "PASS",
-        "value": 5083,
+        "value": 4994,
         "target": 122880,
         "hardLimit": 184320
       }
     },
     {
-      "source": "src/modules/health/RecommendationRulesPage.vue",
+      "source": "src/modules/health/LifestyleAdvicePage.vue",
       "files": [
-        "assets/RecommendationRulesPage-BwyEbHq4.js",
-        "assets/adminHealthApi-Ciyh50m9.js"
+        "assets/LifestyleAdvicePage-D0V86K_7.js",
+        "assets/adminHealthApi-BpvHHkvf.js"
       ],
-      "compressedBytes": 4992,
+      "compressedBytes": 4965,
       "budget": {
         "status": "PASS",
-        "value": 4992,
+        "value": 4965,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -138,13 +138,13 @@
     {
       "source": "src/modules/health/InitializationPage.vue",
       "files": [
-        "assets/InitializationPage-DGCADHDi.js",
-        "assets/adminHealthApi-Ciyh50m9.js"
+        "assets/InitializationPage-DXu6Sj7W.js",
+        "assets/adminHealthApi-BpvHHkvf.js"
       ],
-      "compressedBytes": 4946,
+      "compressedBytes": 4949,
       "budget": {
         "status": "PASS",
-        "value": 4946,
+        "value": 4949,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -152,13 +152,13 @@
     {
       "source": "src/modules/content/WelcomeContentPage.vue",
       "files": [
-        "assets/WelcomeContentPage-CvdZ9RYV.js",
-        "assets/adminContentApi-BqWwfGex.js"
+        "assets/WelcomeContentPage-yfL3Nixc.js",
+        "assets/adminContentApi-D6ay1kZx.js"
       ],
-      "compressedBytes": 4483,
+      "compressedBytes": 4485,
       "budget": {
         "status": "PASS",
-        "value": 4483,
+        "value": 4485,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -166,12 +166,12 @@
     {
       "source": "src/modules/release/ReleaseWorkbench.vue",
       "files": [
-        "assets/ReleaseWorkbench-Cpf_cvuE.js"
+        "assets/ReleaseWorkbench-CZyfkjwC.js"
       ],
-      "compressedBytes": 4121,
+      "compressedBytes": 4122,
       "budget": {
         "status": "PASS",
-        "value": 4121,
+        "value": 4122,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -179,7 +179,7 @@
     {
       "source": "src/modules/audit/OperationAuditPage.vue",
       "files": [
-        "assets/OperationAuditPage-BV0pwn5A.js",
+        "assets/OperationAuditPage-BHN7eETM.js",
         "assets/OperationAuditPage-DUaJiCcb.css",
         "assets/_plugin-vue_export-helper-DlAUqK2U.js"
       ],
@@ -194,14 +194,14 @@
     {
       "source": "src/modules/users/UserQueryPage.vue",
       "files": [
-        "assets/UserQueryPage-D3CUNg2J.js",
+        "assets/UserQueryPage-BN3gVARv.js",
         "assets/UserQueryPage-UW8KLMO7.css",
         "assets/_plugin-vue_export-helper-DlAUqK2U.js"
       ],
-      "compressedBytes": 2913,
+      "compressedBytes": 2914,
       "budget": {
         "status": "PASS",
-        "value": 2913,
+        "value": 2914,
         "target": 122880,
         "hardLimit": 184320
       }

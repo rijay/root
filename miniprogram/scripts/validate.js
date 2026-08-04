@@ -9,6 +9,7 @@ const privateProject = fs.existsSync(privatePath) ? JSON.parse(fs.readFileSync(p
 const env = require("../config/env");
 const { appVersion } = require("../config/version");
 const packageVersion = require("../package.json").version;
+const expectedVersion = String(process.env.MYROOT_EXPECTED_MINIPROGRAM_VERSION || "").trim();
 const router = require("../utils/router");
 const requestModule = require("../utils/request");
 const { initializePrivacyAuthorization } = require("../utils/privacy-authorization");
@@ -27,6 +28,9 @@ pageRoutes.forEach((route) => {
 });
 
 if (appVersion !== packageVersion) problems.push(`版本不一致：config=${appVersion}, package=${packageVersion}`);
+if (expectedVersion && appVersion !== expectedVersion) {
+  problems.push(`版本与本次上传目标不一致：config=${appVersion}, expected=${expectedVersion}`);
+}
 if (env.requestAdapter !== "cloudContainer") problems.push("默认请求 Adapter 必须为 cloudContainer");
 if (!env.cloudEnvId || !env.cloudServiceName) problems.push("CloudBase 环境和云托管名称必须配置");
 if (env.apiBaseUrl && /\.sh\.run\.tcloudbase\.com/i.test(env.apiBaseUrl)) {
