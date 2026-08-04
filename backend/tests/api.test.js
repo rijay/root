@@ -841,7 +841,7 @@ test("production cutover readiness gates live external proof", () => {
   assert.ok(fallbackReleaseId.blockers.some((item) => item.includes("显式 ROOT_RELEASE_ID")));
 });
 
-test("production environment matrix groups launch and Adapter variables", () => {
+test("production environment matrix validates the formal launch runtime", () => {
   const readyEnv = {
     WECHAT_APPID: "wx-root",
     WECHAT_APPSECRET: "wechat-secret",
@@ -1007,10 +1007,6 @@ test("production environment matrix groups launch and Adapter variables", () => 
   const invalidNotificationReceiptKeyId = buildProductionEnvMatrix({
     ...readyEnv,
     ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID: "invalid receipt key id",
-  }, { target: "production" });
-  const expiredYouzanToken = buildProductionEnvMatrix({
-    ...readyEnv,
-    YOUZAN_ACCESS_TOKEN_EXPIRES_AT: "2020-01-01T00:00:00+08:00",
   }, { target: "production" });
   const missingPhoneHmacKey = buildProductionEnvMatrix({
     ...readyEnv,
@@ -1285,7 +1281,6 @@ test("production environment matrix groups launch and Adapter variables", () => 
 
   assert.equal(ready.status, "READY");
   assert.equal(ready.summary.blockers, 0);
-  assert.equal(ready.groups.find((group) => group.id === "youzan_order").required.some((item) => item.name === "YOUZAN_CLIENT_SECRET"), false);
   assert.ok(ready.groups.some((group) => group.id === "cloudbase_store" && group.status === "PASS"));
   assert.ok(ready.groups.some((group) => group.id === "cloudbase_object_storage" && group.status === "PASS"));
   assert.ok(buildProductionEnvMatrix({
@@ -1311,7 +1306,6 @@ test("production environment matrix groups launch and Adapter variables", () => 
     assert.ok(invalidNotificationDelivery.groups.some((group) =>
       group.id === "v1_runtime_control" && group.status === "BLOCKER"));
   }
-  assert.ok(expiredYouzanToken.groups.some((group) => group.id === "youzan_order" && group.status === "BLOCKER"));
   assert.ok(missingPhoneHmacKey.groups.some((group) =>
     group.id === "runtime" && group.status === "BLOCKER" && group.missingRequired.includes("ROOT_PHONE_HMAC_KEY")));
   assert.ok(missingCommandResultKey.groups.some((group) =>
@@ -1455,26 +1449,6 @@ test("production environment matrix groups launch and Adapter variables", () => 
     group.id === "cloudbase_jobs" &&
     group.status === "PASS" &&
     group.required.some((item) => item.name === "ROOT_ADMIN_JOB_ROUTE_TOKENS" && item.present)));
-  assert.ok(ready.groups.some((group) => group.id === "root_member_center_jump" && group.status === "PASS"));
-  assert.ok(ready.groups.some((group) => group.id === "order_after_sales" && group.status === "OPTIONAL"));
-  assert.ok(ready.groups.some((group) => group.id === "order_after_sales" && group.optional.some((item) => item.name === "ROOT_AFTER_SALES_STATUS_MAP" && item.present)));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_RETENTION_DAYS")));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_CLEANUP_LIMIT")));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_SENSITIVITY")));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_APPROVAL_REQUIRED")));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_DELIVERY_CHANNEL")));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_CHANNEL")));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_DELIVERY_WEBHOOK_TEMPLATE")));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_DELIVERY_TIMEOUT_MS")));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_DOWNLOAD_SECRET")));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_SIGNED_DOWNLOAD_ENABLED")));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_SIGNED_DOWNLOAD_TTL_SECONDS")));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_OBJECT_BASE_URL")));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_OBJECT_CLEANUP_ENABLED")));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.optional.some((item) => item.name === "ROOT_LIFECYCLE_EXPORT_OBJECT_DIR")));
-  assert.ok(ready.groups.some((group) => group.id === "alert_webhook" && group.status === "OPTIONAL"));
-  assert.ok(ready.groups.some((group) => group.id === "manual_review_explanation" && group.status === "OPTIONAL"));
-  assert.ok(ready.groups.some((group) => group.id === "manual_review_explanation" && group.optional.some((item) => item.name === "ROOT_MANUAL_REVIEW_EXPLANATION_TEMPLATES")));
   assert.equal(determineProductionEnvExitCode(ready), 0);
   assert.equal(blocked.status, "BLOCKED");
   assert.ok(blocked.missingEnv.some((item) => item.name === "ROOT_JOB_BASE_URL"));

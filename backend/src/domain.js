@@ -2,25 +2,9 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const { createClientError } = require("./clientError");
 const { resolveWechatOpenApiUrl } = require("./wechatOpenApiEndpoint");
-const { nowISO, todayISO } = require("./dates");
-const adapterRetryScheduler = require("./adapterRetryScheduler");
-const adminAnalyticsPresenter = require("./adminAnalyticsPresenter");
-const adminLifecycleFilterPresets = require("./adminLifecycleFilterPresets");
-const adminLifecyclePresenter = require("./adminLifecyclePresenter");
-const adminLifecycleUserExports = require("./adminLifecycleUserExports");
-const adminOrderMatching = require("./adminOrderMatching");
-const adminOrderIncrementSync = require("./adminOrderIncrementSync");
-const adminProductSync = require("./adminProductSync");
-const adminOpsPresenter = require("./adminOpsPresenter");
+const { nowISO } = require("./dates");
 const auditLog = require("./auditLog");
 const activityModule = require("./activityModule");
-const campaign = require("./campaign");
-const consultationAdvisorAssignment = require("./consultationAdvisorAssignment");
-const consultationAdvisorWorkbench = require("./consultationAdvisorWorkbench");
-const consultationFollowup = require("./consultationFollowup");
-const consultationSla = require("./consultationSla");
-const consultationSlaEscalation = require("./consultationSlaEscalation");
-const consultationWeworkWriteback = require("./consultationWeworkWriteback");
 const {
   VERIFIED_UNIONID_RESOLUTION,
   listVerifiedWechatUnionIdAuthorities,
@@ -32,9 +16,6 @@ const formalHealthModule = require("./formalHealthModule");
 const formalHealthAccessPolicy = require("./formalHealthAccessPolicy");
 const healthScaleAssessmentModule = require("./healthScaleAssessmentModule");
 const healthOperationsModule = require("./healthOperationsModule");
-const csvImport = require("./csvImport");
-const externalAdapterSamples = require("./externalAdapterSamples");
-const externalPlatformAdapters = require("./externalPlatformAdapters");
 const {
   findRootUser,
   identifyUser,
@@ -43,22 +24,12 @@ const {
   recordLifecycleEvent,
   resolveByWechatLogin,
 } = require("./identity");
-const manualCorrection = require("./manualCorrection");
-const operationTask = require("./operationTask");
-const orderAfterSales = require("./orderAfterSales");
-const orderFulfillment = require("./orderFulfillment");
-const operationalAlerts = require("./operationalAlerts");
-const productMirror = require("./productMirror");
-const productionCutoverProof = require("./productionCutoverProof");
 const healthDataRetention = require("./healthDataRetention");
 const privacyConsent = require("./privacyConsent");
 const profileModule = require("./profileModule");
-const rootMemberCenterJumpProof = require("./rootMemberCenterJumpProof");
 const sessionModule = require("./sessionModule");
 const { fetchWechatJson } = require("./wechatHttp");
 const { resolveWechatAccessToken } = require("./wechatAccessToken");
-const weworkTouch = require("./weworkTouch");
-const youzanCustomerMirror = require("./youzanCustomerMirror");
 const { createId, createSeedData } = require("./seed");
 const { isProtectedRuntime, sessionTokenDigest } = require("./credentialProtection");
 const {
@@ -71,6 +42,11 @@ const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function createStore() {
   return createSeedData();
+}
+
+function ensureList(data, key) {
+  if (!Array.isArray(data[key])) data[key] = [];
+  return data[key];
 }
 
 function getWechatConfig(env = process.env) {
@@ -482,16 +458,6 @@ function login(data, body = {}) {
   return loginByPhone(data, body, phone);
 }
 
-function updateDisplayProfile(data, token, body = {}) {
-  const user = requireUser(data, token);
-  const nickname = normalizeNickname(body.nickname || body.nickName);
-  const avatarUrl = normalizeAvatarUrl(body.avatarUrl || body.avatar_url);
-  if (!nickname && !avatarUrl) throw businessError(2002, "请填写昵称或选择头像");
-  if (nickname) user.nickname = nickname;
-  if (avatarUrl) user.avatar_url = avatarUrl;
-  return response({ success: true, user: publicUser(user, data) });
-}
-
 async function loginWithWechat(data, body = {}, context = process.env) {
   const runtime = normalizeWechatContext(context);
   const env = runtime.env;
@@ -891,41 +857,6 @@ function submitFormalProfile(data, token, body = {}) {
   return response(result);
 }
 
-function getUserOrders(data, token) {
-  const user = requireUser(data, token);
-  const orders = data.youzanOrders.filter((order) => order.user_id === user.user_id).map((order) => orderFulfillment.toOrderPayload(data, order));
-  return response({ orders });
-}
-
-function getActiveCampaign(data, token, query = {}, context = {}) {
-  const user = requireUser(data, token);
-  const activeCampaign = campaign.getActiveCampaign(data, { ...context, ...query });
-  const participant = campaign.findParticipant(data, user.root_user_id || user.user_id, activeCampaign.campaign_id);
-  return response({ campaign: campaign.toCampaignPayload(activeCampaign, participant) });
-}
-
-function joinCampaign(data, token, body = {}, context = {}) {
-  const user = requireUser(data, token);
-  const rootUserId = user.root_user_id || user.user_id;
-  const result = campaign.joinCampaign(data, user.root_user_id || user.user_id, body.campaignId || body.campaign_id, {
-    ...context,
-    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_CAMPAIGN",
-    metadata: body.metadata || {},
-  });
-  recordLifecycleEvent(data, rootUserId, "CAMPAIGN_JOINED", {
-    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_CAMPAIGN",
-    appCode: user.app_code || "MYROOT",
-    metadata: {
-      campaignId: result.campaign.campaign_id,
-      created: result.created,
-    },
-  });
-  return response({
-    campaign: campaign.toCampaignPayload(result.campaign, result.participant),
-    created: result.created,
-  });
-}
-
 function listActivities(data, token, query = {}, context = {}) {
   const rootUserId = stableRootUserIdForToken(data, token);
   const result = activityModule.listVisiblePage(data, query, context, rootUserId);
@@ -1139,458 +1070,8 @@ function cancelActivitySession(data, body = {}, context = {}) {
   return response({ session, audit });
 }
 
-function recordUserConsultation(data, token, body = {}) {
-  const user = requireUser(data, token);
-  const rootUserId = user.root_user_id || user.user_id;
-  const result = consultationFollowup.recordConsultation(data, user, body);
-  if (result.created) {
-    recordLifecycleEvent(data, rootUserId, "CONSULTATION_FOLLOW_CREATED", {
-      sourceChannel: result.item.sourceChannel,
-      appCode: user.app_code || "MYROOT",
-      metadata: {
-        consultationId: result.item.consultationId,
-        operationTaskId: result.task.task_id,
-        consultationType: result.item.consultationType,
-      },
-    });
-  }
-  return response(result);
-}
-
-function getUserConsultations(data, token) {
-  const user = requireUser(data, token);
-  return response(consultationFollowup.buildUserView(data, user));
-}
-
-function listWeWorkTouchJobs(data, query = {}) {
-  return response({ jobs: weworkTouch.listWeWorkTouchJobs(data, query) });
-}
-
-function listOrderAfterSalesRecords(data, query = {}) {
-  return response({ records: orderAfterSales.listOrderAfterSalesRecords(data, query) });
-}
-
-function upsertOrderAfterSalesRecord(data, body = {}, context = {}) {
-  return response(orderAfterSales.upsertOrderAfterSalesRecord(data, body, context));
-}
-
-function syncOrderAfterSalesBatch(data, body = {}, context = {}) {
-  return response(orderAfterSales.syncOrderAfterSalesBatch(data, body, context));
-}
-
-function planWeWorkTouches(data, body = {}, context = {}) {
-  return response(weworkTouch.planWeWorkTouches(data, body, context));
-}
-
-async function runDueWeWorkTouches(data, body = {}, context = {}) {
-  return response(await weworkTouch.runDueWeWorkTouches(data, body, context));
-}
-
-function getAdminLifecycleWorkbench(data, query = {}, context = {}) {
-  return response(adminLifecyclePresenter.buildLifecycleWorkbench(data, query, context));
-}
-
-function exportAdminLifecycleUsersCsv(data, query = {}, context = {}) {
-  return adminLifecyclePresenter.buildLifecycleUsersCsv(data, query, context);
-}
-
-function listAdminLifecycleUserExports(data, query = {}, context = {}) {
-  return response(adminLifecycleUserExports.listLifecycleUserExports(data, query, context));
-}
-
-function getAdminLifecycleExportDeliveryHealth(data, query = {}, context = {}) {
-  return response(adminLifecycleUserExports.getLifecycleExportDeliveryHealth(data, query, context));
-}
-
-function createAdminLifecycleUserExport(data, body = {}, context = {}) {
-  return response(adminLifecycleUserExports.runLifecycleUserExport(data, body, context));
-}
-
-function runAdminLifecycleUserExportJob(data, body = {}, context = {}) {
-  return response(adminLifecycleUserExports.runLifecycleUserExport(data, body, context));
-}
-
-function downloadAdminLifecycleUserExport(data, exportId, context = {}) {
-  return adminLifecycleUserExports.downloadLifecycleUserExport(data, exportId, context);
-}
-
-function downloadSignedAdminLifecycleUserExport(data, exportId, query = {}, context = {}) {
-  return adminLifecycleUserExports.downloadLifecycleUserExportBySignature(data, exportId, query, context);
-}
-
-function reviewAdminLifecycleUserExportApproval(data, body = {}, context = {}) {
-  return response(adminLifecycleUserExports.reviewLifecycleUserExportApproval(data, body, context));
-}
-
-async function deliverAdminLifecycleUserExport(data, body = {}, context = {}) {
-  return response(await adminLifecycleUserExports.deliverLifecycleUserExport(data, body, context));
-}
-
-async function runDueAdminLifecycleExportDeliveries(data, body = {}, context = {}) {
-  return response(await adminLifecycleUserExports.runDueLifecycleExportDeliveries(data, body, context));
-}
-
-async function cleanupAdminLifecycleUserExports(data, body = {}, context = {}) {
-  return response(await adminLifecycleUserExports.cleanupLifecycleUserExports(data, body, context));
-}
-
 async function runHealthDataRetentionCleanup(data, body = {}, context = {}) {
   return response(await healthDataRetention.cleanupExpiredHealthData(data, body, context));
-}
-
-function listAdminLifecycleFilterPresets(data, query = {}) {
-  return response({
-    presets: adminLifecycleFilterPresets.listPresets(data, query),
-  });
-}
-
-function upsertAdminLifecycleFilterPreset(data, body = {}) {
-  const result = adminLifecycleFilterPresets.upsertPreset(data, body);
-  const audit = auditLog.appendAuditLog(data, {
-    action: "ADMIN_LIFECYCLE_FILTER_PRESET_UPSERT",
-    targetType: "ADMIN_LIFECYCLE_FILTER_PRESET",
-    targetId: result.preset.presetId,
-    operatorId: body.operatorId || body.operator_id || "",
-    reason: body.reason || "保存用户生命周期常用筛选",
-    before: result.before,
-    after: result.preset,
-    metadata: {
-      requestId: body.requestId || body.request_id || "",
-      created: result.created,
-    },
-  });
-  return response({
-    preset: result.preset,
-    presets: adminLifecycleFilterPresets.listPresets(data, body),
-    created: result.created,
-    audit,
-  });
-}
-
-function copyAdminLifecycleFilterPreset(data, body = {}) {
-  const result = adminLifecycleFilterPresets.copyPreset(data, body);
-  const audit = auditLog.appendAuditLog(data, {
-    action: "ADMIN_LIFECYCLE_FILTER_PRESET_COPY",
-    targetType: "ADMIN_LIFECYCLE_FILTER_PRESET",
-    targetId: result.preset.presetId,
-    operatorId: body.operatorId || body.operator_id || "",
-    reason: body.reason || "复制用户生命周期常用筛选",
-    before: result.sourcePreset,
-    after: result.preset,
-    metadata: {
-      requestId: body.requestId || body.request_id || "",
-      sourcePresetId: result.sourcePreset.presetId,
-      scope: result.preset.scope,
-    },
-  });
-  return response({
-    sourcePreset: result.sourcePreset,
-    preset: result.preset,
-    presets: adminLifecycleFilterPresets.listPresets(data, body),
-    created: true,
-    audit,
-  });
-}
-
-function deleteAdminLifecycleFilterPreset(data, body = {}) {
-  const result = adminLifecycleFilterPresets.archivePreset(data, body);
-  const audit = auditLog.appendAuditLog(data, {
-    action: "ADMIN_LIFECYCLE_FILTER_PRESET_DELETE",
-    targetType: "ADMIN_LIFECYCLE_FILTER_PRESET",
-    targetId: result.preset.presetId,
-    operatorId: body.operatorId || body.operator_id || "",
-    reason: body.reason || "删除用户生命周期常用筛选",
-    before: result.before,
-    after: result.preset,
-    metadata: {
-      requestId: body.requestId || body.request_id || "",
-    },
-  });
-  return response({
-    preset: result.preset,
-    presets: adminLifecycleFilterPresets.listPresets(data, body),
-    deleted: true,
-    audit,
-  });
-}
-
-function getAdminOperationalAnalytics(data, query = {}) {
-  return response(adminAnalyticsPresenter.buildOperationalAnalytics(data, query));
-}
-
-function exportAdminOperationalAnalyticsCsv(data, query = {}) {
-  return adminAnalyticsPresenter.buildOperationalAnalyticsCsv(data, query);
-}
-
-function upsertAdminOperationalAlertRule(data, body = {}) {
-  const alertRuleId = body.alertRuleId || body.alert_rule_id || "";
-  const before = alertRuleId
-    ? operationalAlerts.listEffectiveAlertRules(data, { campaignId: body.campaignId || body.campaign_id })
-      .find((rule) => rule.alert_rule_id === alertRuleId) || null
-    : null;
-  const result = operationalAlerts.upsertAlertRule(data, body);
-  const audit = auditLog.appendAuditLog(data, {
-    action: "OPERATIONAL_ALERT_RULE_UPSERT",
-    targetType: "OPERATIONAL_ALERT_RULE",
-    targetId: result.rule.alertRuleId,
-    operatorId: body.operatorId || body.operator_id || "",
-    reason: body.reason || "配置运营预警阈值",
-    before,
-    after: result.rule,
-    metadata: {
-      requestId: body.requestId || body.request_id || "",
-      created: result.created,
-    },
-  });
-  return response({ ...result, audit });
-}
-
-async function runAdminOperationalAlertJob(data, body = {}, context = {}) {
-  const dryRun = body.dryRun === true || body.dry_run === true;
-  const requestId = body.requestId || body.request_id || context.requestId || "";
-  if (!dryRun && !requestId) throw businessError(8020, "运营预警 Job 执行必须提供 request_id");
-  const analytics = adminAnalyticsPresenter.buildOperationalAnalytics(data, body);
-  const result = await operationalAlerts.runOperationalAlertJob(data, analytics, {
-    ...body,
-    requestId,
-  }, context);
-  const audit = auditLog.appendAuditLog(data, {
-    action: dryRun ? "OPERATIONAL_ALERT_JOB_PREVIEW" : "OPERATIONAL_ALERT_JOB_EXECUTE",
-    targetType: "OPERATIONAL_ALERT_JOB",
-    targetId: result.run.operational_alert_run_id,
-    operatorId: body.operatorId || body.operator_id || "",
-    reason: body.reason || (dryRun ? "预览运营预警" : "执行运营预警"),
-    before: null,
-    after: {
-      requestId,
-      summary: result.summary,
-      alerts: result.alerts.map((alert) => ({ key: alert.key, severity: alert.severity, message: alert.message })),
-    },
-    metadata: {
-      requestId,
-      dryRun,
-      campaignId: result.run.campaign_id,
-    },
-  });
-  return response({ ...result, audit });
-}
-
-function listProducts(data, token, query = {}, context = {}) {
-  requireUser(data, token);
-  const campaignId = query.campaignId || query.campaign_id || productMirror.DEFAULT_CAMPAIGN_ID;
-  return response(productMirror.listDisplayProducts(data, campaignId, context));
-}
-
-function getProduct(data, token, productId, context = {}) {
-  requireUser(data, token);
-  return response({ product: productMirror.getDisplayProduct(data, productId, context) });
-}
-
-function recordProductJump(data, token, body = {}, context = {}) {
-  const user = requireUser(data, token);
-  const productId = body.productId || body.product_id || body.youzanProductId || body.youzan_product_id;
-  const result = productMirror.recordProductJump(data, user.root_user_id || user.user_id, productId, {
-    ...context,
-    campaignId: body.campaignId || body.campaign_id || productMirror.DEFAULT_CAMPAIGN_ID,
-    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_PRODUCT",
-    metadata: body.metadata || {},
-  });
-  recordLifecycleEvent(data, user.root_user_id || user.user_id, "PRODUCT_JUMP", {
-    sourceChannel: body.sourceChannel || body.source_channel || "MINIPROGRAM_PRODUCT",
-    appCode: user.app_code || "MYROOT",
-    metadata: {
-      productId: result.product.productId,
-      jumpLogId: result.jumpLogId,
-    },
-  });
-  return response(result);
-}
-
-function upsertProduct(data, body = {}, context = {}) {
-  return response(productMirror.upsertDisplayProduct(data, body, context));
-}
-
-async function previewAdminProductSync(data, body = {}, context = {}) {
-  return response(await adminProductSync.previewProductSync(data, body, context));
-}
-
-async function executeAdminProductSync(data, body = {}, context = {}) {
-  return response(await adminProductSync.executeProductSync(data, body, context));
-}
-
-async function previewAdminOrderIncrementSync(data, body = {}, context = {}) {
-  return response(await adminOrderIncrementSync.previewOrderIncrement(data, body, context));
-}
-
-async function executeAdminOrderIncrementSync(data, body = {}, context = {}) {
-  return response(await adminOrderIncrementSync.executeOrderIncrement(data, body, context));
-}
-
-function listAdminYouzanCustomers(data, query = {}) {
-  return response(youzanCustomerMirror.listCustomers(data, query));
-}
-
-function ensureList(data, key) {
-  if (!Array.isArray(data[key])) data[key] = [];
-  return data[key];
-}
-
-function fulfillmentForOrder(data, orderId) {
-  return ensureList(data, "orderFulfillments").find((item) => item.order_id === orderId) || null;
-}
-
-function ensureFulfillment(data, order) {
-  let fulfillment = fulfillmentForOrder(data, order.order_id);
-  if (fulfillment) return fulfillment;
-  fulfillment = {
-    fulfillment_id: createId("ful"),
-    order_id: order.order_id,
-    receiver_name: order.receiver_name || "",
-    receiver_phone: order.receiver_phone || order.phone || "",
-    carrier: "",
-    tracking_no: "",
-    delivery_status: order.delivery_status || "NOT_SHIPPED",
-    shipped_at: "",
-    delivered_at: "",
-    last_event_text: "",
-    updated_at: nowISO(),
-  };
-  ensureList(data, "orderFulfillments").push(fulfillment);
-  return fulfillment;
-}
-
-function getOrderDeliveryStatus(data, order) {
-  const fulfillment = fulfillmentForOrder(data, order.order_id);
-  return (fulfillment && fulfillment.delivery_status) || order.delivery_status || "NOT_SHIPPED";
-}
-
-function toOrderPayload(data, order) {
-  const fulfillment = ensureFulfillment(data, order);
-  const deliveryStatus = getOrderDeliveryStatus(data, order);
-  return {
-    orderId: order.order_id,
-    youzanOrderNo: order.youzan_order_no,
-    productName: order.product_name || order.product_id,
-    orderStatus: order.order_status || "PAID",
-    deliveryStatus,
-    receiverPhone: maskPhone(order.receiver_phone || order.phone),
-    receiverName: order.receiver_name || "",
-    amount: order.amount,
-    matchedAt: order.matched_at || "",
-    fulfillment: {
-      carrier: fulfillment.carrier || "",
-      trackingNo: fulfillment.tracking_no || "",
-      shippedAt: fulfillment.shipped_at || "",
-      deliveredAt: fulfillment.delivered_at || "",
-      lastEventText: fulfillment.last_event_text || "",
-    },
-  };
-}
-
-function updateOrderFulfillment(data, body, dateText = todayISO()) {
-  const result = orderFulfillment.updateOrderFulfillment(data, body, dateText);
-  return response({
-    success: true,
-    order: orderFulfillment.toOrderPayload(data, result.order),
-    fulfillment: result.fulfillment,
-    task: result.task,
-  });
-}
-
-function syncManualOrder(data, body, context = {}) {
-  const order = orderFulfillment.syncManualOrder(data, body, context);
-  return response({ success: true, order: orderFulfillment.toOrderPayload(data, order) });
-}
-
-function searchAdminOrderMatching(data, query = {}) {
-  return response(adminOrderMatching.searchOrderMatchingCandidates(data, query));
-}
-
-function previewAdminOrderMatch(data, body = {}) {
-  return response(adminOrderMatching.previewOrderMatch(data, body));
-}
-
-function confirmAdminOrderMatch(data, body = {}, dateText = todayISO()) {
-  return response(adminOrderMatching.confirmOrderMatch(data, body, dateText));
-}
-
-function sampleInputFromBody(body = {}) {
-  return body.samples !== undefined ? body.samples : body.text;
-}
-
-function previewExternalSamples(data, body = {}) {
-  const result = externalAdapterSamples.previewExternalSamples(data, body.sourceType, sampleInputFromBody(body) || []);
-  const review = externalAdapterSamples.recordExternalSampleReview(data, "PREVIEW", result);
-  return response({ ...result, review });
-}
-
-function importExternalSamples(data, body = {}, dateText = todayISO(), context = {}) {
-  const result = externalAdapterSamples.importExternalSamples(
-    data,
-    body.sourceType,
-    sampleInputFromBody(body) || [],
-    dateText,
-    context
-  );
-  const review = externalAdapterSamples.recordExternalSampleReview(data, "IMPORT", result);
-  return response({ ...result, review });
-}
-
-function previewImport(data, body = {}) {
-  return response(csvImport.previewImport(data, body));
-}
-
-function confirmImport(data, batchId, body = {}, dateText = todayISO(), context = {}) {
-  return response(csvImport.confirmImport(data, batchId, {
-    dateText,
-    operatorId: body.operatorId || body.operator_id || "",
-    env: context.env,
-  }));
-}
-
-function getImportBatch(data, batchId) {
-  return response(csvImport.getImportBatch(data, batchId));
-}
-
-function listImportBatches(data, query = {}) {
-  return response({ batches: csvImport.listImportBatches(data, query) });
-}
-
-function exportImportFailuresCsv(data, batchId) {
-  return csvImport.exportFailureRowsCsv(data, batchId);
-}
-
-function upsertExternalStatusMapping(data, body = {}) {
-  const mapping = externalAdapterSamples.upsertStatusMapping(data, body);
-  return response({ success: true, mapping, mappings: externalAdapterSamples.listStatusMappings(data) });
-}
-
-function getExternalSampleTemplate(sourceType) {
-  if (sourceType) return response(externalAdapterSamples.sampleTemplateFor(sourceType));
-  return response({ templates: externalAdapterSamples.listSampleTemplates() });
-}
-
-function listExternalSampleReviews(data, query = {}) {
-  const reviews = externalAdapterSamples.listExternalSampleReviews(data, query);
-  const reviewId = query.reviewId || query.review_id || "";
-  return response({
-    reviews,
-    review: reviewId ? externalAdapterSamples.getExternalSampleReview(data, reviewId) : null,
-  });
-}
-
-function getExternalAdapters(data, context = {}) {
-  return response({
-    catalog: externalPlatformAdapters.buildAdapterCatalog(context.env || process.env, {
-      data,
-      adapterImplementations: context.adapterImplementations || {},
-    }),
-    runs: externalPlatformAdapters.listAdapterRuns(data),
-    cursors: externalPlatformAdapters.listAdapterCursors(data),
-    readiness: externalAdapterSamples.buildAdapterReadiness(data),
-    reviews: externalAdapterSamples.listExternalSampleReviews(data, { limit: 20 }),
-    retryScheduler: adapterRetryScheduler.planDueAdapterRetries(data, { now: context.now || nowISO() }),
-  });
 }
 
 function getReleaseRecord(data, context = {}) {
@@ -1609,224 +1090,24 @@ function getReleaseRecord(data, context = {}) {
   });
 }
 
-function listProductionCutoverProofs(data, query = {}) {
-  return response({
-    proofs: productionCutoverProof.listProductionCutoverProofs(data, query),
-    latest: productionCutoverProof.latestProductionCutoverProofs(data, query),
-  });
-}
-
-function recordProductionCutoverProof(data, input = {}) {
-  return response(productionCutoverProof.createProductionCutoverProof(data, input));
-}
-
-function listRootMemberCenterJumpProofs(data, query = {}) {
-  return response({
-    proofs: rootMemberCenterJumpProof.listRootMemberCenterJumpProofs(data, query),
-    latest: rootMemberCenterJumpProof.latestRootMemberCenterJumpProofs(data, query),
-  });
-}
-
-function recordRootMemberCenterJumpProof(data, input = {}) {
-  return response(rootMemberCenterJumpProof.createRootMemberCenterJumpProof(data, input));
-}
-
 function getCloudbaseIdentityProbe(context = {}) {
   return response(cloudbaseIdentityProbe.buildCloudbaseIdentityProbe(context));
-}
-
-async function runExternalAdapter(data, body = {}, context = {}, dateText = todayISO()) {
-  const result = await externalPlatformAdapters.runAdapter(data, body, {
-    env: context.env || process.env,
-    dateText,
-    adapterImplementations: context.adapterImplementations || {},
-    fetchImpl: context.fetchImpl,
-  });
-  return response({ success: true, ...result });
-}
-
-async function runDueExternalAdapterRetries(data, body = {}, context = {}) {
-  const result = await adapterRetryScheduler.runDueAdapterRetries(data, body, {
-    env: context.env || process.env,
-    dateText: context.dateText || todayISO(),
-    adapterImplementations: context.adapterImplementations || {},
-    fetchImpl: context.fetchImpl,
-  });
-  return response({ success: true, ...result });
-}
-
-function rollbackExternalAdapterRun(data, body = {}) {
-  const before = clone(externalPlatformAdapters.listAdapterRuns(data, 100)
-    .find((run) => run.run_id === (body.runId || body.run_id || "")) || null);
-  const result = externalPlatformAdapters.rollbackAdapterRun(data, body);
-  const audit = auditLog.appendAuditLog(data, {
-    action: "EXTERNAL_ADAPTER_RUN_ROLLBACK",
-    targetType: "EXTERNAL_ADAPTER_RUN",
-    targetId: result.run.run_id,
-    operatorId: body.operatorId || body.operator_id || "",
-    reason: body.reason || "",
-    before,
-    after: clone(result.run),
-    metadata: {
-      requestId: body.requestId || body.request_id || "",
-      summary: result.summary,
-      cursor: result.cursor,
-    },
-  });
-  return response({ success: true, ...result, audit });
-}
-
-function listOperationTasks(data, query = {}) {
-  const hasStatusFilter = Boolean(query.status || query.taskStatus || query.task_status);
-  const effectiveQuery = hasStatusFilter ? query : { ...query, status: "OPEN" };
-  return response({ tasks: operationTask.listOperationTasks(data, effectiveQuery).map((task) => toOperationTaskPayload(data, task)) });
-}
-
-function completeOperationTask(data, taskId, body = {}) {
-  const before = clone(operationTask.listOperationTasks(data).find((item) => item.task_id === taskId) || null);
-  const task = operationTask.completeOperationTask(data, taskId, body);
-  const audit = auditLog.appendAuditLog(data, {
-    action: "OPERATION_TASK_COMPLETE",
-    targetType: "OPERATION_TASK",
-    targetId: taskId,
-    operatorId: body.operatorId || body.operator_id || "",
-    reason: body.reason || body.note || "",
-    before,
-    after: clone(task),
-    metadata: {
-      requestId: body.requestId || body.request_id || "",
-      status: task.status,
-      result: task.result || "",
-    },
-  });
-  return response({ success: true, task: toOperationTaskPayload(data, task), audit });
-}
-
-function listConsultationWeworkWritebacks(data, query = {}) {
-  return response({ writebacks: consultationWeworkWriteback.listConsultationWeworkWritebacks(data, query) });
-}
-
-function listConsultationAdvisorAssignments(data, query = {}) {
-  return response({ assignments: consultationAdvisorAssignment.listConsultationAdvisorAssignments(data, query) });
-}
-
-function getConsultationSla(data, query = {}, context = {}) {
-  return response(consultationSla.listConsultationSlaItems(data, query, {
-    env: context.env || process.env,
-    now: query.now || context.now || "",
-  }));
-}
-
-function getConsultationAdvisorWorkbench(data, query = {}, context = {}) {
-  return response(consultationAdvisorWorkbench.advisorWorkbench(data, query, {
-    env: context.env || process.env,
-    now: query.now || context.now || "",
-  }));
-}
-
-function getConsultationSlaEscalations(data, query = {}, context = {}) {
-  return response(consultationSlaEscalation.listConsultationSlaEscalations(data, query, {
-    env: context.env || process.env,
-    now: query.now || context.now || "",
-  }));
-}
-
-function recordConsultationAdvisorAssignment(data, body = {}, context = {}) {
-  const result = consultationAdvisorAssignment.recordConsultationAdvisorAssignment(data, body, {
-    env: context.env || process.env,
-    operatorId: body.operatorId || body.operator_id || context.operatorId || "",
-    requestId: body.requestId || body.request_id || context.requestId || "",
-  });
-  return response({
-    ...result,
-    task: result.task ? toOperationTaskPayload(data, result.task) : null,
-  });
-}
-
-async function recordConsultationWeworkWriteback(data, body = {}, context = {}) {
-  const result = await consultationWeworkWriteback.recordConsultationWeworkWriteback(data, body, {
-    env: context.env || process.env,
-    fetchImpl: context.fetchImpl,
-    operatorId: body.operatorId || body.operator_id || context.operatorId || "",
-    requestId: body.requestId || body.request_id || context.requestId || "",
-    consultationWritebackAdapters: context.consultationWritebackAdapters || {},
-  });
-  return response({
-    ...result,
-    task: result.task ? toOperationTaskPayload(data, result.task) : null,
-  });
-}
-
-function previewCorrection(data, body = {}) {
-  return response(manualCorrection.previewCorrection(data, body));
-}
-
-function applyCorrection(data, body = {}, context = {}, dateText = todayISO()) {
-  return response(manualCorrection.applyCorrection(data, body, {
-    operatorId: body.operatorId || body.operator_id || context.operatorId || "",
-  }, dateText));
 }
 
 function listAuditLogs(data, query = {}) {
   return response({ auditLogs: auditLog.listAuditLogs(data, query) });
 }
 
-function toOperationTaskPayload(data, task) {
-  const user = data.users.find((item) => item.user_id === task.user_id);
-  const order = data.youzanOrders.find((item) => item.order_id === task.order_id);
-  const priority = adminOpsPresenter.buildTaskPriority(task);
-  return {
-    ...task,
-    taskId: task.task_id,
-    taskType: task.task_type,
-    taskDate: task.task_date,
-    label: priority.label,
-    priorityLevel: priority.level,
-    priorityRank: priority.rank,
-    tone: priority.tone,
-    suggestedAction: task.suggested_action || "",
-    suggestedScript: task.suggested_script || "",
-    user: user ? publicUser(user, data) : null,
-    order: order ? orderFulfillment.toOrderPayload(data, order) : null,
-  };
-}
-
 module.exports = {
-  applyCorrection,
   archiveActivity,
-  completeOperationTask,
   cancelActivityEnrollment,
   cancelActivitySession,
-  copyAdminLifecycleFilterPreset,
   createActivitySession,
   createStore,
-  executeAdminOrderIncrementSync,
-  executeAdminProductSync,
   enrollActivity,
   expireActivityEnrollmentReviews,
-  deleteAdminLifecycleFilterPreset,
-  createAdminLifecycleUserExport,
-  cleanupAdminLifecycleUserExports,
-  deliverAdminLifecycleUserExport,
-  downloadAdminLifecycleUserExport,
-  downloadSignedAdminLifecycleUserExport,
-  exportAdminLifecycleUsersCsv,
-  exportAdminOperationalAnalyticsCsv,
-  getAdminLifecycleExportDeliveryHealth,
-  listAdminLifecycleFilterPresets,
-  listAdminLifecycleUserExports,
-  reviewAdminLifecycleUserExportApproval,
-  runDueAdminLifecycleExportDeliveries,
-  upsertAdminOperationalAlertRule,
-  upsertAdminLifecycleFilterPreset,
-  runAdminOperationalAlertJob,
-  runAdminLifecycleUserExportJob,
-  runHealthDataRetentionCleanup,
-  getActiveCampaign,
   getActivityDetail,
   getActivityEnrollments,
-  getAdminLifecycleWorkbench,
-  getAdminOperationalAnalytics,
   getCloudbaseIdentityProbe,
   getHealthConsentStatus,
   getFormalHealthBootstrap,
@@ -1836,106 +1117,57 @@ module.exports = {
   getFormalContentDetail,
   getFormalContentAsset,
   getFormalContentAction,
-  listFormalWelcomeContent,
   getFormalProfile,
   getPrivacyNotice,
-  getProduct,
   getReleaseRecord,
-  getExternalSampleTemplate,
-  getImportBatch,
-  getExternalAdapters,
-  getUserOrders,
-  getUserConsultations,
-  getConsultationSla,
-  getConsultationSlaEscalations,
-  getConsultationAdvisorWorkbench,
-  listProducts,
-  listProductionCutoverProofs,
-  listRootMemberCenterJumpProofs,
   getUserState,
-  login,
-  loginWithWechat,
-  prepareWechatLoginExternalInputs,
-  joinCampaign,
   listActivities,
   listAdminActivityDefinitions,
   listAdminActivityEnrollments,
   listAdminActivityReviewQueue,
   listAdminActivitySessions,
+  listAdminContentHomeCarousel,
+  listAdminContentSharedDetails,
+  listAdminContentWelcome,
   listAdminFormalHealthInitialization,
   listAdminFormalHealthLifestyleAdvice,
   listAdminFormalHealthRecommendationRules,
   listAdminFormalHealthScales,
-  listAdminContentWelcome,
-  listAdminContentHomeCarousel,
-  listAdminContentSharedDetails,
-  listConsultationAdvisorAssignments,
-  listConsultationWeworkWritebacks,
-  listOrderAfterSalesRecords,
-  listWeWorkTouchJobs,
-  listOperationTasks,
-  listAdminYouzanCustomers,
-  listExternalSampleReviews,
-  listFormalHomeContent,
-  listImportBatches,
   listAuditLogs,
-  exportImportFailuresCsv,
-  searchAdminOrderMatching,
+  listFormalHomeContent,
+  listFormalWelcomeContent,
+  login,
+  loginWithWechat,
+  markAdminContentPreviewCompleted,
+  prepareWechatLoginExternalInputs,
   publicUser,
-  previewAdminOrderMatch,
-  previewAdminOrderIncrementSync,
-  previewAdminProductSync,
-  planWeWorkTouches,
-  previewCorrection,
-  previewImport,
   publishActivity,
+  publishAdminContentCandidate,
   publishAdminFormalHealthInitialization,
   publishAdminFormalHealthLifestyleAdvice,
   publishAdminFormalHealthRecommendationRule,
   publishAdminFormalHealthScale,
-  publishAdminContentCandidate,
-  confirmAdminOrderMatch,
-  confirmImport,
-  previewExternalSamples,
-  importExternalSamples,
-  upsertExternalStatusMapping,
+  recordHealthConsentDecision,
+  requestActivityChanges,
   response,
-  syncManualOrder,
-  submitFormalProfile,
-  submitFormalHealthInitialAssessment,
-  submitFormalHealthScale,
+  reviewActivityEnrollment,
+  runHealthDataRetentionCleanup,
+  saveAdminContentHomeCarouselDraft,
+  saveAdminContentSharedDetailDraft,
+  saveAdminContentWelcomeDraft,
   saveAdminFormalHealthInitializationDraft,
   saveAdminFormalHealthLifestyleAdviceDraft,
   saveAdminFormalHealthRecommendationRuleDraft,
   saveAdminFormalHealthScaleDraft,
-  saveAdminContentWelcomeDraft,
-  saveAdminContentHomeCarouselDraft,
-  saveAdminContentSharedDetailDraft,
-  uploadAdminContentAsset,
-  validateAdminContentTarget,
-  markAdminContentPreviewCompleted,
-  unpublishAdminContentVersion,
-  recordConsultationAdvisorAssignment,
-  recordConsultationWeworkWriteback,
-  recordProductionCutoverProof,
-  recordRootMemberCenterJumpProof,
-  recordProductJump,
-  recordHealthConsentDecision,
-  recordUserConsultation,
-  requestActivityChanges,
-  reviewActivityEnrollment,
-  rollbackExternalAdapterRun,
-  runDueExternalAdapterRetries,
-  runDueWeWorkTouches,
-  runExternalAdapter,
   stableRootUserIdForToken,
-  syncOrderAfterSalesBatch,
-  updateDisplayProfile,
-  updateOrderFulfillment,
-  upsertOrderAfterSalesRecord,
-  upsertActivityDraft,
   submitActivityForReview,
+  submitFormalHealthInitialAssessment,
+  submitFormalHealthScale,
+  submitFormalProfile,
   unpublishActivity,
+  unpublishAdminContentVersion,
   updateActivitySessionState,
-  upsertProduct,
+  uploadAdminContentAsset,
+  upsertActivityDraft,
+  validateAdminContentTarget,
 };

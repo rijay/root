@@ -2,12 +2,11 @@
   "name": "root-seven-day-checkin-backend",
   "version": "0.5.13",
   "private": true,
-  "description": "ROOT 7-day check-in API and admin console",
+  "description": "myRoot formal-launch API and operations admin",
   "scripts": {
     "health-data-retention-cleanup": "node scripts/health-data-retention-cleanup.js",
     "jobs:manifest": "node scripts/cloudbase-job-manifest.js",
     "production-env": "node scripts/production-env-matrix.js",
-    "rollback:drill": "node scripts/rollback-drill.js",
     "dev": "node src/server.js",
     "store:migrate:mysql": "node scripts/store-migrate.js",
     "store:checkpoint-probe": "node scripts/mysql-checkpoint-probe.js --confirm-isolated-database",
