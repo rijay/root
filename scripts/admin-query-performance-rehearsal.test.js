@@ -21,11 +21,14 @@ test("local rehearsal uses the approved fixed dataset and no production Adapter"
 });
 
 test("rehearsal emits candidate-compatible dimensions without user data", async () => {
-  const events = await collectAdminQueryRehearsal({ samples: 1, version: "test-build" });
-  assert.deepEqual(events.map((event) => event.scenario), ["list", "detail", "audit", "write"]);
+  const events = await collectAdminQueryRehearsal({ samples: 2, version: "test-build" });
+  assert.deepEqual(events.map((event) => event.scenario), ["list", "list", "detail", "detail", "audit", "audit", "write", "write"]);
   events.forEach((event) => {
     assert.equal(event.version, "test-build");
     assert.equal(event.environment, "local-fixed-fixture");
+    assert.equal(event.evidenceClass, "LOCAL_REHEARSAL");
+    assert.match(event.targetOrigin, /^http:\/\/127\.0\.0\.1:\d+$/);
+    assert.equal(event.artifactCommit, "");
     assert.equal(event.datasetVersion, FIXTURE_VERSION);
     assert.equal(Number.isFinite(event.durationMs), true);
     assert.equal(Number.isFinite(event.responseBytes), true);

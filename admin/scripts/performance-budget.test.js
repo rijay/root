@@ -10,6 +10,8 @@ const {
   aggregateBrowserEvidence,
   aggregateQueryEvidence,
   evaluateMetric,
+  evaluateCandidateBinding,
+  evaluateEvidenceProvenance,
   expandBrowserEvidence,
   parseArgs,
   percentile,
@@ -52,18 +54,25 @@ test("local rehearsal is explicit and cannot be mistaken for candidate evidence"
 });
 
 test("candidate query and browser evidence only pass with complete bounded samples", () => {
+  const artifactCommit = "abcdef1234567890abcdef1234567890abcdef12";
+  const candidateDimensions = {
+    evidenceClass: "FORMAL_LAUNCH_CANDIDATE",
+    targetOrigin: "https://candidate.root.example",
+    artifactCommit,
+  };
   const queryEvents = ["list", "detail", "write", "audit"].flatMap((scenario) => (
     Array.from({ length: 20 }, () => ({
       scenario,
       durationMs: 100,
       responseBytes: 1024,
-      version: "candidate-sha",
-      environment: "local-fixed-fixture",
+      version: "candidate-build",
+      environment: "candidate-staging",
       datasetVersion: "ADMIN_PERFORMANCE_R0",
+      ...candidateDimensions,
     }))
   ));
-  assert.equal(aggregateQueryEvidence(queryEvents, budgets).status, "PASS");
-  assert.equal(aggregateQueryEvidence(queryEvents.slice(1), budgets).status, "BLOCK");
+  assert.equal(aggregateQueryEvidence(queryEvents, budgets, "FORMAL_LAUNCH_CANDIDATE").status, "PASS");
+  assert.equal(aggregateQueryEvidence(queryEvents.slice(1), budgets, "FORMAL_LAUNCH_CANDIDATE").status, "BLOCK");
 
   const browserMetrics = {
     initialDomNodes: 1000,
@@ -76,8 +85,9 @@ test("candidate query and browser evidence only pass with complete bounded sampl
     menuCycles: 10,
     editCycles: 10,
     journeyDurationMinutes: 30,
-    version: "candidate-sha",
-    environment: "local-fixed-fixture",
+    version: "candidate-build",
+    environment: "candidate-staging",
+    ...candidateDimensions,
     browser: "Chrome",
     browserVersion: "150.0.7871.187",
     hardwareConcurrency: 10,
@@ -101,12 +111,56 @@ test("candidate query and browser evidence only pass with complete bounded sampl
       }))
     )))
   ));
-  const browserEvidence = aggregateBrowserEvidence(browserEvents, budgets);
+  const browserEvidence = aggregateBrowserEvidence(browserEvents, budgets, "FORMAL_LAUNCH_CANDIDATE");
   assert.equal(browserEvidence.status, "PASS");
   assert.equal(browserEvidence.resources.sessionCount.status, "PASS");
   assert.equal(browserEvidence.journeys[0].groups.length, 2);
-  assert.equal(aggregateBrowserEvidence(browserEvents.map((event) => ({ ...event, browser: "Edge" })), budgets).status, "BLOCK");
-  assert.equal(aggregateBrowserEvidence([{ ...browserMetrics, scenario: "coldStart", durationMs: 100, fps: 49 }], budgets).status, "BLOCK");
+  assert.equal(aggregateBrowserEvidence(browserEvents.map((event) => ({ ...event, browser: "Edge" })), budgets, "FORMAL_LAUNCH_CANDIDATE").status, "BLOCK");
+  assert.equal(aggregateBrowserEvidence([{ ...browserMetrics, scenario: "coldStart", durationMs: 100, fps: 49 }], budgets, "FORMAL_LAUNCH_CANDIDATE").status, "BLOCK");
+});
+
+test("candidate mode rejects complete local rehearsal metrics", () => {
+  const local = {
+    version: "local-0.5.13",
+    environment: "local-fixed-fixture",
+    evidenceClass: "LOCAL_REHEARSAL",
+    targetOrigin: "http://127.0.0.1:4173",
+    artifactCommit: "",
+  };
+  assert.equal(evaluateEvidenceProvenance([local], "LOCAL_REHEARSAL").status, "PASS");
+  const rejected = evaluateEvidenceProvenance([local], "FORMAL_LAUNCH_CANDIDATE");
+  assert.equal(rejected.status, "BLOCK");
+  assert.equal(rejected.reason, "EVIDENCE_PROVENANCE_MISSING_OR_MIXED");
+
+  const relabeledLocal = {
+    ...local,
+    evidenceClass: "FORMAL_LAUNCH_CANDIDATE",
+    artifactCommit: "abcdef1",
+  };
+  const relabeledRejected = evaluateEvidenceProvenance([relabeledLocal], "FORMAL_LAUNCH_CANDIDATE");
+  assert.equal(relabeledRejected.status, "BLOCK");
+  assert.equal(relabeledRejected.reason, "CANDIDATE_PROVENANCE_INVALID");
+});
+
+test("candidate query and browser evidence must bind to the same deployed artifact", () => {
+  const query = {
+    provenance: { status: "PASS" },
+    dimensions: { artifactCommit: "abcdef1", targetOrigin: "https://candidate.root.example" },
+  };
+  const browser = {
+    provenance: { status: "PASS" },
+    dimensions: { artifactCommit: "abcdef1", targetOrigin: "https://candidate.root.example" },
+  };
+  assert.deepEqual(evaluateCandidateBinding(query, browser, "FORMAL_LAUNCH_CANDIDATE"), {
+    status: "PASS",
+    artifactCommit: "abcdef1",
+    targetOrigin: "https://candidate.root.example",
+  });
+  assert.equal(evaluateCandidateBinding(query, {
+    ...browser,
+    dimensions: { ...browser.dimensions, artifactCommit: "1234567" },
+  }, "FORMAL_LAUNCH_CANDIDATE").status, "BLOCK");
+  assert.equal(evaluateCandidateBinding(query, browser, "LOCAL_REHEARSAL").status, "NOT_APPLICABLE");
 });
 
 test("compact browser sessions expand without duplicating sensitive data", () => {
@@ -114,6 +168,9 @@ test("compact browser sessions expand without duplicating sensitive data", () =>
     dimensions: {
       version: "candidate-sha",
       environment: "candidate",
+      evidenceClass: "LOCAL_REHEARSAL",
+      targetOrigin: "http://127.0.0.1:4173",
+      artifactCommit: "",
       browser: "Chrome",
       browserVersion: "150",
       hardwareConcurrency: 10,
@@ -131,6 +188,8 @@ test("compact browser sessions expand without duplicating sensitive data", () =>
   assert.equal(events[0].scenario, "coldStart");
   assert.equal(events[0].networkEmulationComplete, true);
   assert.equal(events[0].hardwareConcurrency, 10);
+  assert.equal(events[0].evidenceClass, "LOCAL_REHEARSAL");
+  assert.equal(events[0].targetOrigin, "http://127.0.0.1:4173");
   assert.deepEqual(events[0].evidenceLimitations, ["LOCAL_ONLY"]);
 });
 

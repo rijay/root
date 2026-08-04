@@ -5,6 +5,9 @@
   "dimensions": {
     "version": "local-0.5.13",
     "environment": "local-ued-review",
+    "evidenceClass": "LOCAL_REHEARSAL",
+    "targetOrigin": "http://127.0.0.1:4173",
+    "artifactCommit": "",
     "browser": "Chrome",
     "browserVersion": "150.0.7871.187",
     "hardwareConcurrency": 10,

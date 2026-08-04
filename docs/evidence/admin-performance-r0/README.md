@@ -8,6 +8,8 @@
 2. **查询证据**：使用 `ADMIN_PERFORMANCE_R0` 固定数据规模，为列表、详情、写入、审计四类场景各采集至少 20 次，记录 `version`、`environment`、`datasetVersion`、`scenario`、`durationMs`、`responseBytes`。使用 `--query-events` 生成 P75、P95 与响应体报告。
 3. **浏览器证据**：覆盖 Chrome、标准办公网络和弱网，记录冷启动、缓存刷新、已加载菜单切换、首次异步页面四类场景；同时记录 DOM 节点、最长同步任务、最长卡顿、稳定内存、菜单循环后的内存增长、帧率和持续操作时间。使用 `--browser-events` 汇总。Edge 不在首发支持与验收范围内。
 
+候选查询与浏览器证据必须同时携带 `evidenceClass=FORMAL_LAUNCH_CANDIDATE`、非本机 HTTPS `targetOrigin` 和 7–40 位 Git `artifactCommit`。两类证据的目标 Origin 与提交必须完全一致；本地、测试、开发环境或回环地址即使指标全部达标，也不能关闭候选 Gate。
+
 候选报告命令示例：
 
 ```sh
@@ -30,7 +32,7 @@ node scripts/admin-performance-report.js \
   --query-events docs/evidence/admin-performance-r0/query-rehearsal-events.json
 ```
 
-该命令只启动进程内存储和本机 HTTP 服务，按固定规模采集列表、用户详情、审计与草稿写入各 20 次，不连接候选或生产环境。输出结构可直接被候选报告复用，但其 `environment=local-fixed-fixture`，只能作为 `LOCAL_REHEARSAL` 排障材料，不关闭候选查询 Gate。
+该命令只启动进程内存储和本机 HTTP 服务，按固定规模采集列表、用户详情、审计与草稿写入各 20 次，不连接候选或生产环境。输出字段结构可被候选采集器复用，但事件固定标记为 `evidenceClass=LOCAL_REHEARSAL`、本机 `targetOrigin`，只能用于排障；即使把文件交给 `--candidate`，报告器也必须阻断。
 
 `evidence:admin-capacity:rehearse` 额外启动 5 个相互独立的本地运营会话，每个会话同时发起 2 个读取请求；内存 Store Adapter 的一次性并发屏障会确认服务实际接收到合计 10 路并发读取，且每个会话不超过浏览器 4 路读取上限。随后，两名模拟运营分别对首页轮播草稿和 Root4U 量表草稿执行“同一版本读取—甲先保存—乙用旧版本保存”：乙的两次写入都必须收到 HTTP 409 和刷新提示，权威读取必须保留甲的结果。结果写入 `capacity-conflict-rehearsal.json`，不包含令牌、手机号或健康答案。
 
@@ -54,6 +56,7 @@ node scripts/admin-performance-report.js \
 
 - 构建通过只说明静态资源未越过硬上限，不等于正式上线性能门禁通过。
 - 查询和浏览器样本缺失、样本数不足或任一硬上限超标时，候选报告必须失败。
+- 查询与浏览器证据来源不一致、目标为本机/测试环境、缺少候选证据类别或未绑定同一 Git 提交时，候选报告必须失败。
 - 旧后台、本地临时数据和人工主观感受只能作为参考，不可作为候选版本通过证据。
 - 本阶段不设置“运营操作 Gate”，也不引入 Redis、WebSocket、APM、虚拟列表或复杂全局状态管理。
 - 报告不包含手机号、健康答案、令牌或其他个人信息；正式证据只保留性能维度和版本标识。

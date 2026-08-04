@@ -19,6 +19,49 @@ function evaluateMetric(value, limits) {
   return { status, value, target: limits.target, hardLimit: limits.hardLimit };
 }
 
+function parseTargetOrigin(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.origin === String(value || "").replace(/\/$/, "") ? url : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function isLoopbackHost(hostname) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+}
+
+function evaluateEvidenceProvenance(events, expectedEvidenceClass) {
+  if (!expectedEvidenceClass) return { status: "PASS", expectedEvidenceClass: "UNSPECIFIED" };
+  const first = events[0] || {};
+  const target = parseTargetOrigin(first.targetOrigin);
+  const shared = Boolean(events.length)
+    && events.every((event) => event.evidenceClass === first.evidenceClass
+      && event.targetOrigin === first.targetOrigin
+      && event.artifactCommit === first.artifactCommit);
+  const base = {
+    expectedEvidenceClass,
+    observedEvidenceClass: String(first.evidenceClass || ""),
+    targetOrigin: String(first.targetOrigin || ""),
+    artifactCommit: String(first.artifactCommit || ""),
+  };
+  if (!shared || first.evidenceClass !== expectedEvidenceClass || !target) {
+    return { ...base, status: "BLOCK", reason: "EVIDENCE_PROVENANCE_MISSING_OR_MIXED" };
+  }
+  if (expectedEvidenceClass === "FORMAL_LAUNCH_CANDIDATE") {
+    const environment = String(first.environment || "").toLowerCase();
+    const candidateTarget = target.protocol === "https:" && !isLoopbackHost(target.hostname);
+    const candidateEnvironment = Boolean(environment)
+      && !/(^|[-_])(local|localhost|test|development|dev)([-_]|$)/.test(environment);
+    const candidateCommit = /^[0-9a-f]{7,40}$/i.test(String(first.artifactCommit || ""));
+    if (!candidateTarget || !candidateEnvironment || !candidateCommit) {
+      return { ...base, status: "BLOCK", reason: "CANDIDATE_PROVENANCE_INVALID" };
+    }
+  }
+  return { ...base, status: "PASS" };
+}
+
 function gzipBytes(filePath) {
   return zlib.gzipSync(fs.readFileSync(filePath), { level: 9 }).byteLength;
 }
@@ -120,19 +163,24 @@ function queryResponseLimit(scenario, budgets) {
   return budgets.responses.auditHardLimitBytes;
 }
 
-function aggregateQueryEvidence(events, budgets) {
+function aggregateQueryEvidence(events, budgets, expectedEvidenceClass = "") {
   const required = ["list", "detail", "write", "audit"];
   const expectedDatasetVersion = budgets.fixture.version;
   const evidenceDimensions = events.length ? {
     version: String(events[0].version || ""),
     environment: String(events[0].environment || ""),
     datasetVersion: String(events[0].datasetVersion || ""),
+    evidenceClass: String(events[0].evidenceClass || ""),
+    targetOrigin: String(events[0].targetOrigin || ""),
+    artifactCommit: String(events[0].artifactCommit || ""),
   } : { version: "", environment: "", datasetVersion: "" };
+  const provenance = evaluateEvidenceProvenance(events, expectedEvidenceClass);
   const dimensionsValid = Boolean(evidenceDimensions.version && evidenceDimensions.environment)
     && evidenceDimensions.datasetVersion === expectedDatasetVersion
     && events.every((event) => event.version === evidenceDimensions.version
       && event.environment === evidenceDimensions.environment
-      && event.datasetVersion === evidenceDimensions.datasetVersion);
+      && event.datasetVersion === evidenceDimensions.datasetVersion)
+    && provenance.status === "PASS";
   const scenarios = required.map((scenario) => {
     const samples = events.filter((event) => event && event.scenario === scenario
       && Number.isFinite(event.durationMs) && Number.isFinite(event.responseBytes));
@@ -150,6 +198,7 @@ function aggregateQueryEvidence(events, budgets) {
   return {
     status: dimensionsValid && scenarios.every((item) => item.status === "PASS") ? "PASS" : "BLOCK",
     dimensions: evidenceDimensions,
+    provenance,
     scenarios,
   };
 }
@@ -172,6 +221,9 @@ function expandBrowserEvidence(input) {
         ...capacity,
         version: dimensions.version,
         environment: dimensions.environment,
+        evidenceClass: dimensions.evidenceClass,
+        targetOrigin: dimensions.targetOrigin,
+        artifactCommit: dimensions.artifactCommit,
         browser: dimensions.browser,
         browserVersion: dimensions.browserVersion || "",
         hardwareConcurrency: dimensions.hardwareConcurrency,
@@ -189,7 +241,7 @@ function expandBrowserEvidence(input) {
   ));
 }
 
-function aggregateBrowserEvidence(events, budgets) {
+function aggregateBrowserEvidence(events, budgets, expectedEvidenceClass = "") {
   if (!events.length) return { status: "BLOCK", sampleCount: 0, reason: "MISSING_BROWSER_EVIDENCE" };
   const requiredBrowsers = Array.isArray(budgets.browser.supportedBrowsers)
     ? budgets.browser.supportedBrowsers
@@ -202,7 +254,14 @@ function aggregateBrowserEvidence(events, budgets) {
     "hardwareConcurrency", "deviceMemoryGiB",
   ];
   const first = events[0] || {};
-  const dimensions = { version: String(first.version || ""), environment: String(first.environment || "") };
+  const dimensions = {
+    version: String(first.version || ""),
+    environment: String(first.environment || ""),
+    evidenceClass: String(first.evidenceClass || ""),
+    targetOrigin: String(first.targetOrigin || ""),
+    artifactCommit: String(first.artifactCommit || ""),
+  };
+  const provenance = evaluateEvidenceProvenance(events, expectedEvidenceClass);
   const valid = events.filter((event) => requiredNumbers.every((field) => Number.isFinite(event?.[field]))
     && typeof event.scenario === "string"
     && requiredBrowsers.includes(event.browser)
@@ -244,6 +303,7 @@ function aggregateBrowserEvidence(events, budgets) {
     deviceMemoryGiB: minimumCheck(minimum("deviceMemoryGiB"), budgets.browser.minimumDeviceMemoryGiB),
   };
   const resourcePasses = Boolean(dimensions.version && dimensions.environment)
+    && provenance.status === "PASS"
     && valid.length === events.length
     && requiredBrowsers.every((browser) => browsers.has(browser))
     && networkProfiles.has("office") && networkProfiles.has("weak")
@@ -314,8 +374,24 @@ function aggregateBrowserEvidence(events, budgets) {
       ...(Array.isArray(event.evidenceLimitations) ? event.evidenceLimitations : []),
       ...(Array.isArray(event.networkLimitations) ? event.networkLimitations : []),
     ]))).sort(),
+    provenance,
     resources,
     journeys,
+  };
+}
+
+function evaluateCandidateBinding(query, browser, evidenceClass) {
+  if (evidenceClass !== "FORMAL_LAUNCH_CANDIDATE") return { status: "NOT_APPLICABLE" };
+  const queryDimensions = query?.dimensions || {};
+  const browserDimensions = browser?.dimensions || {};
+  const matches = query?.provenance?.status === "PASS"
+    && browser?.provenance?.status === "PASS"
+    && queryDimensions.artifactCommit === browserDimensions.artifactCommit
+    && queryDimensions.targetOrigin === browserDimensions.targetOrigin;
+  return {
+    status: matches ? "PASS" : "BLOCK",
+    artifactCommit: matches ? queryDimensions.artifactCommit : "",
+    targetOrigin: matches ? queryDimensions.targetOrigin : "",
   };
 }
 
@@ -357,17 +433,20 @@ function main() {
   const browserEvidence = options.browserEventsPath ? readJson(path.resolve(options.browserEventsPath)) : [];
   if (!Array.isArray(queryEvents)) throw new Error("query performance evidence file must contain an array");
   const browserEvents = expandBrowserEvidence(browserEvidence);
-  const query = aggregateQueryEvidence(queryEvents, budgets);
-  const browser = aggregateBrowserEvidence(browserEvents, budgets);
+  const query = aggregateQueryEvidence(queryEvents, budgets, options.evidenceClass);
+  const browser = aggregateBrowserEvidence(browserEvents, budgets, options.evidenceClass);
+  const candidateBinding = evaluateCandidateBinding(query, browser, options.evidenceClass);
   const report = {
     ...build,
     evidenceClass: options.evidenceClass,
     gates: { build: build.status, query: query.status, browser: browser.status },
     query,
     browser,
+    candidateBinding,
   };
   report.releaseGateEligible = options.evidenceClass === "FORMAL_LAUNCH_CANDIDATE"
-    && build.status !== "BLOCK" && query.status === "PASS" && browser.status === "PASS";
+    && build.status !== "BLOCK" && query.status === "PASS" && browser.status === "PASS"
+    && candidateBinding.status === "PASS";
   if (options.evidenceClass === "LEGACY_NON_GATE_BASELINE") {
     report.warnings.push("旧后台或本地样本不得作为正式上线 Gate 通过证据");
   }
@@ -396,6 +475,8 @@ module.exports = {
   aggregateBrowserEvidence,
   aggregateQueryEvidence,
   buildAdminPerformanceReport,
+  evaluateCandidateBinding,
+  evaluateEvidenceProvenance,
   evaluateMetric,
   expandBrowserEvidence,
   parseArgs,

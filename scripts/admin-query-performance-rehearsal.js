@@ -101,7 +101,7 @@ function close(server) {
   });
 }
 
-async function measuredRequest(baseUrl, version, scenario, route, options = {}) {
+async function measuredRequest(baseUrl, version, scenario, route, options = {}, onSuccess) {
   const startedAt = performance.now();
   const response = await fetch(`${baseUrl}${route}`, options);
   const text = await response.text();
@@ -115,9 +115,13 @@ async function measuredRequest(baseUrl, version, scenario, route, options = {}) 
   if (!response.ok || (body && body.code !== undefined && body.code !== 0)) {
     throw new Error(`${scenario} failed with HTTP ${response.status} / code ${body && body.code}`);
   }
+  if (typeof onSuccess === "function") onSuccess(body && body.data);
   return {
     version,
     environment: LOCAL_ENVIRONMENT,
+    evidenceClass: "LOCAL_REHEARSAL",
+    targetOrigin: baseUrl,
+    artifactCommit: "",
     datasetVersion: FIXTURE_VERSION,
     scenario,
     durationMs,
@@ -178,11 +182,9 @@ async function collectAdminQueryRehearsal(options = {}) {
         events.push(await measuredRequest(baseUrl, version, scenario.name, scenario.route, scenario.options));
       }
     }
+    let welcomeDraft = null;
     for (let index = 0; index < samples; index += 1) {
       const requestId = `perf-write-${String(index + 1).padStart(3, "0")}`;
-      const existingDraft = store.contentVersions.find((row) => row.type === "WELCOME"
-        && row.status === "DRAFT"
-        && row.content.slot === 1);
       events.push(await measuredRequest(
         baseUrl,
         version,
@@ -195,12 +197,16 @@ async function collectAdminQueryRehearsal(options = {}) {
             "X-Idempotency-Key": `${requestId}-intent`,
           }),
           body: JSON.stringify({
-            ...(existingDraft ? { id: existingDraft.versionId, expectedRevision: existingDraft.revision } : {}),
+            ...(welcomeDraft ? { id: welcomeDraft.versionId, expectedRevision: welcomeDraft.revision } : {}),
             slot: 1,
             copy: "欢迎加入 Root Member Club",
             assetId: ASSET_ID,
           }),
-        }
+        },
+        (data) => {
+          if (!data || !data.version) throw new Error("write response missing authoritative draft revision");
+          welcomeDraft = data.version;
+        },
       ));
     }
   } finally {
