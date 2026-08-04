@@ -75,7 +75,9 @@ Page({
         this.setData({ identityConflict: true, loginStatusText: "" });
         return;
       }
-      showLoginFailure(stringifyError(error) || "登录失败，请重试", () => this.loginWithPhone(event));
+      // getPhoneNumber codes are single-use. A retry must start from a fresh
+      // button tap so the platform can issue a new phone authorization code.
+      showLoginFailure(stringifyError(error) || "登录失败，请重试");
     } finally {
       clearTimeout(waitingTimer);
       this.setData({ loading: false });

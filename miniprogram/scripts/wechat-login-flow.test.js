@@ -42,17 +42,16 @@ async function run() {
   global.wx.login = (options) => options.success({ code: "" });
   await assert.rejects(() => getWechatLoginCode(), /身份凭证未返回/);
 
-  let retried = false;
   global.wx.showModal = (options) => {
     modalOptions = options;
-    options.success({ confirm: true });
   };
-  showLoginFailure("服务响应较慢，请稍后重试", () => { retried = true; });
+  showLoginFailure("服务响应较慢，请稍后重试");
   assert.equal(modalOptions.title, "登录未完成");
-  assert.equal(retried, true);
+  assert.equal(modalOptions.confirmText, "知道了");
+  assert.match(modalOptions.content, /再次点击“手机号快捷登录”/);
 
   delete global.wx;
-  console.log("wechat login flow scenarios: 8/8 PASS");
+  console.log("wechat login flow scenarios: 9/9 PASS");
 }
 
 run().catch((error) => {

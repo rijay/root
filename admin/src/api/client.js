@@ -1,4 +1,6 @@
 const ADMIN_TOKEN_KEY = "ROOT_ADMIN_TOKEN";
+const CANDIDATE_ROUTE_KEY = "myroot_canary";
+const CANDIDATE_ROUTE_VALUE_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 export const ADMIN_READ_TIMEOUT_MS = 8000;
 export const ADMIN_WRITE_TIMEOUT_MS = 15000;
 export const MAX_CONCURRENT_ADMIN_READS = 4;
@@ -10,6 +12,25 @@ const inflightAdminReads = new Map();
 
 function adminTokenStorage() {
   try { return window.sessionStorage; } catch (_) { return null; }
+}
+
+export function candidateAdminRequestPath(path) {
+  const location = typeof window !== "undefined" ? window.location : null;
+  const search = String(location?.search || "");
+  const routeValue = new URLSearchParams(search).get(CANDIDATE_ROUTE_KEY) || "";
+  if (!CANDIDATE_ROUTE_VALUE_PATTERN.test(routeValue)) return path;
+
+  const origin = String(location?.origin || "");
+  if (!origin) return path;
+  let target;
+  try {
+    target = new URL(path, `${origin}/`);
+  } catch (_) {
+    return path;
+  }
+  if (target.origin !== origin) return path;
+  target.searchParams.set(CANDIDATE_ROUTE_KEY, routeValue);
+  return `${target.pathname}${target.search}${target.hash}`;
 }
 
 export function getAdminToken() {
@@ -189,18 +210,19 @@ async function executeAdminRequest(path, options, isRead, adminToken, requestSig
 
 export function adminRequest(path, options = {}) {
   const adminToken = getAdminToken();
+  const requestPath = candidateAdminRequestPath(path);
   const method = String(options.method || "GET").toUpperCase();
   const isRead = options.readOnly === true || method === "GET";
   const externalSignal = options.signal;
-  if (!isRead) return executeAdminRequest(path, options, false, adminToken, externalSignal);
+  if (!isRead) return executeAdminRequest(requestPath, options, false, adminToken, externalSignal);
 
   const { signal: _, readOnly: __, timeoutMs: ___, ...requestOptions } = options;
-  const key = readRequestKey(path, method, adminToken, options.timeoutMs, requestOptions);
+  const key = readRequestKey(requestPath, method, adminToken, options.timeoutMs, requestOptions);
   let record = inflightAdminReads.get(key);
   if (!record) {
     const controller = new AbortController();
     record = { key, controller, subscriberCount: 0, promise: null };
-    record.promise = scheduleAdminRead(() => executeAdminRequest(path, options, true, adminToken, controller.signal));
+    record.promise = scheduleAdminRead(() => executeAdminRequest(requestPath, options, true, adminToken, controller.signal));
     inflightAdminReads.set(key, record);
     record.promise.finally(() => {
       if (inflightAdminReads.get(key) === record) inflightAdminReads.delete(key);

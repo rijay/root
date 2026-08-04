@@ -178,6 +178,14 @@ function aggregateJourneyEvents(events = []) {
   }));
 }
 
+function evaluateMeasurementStatus(journeys = [], minimumSamples = 30) {
+  if (!journeys.length) return "BLOCKED_MISSING_SAMPLES";
+  if (journeys.some((item) => item.sampleCount < minimumSamples)) {
+    return "BLOCKED_INSUFFICIENT_SAMPLES";
+  }
+  return "CANDIDATE_SAMPLES_READY";
+}
+
 function parseArgs(argv) {
   const options = { evidenceClass: "LEGACY_NON_FORMAL_BASELINE", eventsPath: "", outputPath: "" };
   for (let index = 0; index < argv.length; index += 1) {
@@ -198,14 +206,18 @@ function main() {
   const events = options.eventsPath ? readJson(path.resolve(options.eventsPath)) : [];
   if (!Array.isArray(events)) throw new Error("Performance events file must contain an array");
   const journeys = aggregateJourneyEvents(events);
+  const measurementStatus = options.evidenceClass === "LEGACY_NON_FORMAL_BASELINE"
+    ? "NON_FORMAL_BASELINE_ONLY"
+    : evaluateMeasurementStatus(journeys);
   const report = {
     ...packageReport,
+    packageStatus: packageReport.status,
     journeys,
-    measurementStatus: options.evidenceClass === "LEGACY_NON_FORMAL_BASELINE"
-      ? "NON_FORMAL_BASELINE_ONLY"
-      : journeys.some((item) => item.sampleCount < 30)
-        ? "BLOCKED_INSUFFICIENT_SAMPLES"
-        : "CANDIDATE_SAMPLES_READY",
+    measurementStatus,
+    status: options.evidenceClass === "FORMAL_LAUNCH_CANDIDATE"
+      && (packageReport.status === "BLOCK" || measurementStatus !== "CANDIDATE_SAMPLES_READY")
+      ? "BLOCK"
+      : packageReport.status,
   };
   report.releaseGateEligible = packageReport.releaseGateEligible
     && report.measurementStatus === "CANDIDATE_SAMPLES_READY";
@@ -230,6 +242,7 @@ if (require.main === module) {
 module.exports = {
   aggregateJourneyEvents,
   buildPackageBudgetReport,
+  evaluateMeasurementStatus,
   evaluateMetric,
   percentile,
 };

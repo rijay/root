@@ -104,6 +104,8 @@ const bundledAdminDistDir = path.join(publicDir, "admin-dist");
 const defaultAdminDistDirs = [sourceAdminDistDir, bundledAdminDistDir];
 
 const PERFORMANCE_METRICS_ROUTE = "/api/v1/performance/events";
+const CANDIDATE_ROUTE_KEY = "myroot_canary";
+const CANDIDATE_ROUTE_VALUE_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 const REQUEST_BODY_PROMISE = Symbol("root.requestBodyPromise");
 const PREPARED_WECHAT_LOGIN = Symbol("root.preparedWechatLogin");
 
@@ -476,6 +478,34 @@ function staticFile(filePath, res, baseDir = publicDir) {
   return true;
 }
 
+function candidateAdminIndex(res, adminDistDir, routeValue) {
+  const indexPath = path.join(adminDistDir, "index.html");
+  const assetsDir = path.join(adminDistDir, "assets");
+  const suffix = `?${CANDIDATE_ROUTE_KEY}=${encodeURIComponent(routeValue)}`;
+  const nonce = crypto.randomBytes(18).toString("base64url");
+  const imports = fs.existsSync(assetsDir)
+    ? Object.fromEntries(fs.readdirSync(assetsDir)
+      .filter((file) => file.endsWith(".js"))
+      .sort()
+      .map((file) => [`/admin/assets/${file}`, `/admin/assets/${file}${suffix}`]))
+    : {};
+  let html = fs.readFileSync(indexPath, "utf8");
+  html = html.replace(
+    /\b(src|href)=(['"])(\/admin\/assets\/[^'"?#]+)(?:\?[^'"]*)?\2/g,
+    (_match, attribute, quote, assetPath) => `${attribute}=${quote}${assetPath}${suffix}${quote}`,
+  );
+  const importMap = `<script type="importmap" nonce="${nonce}">${JSON.stringify({ imports })}</script>`;
+  html = html.includes("<script type=\"module\"")
+    ? html.replace("<script type=\"module\"", `${importMap}\n    <script type=\"module\"`)
+    : html.replace("</head>", `${importMap}\n  </head>`);
+  const securityHeaders = { ...(res.responseSecurityHeaders || {}) };
+  securityHeaders["Content-Security-Policy"] = String(securityHeaders["Content-Security-Policy"] || "")
+    .replace("script-src 'self'", `script-src 'self' 'nonce-${nonce}'`);
+  res.responseSecurityHeaders = securityHeaders;
+  send(res, 200, html);
+  return true;
+}
+
 function hasElementAdminBuild(adminDistDir = sourceAdminDistDir) {
   return fs.existsSync(path.join(adminDistDir, "index.html"));
 }
@@ -576,7 +606,13 @@ function createApp(options = {}) {
       });
     }
     if (method === "GET" && ["/", "/admin", "/admin/", "/admin/index.html"].includes(url.pathname)) {
-      if (hasElementAdminBuild(elementAdminDir)) return staticFile("index.html", res, elementAdminDir);
+      if (hasElementAdminBuild(elementAdminDir)) {
+        const candidateRouteValue = String(url.searchParams.get(CANDIDATE_ROUTE_KEY) || "");
+        if (CANDIDATE_ROUTE_VALUE_PATTERN.test(candidateRouteValue)) {
+          return candidateAdminIndex(res, elementAdminDir, candidateRouteValue);
+        }
+        return staticFile("index.html", res, elementAdminDir);
+      }
       return staticFile("missing-admin-dist", res, elementAdminDir);
     }
     if (method === "GET" && url.pathname.startsWith("/admin/assets/")) {
