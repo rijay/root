@@ -3,10 +3,6 @@ const { WECHAT_UNIONID_TRUST_STATUS } = require("./wechatIdentityAuthority");
 
 const SNAPSHOT_PROJECTION_AUTHORITY_TABLES = new Set([
   "command_idempotency",
-  "outbox_event",
-  "inbox_receipt",
-  "event_dead_letter",
-  "consumer_checkpoint",
 ]);
 
 function assertSnapshotProjectionRegistrySafe(projections) {
@@ -167,18 +163,6 @@ const PROJECTIONS = [
     columns: ["lifecycle_event_id", "root_user_id", "event_type", "source_channel", "app_code", "metadata", "occurred_at"],
   },
   {
-    table: "campaign_definition",
-    source: "campaignDefinitions",
-    id: "campaign_id",
-    columns: ["campaign_id", "title", "status", "start_at", "end_at", "config_json", "created_at", "updated_at"],
-  },
-  {
-    table: "campaign_participant",
-    source: "campaignParticipants",
-    id: "campaign_participant_id",
-    columns: ["campaign_participant_id", "campaign_id", "root_user_id", "joined_at", "status", "source_channel", "metadata", "created_at", "updated_at"],
-  },
-  {
     table: "activity_definition_version",
     source: "activityDefinitionVersions",
     id: "activity_version_id",
@@ -241,54 +225,6 @@ const PROJECTIONS = [
     source: "questionnaireAnswers",
     id: "questionnaire_answer_id",
     columns: ["questionnaire_answer_id", "root_user_id", "campaign_id", "questionnaire_id", "version", "answers_json", "submitted_at", "idempotency_key"],
-  },
-  {
-    table: "notification_template",
-    source: "notificationTemplates",
-    id: "notification_template_id",
-    columns: ["notification_template_id", "template_key", "template_id", "template_version", "title", "page", "reminder_hour", "miniprogram_state", "lang", "status", "source", "data_schema_json", "created_at", "updated_at"],
-  },
-  {
-    table: "notification_subscription",
-    source: "notificationSubscriptions",
-    id: "notification_subscription_id",
-    columns: ["notification_subscription_id", "root_user_id", "template_key", "template_id", "template_version", "status", "result", "subscribed", "trigger", "campaign_id", "raw_result_json", "setting_json", "source_channel", "created_at", "updated_at"],
-  },
-  {
-    table: "notification_subscription_grant",
-    source: "notificationSubscriptionGrants",
-    id: "notification_subscription_grant_id",
-    columns: ["notification_subscription_grant_id", "notification_subscription_id", "root_user_id", "campaign_id", "template_key", "template_id", "template_version", "grant_request_id", "status", "notification_job_id", "last_notification_job_id", "idempotency_key", "source_channel", "recipient_binding_status", "recipient_wechat_identity_id", "recipient_app_code", "recipient_binding_canonical_version", "recipient_binding_digest", "recipient_binding_digest_scheme", "recipient_binding_key_id", "granted_at", "reserved_at", "consumed_at", "released_at", "invalidated_at", "review_required_at", "release_reason", "created_at", "updated_at"],
-  },
-  {
-    table: "notification_job",
-    source: "notificationJobs",
-    id: "notification_job_id",
-    columns: ["notification_job_id", "root_user_id", "campaign_id", "template_key", "template_id", "template_version", "notification_subscription_grant_id", "reminder_date", "scheduled_at", "page", "miniprogram_state", "lang", "data_json", "status", "attempts", "last_error", "idempotency_key", "source_channel", "sent_at", "skipped_at", "created_at", "updated_at"],
-  },
-  {
-    table: "notification_delivery",
-    source: "notificationDeliveries",
-    id: "notification_delivery_id",
-    columns: ["notification_delivery_id", "notification_job_id", "root_user_id", "campaign_id", "template_key", "template_id", "template_version", "notification_subscription_grant_id", "status", "error_code", "external_error_code", "error_message", "delivery_outcome", "request_json", "response_json", "delivered_at", "created_at"],
-  },
-  {
-    table: "campaign_rule_version",
-    source: "campaignRuleVersions",
-    id: "campaign_rule_version_id",
-    columns: ["campaign_rule_version_id", "campaign_id", "version", "status", "conditions_json", "rewards_json", "published_at", "created_at", "updated_at"],
-  },
-  {
-    table: "settlement_record",
-    source: "settlementRecords",
-    id: "settlement_record_id",
-    columns: ["settlement_record_id", "root_user_id", "campaign_id", "rule_version", "campaign_rule_version_id", "status", "result_json", "rewards_json", "evaluated_at", "created_at"],
-  },
-  {
-    table: "manual_review_item",
-    source: "manualReviewItems",
-    id: "manual_review_item_id",
-    columns: ["manual_review_item_id", "root_user_id", "campaign_id", "review_type", "source_type", "source_id", "reason", "status", "priority", "metadata", "idempotency_key", "operator_id", "resolved_at", "resolution", "created_at", "updated_at"],
   },
 ];
 

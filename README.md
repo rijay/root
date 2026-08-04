@@ -10,7 +10,7 @@
 
 - `miniprogram/`：原生微信小程序，覆盖智能首页、注册问卷、活动介绍、订单匹配、7天打卡、Day4/Day8 问卷、Day6 复购礼、日常打卡、历史记录、免单申请、个人中心。
 - `backend/`：Node.js HTTP Interface 与本地运营后台，路径统一走 `/api/v1/`，内置内存 Adapter、JSON 文件 Adapter、SQLite Adapter、MySQL Adapter 和测试。
-- `backend/db/schema.sql`：当前是由一次性 MySQL `8.0.43` 空库执行 `001–057` 后生成、再由独立随机库回读验证一致的 52 表检查快照；它只证明本地 migration set 与生成文件一致，不是 Candidate 或生产迁移证据。
+- `backend/db/schema.sql`：当前由一次性 MySQL `8.0.43` 空库执行 `001–067` 后生成并二次回读一致，共 25 张表；它只证明本地 migration set 与生成文件一致，不是 Candidate 或生产迁移证据。
 - `docs/v1.0.0_launch_gate_closure_tracker_2026-07-17.md`：v1.0.0 当前唯一 Gate 权威入口。
 - `docs/release_readiness.md`：v0.5.x 历史上线验收证据；其中已关闭结论不得跨 v1 releaseId 复用。
 - `docs/internal_test_release_gate_tracker_2026-06-29.md`：内测期间正式发布 Gate、反馈分流和新需求台账。
@@ -75,17 +75,12 @@ ROOT_COMMAND_REQUEST_DIGEST_VERIFICATION_KEYS_JSON='{}' \
 ROOT_COMMAND_RESULT_ENCRYPTION_KEY=****** \
 ROOT_COMMAND_RESULT_KEY_ID=command-result-v1 \
 ROOT_COMMAND_RESULT_DECRYPTION_KEYS_JSON='{}' \
-ROOT_INBOX_CONTENT_ENCRYPTION_KEY=****** \
-ROOT_INBOX_CONTENT_KEY_ID=inbox-content-v1 \
-ROOT_INBOX_CONTENT_DECRYPTION_KEYS_JSON='{}' \
-ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY=****** \
-ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID=notification-receipt-v1 \
 ROOT_KEY_INVENTORY_RETIRED_KEY_IDS_JSON='{"REQUEST_DIGEST":[],"COMMAND_RESULT":[],"INBOX_CONTENT":[],"NOTIFICATION_RECEIPT":[]}' \
 ROOT_ADMIN_TOKEN=****** \
 npm run dev
 ```
 
-MySQL Adapter 启动时会先校验版本化 HMAC 请求摘要、命令结果 AES-256-GCM 保护与通知 provider receipt HMAC 元数据，再取得数据库级迁移锁并执行 `backend/db/migrations`；Inbox Core 则在取得 MySQL 连接前独立校验 Inbox 内容 AES-256-GCM 保护。命令结果使用冻结的 `A256GCM:v1` 持久化策略：受保护与本地兼容路径都限制为 131072 bytes（128 KiB）序列化明文/密文，canonical base64 上限为 174764 characters，完整 envelope 上限为 184320 bytes；只有 `protection=A256GCM` 被保留为 envelope 判别符，普通业务字段名不会被误判。超限稳定返回 `COMMAND_RESULT_PLAINTEXT_TOO_LARGE`；decode 在认证前完成 descriptor-safe exact snapshot、canonical base64 与大小检查，认证后的非法 UTF-8 也 fail-close。每个业务请求用 `root_store_snapshot.revision` 行锁保护跨实例写入，并在同一事务内同步核心关系表。应用账号不需要创建数据库，但必须拥有目标库的建表、索引、变更表结构和数据读写权限。四域 current key 均须至少 32 UTF-8 字节、无首尾空白且具备足够字符多样性，key id 均须使用持久化安全格式；只能由正式环境密钥配置注入。请求摘要、命令结果和 Inbox 的历史 key 分别进入有界 verification/decryption keyring，仅按持久 `keyId` 读/验；所有新写入始终使用 current key，unknown/retired fail-close。`NOTIFICATION_RECEIPT` 只盘点 provider receipt digest 的 scheme/key reference/shape；原始 receipt 按设计不持久化，因此本地 inventory 不能声称离线认证其内容。正式入口会在连接 Store 前校验已接入 Module 的保护配置，`GET /ready` 同时验证连接、迁移版本、当前修订号、命令请求摘要与命令结果保护状态；Inbox worker 尚未接入正式运行时，因此其 Registry、保护状态与 worker readiness 仍是上线 Gate。
+MySQL Adapter 启动时会先校验版本化 HMAC 请求摘要与命令结果 AES-256-GCM 保护，再取得数据库级迁移锁并执行 `backend/db/migrations`。命令结果使用冻结的 `A256GCM:v1` 持久化策略：受保护与本地兼容路径都限制为 131072 bytes（128 KiB）序列化明文/密文，canonical base64 上限为 174764 characters，完整 envelope 上限为 184320 bytes。每个业务请求用 `root_store_snapshot.revision` 行锁保护跨实例写入，并在同一事务内同步正式上线范围内的核心关系表。正式入口会在连接 Store 前校验已接入 Module 的保护配置，`GET /ready` 同时验证连接、迁移版本、当前修订号、命令请求摘要与命令结果保护状态。
 
 ### v1.0.0 本地 Foundation 状态
 
@@ -103,7 +98,6 @@ MySQL Adapter 启动时会先校验版本化 HMAC 请求摘要、命令结果 AE
 | Migration Execution Foundation | `MYROOT_MIGRATION_EXECUTION_FOUNDATION_ENABLED=false` | 仅 `LOCAL_ISOLATED` 合成 `TASK_SHARE` scope；无网络、Outbox、生产执行或运行时 reversal |
 | v1 Route Negotiation Foundation | `MYROOT_V1_ROUTE_NEGOTIATION_ENABLED=false` | `runtimeIntegrated=false`；不发送 v1 headers |
 | Release Evidence Contract Registry | `NON_RUNTIME_FOUNDATION_CONTRACT` | 无运行开关；Candidate/runtime/releaseId 均未授权 |
-| Key Inventory Readiness Foundation | `ROOT_KEY_INVENTORY_READINESS_ENABLED=false` | 仅目标库绑定的只读快照：固定 10 秒 statement deadline 并精确回读/复原，核验 `REQUEST_DIGEST / COMMAND_RESULT / INBOX_CONTENT / NOTIFICATION_RECEIPT` 四域；REQUEST_DIGEST 同时覆盖 command、task-event、UnionID provenance 与 legacy/v1 recipient-binding HMAC 引用，receipt 域覆盖 attempt/transition 的 digest metadata。四域 current/retired/unknown 与前三域 previous 分类、schema/index/enforced CHECK、全状态 envelope metadata 均 fail-close，并认证每条可解密受保护记录；每来源最多 1000 条，出现第 1001 条即 fail-close；receipt 因原文不持久化仅能 metadata-only，且当前没有 previous-key keyring；由受控 cycle 运行，`/ready` 只读其持久 attestation；legacy `sha256:v0` 只做 metadata 可见告警并在正常 replay 时升级；无 Candidate inventory/rotation 证明 |
 
 这些 Implementation 不关闭 PRD baseline 具名签署、真实 AppID↔AppCode/微信身份、身份与订阅绑定的混合版本发布兼容、真实 MySQL 多实例、密钥轮换、UED handoff、健康与隐私内容、活动运营、订阅真机送达、持久 provider-call 所有权、权威 Adapter Requirement Registry、远端 CI 或正式发布 Gate。
 

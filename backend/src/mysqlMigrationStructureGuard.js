@@ -25,6 +25,49 @@ const SUCCESSOR_MIGRATIONS = Object.freeze({
   "059_notification_provider_call_fence_backfill.sql": "060_notification_provider_call_fence_enforce.sql",
 });
 
+const FORMAL_LAUNCH_CLEANUP_MIGRATION = "067_formal_launch_retired_runtime_cleanup.sql";
+const FORMAL_LAUNCH_RETIRED_MIGRATIONS = new Set([
+  "009_outbox_dispatcher_fencing.sql",
+  "010_durable_inbox_checkpoint.sql",
+  "011_durable_consumer_checkpoint.sql",
+  "012_durable_inbox_dead_letter.sql",
+  "013_inbox_content_protection_metadata.sql",
+  "014_inbox_handler_identity.sql",
+  "015_task_share_completion_projection.sql",
+  "016_inbox_replay_run.sql",
+  "017_task_share_completion_shadow_projection.sql",
+  "018_notification_subscription_attempt.sql",
+  "019_notification_subscription_grant.sql",
+  "020_notification_job.sql",
+  "021_notification_send_attempt.sql",
+  "022_notification_send_attempt_transition.sql",
+  "023_inbox_replay_executor_identity.sql",
+  "024_notification_native_decision_contract.sql",
+  "025_notification_job_request_identity.sql",
+  "026_notification_send_attempt_receipt_metadata.sql",
+  "027_notification_send_transition_receipt_metadata.sql",
+  "028_migration_contract_registry.sql",
+  "029_migration_run.sql",
+  "030_migration_lineage.sql",
+  "031_task_share_migration_projection.sql",
+  "032_v1_runtime_cycle.sql",
+  "033_v1_runtime_alert.sql",
+  "041_task_activity_assignment.sql",
+  "042_task_source_invalidation_event.sql",
+  "053_notification_recipient_binding_v1_stage.sql",
+  "055_notification_recipient_binding_v1_backfill.sql",
+  "057_notification_recipient_binding_v1_enforce.sql",
+  "058_notification_provider_call_fence_stage.sql",
+  "059_notification_provider_call_fence_backfill.sql",
+  "060_notification_provider_call_fence_enforce.sql",
+  "061_v1_runtime_alert_delivery.sql",
+  "062_settlement_source_authority.sql",
+  "063_v1_runtime_alert_database_authority_stage.sql",
+  "064_v1_runtime_control_ledger_database_authority.sql",
+  "065_v1_runtime_alert_registration_return_row.sql",
+  "066_v1_runtime_alert_delivery_severity_slo_authority.sql",
+]);
+
 const COMPATIBLE_SUCCESSOR_MIGRATIONS = Object.freeze({
   "019_notification_subscription_grant.sql": Object.freeze([
     "053_notification_recipient_binding_v1_stage.sql",
@@ -2476,9 +2519,16 @@ function mysqlMigrationStructureSuccessor(migrationName) {
   return SUCCESSOR_MIGRATIONS[migrationName] || "";
 }
 
+function mysqlMigrationRetirementSuccessor(migrationName) {
+  return FORMAL_LAUNCH_RETIRED_MIGRATIONS.has(migrationName)
+    ? FORMAL_LAUNCH_CLEANUP_MIGRATION
+    : "";
+}
+
 module.exports = {
   MYSQL_MIGRATION_STRUCTURE_STATES: STATES,
   inspectMysqlMigrationStructure,
+  mysqlMigrationRetirementSuccessor,
   mysqlMigrationStructureSuccessor,
   migrationStructureDriftError,
 };

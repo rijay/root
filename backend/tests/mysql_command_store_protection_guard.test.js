@@ -87,7 +87,7 @@ test("MySQL Store normalizes the Node process environment before crossing persis
               };
             },
           },
-          createMysqlNotificationDeliveryCore(_pool, options) {
+          readMysqlPrivilegePolicy(_pool, options) {
             assert.equal(Object.getPrototypeOf(options.env), Object.prototype);
             assert.notEqual(options.env, process.env);
             assert.equal(

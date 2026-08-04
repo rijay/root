@@ -222,15 +222,9 @@ test("CI exposes a least-privilege source-only provenance check with pinned acti
     1,
     "Full verification must use the pinned Node 22 runtime that provides node:sqlite"
   );
-  assert.match(workflow, /npm run v1:mysql-001-066-authorized:check/);
-  assert.match(workflow, /parseNodeTestSummary\(fs\.readFileSync\(process\.argv\[1\], "utf8"\), 5\)/);
-  for (const variable of [
-    "MYSQL_LOCAL_READINESS_INTEGRATION_ENABLED",
-    "IDENTITY_NOTIFICATION_BINDING_MYSQL_INTEGRATION_ENABLED",
-    "NOTIFICATION_PROVIDER_FENCE_MYSQL_INTEGRATION_ENABLED",
-  ]) {
-    assert.match(workflow, new RegExp(`${variable}: "true"`), variable);
-  }
+  assert.match(workflow, /npm run v1:mysql-001-067-authorized:check/);
+  assert.match(workflow, /parseNodeTestSummary\(fs\.readFileSync\(process\.argv\[1\], "utf8"\), 1\)/);
+  assert.match(workflow, /MYSQL_LOCAL_READINESS_INTEGRATION_ENABLED: "true"/);
   assert.match(
     workflow,
     /uses: actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/

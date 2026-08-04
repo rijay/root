@@ -4,6 +4,7 @@ const path = require("node:path");
 const {
   MYSQL_MIGRATION_STRUCTURE_STATES,
   inspectMysqlMigrationStructure,
+  mysqlMigrationRetirementSuccessor,
   mysqlMigrationStructureSuccessor,
   migrationStructureDriftError,
 } = require("./mysqlMigrationStructureGuard");
@@ -318,6 +319,8 @@ async function applyMysqlMigrations(pool, options = {}) {
         if (existing.get(fileName) !== checksum) {
           throw new Error(`MySQL migration checksum changed after apply: ${fileName}`);
         }
+        const retirementSuccessor = mysqlMigrationRetirementSuccessor(fileName);
+        if (retirementSuccessor && existing.has(retirementSuccessor)) continue;
         const successor = mysqlMigrationStructureSuccessor(fileName);
         if (successor) {
           const successorInspection = await inspectMysqlMigrationStructure(connection, successor);

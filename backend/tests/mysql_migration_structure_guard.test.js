@@ -1226,7 +1226,7 @@ test("migration runner fails before DDL and ledger repair when a guarded structu
 });
 
 test("an existing ledger row never masks a missing guarded structure", async () => {
-  const target = "016_inbox_replay_run.sql";
+  const target = "039_activity_session_event.sql";
   const fixtures = GUARDED_MIGRATIONS.flatMap(metadataFixtures);
   const ledger = new Map(listMigrationFiles(MIGRATIONS_DIR).map((migrationName) => [
     migrationName,
@@ -1234,7 +1234,7 @@ test("an existing ledger row never masks a missing guarded structure", async () 
   ]));
   let ranDdl = false;
   const metadata = metadataConnection(fixtures, {
-    absent: new Set(["inbox_replay_run"]),
+    absent: new Set(["activity_session_event"]),
   });
   const connection = {
     async query(sql) {
@@ -1344,9 +1344,9 @@ test("a lost DDL acknowledgement converges on the next run without replaying the
 });
 
 test("a lost CREATE TABLE acknowledgement converges on exact structure without replaying the table creation", async () => {
-  const target = "022_notification_send_attempt_transition.sql";
+  const target = "039_activity_session_event.sql";
   const fixtures = GUARDED_MIGRATIONS.flatMap(metadataFixtures);
-  const targetFixture = fixtures.find((item) => item.tableName === "notification_send_attempt_transition");
+  const targetFixture = fixtures.find((item) => item.tableName === "activity_session_event");
   const ledger = new Map();
   for (const migrationName of listMigrationFiles(MIGRATIONS_DIR)) {
     if (migrationName === target) continue;
@@ -1371,7 +1371,7 @@ test("a lost CREATE TABLE acknowledgement converges on exact structure without r
             applied_at: "2026-07-17 00:00:00.000",
           })), []];
         }
-        if (/^CREATE TABLE IF NOT EXISTS notification_send_attempt_transition/i.test(compact)) {
+        if (/^CREATE TABLE IF NOT EXISTS activity_session_event/i.test(compact)) {
           createAttempts += 1;
           if (loseCreateAcknowledgement) {
             const error = new Error("simulated CREATE TABLE acknowledgement loss");
@@ -1531,7 +1531,7 @@ test("any RELEASE_LOCK failure retires the session instead of returning a possib
   const result = await applyMysqlMigrations({
     async getConnection() { return connection; },
   }, { migrationsDir: MIGRATIONS_DIR });
-  assert.equal(result.latestVersion, "066_v1_runtime_alert_delivery_severity_slo_authority.sql");
+  assert.equal(result.latestVersion, "067_formal_launch_retired_runtime_cleanup.sql");
   assert.equal(releaseLockAttempts, 1);
   assert.equal(destroyedConnections, 1);
   assert.equal(releasedConnections, 0);
@@ -1575,7 +1575,7 @@ test("RELEASE_LOCK zero, NULL, and malformed acknowledgements all retire the ses
     const result = await applyMysqlMigrations({
       async getConnection() { return connection; },
     }, { migrationsDir: MIGRATIONS_DIR });
-    assert.equal(result.latestVersion, "066_v1_runtime_alert_delivery_severity_slo_authority.sql");
+    assert.equal(result.latestVersion, "067_formal_launch_retired_runtime_cleanup.sql");
     assert.equal(destroyedConnections, 1, JSON.stringify(releaseRows));
     assert.equal(releasedConnections, 0, JSON.stringify(releaseRows));
   }

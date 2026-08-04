@@ -5,6 +5,7 @@
   "description": "myRoot formal-launch API and operations admin",
   "scripts": {
     "health-data-retention-cleanup": "node scripts/health-data-retention-cleanup.js",
+    "snapshot:cleanup:dry-run": "node scripts/formal-launch-snapshot-cleanup-dry-run.js",
     "jobs:manifest": "node scripts/cloudbase-job-manifest.js",
     "production-env": "node scripts/production-env-matrix.js",
     "dev": "node src/server.js",

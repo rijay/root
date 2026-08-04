@@ -26,8 +26,6 @@ const ENV_GROUPS = [
       "ROOT_COMMAND_REQUEST_DIGEST_KEY_ID",
       "ROOT_COMMAND_RESULT_ENCRYPTION_KEY",
       "ROOT_COMMAND_RESULT_KEY_ID",
-      "ROOT_INBOX_CONTENT_ENCRYPTION_KEY",
-      "ROOT_INBOX_CONTENT_KEY_ID",
     ],
     anyOf: [["ROOT_ADMIN_TOKEN", "ROOT_ADMIN_TOKENS"]],
     anyOfRules: {
@@ -40,23 +38,19 @@ const ENV_GROUPS = [
       ROOT_COMMAND_REQUEST_DIGEST_KEY_ID: "key_id",
       ROOT_COMMAND_RESULT_ENCRYPTION_KEY: "strong_key",
       ROOT_COMMAND_RESULT_KEY_ID: "key_id",
-      ROOT_INBOX_CONTENT_ENCRYPTION_KEY: "strong_key",
-      ROOT_INBOX_CONTENT_KEY_ID: "key_id",
     },
     optional: [
       "ROOT_ALLOW_OPENID_LOGIN",
       "ROOT_COMMAND_REQUEST_DIGEST_VERIFICATION_KEYS_JSON",
       "ROOT_COMMAND_RESULT_DECRYPTION_KEYS_JSON",
-      "ROOT_INBOX_CONTENT_DECRYPTION_KEYS_JSON",
       "ROOT_WECHAT_OPENAPI_BASE_URL",
     ],
     optionalRules: {
       ROOT_COMMAND_REQUEST_DIGEST_VERIFICATION_KEYS_JSON: "request_digest_keyring",
       ROOT_COMMAND_RESULT_DECRYPTION_KEYS_JSON: "command_result_keyring",
-      ROOT_INBOX_CONTENT_DECRYPTION_KEYS_JSON: "inbox_content_keyring",
       ROOT_WECHAT_OPENAPI_BASE_URL: "wechat_official_openapi_origin",
     },
-    action: "配置正式小程序密钥、HTTPS 域名、唯一候选 ROOT_RELEASE_ID、手机号 HMAC 密钥、命令请求摘要密钥、命令结果加密密钥、Inbox 内容加密密钥及各自 key id，并配置后台访问口令；旧 key 只进入相应有界验证/解密 keyring。",
+    action: "配置正式小程序密钥、HTTPS 域名、唯一候选 ROOT_RELEASE_ID、手机号 HMAC 密钥、命令请求摘要密钥、命令结果加密密钥及各自 key id，并配置后台访问口令；旧 key 只进入相应有界验证/解密 keyring。",
   },
   {
     id: "privacy_compliance",
@@ -218,8 +212,6 @@ function isRetiredKeyIds(value, env) {
     const domains = [
       ["REQUEST_DIGEST", "ROOT_COMMAND_REQUEST_DIGEST_KEY_ID", "ROOT_COMMAND_REQUEST_DIGEST_VERIFICATION_KEYS_JSON"],
       ["COMMAND_RESULT", "ROOT_COMMAND_RESULT_KEY_ID", "ROOT_COMMAND_RESULT_DECRYPTION_KEYS_JSON"],
-      ["INBOX_CONTENT", "ROOT_INBOX_CONTENT_KEY_ID", "ROOT_INBOX_CONTENT_DECRYPTION_KEYS_JSON"],
-      ["NOTIFICATION_RECEIPT", "ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID", null],
     ];
     for (const [domain, activeKeyIdName, previousKeyringName] of domains) {
       const activeKeyId = env && env[activeKeyIdName];
@@ -495,8 +487,6 @@ function envRows(env, names = [], requiredValues = {}, requiredRules = {}) {
         ? isPreviousKeyring(raw, env, "ROOT_COMMAND_REQUEST_DIGEST_KEY_ID")
       : rule === "command_result_keyring"
         ? isPreviousKeyring(raw, env, "ROOT_COMMAND_RESULT_KEY_ID")
-      : rule === "inbox_content_keyring"
-        ? isPreviousKeyring(raw, env, "ROOT_INBOX_CONTENT_KEY_ID")
       : rule === "retired_key_ids"
         ? isRetiredKeyIds(raw, env)
         : true;

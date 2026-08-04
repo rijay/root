@@ -26,7 +26,6 @@ const {
 } = require("../src/mysqlMigrations");
 const { rootUserRows, syncCoreProjections, toMysqlDateTime } = require("../src/mysqlProjection");
 const { stampVerifiedWechatUnionId } = require("../src/wechatIdentityAuthority");
-const { freezeWechatRecipientBinding } = require("../src/wechatRecipientBinding");
 const { parseArgs: parseStoreVerifyArgs, readMysqlSnapshot } = require("../scripts/store-verify");
 const { parseArgs: parseStoreMigrateArgs } = require("../scripts/store-migrate");
 const {
@@ -376,7 +375,7 @@ test("formal admin release record exposes only content publication scope", async
 
 test("MySQL Store verifier accepts mysql2 JSON object payloads", async () => {
   const snapshot = createEmptyData();
-  snapshot.events.push({ event_id: "evt_mysql_verify_object" });
+  snapshot.auditLogs.push({ audit_id: "aud_mysql_verify_object" });
   let closed = false;
   const mysqlImpl = {
     async createConnection() {
@@ -471,6 +470,7 @@ test("MySQL migrations and core relational projection cover production Store fac
     "064_v1_runtime_control_ledger_database_authority.sql",
     "065_v1_runtime_alert_registration_return_row.sql",
     "066_v1_runtime_alert_delivery_severity_slo_authority.sql",
+    "067_formal_launch_retired_runtime_cleanup.sql",
   ]);
   migrationFiles.forEach((fileName) => {
     const sql = fs.readFileSync(path.join(__dirname, "..", "db", "migrations", fileName), "utf8");
@@ -519,29 +519,6 @@ test("MySQL migrations and core relational projection cover production Store fac
     occurred_at: "2026-07-11T10:00:00+08:00",
     created_at: "2026-07-11T10:00:00+08:00",
   });
-  data.notificationSubscriptionGrants.push({
-    notification_subscription_grant_id: "nsg_mysql_projection",
-    notification_subscription_id: "nts_mysql_projection",
-    root_user_id: "usr_mysql_projection",
-    campaign_id: "ROOT_7D_RESET",
-    template_key: "ACTIVITY_NOTIFICATION",
-    template_id: "tmpl_mysql_projection",
-    template_version: "v2026-06-28-test",
-    grant_request_id: "activity-notification-mysql-projection",
-    status: "AVAILABLE",
-    idempotency_key: "SUBSCRIPTION_GRANT:usr_mysql_projection:activity-notification-mysql-projection",
-    source_channel: "MYROOT",
-    granted_at: "2026-07-11T10:00:00+08:00",
-    created_at: "2026-07-11T10:00:00+08:00",
-    updated_at: "2026-07-11T10:00:00+08:00",
-    ...freezeWechatRecipientBinding(data, {
-      rootUserId: "usr_mysql_projection",
-      grantRequestId: "activity-notification-mysql-projection",
-      templateKey: "ACTIVITY_NOTIFICATION",
-      templateId: "tmpl_mysql_projection",
-      templateVersion: "v2026-06-28-test",
-    }, { env: verifiedWechatTestEnv }),
-  });
   const calls = [];
   const connection = {
     execute: async (sql, values) => {
@@ -555,13 +532,13 @@ test("MySQL migrations and core relational projection cover production Store fac
   };
   const report = await syncCoreProjections(connection, data, { force: true });
   assert.ok(report.tables.includes("root_user"));
-  assert.ok(report.tables.includes("settlement_record"));
-  assert.ok(report.tables.includes("notification_job"));
-  assert.ok(report.tables.includes("notification_subscription_grant"));
   assert.ok(report.tables.includes("privacy_consent_record"));
+  assert.equal(report.tables.includes("settlement_record"), false);
+  assert.equal(report.tables.includes("notification_job"), false);
+  assert.equal(report.tables.includes("notification_subscription_grant"), false);
   assert.ok(calls.some((call) => /INSERT INTO `root_user`/.test(call.sql)));
   assert.ok(calls.some((call) => /INSERT INTO `privacy_consent_record`/.test(call.sql)));
-  assert.ok(calls.some((call) => /INSERT INTO `notification_subscription_grant`/.test(call.sql)));
+  assert.equal(calls.some((call) => /notification_subscription_grant/.test(call.sql)), false);
   assert.equal(rootUserRows(data)[0].unionid, "union_mysql_projection");
   assert.equal(toMysqlDateTime("2026-07-11T10:00:00+08:00"), "2026-07-11 10:00:00.000");
   assert.equal(toMysqlDateTime("2026-07-11T02:00:00Z"), "2026-07-11 10:00:00.000");
@@ -826,8 +803,6 @@ test("production environment matrix validates the formal launch runtime", () => 
     ROOT_COMMAND_REQUEST_DIGEST_KEY_ID: "test-command-request-v1",
     ROOT_COMMAND_RESULT_ENCRYPTION_KEY: "test-command-result-key-with-at-least-32-characters",
     ROOT_COMMAND_RESULT_KEY_ID: "test-command-result-v1",
-    ROOT_INBOX_CONTENT_ENCRYPTION_KEY: "test-inbox-content-key-with-at-least-32-characters",
-    ROOT_INBOX_CONTENT_KEY_ID: "test-inbox-content-v1",
     ROOT_ADMIN_TOKEN: "admin-secret-with-strong-entropy-2026",
     ROOT_REQUIRE_HEALTH_CONSENT: "true",
     ROOT_PRIVACY_CONTROLLER_NAME: "ROOT 测试主体",

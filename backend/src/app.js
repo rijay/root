@@ -508,9 +508,6 @@ function createApp(options = {}) {
     trustedWechatIdentityAdapter: options.trustedWechatIdentityAdapter,
     activityPublicationAuthorizationAdapter: options.activityPublicationAuthorizationAdapter,
     activityAssetAdapter: options.activityAssetAdapter,
-    notificationDeliveryCore: options.notificationDeliveryCore
-      || storeAdapter.notificationDeliveryCore
-      || null,
     runtimeMetadata,
   };
   const initialPersistPromise = Promise.resolve();

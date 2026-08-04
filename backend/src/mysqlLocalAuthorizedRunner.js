@@ -28,7 +28,7 @@ const POST_SUCCESS_COMMANDS = Object.freeze([
 ]);
 const EXECUTION_PLAN = Object.freeze([
   Object.freeze({ id: "REAL_ENGINE_TESTS", executable: "npm",
-    args: Object.freeze(["run", "v1:mysql-001-066-authorized:check"]) }),
+    args: Object.freeze(["run", "v1:mysql-001-067-authorized:check"]) }),
   Object.freeze({ id: "SCHEMA_SNAPSHOT_WRITE", executable: "node",
     args: Object.freeze(["backend/scripts/mysql-schema-snapshot.js", "--write"]) }),
   Object.freeze({ id: "SCHEMA_SNAPSHOT_VERIFY", executable: "node",

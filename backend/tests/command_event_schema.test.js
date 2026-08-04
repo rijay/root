@@ -125,6 +125,8 @@ const runtimeAlertRegistrationReturnRowMigrationName =
   "065_v1_runtime_alert_registration_return_row.sql";
 const runtimeAlertSeveritySloAuthorityMigrationName =
   "066_v1_runtime_alert_delivery_severity_slo_authority.sql";
+const formalLaunchCleanupMigrationName =
+  "067_formal_launch_retired_runtime_cleanup.sql";
 const ACTIVITY_TASK_SOURCE_CHECKSUMS = Object.freeze({
   "040_activity_p0_content_and_session_policy.sql": "47957cd009b26ce848e9635f17d5e29b73e57bb956ffbff077a22a5d0ad03e59",
   "041_task_activity_assignment.sql": "ebb606a5353496a68a87e037ffaafd9dcec92e92d519467cfe0a6f140c90670c",
@@ -272,7 +274,7 @@ function permanentAlterStatements(sql) {
   return splitSqlStatements(sql).filter((statement) => /^ALTER TABLE\b/i.test(statement));
 }
 
-test("migrations 006 through 015 remain immutable while 016 through 066 add governed local foundations", () => {
+test("historical migrations remain immutable while 067 retires unused runtime storage", () => {
   const files = listMigrationFiles(migrationsDir);
   assert.deepEqual(files, [
     "001_store_snapshot.sql",
@@ -311,12 +313,13 @@ test("migrations 006 through 015 remain immutable while 016 through 066 add gove
     runtimeControlLedgerAuthorityMigrationName,
     runtimeAlertRegistrationReturnRowMigrationName,
     runtimeAlertSeveritySloAuthorityMigrationName,
+    formalLaunchCleanupMigrationName,
   ]);
 
   const sql = migrationSql();
   assert.equal(splitSqlStatements(sql).length, 5);
   const manifest = JSON.parse(fs.readFileSync(path.join(migrationsDir, "checksums.json"), "utf8"));
-  assert.equal(Object.keys(manifest.files).length, 66);
+  assert.equal(Object.keys(manifest.files).length, 67);
   assert.equal(migrationChecksum(sql), IMMUTABLE_FOUNDATION_CHECKSUM);
   assert.equal(migrationChecksum(recoveryMigrationSql()), IMMUTABLE_RECOVERY_CHECKSUM);
   assert.equal(migrationChecksum(cryptoMetadataMigrationSql()), IMMUTABLE_CRYPTO_METADATA_CHECKSUM);
@@ -1646,10 +1649,6 @@ test("dead letters and checkpoints preserve recovery state without skipping gaps
 test("transport authority is not registered as a deletable snapshot projection", () => {
   const operationalTables = new Set([
     "command_idempotency",
-    "outbox_event",
-    "inbox_receipt",
-    "event_dead_letter",
-    "consumer_checkpoint",
   ]);
   const registered = PROJECTIONS.map((projection) => projection.table)
     .filter((table) => operationalTables.has(table));
@@ -1660,11 +1659,7 @@ test("snapshot projection registry fails closed for command and event authority 
   assert.equal(assertSnapshotProjectionRegistrySafe(PROJECTIONS), true);
   for (const table of [
     "command_idempotency",
-    "outbox_event",
-    "inbox_receipt",
-    "event_dead_letter",
-    "consumer_checkpoint",
-    "OUTBOX_EVENT",
+    "COMMAND_IDEMPOTENCY",
   ]) {
     assert.throws(
       () => assertSnapshotProjectionRegistrySafe([

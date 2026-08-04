@@ -10,16 +10,75 @@ const {
   normalizeWechatIdentityAuthority,
   validateWechatIdentityCollection,
 } = require("./wechatIdentityAuthority");
-const {
-  RECIPIENT_BINDING_STATUS,
-  markRecipientBindingUnverified,
-  validateRecipientBindingCollection,
-} = require("./wechatRecipientBinding");
 
 const SQLITE_SCHEMA_VERSION = 1;
 const SQLITE_STORE_KEY = "root-checkin";
 const MYSQL_SCHEMA_VERSION = 28;
 const MYSQL_STORE_KEY = "root-checkin";
+
+const RETIRED_FORMAL_LAUNCH_SNAPSHOT_KEYS = Object.freeze([
+  "adminLegacyDeprecationDecisions",
+  "adminLifecycleFilterPresets",
+  "adminLifecycleSettlementJobs",
+  "adminLifecycleUserExports",
+  "campaignDefinitions",
+  "campaignParticipants",
+  "campaignProductRelations",
+  "campaignRuleVersions",
+  "checkinRecords",
+  "checkinSessions",
+  "consultationAdvisorAssignments",
+  "consultationWeworkWritebacks",
+  "couponEvents",
+  "dailyCheckinRecords",
+  "dailySummaries",
+  "eventConsumerCheckpoints",
+  "eventInbox",
+  "eventOutbox",
+  "events",
+  "eventsTrack",
+  "externalAdapterCursors",
+  "externalAdapterRuns",
+  "externalSampleReviews",
+  "externalStatusMappings",
+  "importBatches",
+  "legacyDataMigrationDecisions",
+  "legacyDataMigrationExecutions",
+  "manualReviewItems",
+  "notificationDeliveries",
+  "notificationJobs",
+  "notificationSubscriptionGrants",
+  "notificationSubscriptions",
+  "notificationTemplates",
+  "operationTasks",
+  "operationalAlertNotifications",
+  "operationalAlertRules",
+  "operationalAlertRuns",
+  "orderAfterSalesRecords",
+  "orderFulfillments",
+  "productJumpLogs",
+  "productionCutoverProofs",
+  "refundWorkItems",
+  "refunds",
+  "releaseSignoffs",
+  "rewardDeliveryJobs",
+  "rewardGrants",
+  "rewardInventoryPools",
+  "rewardInventoryReservations",
+  "rewardRecoveryRecords",
+  "rootMemberCenterJumpProofs",
+  "settlementRecords",
+  "taskDefinitions",
+  "taskEvents",
+  "taskProgressSnapshots",
+  "uploads",
+  "weworkTouchJobs",
+  "youzanCustomers",
+  "youzanIdentityReconciliations",
+  "youzanOrders",
+  "youzanProducts",
+  "youzanSkus",
+]);
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -43,55 +102,21 @@ function mergeDefaults(target, defaults) {
 
 function createEmptyData() {
   const data = createSeedData();
+  RETIRED_FORMAL_LAUNCH_SNAPSHOT_KEYS.forEach((key) => delete data[key]);
   data.contentAssets = [];
   data.contentVersions = [];
   data.contentPublicationRecords = [];
   data.contentPreviewRecords = [];
   data.formalContentItems = [];
-  data.youzanProducts = [];
-  data.youzanSkus = [];
-  data.campaignProductRelations = [];
-  data.productJumpLogs = [];
-  data.youzanCustomers = [];
-  data.campaignDefinitions = [];
-  data.campaignParticipants = [];
   data.activityDefinitionVersions = [];
   data.activitySessions = [];
   data.activitySessionEvents = [];
   data.activityEnrollments = [];
   data.activityEnrollmentEvents = [];
-  data.taskDefinitions = [];
-  data.taskEvents = [];
-  data.notificationTemplates = [];
-  data.notificationSubscriptions = [];
-  data.notificationSubscriptionGrants = [];
-  data.notificationJobs = [];
-  data.notificationDeliveries = [];
   data.questionnaireAnswers = [];
   data.healthScaleResponses = [];
   data.healthContentVersions = [];
-  data.campaignRuleVersions = [];
-  data.settlementRecords = [];
-  data.manualReviewItems = [];
-  data.adminLifecycleFilterPresets = [];
-  data.adminLifecycleSettlementJobs = [];
-  data.adminLifecycleUserExports = [];
-  data.operationalAlertRules = [];
-  data.operationalAlertRuns = [];
-  data.operationalAlertNotifications = [];
-  data.productionCutoverProofs = [];
-  data.rootMemberCenterJumpProofs = [];
-  data.consultationAdvisorAssignments = [];
-  data.consultationWeworkWritebacks = [];
-  data.weworkTouchJobs = [];
-  data.orderAfterSalesRecords = [];
-  data.youzanOrders = [];
-  data.orderFulfillments = [];
-  data.events = [];
   data.commandIdempotencyRecords = [];
-  data.eventOutbox = [];
-  data.eventInbox = [];
-  data.eventConsumerCheckpoints = [];
   return data;
 }
 
@@ -104,17 +129,6 @@ function normalizeStoreData(rawData, options = {}) {
   normalizePersistedCredentials(normalized);
   if (Array.isArray(normalized.wechatIdentities)) {
     normalized.wechatIdentities.forEach(normalizeWechatIdentityAuthority);
-  }
-  if (Array.isArray(normalized.notificationSubscriptionGrants)) {
-    normalized.notificationSubscriptionGrants.forEach((grant) => {
-      if (!grant.recipient_binding_status) markRecipientBindingUnverified(grant);
-      if (grant.recipient_binding_status === RECIPIENT_BINDING_STATUS.UNVERIFIED
-        && grant.status !== "REVIEW_REQUIRED") {
-        grant.status = "REVIEW_REQUIRED";
-        grant.release_reason = grant.release_reason || "RECIPIENT_BINDING_UNVERIFIED";
-        grant.review_required_at = grant.review_required_at || grant.updated_at || grant.created_at || "";
-      }
-    });
   }
   delete normalized.wechatAccessToken;
   return normalized;
@@ -160,12 +174,6 @@ function validateSnapshot(snapshot, options = {}) {
     ["contentPreviewRecords", "content_preview_record_id"],
     ["healthContentVersions", "health_content_version_id"],
     ["healthScaleResponses", "health_scale_response_id"],
-    ["youzanProducts", "youzan_product_id"],
-    ["youzanSkus", "youzan_sku_id"],
-    ["campaignProductRelations", "campaign_product_relation_id"],
-    ["productJumpLogs", "product_jump_log_id"],
-    ["campaignDefinitions", "campaign_id"],
-    ["campaignParticipants", "campaign_participant_id"],
     ["activityDefinitionVersions", "activity_version_id"],
     ["activitySessions", "activity_session_id"],
     ["activitySessionEvents", "activity_session_event_id"],
@@ -173,47 +181,10 @@ function validateSnapshot(snapshot, options = {}) {
     ["activityEnrollments", "activity_enrollment_id"],
     ["activityEnrollmentEvents", "activity_enrollment_event_id"],
     ["activityEnrollmentEvents", "request_id"],
-    ["notificationTemplates", "notification_template_id"],
-    ["notificationSubscriptions", "notification_subscription_id"],
-    ["notificationSubscriptionGrants", "notification_subscription_grant_id"],
-    ["notificationSubscriptionGrants", "idempotency_key"],
-    ["notificationJobs", "notification_job_id"],
-    ["notificationJobs", "idempotency_key"],
-    ["notificationDeliveries", "notification_delivery_id"],
-    ["campaignRuleVersions", "campaign_rule_version_id"],
-    ["settlementRecords", "settlement_record_id"],
-    ["manualReviewItems", "manual_review_item_id"],
-    ["adminLifecycleFilterPresets", "preset_id"],
-    ["adminLifecycleSettlementJobs", "job_id"],
-    ["adminLifecycleUserExports", "export_id"],
-    ["operationalAlertRules", "alert_rule_id"],
-    ["operationalAlertRuns", "operational_alert_run_id"],
-    ["operationalAlertNotifications", "operational_alert_notification_id"],
-    ["productionCutoverProofs", "proof_id"],
-    ["productionCutoverProofs", "request_id"],
-    ["rootMemberCenterJumpProofs", "proof_id"],
-    ["rootMemberCenterJumpProofs", "request_id"],
-    ["consultationAdvisorAssignments", "assignment_id"],
-    ["consultationAdvisorAssignments", "request_id"],
-    ["consultationWeworkWritebacks", "writeback_id"],
-    ["consultationWeworkWritebacks", "request_id"],
-    ["weworkTouchJobs", "wework_touch_job_id"],
-    ["weworkTouchJobs", "idempotency_key"],
-    ["orderAfterSalesRecords", "order_after_sales_record_id"],
-    ["orderAfterSalesRecords", "after_sales_no"],
-    ["orderAfterSalesRecords", "idempotency_key"],
-    ["youzanOrders", "order_id"],
-    ["youzanOrders", "youzan_order_no"],
-    ["orderFulfillments", "fulfillment_id"],
-    ["checkinSessions", "session_id"],
-    ["operationTasks", "task_id"],
     ["userContactMethods", "contact_method_id"],
     ["userLifecycleEvents", "lifecycle_event_id"],
-    ["importBatches", "batch_id"],
     ["auditLogs", "audit_id"],
     ["commandIdempotencyRecords", "recordId"],
-    ["eventOutbox", "outbox_event_id"],
-    ["eventInbox", "inbox_receipt_id"],
   ];
   duplicateChecks.forEach(([listKey, idKey]) => {
     const list = snapshot[listKey];
@@ -231,11 +202,6 @@ function validateSnapshot(snapshot, options = {}) {
     env: options.env || process.env,
   });
   errors.push(...wechatIdentityAuthority.errors);
-  const recipientBindings = validateRecipientBindingCollection(snapshot.notificationSubscriptionGrants, {
-    env: options.env || process.env,
-  });
-  errors.push(...recipientBindings.errors);
-
   const activityVersions = new Set();
   const activityVersionIds = new Set();
   const activityPublicationDecisions = new Set();
@@ -649,7 +615,6 @@ async function createMysqlStore(config = {}, options = {}) {
   const privilegeModule = require("./mysqlPrivilegePolicy");
   const commandIdempotencyModule = require("./mysqlCommandIdempotencyAdapter");
   const commandRecoveryModule = require("./mysqlCommandRecovery");
-  const notificationDeliveryModule = require("./mysqlNotificationDeliveryCore");
   const applyMysqlMigrations = dependencies.applyMysqlMigrations || migrationModule.applyMysqlMigrations;
   const verifyMysqlMigrations = dependencies.verifyMysqlMigrations || migrationModule.verifyMysqlMigrations;
   const changedCollectionKeys = dependencies.changedCollectionKeys || projectionModule.changedCollectionKeys;
@@ -662,8 +627,6 @@ async function createMysqlStore(config = {}, options = {}) {
     || commandIdempotencyModule.createMysqlCommandIdempotencyAdapter;
   const createMysqlCommandRecovery = dependencies.createMysqlCommandRecovery
     || commandRecoveryModule.createMysqlCommandRecovery;
-  const createMysqlNotificationDeliveryCore = dependencies.createMysqlNotificationDeliveryCore
-    || notificationDeliveryModule.createMysqlNotificationDeliveryCore;
   const policyEnvSource = options.env || process.env;
   // Node exposes process.env as a host object whose prototype is not
   // Object.prototype. Internal persistence modules intentionally accept only
@@ -713,11 +676,9 @@ async function createMysqlStore(config = {}, options = {}) {
     keepAliveInitialDelay: 0,
   });
   const pool = mysql.createPool({ ...mysqlPoolOptions });
-  let notificationDeliveryCore;
   let privilegePolicy;
   let migrationState;
   try {
-    notificationDeliveryCore = createMysqlNotificationDeliveryCore(pool, { env: policyEnv });
     privilegePolicy = await readMysqlPrivilegePolicy(pool, { database, env: policyEnv });
     assertMysqlPrivilegePolicy(privilegePolicy);
     migrationState = mysqlMigrationMode === "verify_only"
@@ -1106,12 +1067,6 @@ async function createMysqlStore(config = {}, options = {}) {
       await pool.end();
     },
   };
-  Object.defineProperty(adapter, "notificationDeliveryCore", {
-    value: notificationDeliveryCore,
-    enumerable: false,
-    configurable: false,
-    writable: false,
-  });
   await enqueue(projectLatestSnapshot);
   return adapter;
   } catch (error) {
