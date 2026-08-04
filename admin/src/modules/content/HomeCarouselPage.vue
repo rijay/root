@@ -21,6 +21,7 @@
       type="info"
     />
 
+    <template v-if="contentReady">
     <el-form class="content-filter-bar" inline @submit.prevent>
       <el-input
         v-model="filters.keyword"
@@ -95,6 +96,7 @@
         @current-change="load"
       />
     </section>
+    </template>
 
     <el-drawer v-model="drawerVisible" class="content-edit-drawer" size="408px" :show-close="true">
       <template #header>
@@ -215,6 +217,7 @@ const errorMessage = ref("");
 const interfaceUnavailable = ref(false);
 const previewPath = ref("");
 const drawerVisible = ref(false);
+const contentReady = ref(false);
 const sharedDetailOptions = ref([]);
 const selectedFile = ref(null);
 const objectUrls = new Set();
@@ -223,6 +226,8 @@ const filters = reactive({ keyword: "", status: "", schedule: "", page: 1 });
 let searchTimer = null;
 let loadSequence = 0;
 let loadController = null;
+let contentMountFrame = null;
+let initialLoadFrame = null;
 
 function statusLabel(status) {
   return ({ PUBLISHED: "已上线", DRAFT: "草稿", BLOCKED: "阻断", OFFLINE: "已下线" })[status] || "待确认";
@@ -380,11 +385,16 @@ async function load() {
 }
 
 onMounted(() => {
-  load();
   loadSharedDetails();
+  contentMountFrame = requestAnimationFrame(() => {
+    contentReady.value = true;
+    initialLoadFrame = requestAnimationFrame(load);
+  });
 });
 onBeforeUnmount(() => {
   clearTimeout(searchTimer);
+  if (contentMountFrame !== null) cancelAnimationFrame(contentMountFrame);
+  if (initialLoadFrame !== null) cancelAnimationFrame(initialLoadFrame);
   loadController?.abort();
   objectUrls.forEach((url) => URL.revokeObjectURL(url));
 });

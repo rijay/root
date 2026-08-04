@@ -161,7 +161,8 @@ const navigationGroups = [
 
 const ReleaseWorkbench = defineAsyncComponent(() => import("./modules/release/ReleaseWorkbench.vue"));
 const WelcomeContentPage = defineAsyncComponent(() => import("./modules/content/WelcomeContentPage.vue"));
-const HomeCarouselPage = defineAsyncComponent(() => import("./modules/content/HomeCarouselPage.vue"));
+const loadHomeCarouselPage = () => import("./modules/content/HomeCarouselPage.vue");
+const HomeCarouselPage = defineAsyncComponent(loadHomeCarouselPage);
 const SharedDetailPage = defineAsyncComponent(() => import("./modules/content/SharedDetailPage.vue"));
 const ActivityManagementPage = defineAsyncComponent(() => import("./modules/activities/ActivityManagementPage.vue"));
 const ActivityRegistrationsPage = defineAsyncComponent(() => import("./modules/activities/ActivityRegistrationsPage.vue"));
@@ -186,6 +187,7 @@ const showProfileSkeleton = ref(false);
 const releaseMeta = ref({ contentVersion: "—", unpublishedCount: 0 });
 const activeWorkbench = ref(null);
 let profileSkeletonTimer = null;
+let cancelHomeCarouselPreload = null;
 const adminAccess = createAdminAccess(adminProfile);
 provide(ADMIN_ACCESS_KEY, adminAccess);
 
@@ -241,10 +243,32 @@ async function refresh() {
   }
 }
 
+function scheduleHomeCarouselPreload() {
+  const preload = () => {
+    cancelHomeCarouselPreload = null;
+    loadHomeCarouselPage().catch(() => {});
+  };
+  if (typeof window.requestIdleCallback === "function") {
+    const idleId = window.requestIdleCallback(preload, { timeout: 1500 });
+    cancelHomeCarouselPreload = () => window.cancelIdleCallback(idleId);
+    return;
+  }
+  const timeoutId = window.setTimeout(preload, 500);
+  cancelHomeCarouselPreload = () => window.clearTimeout(timeoutId);
+}
+
+async function initializeApp() {
+  await loadAdminProfile();
+  scheduleHomeCarouselPreload();
+}
+
 watch(currentModuleKey, (key) => {
   if (key && key !== activeModule.value) activeModule.value = key;
 });
 
-onMounted(loadAdminProfile);
-onUnmounted(() => clearTimeout(profileSkeletonTimer));
+onMounted(initializeApp);
+onUnmounted(() => {
+  clearTimeout(profileSkeletonTimer);
+  cancelHomeCarouselPreload?.();
+});
 </script>

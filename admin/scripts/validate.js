@@ -76,6 +76,9 @@ for (const component of ["ElTable", "ElForm", "ElDialog", "ElLoading"]) {
 }
 for (const value of [
   "defineAsyncComponent",
+  "loadHomeCarouselPage",
+  "requestIdleCallback",
+  "scheduleHomeCarouselPreload",
   "发布工作台",
   "内容运营",
   "活动运营",
@@ -139,7 +142,7 @@ const contentApi = read("src/modules/content/adminContentApi.js");
 for (const value of ["[emptyScreen(1), emptyScreen(2)]", "不支持新增第三屏", "600KB", "安全区", "保存草稿"]) {
   assert.equal(welcomePage.includes(value), true, `welcome content must include ${value}`);
 }
-for (const value of ["搜索内部名称或展示文案", "关联共用详情", "2 行", "3 行", "600KB", "500KB", "安全区", "AbortController", "300"]) {
+for (const value of ["搜索内部名称或展示文案", "关联共用详情", "2 行", "3 行", "600KB", "500KB", "安全区", "AbortController", "300", "contentReady", "requestAnimationFrame", "initialLoadFrame"]) {
   assert.equal(carouselPage.includes(value), true, `home carousel must include ${value}`);
 }
 for (const value of [
