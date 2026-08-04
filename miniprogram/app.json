@@ -14,7 +14,8 @@
     {
       "root": "subpkg/content",
       "pages": [
-        "pages/detail/index"
+        "pages/detail/index",
+        "pages/webview/index"
       ]
     },
     {

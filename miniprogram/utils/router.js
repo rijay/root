@@ -19,6 +19,7 @@ const publicRoutes = new Set([
   "/pages/legal/index",
   "/pages/profile/index",
   "/subpkg/activity/pages/detail/index",
+  "/subpkg/content/pages/webview/index",
   "/subpkg/profile/pages/about/index",
   "/subpkg/profile/pages/support/index",
   "/subpkg/profile/pages/privacy-account/index",

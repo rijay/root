@@ -44,7 +44,10 @@
           <el-table-column prop="updatedAtLabel" label="更新时间" width="170" />
           <el-table-column label="操作" width="150" align="right">
             <template #default="{ row }">
-              <el-button link type="primary" @click="openDetail(row)">{{ row.status === "PUBLISHED" ? "复制草稿" : "编辑" }}</el-button>
+              <el-space>
+                <el-button v-if="row.status === 'PUBLISHED'" link type="danger" @click="unpublishRow(row)">下线</el-button>
+                <el-button link type="primary" @click="openDetail(row)">{{ row.status === "PUBLISHED" ? "复制草稿" : "编辑" }}</el-button>
+              </el-space>
             </template>
           </el-table-column>
         </el-table>
@@ -196,6 +199,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import {
   fetchSharedDetails,
   saveSharedDetailDraft,
+  unpublishContentVersion,
   uploadContentAsset,
   validateContentTarget,
 } from "./adminContentApi";
@@ -498,6 +502,26 @@ async function saveDetail() {
     errorMessage.value = error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message;
   } finally {
     saving.value = false;
+  }
+}
+
+async function unpublishRow(row) {
+  if (Number(row.referenceCount || 0) > 0) {
+    ElMessage.warning("该版本仍被首页或活动引用，请先下线引用入口");
+    return;
+  }
+  try {
+    await ElMessageBox.confirm("下线后该不可变详情版本不再对新请求开放。", "确认下线共用详情？", {
+      confirmButtonText: "确认下线",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+    await unpublishContentVersion(row.versionId);
+    ElMessage.success("共用详情已下线");
+    await load();
+  } catch (error) {
+    if (error === "cancel" || error === "close") return;
+    errorMessage.value = error.outcomeUnknown ? "下线结果待确认，请刷新权威记录" : error.message;
   }
 }
 

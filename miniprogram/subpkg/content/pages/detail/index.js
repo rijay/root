@@ -1,5 +1,6 @@
 const { executeContentAction } = require("../../../../utils/content-action");
 const { request } = require("../../../../utils/request");
+const { presentDetail } = require("../../../../utils/content-presenter");
 
 function resolveWordmarkTop() {
   try {
@@ -32,7 +33,8 @@ Page({
         method: "GET",
         scope: `formal-content:${this.contentId}`,
       });
-      this.setData({ state: "ready", item: data.item });
+      const item = presentDetail(data);
+      this.setData({ state: item ? "ready" : "error", item });
     } catch (error) {
       this.setData({ state: "error", item: null });
     }
@@ -40,5 +42,13 @@ Page({
 
   handleAction() {
     if (this.data.item) executeContentAction(this.data.item.action);
+  },
+
+  handleHotspot(event) {
+    if (!this.data.item) return;
+    const assetIndex = Number(event.currentTarget.dataset.assetIndex);
+    const hotspotIndex = Number(event.currentTarget.dataset.hotspotIndex);
+    const hotspot = this.data.item.assets?.[assetIndex]?.hotspots?.[hotspotIndex];
+    if (hotspot?.action) executeContentAction(hotspot.action);
   },
 });

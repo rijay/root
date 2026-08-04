@@ -14,6 +14,10 @@ async function executeContentAction(action) {
     wx.navigateToMiniProgram({ appId: action.appId, path: action.path });
     return true;
   }
+  if (action.type === "BUSINESS_WEBVIEW" && /^[A-Za-z0-9_-]{3,80}$/.test(String(action.actionId || ""))) {
+    router.open(`/subpkg/content/pages/webview/index?actionId=${encodeURIComponent(action.actionId)}`);
+    return true;
+  }
   wx.showToast({ title: "该内容暂不可跳转", icon: "none" });
   return false;
 }

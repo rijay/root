@@ -1,6 +1,7 @@
 const { syncTabBar } = require("../../utils/tab-bar");
 const { request } = require("../../utils/request");
 const router = require("../../utils/router");
+const { presentHome } = require("../../utils/content-presenter");
 
 Page({
   data: { state: "loading", items: [], current: 0 },
@@ -21,7 +22,7 @@ Page({
         method: "GET",
         scope: "formal-home-content",
       });
-      const items = Array.isArray(data.items) ? data.items : [];
+      const items = presentHome(data);
       this.setData({ state: items.length ? "ready" : "empty", items, current: 0 });
     } catch (error) {
       this.setData({ state: "error", items: [] });

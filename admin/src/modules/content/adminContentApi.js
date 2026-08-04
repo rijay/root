@@ -1,4 +1,4 @@
-import { adminRequest, postAdminForm, postAdminJson } from "@/api/client";
+import { adminRequest, postAdminJson, postAdminRead } from "@/api/client";
 
 function queryString(filters = {}) {
   const params = new URLSearchParams();
@@ -15,15 +15,23 @@ function requestId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 }
 
+function write(path, input, prefix) {
+  const attemptId = requestId(`${prefix}-attempt`);
+  const idempotencyKey = requestId(`${prefix}-intent`);
+  return postAdminJson(path, { ...input, requestId: attemptId }, {
+    headers: {
+      "X-Request-Id": attemptId,
+      "X-Idempotency-Key": idempotencyKey,
+    },
+  });
+}
+
 export function fetchWelcomeContent() {
   return adminRequest("/api/v1/admin/content/welcome");
 }
 
 export function saveWelcomeDraft(input = {}) {
-  const id = requestId("welcome-draft");
-  return postAdminJson("/api/v1/admin/content/welcome/draft", { ...input, requestId: id }, {
-    headers: { "X-Request-Id": id },
-  });
+  return write("/api/v1/admin/content/welcome/draft", input, "welcome-draft");
 }
 
 export function fetchHomeCarousel(filters = {}, options = {}) {
@@ -31,10 +39,7 @@ export function fetchHomeCarousel(filters = {}, options = {}) {
 }
 
 export function saveHomeCarouselDraft(input = {}) {
-  const id = requestId("home-carousel-draft");
-  return postAdminJson("/api/v1/admin/content/home-carousel/draft", { ...input, requestId: id }, {
-    headers: { "X-Request-Id": id },
-  });
+  return write("/api/v1/admin/content/home-carousel/draft", input, "home-carousel-draft");
 }
 
 export function fetchSharedDetails(filters = {}, options = {}) {
@@ -42,23 +47,35 @@ export function fetchSharedDetails(filters = {}, options = {}) {
 }
 
 export function saveSharedDetailDraft(input = {}) {
-  const id = requestId("shared-detail-draft");
-  return postAdminJson("/api/v1/admin/content/shared-details/draft", { ...input, requestId: id }, {
-    headers: { "X-Request-Id": id },
-  });
+  return write("/api/v1/admin/content/shared-details/draft", input, "shared-detail-draft");
 }
 
 export function validateContentTarget(input = {}) {
-  return postAdminJson("/api/v1/admin/content/targets/validate", input);
+  return postAdminRead("/api/v1/admin/content/targets/validate", input);
 }
 
-export function uploadContentAsset(file, scope = "content") {
-  const id = requestId("content-asset");
-  const form = new FormData();
-  form.set("file", file);
-  form.set("scope", scope);
-  form.set("requestId", id);
-  return postAdminForm("/api/v1/admin/content/assets", form, {
-    headers: { "X-Request-Id": id },
-  });
+function bytesToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+}
+
+export async function uploadContentAsset(file, scope = "content") {
+  if (!file || typeof file.arrayBuffer !== "function") throw new Error("请选择有效图片");
+  const dataBase64 = bytesToBase64(await file.arrayBuffer());
+  const result = await write("/api/v1/admin/content/assets", {
+    scope,
+    name: file.name,
+    mimeType: file.type,
+    dataBase64,
+  }, "content-asset");
+  return result.asset || result;
+}
+
+export function unpublishContentVersion(versionId) {
+  return write("/api/v1/admin/content-release/unpublish", { versionId }, "content-unpublish");
 }

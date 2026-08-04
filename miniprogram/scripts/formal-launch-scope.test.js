@@ -49,7 +49,8 @@ actualRoutes.forEach((route) => {
 const welcomeScript = fs.readFileSync(path.join(root, `${routes.WELCOME_ROUTE}.js`), "utf8");
 assert.equal(routes.WELCOME_STORAGE_KEY, "ROOT_WELCOME_SEEN_V1");
 assert.match(welcomeScript, /WELCOME_STORAGE_KEY/);
-assert.doesNotMatch(welcomeScript, /request\(|fetchUserState|decideHomeRoute|health|login/i);
+assert.doesNotMatch(welcomeScript, /fetchUserState|decideHomeRoute|health|login/i);
+assert.match(welcomeScript, /\/api\/v1\/public\/content\/welcome/);
 
 const customTabScript = fs.readFileSync(path.join(root, "custom-tab-bar/index.js"), "utf8");
 assert.match(customTabScript, /wx\.switchTab/);

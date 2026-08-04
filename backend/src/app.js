@@ -81,6 +81,8 @@ const {
   getFormalHealthScale,
   getLatestFormalHealthScaleResult,
   getFormalContentDetail,
+  getFormalContentAsset,
+  getFormalContentAction,
   getFormalProfile,
   getPrivacyNotice,
   getProfile,
@@ -123,9 +125,13 @@ const {
   listAdminFormalHealthLifestyleAdvice,
   listAdminFormalHealthRecommendationRules,
   listAdminFormalHealthScales,
+  listAdminContentWelcome,
+  listAdminContentHomeCarousel,
+  listAdminContentSharedDetails,
   listConsultationAdvisorAssignments,
   listExternalSampleReviews,
   listFormalHomeContent,
+  listFormalWelcomeContent,
   listImportBatches,
   listAdminLegacyDeprecationDecisions,
   listAdminYouzanCustomers,
@@ -152,6 +158,7 @@ const {
   publishAdminFormalHealthLifestyleAdvice,
   publishAdminFormalHealthRecommendationRule,
   publishAdminFormalHealthScale,
+  publishAdminContentCandidate,
   recordConsultationAdvisorAssignment,
   recordConsultationWeworkWriteback,
   recordAdminLegacyDeprecationDecision,
@@ -184,6 +191,13 @@ const {
   saveAdminFormalHealthLifestyleAdviceDraft,
   saveAdminFormalHealthRecommendationRuleDraft,
   saveAdminFormalHealthScaleDraft,
+  saveAdminContentWelcomeDraft,
+  saveAdminContentHomeCarouselDraft,
+  saveAdminContentSharedDetailDraft,
+  uploadAdminContentAsset,
+  validateAdminContentTarget,
+  markAdminContentPreviewCompleted,
+  unpublishAdminContentVersion,
   submitProfile,
   submitQuestionnaireAnswer,
   submitQuestionnaire,
@@ -607,6 +621,18 @@ function send(res, status, payload, headers = {}) {
 
 function ok(res, payload) {
   send(res, 200, payload);
+}
+
+function sendBinary(res, status, body, contentType, headers = {}) {
+  const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body || "");
+  res.writeHead(status, {
+    "Content-Type": contentType,
+    "Content-Length": buffer.length,
+    "X-Content-Type-Options": "nosniff",
+    ...headers,
+    ...(res.responseSecurityHeaders || {}),
+  });
+  res.end(buffer);
 }
 
 function createBufferedResponse() {
@@ -1204,9 +1230,21 @@ function createApp(options = {}) {
         }));
       }
       if (route === "GET /api/v1/privacy/notice") return ok(res, getPrivacyNotice(runtimeContext));
+      if (route === "GET /api/v1/public/content/welcome") return ok(res, listFormalWelcomeContent(data, runtimeContext));
       if (route === "GET /api/v1/public/content/home") return ok(res, listFormalHomeContent(data, runtimeContext));
       if (route === "GET /api/v1/public/content/detail") {
         return ok(res, getFormalContentDetail(data, url.searchParams.get("contentId"), runtimeContext));
+      }
+      if (route === "GET /api/v1/public/content/action") {
+        return ok(res, getFormalContentAction(data, url.searchParams.get("actionId")));
+      }
+      const contentAssetMatch = url.pathname.match(/^\/api\/v1\/public\/content\/assets\/([A-Za-z0-9_-]{3,80})$/);
+      if (method === "GET" && contentAssetMatch) {
+        const asset = getFormalContentAsset(data, contentAssetMatch[1]);
+        return sendBinary(res, 200, asset.body, asset.mimeType, {
+          "Cache-Control": "public, max-age=31536000, immutable",
+          ETag: asset.etag,
+        });
       }
       if (route === "GET /api/v1/user/state") return ok(res, getUserState(data, token, runtimeContext));
       if (route === "GET /api/v1/privacy/health-consent") return ok(res, getHealthConsentStatus(data, token, runtimeContext));
@@ -1424,6 +1462,18 @@ function createApp(options = {}) {
       if (route === "GET /api/v1/admin/formal-health/lifestyle-advice") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
         return ok(res, listAdminFormalHealthLifestyleAdvice(data, Object.fromEntries(url.searchParams)));
+      }
+      if (route === "GET /api/v1/admin/content/welcome") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
+        return ok(res, listAdminContentWelcome(data));
+      }
+      if (route === "GET /api/v1/admin/content/home-carousel") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
+        return ok(res, listAdminContentHomeCarousel(data, Object.fromEntries(url.searchParams)));
+      }
+      if (route === "GET /api/v1/admin/content/shared-details") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
+        return ok(res, listAdminContentSharedDetails(data, Object.fromEntries(url.searchParams)));
       }
       if (route === "GET /api/v1/admin/cloudbase-identity-probe") {
         const trustedWechatIdentity = await resolveTrustedWechatIdentity({
@@ -1720,6 +1770,45 @@ function createApp(options = {}) {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_PUBLISH);
         const command = prepareAdminCommandBody(req, adminPrincipal, body, "生活方式建议发布", "HEALTH_LIFESTYLE_PUBLISH");
         return ok(res, await withIdempotency(data, req, () => publishAdminFormalHealthLifestyleAdvice(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/content/assets") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONTENT_WRITE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "内容素材上传", "CONTENT_ASSET_UPLOAD");
+        return ok(res, await withIdempotency(data, req, () => uploadAdminContentAsset(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/content/targets/validate") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONTENT_WRITE);
+        return ok(res, validateAdminContentTarget(data, body, runtimeContext));
+      }
+      if (route === "POST /api/v1/admin/content/welcome/draft") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONTENT_WRITE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "欢迎页草稿", "CONTENT_WELCOME_DRAFT_SAVE");
+        return ok(res, await withIdempotency(data, req, () => saveAdminContentWelcomeDraft(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/content/home-carousel/draft") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONTENT_WRITE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "首页轮播草稿", "CONTENT_HOME_DRAFT_SAVE");
+        return ok(res, await withIdempotency(data, req, () => saveAdminContentHomeCarouselDraft(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/content/shared-details/draft") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONTENT_WRITE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "共用详情草稿", "CONTENT_DETAIL_DRAFT_SAVE");
+        return ok(res, await withIdempotency(data, req, () => saveAdminContentSharedDetailDraft(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/content-release/preview-complete") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONTENT_PUBLISH);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "内容预览确认", "CONTENT_PREVIEW_COMPLETE");
+        return ok(res, await withIdempotency(data, req, () => markAdminContentPreviewCompleted(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/content-release/publish") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONTENT_PUBLISH);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "内容版本发布", "CONTENT_RELEASE_PUBLISH");
+        return ok(res, await withIdempotency(data, req, () => publishAdminContentCandidate(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/content-release/unpublish") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONTENT_PUBLISH);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "内容版本下线", "CONTENT_VERSION_UNPUBLISH");
+        return ok(res, await withIdempotency(data, req, () => unpublishAdminContentVersion(data, command, runtimeContext)));
       }
       if (route === "POST /api/v1/admin/activities/draft") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ACTIVITY_CONTENT_WRITE);

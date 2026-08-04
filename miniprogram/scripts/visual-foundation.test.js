@@ -55,13 +55,15 @@ assert.equal(welcomeJson.usingComponents["immersive-header"], "/components/immer
 
 const welcomeWxml = read("pages/welcome/index.wxml");
 const welcomeWxss = read("pages/welcome/index.wxss");
+const welcomeScript = read("pages/welcome/index.js");
+const welcomeSource = `${welcomeWxml}\n${welcomeScript}`;
 assert.match(welcomeWxml, /<immersive-header tone="light"/);
-assert.match(welcomeWxml, /data-release-asset="DEVELOPMENT_PLACEHOLDER"/);
-assert.match(welcomeWxml, /欢迎加入/);
-assert.match(welcomeWxml, /Root Member Club/);
-assert.match(welcomeWxml, /Sustained Foundation Balance/);
-assert.match(welcomeWxml, /平衡不是控制，而是理解。/);
-assert.match(welcomeWxml, /帮你把身体还给身体自己。/);
+assert.match(welcomeWxml, /data-release-asset="\{\{screens\[0\]\.assetState\}\}"/);
+assert.match(welcomeSource, /欢迎加入/);
+assert.match(welcomeSource, /Root Member Club/);
+assert.match(welcomeSource, /Sustained Foundation Balance/);
+assert.match(welcomeSource, /平衡不是控制，而是理解。/);
+assert.match(welcomeSource, /帮你把身体还给身体自己。/);
 assert.match(welcomeWxml, /welcome__dots--\{\{current\}\}/);
 assert.match(welcomeWxss, /\.welcome__kicker\s*\{[^}]*line-height:\s*18px/s);
 assert.match(welcomeWxss, /\.welcome__title\s*\{[^}]*min-height:\s*82px/s);
@@ -69,8 +71,8 @@ assert.match(welcomeWxss, /\.welcome__skip\s*\{[^}]*width:\s*42px[^}]*margin:\s*
 assert.match(welcomeWxss, /\.welcome__skip\s*\{[^}]*bottom:\s*18px/s);
 assert.match(welcomeWxss, /button\.welcome__skip\s*\{[^}]*width:\s*42px\s*!important/s);
 
-const welcomeScript = read("pages/welcome/index.js");
-assert.doesNotMatch(welcomeScript, /request\(|login|health/i);
+assert.doesNotMatch(welcomeScript, /login|health/i);
+assert.match(welcomeScript, /\/api\/v1\/public\/content\/welcome/);
 assert.match(welcomeScript, /WELCOME_STORAGE_KEY/);
 
 const homeJson = JSON.parse(read("pages/home/index.json"));
@@ -137,6 +139,6 @@ assert.match(detailWxss, /\.content-detail__body\s*\{[^}]*top:\s*636px/s);
 const adminTheme = fs.readFileSync(path.resolve(root, "..", "admin/src/styles/theme.css"), "utf8");
 assert.match(adminTheme.toLowerCase(), /--root-ink:\s*#080806/);
 assert.match(adminTheme.toLowerCase(), /--root-moss:\s*#586b3f/);
-assert.match(adminTheme.toLowerCase(), /--root-page-padding:\s*16px/);
+assert.match(adminTheme.toLowerCase(), /--root-page-padding:\s*28px/);
 
 console.log("visual foundation tests ok");

@@ -833,8 +833,110 @@ function listFormalHomeContent(data, context = {}) {
   return response(contentModule.listHome(data, context));
 }
 
+function listFormalWelcomeContent(data, context = {}) {
+  return response(contentModule.listWelcome(data, context));
+}
+
 function getFormalContentDetail(data, contentId, context = {}) {
   return response(contentModule.getDetail(data, contentId, context));
+}
+
+function getFormalContentAsset(data, assetId) {
+  return contentModule.getAsset(data, assetId);
+}
+
+function getFormalContentAction(data, actionId) {
+  return response(contentModule.getAction(data, actionId));
+}
+
+function listAdminContentWelcome(data) {
+  return response(contentModule.listAdminWelcome(data));
+}
+
+function listAdminContentHomeCarousel(data, query = {}) {
+  return response(contentModule.listAdminHomeCarousel(data, query));
+}
+
+function listAdminContentSharedDetails(data, query = {}) {
+  return response(contentModule.listAdminSharedDetails(data, query));
+}
+
+function contentOperationAudit(data, action, targetType, targetId, body, after) {
+  return auditLog.appendAuditLog(data, {
+    action,
+    targetType,
+    targetId,
+    operatorId: body.operatorId || body.operator_id || "",
+    reason: body.reason || (action.includes("PUBLISH") ? "发布候选内容版本" : "维护正式内容草稿"),
+    before: null,
+    after,
+    metadata: {
+      requestId: body.requestId || body.request_id || "",
+      releaseStage: "CONTENT",
+    },
+  });
+}
+
+function saveAdminContentVersion(data, body, context, operation, action, targetType) {
+  const result = operation(data, body, { ...context, operatorId: body.operatorId || "" });
+  const version = result.version;
+  const audit = contentOperationAudit(data, action, targetType, version.versionId, body, {
+    versionId: version.versionId,
+    logicalId: version.logicalId,
+    version: version.version,
+    revision: version.revision,
+    status: version.status,
+  });
+  return response({ ...result, audit });
+}
+
+function saveAdminContentWelcomeDraft(data, body = {}, context = {}) {
+  return saveAdminContentVersion(data, body, context, contentModule.saveWelcomeDraft, "CONTENT_WELCOME_DRAFT_SAVE", "CONTENT_WELCOME_VERSION");
+}
+
+function saveAdminContentHomeCarouselDraft(data, body = {}, context = {}) {
+  return saveAdminContentVersion(data, body, context, contentModule.saveHomeCarouselDraft, "CONTENT_HOME_DRAFT_SAVE", "CONTENT_HOME_VERSION");
+}
+
+function saveAdminContentSharedDetailDraft(data, body = {}, context = {}) {
+  return saveAdminContentVersion(data, body, context, contentModule.saveSharedDetailDraft, "CONTENT_DETAIL_DRAFT_SAVE", "CONTENT_DETAIL_VERSION");
+}
+
+function uploadAdminContentAsset(data, body = {}, context = {}) {
+  const result = contentModule.uploadAsset(data, body, { ...context, operatorId: body.operatorId || "" });
+  const audit = contentOperationAudit(data, "CONTENT_ASSET_UPLOAD", "CONTENT_ASSET", result.asset.assetId, body, {
+    assetId: result.asset.assetId,
+    mimeType: result.asset.mimeType,
+    byteSize: result.asset.byteSize,
+    width: result.asset.width,
+    height: result.asset.height,
+  });
+  return response({ ...result, audit });
+}
+
+function validateAdminContentTarget(data, body = {}, context = {}) {
+  return response(contentModule.validateTarget(body, context));
+}
+
+function markAdminContentPreviewCompleted(data, body = {}, context = {}) {
+  const result = contentModule.markPreviewCompleted(data, body, { ...context, operatorId: body.operatorId || "" });
+  const audit = contentOperationAudit(data, "CONTENT_PREVIEW_COMPLETE", "CONTENT_CANDIDATE", body.version, body, result.preview);
+  return response({ ...result, audit });
+}
+
+function publishAdminContentCandidate(data, body = {}, context = {}) {
+  const result = contentModule.publishCandidate(data, body, { ...context, operatorId: body.operatorId || "" });
+  const audit = contentOperationAudit(data, "CONTENT_RELEASE_PUBLISH", "CONTENT_RELEASE", result.releaseVersion, body, result);
+  return response({ ...result, audit });
+}
+
+function unpublishAdminContentVersion(data, body = {}, context = {}) {
+  const result = contentModule.unpublishVersion(data, body, { ...context, operatorId: body.operatorId || "" });
+  const audit = contentOperationAudit(data, "CONTENT_VERSION_UNPUBLISH", "CONTENT_VERSION", result.version.versionId, body, {
+    versionId: result.version.versionId,
+    status: result.version.status,
+  });
+  return response({ ...result, audit });
 }
 
 function formalHealthContext(data, user, context = {}) {
@@ -2421,13 +2523,14 @@ function getActionAdapterCalibration(data, context = {}) {
 }
 
 function getReleaseRecord(data, context = {}) {
-  return response(releaseRecord.buildReleaseRecord(data, {
+  const record = releaseRecord.buildReleaseRecord(data, {
     ...context,
     env: context.env || process.env,
     adapterImplementations: context.adapterImplementations || {},
     fetchImpl: context.fetchImpl,
     target: context.target || "production",
-  }));
+  });
+  return response({ ...record, contentRelease: contentModule.buildReleaseSummary(data, context) });
 }
 
 function getReleaseEvidencePack(data, context = {}) {
@@ -3086,6 +3189,9 @@ module.exports = {
   getFormalHealthScale,
   getLatestFormalHealthScaleResult,
   getFormalContentDetail,
+  getFormalContentAsset,
+  getFormalContentAction,
+  listFormalWelcomeContent,
   getFormalProfile,
   getPrivacyNotice,
   getProfile,
@@ -3131,6 +3237,9 @@ module.exports = {
   listAdminFormalHealthLifestyleAdvice,
   listAdminFormalHealthRecommendationRules,
   listAdminFormalHealthScales,
+  listAdminContentWelcome,
+  listAdminContentHomeCarousel,
+  listAdminContentSharedDetails,
   listConsultationAdvisorAssignments,
   listConsultationWeworkWritebacks,
   listOrderAfterSalesRecords,
@@ -3157,6 +3266,7 @@ module.exports = {
   publishAdminFormalHealthLifestyleAdvice,
   publishAdminFormalHealthRecommendationRule,
   publishAdminFormalHealthScale,
+  publishAdminContentCandidate,
   confirmAdminOrderMatch,
   confirmImport,
   previewExternalSamples,
@@ -3176,6 +3286,13 @@ module.exports = {
   saveAdminFormalHealthLifestyleAdviceDraft,
   saveAdminFormalHealthRecommendationRuleDraft,
   saveAdminFormalHealthScaleDraft,
+  saveAdminContentWelcomeDraft,
+  saveAdminContentHomeCarouselDraft,
+  saveAdminContentSharedDetailDraft,
+  uploadAdminContentAsset,
+  validateAdminContentTarget,
+  markAdminContentPreviewCompleted,
+  unpublishAdminContentVersion,
   submitProfile,
   submitQuestionnaireAnswer,
   submitQuestionnaire,

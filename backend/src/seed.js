@@ -17,6 +17,10 @@ function createSeedData() {
     rootUsers: [],
     wechatIdentities: [],
     formalProfiles: [],
+    contentAssets: [],
+    contentVersions: [],
+    contentPublicationRecords: [],
+    contentPreviewRecords: [],
     formalContentItems: [
       {
         contentId: "cnt_home_foundation",

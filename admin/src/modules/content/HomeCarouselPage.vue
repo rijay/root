@@ -78,7 +78,10 @@
         </el-table-column>
         <el-table-column label="操作" width="130" align="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="editDraft(row)">{{ row.status === "PUBLISHED" ? "复制草稿" : "编辑" }}</el-button>
+            <el-space>
+              <el-button v-if="row.status === 'PUBLISHED'" link type="danger" @click="unpublishRow(row)">下线</el-button>
+              <el-button link type="primary" @click="editDraft(row)">{{ row.status === "PUBLISHED" ? "复制草稿" : "编辑" }}</el-button>
+            </el-space>
           </template>
         </el-table-column>
       </el-table>
@@ -178,11 +181,12 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import {
   fetchHomeCarousel,
   fetchSharedDetails,
   saveHomeCarouselDraft,
+  unpublishContentVersion,
   uploadContentAsset,
 } from "./adminContentApi";
 
@@ -316,6 +320,22 @@ async function saveDraft() {
     errorMessage.value = error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message;
   } finally {
     saving.value = false;
+  }
+}
+
+async function unpublishRow(row) {
+  try {
+    await ElMessageBox.confirm("下线后首页新请求将不再展示该轮播，其他已发布内容不受影响。", "确认下线首页轮播？", {
+      confirmButtonText: "确认下线",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+    await unpublishContentVersion(row.versionId);
+    ElMessage.success("首页轮播已下线");
+    await load();
+  } catch (error) {
+    if (error === "cancel" || error === "close") return;
+    errorMessage.value = error.outcomeUnknown ? "下线结果待确认，请刷新权威记录" : error.message;
   }
 }
 

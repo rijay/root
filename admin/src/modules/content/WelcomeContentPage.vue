@@ -47,7 +47,10 @@
 
         <footer class="welcome-card-footer">
           <span>两屏固定顺序，不支持新增第三屏</span>
-          <el-button link type="primary" @click="editScreen(index)">编辑草稿</el-button>
+          <el-space>
+            <el-button v-if="screen.status === 'PUBLISHED'" link type="danger" @click="unpublishScreen(screen)">下线</el-button>
+            <el-button link type="primary" @click="editScreen(index)">编辑草稿</el-button>
+          </el-space>
         </footer>
       </article>
     </div>
@@ -103,8 +106,8 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
-import { fetchWelcomeContent, saveWelcomeDraft, uploadContentAsset } from "./adminContentApi";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { fetchWelcomeContent, saveWelcomeDraft, unpublishContentVersion, uploadContentAsset } from "./adminContentApi";
 
 const emptyScreen = (slot) => ({
   slot,
@@ -206,6 +209,22 @@ async function saveDraft() {
     errorMessage.value = error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message;
   } finally {
     saving.value = false;
+  }
+}
+
+async function unpublishScreen(screen) {
+  try {
+    await ElMessageBox.confirm("下线后新用户将不再读取这一已发布画面。", `确认下线第 ${screen.slot} 屏？`, {
+      confirmButtonText: "确认下线",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+    await unpublishContentVersion(screen.versionId);
+    ElMessage.success("欢迎页画面已下线");
+    await load();
+  } catch (error) {
+    if (error === "cancel" || error === "close") return;
+    errorMessage.value = error.outcomeUnknown ? "下线结果待确认，请刷新权威记录" : error.message;
   }
 }
 

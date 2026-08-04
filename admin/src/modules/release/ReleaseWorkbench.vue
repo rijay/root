@@ -132,7 +132,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
-import { fetchReleaseRecord, publishContentVersion } from "./adminReleaseApi";
+import { fetchReleaseRecord, markContentPreviewComplete, publishContentVersion } from "./adminReleaseApi";
 
 const emit = defineEmits(["release-meta"]);
 
@@ -186,9 +186,16 @@ const canConfirmPublish = computed(() => {
   return Boolean(candidateVersion.value) && blockerCount.value === 0 && previewCompleted.value && previewConfirmed.value;
 });
 
-function openPreview() {
+async function openPreview() {
   if (!previewAvailable.value) return;
   window.open(contentRelease.value.previewPath, "_blank", "noopener,noreferrer");
+  try {
+    await markContentPreviewComplete(candidateVersion.value);
+    ElMessage.success("已记录本次候选内容预览");
+    await load();
+  } catch (error) {
+    errorMessage.value = error.outcomeUnknown ? "预览记录结果待确认，请刷新发布工作台" : error.message;
+  }
 }
 
 function openPublishConfirmation() {
@@ -209,7 +216,11 @@ async function confirmPublish() {
   publishing.value = true;
   errorMessage.value = "";
   try {
-    await publishContentVersion({ version: candidateVersion.value });
+    await publishContentVersion({
+      version: candidateVersion.value,
+      confirmed: true,
+      confirmationText: "确认发布内容",
+    });
     publishDialogVisible.value = false;
     ElMessage.success("内容版本已发布");
     await load();

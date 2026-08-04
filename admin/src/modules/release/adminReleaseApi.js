@@ -16,11 +16,20 @@ export function fetchReleaseRecord(target = "production") {
 }
 
 export function publishContentVersion(input = {}) {
-  const requestId = `content-publish-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  const requestId = `content-publish-attempt-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  const idempotencyKey = `content-publish-intent-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
   return postAdminJson("/api/v1/admin/content-release/publish", {
     ...input,
     requestId,
   }, {
-    headers: { "X-Request-Id": requestId },
+    headers: { "X-Request-Id": requestId, "X-Idempotency-Key": idempotencyKey },
+  });
+}
+
+export function markContentPreviewComplete(version) {
+  const requestId = `content-preview-attempt-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  const idempotencyKey = `content-preview-intent-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  return postAdminJson("/api/v1/admin/content-release/preview-complete", { version, requestId }, {
+    headers: { "X-Request-Id": requestId, "X-Idempotency-Key": idempotencyKey },
   });
 }

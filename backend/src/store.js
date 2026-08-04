@@ -48,6 +48,10 @@ function mergeDefaults(target, defaults) {
 
 function createEmptyData() {
   const data = createSeedData();
+  data.contentAssets = [];
+  data.contentVersions = [];
+  data.contentPublicationRecords = [];
+  data.contentPreviewRecords = [];
   data.formalContentItems = [];
   data.youzanProducts = [];
   data.youzanSkus = [];
@@ -161,6 +165,10 @@ function validateSnapshot(snapshot, options = {}) {
     ["rootUsers", "root_user_id"],
     ["wechatIdentities", "wechat_identity_id"],
     ["privacyConsentRecords", "privacy_consent_record_id"],
+    ["contentAssets", "content_asset_id"],
+    ["contentVersions", "content_version_id"],
+    ["contentPublicationRecords", "content_publication_record_id"],
+    ["contentPreviewRecords", "content_preview_record_id"],
     ["healthContentVersions", "health_content_version_id"],
     ["healthScaleResponses", "health_scale_response_id"],
     ["youzanProducts", "youzan_product_id"],

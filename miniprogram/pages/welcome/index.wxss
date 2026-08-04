@@ -23,6 +23,11 @@ page {
   inset: 0;
 }
 
+.welcome__image {
+  width: 100%;
+  height: 100%;
+}
+
 .welcome__slide {
   overflow: hidden;
   background: var(--root-ink);
