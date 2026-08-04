@@ -180,6 +180,9 @@ async function collectAdminQueryRehearsal(options = {}) {
     }
     for (let index = 0; index < samples; index += 1) {
       const requestId = `perf-write-${String(index + 1).padStart(3, "0")}`;
+      const existingDraft = store.contentVersions.find((row) => row.type === "WELCOME"
+        && row.status === "DRAFT"
+        && row.content.slot === 1);
       events.push(await measuredRequest(
         baseUrl,
         version,
@@ -192,6 +195,7 @@ async function collectAdminQueryRehearsal(options = {}) {
             "X-Idempotency-Key": `${requestId}-intent`,
           }),
           body: JSON.stringify({
+            ...(existingDraft ? { id: existingDraft.versionId, expectedRevision: existingDraft.revision } : {}),
             slot: 1,
             copy: "欢迎加入 Root Member Club",
             assetId: ASSET_ID,

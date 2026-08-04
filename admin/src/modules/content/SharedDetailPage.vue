@@ -207,6 +207,7 @@ import {
 
 const newDetailDraft = () => ({
   id: "",
+  expectedRevision: 0,
   title: "",
   versionLabel: "",
   sourceVersionId: "",
@@ -304,6 +305,7 @@ function openDetail(row) {
     id: row.status === "PUBLISHED" ? "" : row.id,
     sourceVersionId: row.status === "PUBLISHED" ? row.versionId : row.sourceVersionId || "",
     sourceVersionLabel: row.status === "PUBLISHED" ? row.versionLabel : row.sourceVersionLabel || "",
+    expectedRevision: row.status === "DRAFT" ? row.revision : 0,
     assets: normalizeAssets(row.assets),
   });
   activeAssetIndex.value = 0;
@@ -492,6 +494,7 @@ async function saveDetail() {
     await saveSharedDetailDraft({
       id: detailDraft.id,
       sourceVersionId: detailDraft.sourceVersionId,
+      expectedRevision: detailDraft.expectedRevision,
       title: detailDraft.title.trim(),
       previewCopy: detailDraft.previewCopy.trim(),
       assets,
@@ -501,6 +504,7 @@ async function saveDetail() {
     await load();
   } catch (error) {
     errorMessage.value = error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message;
+    if (error.status === 409) ElMessage.error(errorMessage.value);
   } finally {
     saving.value = false;
   }

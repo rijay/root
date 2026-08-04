@@ -6,7 +6,7 @@
 
 1. **构建证据**：运行 `npm run build:verify --prefix admin`。检查首屏、单个异步页面及全部静态资源的 gzip 体积；任何硬上限超标都会阻断本地门禁。
 2. **查询证据**：使用 `ADMIN_PERFORMANCE_R0` 固定数据规模，为列表、详情、写入、审计四类场景各采集至少 20 次，记录 `version`、`environment`、`datasetVersion`、`scenario`、`durationMs`、`responseBytes`。使用 `--query-events` 生成 P75、P95 与响应体报告。
-3. **浏览器证据**：覆盖 Chrome、Edge、标准办公网络和弱网，记录冷启动、缓存刷新、已加载菜单切换、首次异步页面四类场景；同时记录 DOM 节点、最长同步任务、最长卡顿、稳定内存、菜单循环后的内存增长、帧率和持续操作时间。使用 `--browser-events` 汇总。
+3. **浏览器证据**：覆盖 Chrome、标准办公网络和弱网，记录冷启动、缓存刷新、已加载菜单切换、首次异步页面四类场景；同时记录 DOM 节点、最长同步任务、最长卡顿、稳定内存、菜单循环后的内存增长、帧率和持续操作时间。使用 `--browser-events` 汇总。Edge 不在首发支持与验收范围内。
 
 候选报告命令示例：
 
@@ -34,7 +34,9 @@ node scripts/admin-performance-report.js \
 
 `evidence:admin-capacity:rehearse` 额外启动 5 个相互独立的本地运营会话，每个会话同时发起 2 个读取请求；内存 Store Adapter 的一次性并发屏障会确认服务实际接收到合计 10 路并发读取，且每个会话不超过浏览器 4 路读取上限。随后，两名模拟运营分别对首页轮播草稿和 Root4U 量表草稿执行“同一版本读取—甲先保存—乙用旧版本保存”：乙的两次写入都必须收到 HTTP 409 和刷新提示，权威读取必须保留甲的结果。结果写入 `capacity-conflict-rehearsal.json`，不包含令牌、手机号或健康答案。
 
-这项自动化用于提前发现服务端容量编排和乐观并发控制回归，属于本机 HTTP Interface 预演；它不等同于 5 个真实浏览器会话，也不关闭 Chrome/Edge 候选浏览器 Gate。
+这项自动化用于提前发现服务端容量编排和乐观并发控制回归，属于本机 HTTP Interface 预演；它不等同于 5 个真实浏览器会话，也不关闭 Chrome 候选浏览器 Gate。
+
+`browser-five-session-conflict-rehearsal.json` 记录 Chrome 受控浏览器预演：5 个独立标签页均在 `1240 × 820` 加载，首页轮播与 Root4U 量表分别由两个会话读取同一草稿，后保存者收到 HTTP 409 和“请刷新后重试”提示，编辑抽屉保留，第三个会话回读确认先保存结果未被覆盖。该材料补足本地 UI 链路排障，但标签页不是独立浏览器 Profile，且未完成网络模拟、20 次时延样本或 30 分钟稳定性，因此仍不是候选浏览器 Gate 证据。
 
 Chrome 本地浏览器预演结果保存在 `browser-rehearsal-samples.json`，可运行：
 
@@ -44,9 +46,9 @@ node scripts/admin-performance-report.js \
   --browser-events docs/evidence/admin-performance-r0/browser-rehearsal-samples.json
 ```
 
-紧凑文件按浏览器会话保存公共资源指标和各旅程时长数组，报告器会展开为事件。候选 Gate 要求 Chrome/Edge × 标准办公网/完整弱网四个组合各场景至少 20 次；办公网应用时延硬上限，弱网只验证完整覆盖、等待、超时和恢复，不套用办公网时延上限。网络模拟、浏览器、会话、冲突或 30 分钟稳定性不完整时仍必须 `BLOCK`。
+紧凑文件按浏览器会话保存公共资源指标和各旅程时长数组，报告器会展开为事件。候选 Gate 要求 Chrome × 标准办公网/完整弱网两个组合各场景至少 20 次；办公网应用时延硬上限，弱网只验证完整覆盖、等待、超时和恢复，不套用办公网时延上限。网络模拟、浏览器、会话、冲突或 30 分钟稳定性不完整时仍必须 `BLOCK`。
 
-`browser-long-task-isolation.json` 记录 Chrome 本地生产构建中首页轮播首次异步挂载的专项排障：关闭缓存后先复现并归因，再验证空闲预取与分阶段挂载。该材料只证明本地已消除可重复的 ≥50ms 同步任务，不替代 Chrome/Edge、完整网络、五会话和 30 分钟候选证据。
+`browser-long-task-isolation.json` 记录 Chrome 本地生产构建中首页轮播首次异步挂载的专项排障：关闭缓存后先复现并归因，再验证空闲预取与分阶段挂载。该材料只证明本地已消除可重复的 ≥50ms 同步任务，不替代 Chrome、完整网络、五会话和 30 分钟候选证据。
 
 ## 判定边界
 

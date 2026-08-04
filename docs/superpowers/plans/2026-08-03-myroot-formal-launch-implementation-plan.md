@@ -586,7 +586,7 @@
 4. 建立用户 10,000、活动报名 5,000、审计 20,000、内容版本 1,000 和量表 100 题的固定测试数据；列表默认 20 条、最大 50 条；
 5. 建立构建 Gate：首屏 JS+CSS 压缩后目标 ≤ 420KB、硬上限 520KB，首屏总传输硬上限 650KB，单页异步资源硬上限 180KB，后台总压缩体积硬上限 1MB；
 6. 建立查询 Gate：列表 P75 ≤ 800ms/P95 ≤ 1.5 秒，详情 P75 ≤ 600ms/P95 ≤ 1.2 秒，写入 P75 ≤ 1 秒/P95 ≤ 2 秒；响应不得出现 N+1 查询或未展示的无用统计；
-7. 建立浏览器 Gate：Chrome 与 Edge 稳定版、不低于 4 核 CPU/8GB 内存、`1240 × 820` 主视口；首次 DOM 硬上限 1,800、完整页面硬上限 3,500，单同步任务 ≤ 50ms，单标签稳定内存硬上限 300MB；
+7. 建立浏览器 Gate：Chrome 稳定版（Edge 不在首发支持范围）、不低于 4 核 CPU/8GB 内存、`1240 × 820` 主视口；首次 DOM 硬上限 1,800、完整页面硬上限 3,500，单同步任务 ≤ 50ms，单标签稳定内存硬上限 300MB；
 8. 固定标准办公网络（RTT 80ms、下行 10Mbps、上行 5Mbps）和弱网（RTT 200ms、下行 2Mbps、上行 1Mbps、丢包率 1%），每个关键场景执行 20 次，以 P75 为主结论并记录 P95；三层报告必须记录版本、环境、样本与差异；
 9. 当前旧产物只记录为过期的非正式参考，不得用于宣称新后台达标，也不得触发旧页面性能重构；
 10. 本阶段不新增缓存基础设施、实时推送、第三方 APM、性能大盘或运营 Gate。
@@ -751,7 +751,7 @@
 - `docs/evidence/performance-r0/regression-review.md`：绝对阈值、5% 预警、10% 阻断和例外失效版本；
 - `docs/evidence/admin-performance-r0/build-budget.json`：首屏、单页与后台总资源体积和相对增长；
 - `docs/evidence/admin-performance-r0/query-results.json`：固定测试数据、路由、样本、P75/P95、响应体与查询形态；
-- `docs/evidence/admin-performance-r0/browser-results.json`：Chrome/Edge、网络、DOM、帧率、长任务、内存和 20 次关键场景；
+- `docs/evidence/admin-performance-r0/browser-results.json`：Chrome、网络、DOM、帧率、长任务、内存和 20 次关键场景；
 - `docs/evidence/admin-performance-r0/regression-review.md`：三层 Gate、5% 预警、10% 阻断和例外失效版本；
 - 更新 UED handoff 证据，使 `screenCount=20`、`archivedPagesExcluded=true`、`allCanonicalStatesCovered=true` 只有在真实证据齐全时成立。
 
@@ -785,7 +785,7 @@
 - iOS 基准/主流设备、Android 4GB 基准/8GB 主流设备；最低基础库与验收时稳定版本；本地包、首次下载和版本更新；
 - 每个核心旅程至少 30 次，P75 为主要结论并记录 P95；连续切换四 Tab 10 轮、详情开关 10 次、完整旅程 15 分钟；
 - 后台 12 张画板对应桌面截图及表格溢出检查；
-- 后台在 Chrome/Edge、标准办公网络与弱网下各执行关键场景 20 次，记录 P75/P95；最多五个同时会话、两个测试会话编辑冲突和 30 分钟内存稳定性均需验证。
+- 后台在 Chrome、标准办公网络与弱网下各执行关键场景 20 次，记录 P75/P95；最多五个同时会话、两个测试会话编辑冲突和 30 分钟内存稳定性均需验证。
 
 **完成条件：**
 
@@ -831,7 +831,7 @@
 - 生产模型供应方、处理地区、保留规则或合同未确认，且任务准备启用模型 Adapter；
 - 最低基础库、基准设备或网络档位无法锁定，且任务准备关闭真机性能 Gate；
 - 任一性能硬上限失败，或相对最近批准基线退化 10% 以上；
-- 后台目标 Chrome/Edge、固定测试数据或网络档位不可用，且任务准备关闭构建、查询或浏览器 Gate；
+- 后台目标 Chrome、固定测试数据或网络档位不可用，且任务准备关闭构建、查询或浏览器 Gate；
 - 删除目标仍被线上版本、保留 Module 或真实业务数据使用；
 - 需要部署、生产 migration、微信上传、审核、发布或切流。
 

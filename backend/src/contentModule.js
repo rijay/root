@@ -289,7 +289,8 @@ function editableDraft(data, type, input = {}) {
   const version = versionRows(data).find((row) => row.versionId === id && row.type === type);
   if (!version) throw contentError("CONTENT_VERSION_NOT_FOUND", "内容版本不存在", 404);
   if (version.status !== "DRAFT") throw contentError("CONTENT_PUBLISHED_IMMUTABLE", "已发布内容不可原地修改");
-  if (input.expectedRevision !== undefined && Number(input.expectedRevision) !== version.revision) {
+  const expectedRevision = Number(input.expectedRevision);
+  if (!Number.isInteger(expectedRevision) || expectedRevision !== version.revision) {
     throw contentError("CONTENT_REVISION_CONFLICT", "内容已被其他运营更新，请刷新后重试", 409);
   }
   return version;
@@ -323,7 +324,10 @@ function saveWelcomeDraft(data, input = {}, context = {}) {
     copy: requiredText(input.copy, "欢迎页文案", 500),
     assetId: requiredText(input.assetId || input.asset_id, "背景图", 80),
   };
-  const existing = editableDraft(data, TYPES.WELCOME, input) || draftForLogical(data, TYPES.WELCOME, logicalId);
+  const selectedDraft = editableDraft(data, TYPES.WELCOME, input);
+  const unselectedDraft = selectedDraft ? null : draftForLogical(data, TYPES.WELCOME, logicalId);
+  if (unselectedDraft) throw contentError("CONTENT_REVISION_CONFLICT", "已有欢迎页草稿，请刷新后重试", 409);
+  const existing = selectedDraft;
   const source = currentPublished(data, TYPES.WELCOME, logicalId);
   const version = existing
     ? updateDraft(existing, content, context)

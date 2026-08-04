@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-04T09:27:38.904Z",
+  "generatedAt": "2026-08-04T10:17:35.795Z",
   "evidenceClass": "LOCAL_REHEARSAL",
   "gate": "BUILD",
   "status": "PASS",
@@ -9,41 +9,41 @@
   "metrics": {
     "initialCompressed": {
       "status": "PASS",
-      "value": 227110,
+      "value": 227238,
       "target": 430080,
       "hardLimit": 532480
     },
     "firstScreenCompressed": {
       "status": "PASS",
-      "value": 227436,
+      "value": 227567,
       "target": 512000,
       "hardLimit": 665600
     },
     "totalCompressed": {
       "status": "PASS",
-      "value": 282291,
+      "value": 282494,
       "target": 819200,
       "hardLimit": 1048576
     }
   },
   "initialFiles": [
-    "assets/element-D6bMu-5d.js",
     "assets/element-DhW6rax2.css",
-    "assets/index-D0YxJeeF.js",
+    "assets/element-S1uxt_2J.js",
+    "assets/index-BXLqOrY1.js",
     "assets/index-eJah-qYD.css",
-    "assets/vue-B5v1KqDY.js"
+    "assets/vue-DBlZkBQZ.js"
   ],
   "asyncPages": [
     {
       "source": "src/modules/content/SharedDetailPage.vue",
       "files": [
-        "assets/SharedDetailPage-2h4MdOFa.js",
-        "assets/adminContentApi-CRBIezJh.js"
+        "assets/SharedDetailPage-BQARsqtX.js",
+        "assets/adminContentApi-79Lj1ACN.js"
       ],
-      "compressedBytes": 7253,
+      "compressedBytes": 7255,
       "budget": {
         "status": "PASS",
-        "value": 7253,
+        "value": 7255,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -51,14 +51,14 @@
     {
       "source": "src/modules/activities/ActivityManagementPage.vue",
       "files": [
-        "assets/ActivityManagementPage-CrvSZYvD.js",
-        "assets/adminActivityApi-CNnlWfUf.js",
-        "assets/adminContentApi-CRBIezJh.js"
+        "assets/ActivityManagementPage-BiuBNEM9.js",
+        "assets/adminActivityApi-DbR8CU_b.js",
+        "assets/adminContentApi-79Lj1ACN.js"
       ],
-      "compressedBytes": 6835,
+      "compressedBytes": 6838,
       "budget": {
         "status": "PASS",
-        "value": 6835,
+        "value": 6838,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -67,14 +67,14 @@
       "source": "src/modules/health/ScaleManagementPage.vue",
       "files": [
         "assets/ScaleManagementPage-BsYfeavT.css",
-        "assets/ScaleManagementPage-C17saygT.js",
+        "assets/ScaleManagementPage-CF03RYpo.js",
         "assets/_plugin-vue_export-helper-DlAUqK2U.js",
-        "assets/adminHealthApi-CzguybCM.js"
+        "assets/adminHealthApi-BTkJ35OR.js"
       ],
-      "compressedBytes": 6727,
+      "compressedBytes": 6728,
       "budget": {
         "status": "PASS",
-        "value": 6727,
+        "value": 6728,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -82,13 +82,13 @@
     {
       "source": "src/modules/content/HomeCarouselPage.vue",
       "files": [
-        "assets/HomeCarouselPage-Dx_RiFh7.js",
-        "assets/adminContentApi-CRBIezJh.js"
+        "assets/HomeCarouselPage-OvXZA14O.js",
+        "assets/adminContentApi-79Lj1ACN.js"
       ],
-      "compressedBytes": 5416,
+      "compressedBytes": 5480,
       "budget": {
         "status": "PASS",
-        "value": 5416,
+        "value": 5480,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -96,13 +96,13 @@
     {
       "source": "src/modules/activities/ActivityRegistrationsPage.vue",
       "files": [
-        "assets/ActivityRegistrationsPage-DlmF5e54.js",
-        "assets/adminActivityApi-CNnlWfUf.js"
+        "assets/ActivityRegistrationsPage-Ce9fMrO8.js",
+        "assets/adminActivityApi-DbR8CU_b.js"
       ],
-      "compressedBytes": 5188,
+      "compressedBytes": 5191,
       "budget": {
         "status": "PASS",
-        "value": 5188,
+        "value": 5191,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -110,13 +110,13 @@
     {
       "source": "src/modules/health/LifestyleAdvicePage.vue",
       "files": [
-        "assets/LifestyleAdvicePage-DJDTMPjB.js",
-        "assets/adminHealthApi-CzguybCM.js"
+        "assets/LifestyleAdvicePage-BBqwV6qy.js",
+        "assets/adminHealthApi-BTkJ35OR.js"
       ],
-      "compressedBytes": 5068,
+      "compressedBytes": 5070,
       "budget": {
         "status": "PASS",
-        "value": 5068,
+        "value": 5070,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -124,13 +124,13 @@
     {
       "source": "src/modules/health/RecommendationRulesPage.vue",
       "files": [
-        "assets/RecommendationRulesPage-DiUXAbFm.js",
-        "assets/adminHealthApi-CzguybCM.js"
+        "assets/RecommendationRulesPage-rZ6gA8bl.js",
+        "assets/adminHealthApi-BTkJ35OR.js"
       ],
-      "compressedBytes": 4975,
+      "compressedBytes": 4977,
       "budget": {
         "status": "PASS",
-        "value": 4975,
+        "value": 4977,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -138,13 +138,13 @@
     {
       "source": "src/modules/health/InitializationPage.vue",
       "files": [
-        "assets/InitializationPage-Ct9zPt-q.js",
-        "assets/adminHealthApi-CzguybCM.js"
+        "assets/InitializationPage-CIlf0mLt.js",
+        "assets/adminHealthApi-BTkJ35OR.js"
       ],
-      "compressedBytes": 4929,
+      "compressedBytes": 4930,
       "budget": {
         "status": "PASS",
-        "value": 4929,
+        "value": 4930,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -152,13 +152,13 @@
     {
       "source": "src/modules/content/WelcomeContentPage.vue",
       "files": [
-        "assets/WelcomeContentPage-pLRPOyQG.js",
-        "assets/adminContentApi-CRBIezJh.js"
+        "assets/WelcomeContentPage-DQ4uIcrV.js",
+        "assets/adminContentApi-79Lj1ACN.js"
       ],
-      "compressedBytes": 4397,
+      "compressedBytes": 4398,
       "budget": {
         "status": "PASS",
-        "value": 4397,
+        "value": 4398,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -166,12 +166,12 @@
     {
       "source": "src/modules/release/ReleaseWorkbench.vue",
       "files": [
-        "assets/ReleaseWorkbench-DxUWDl8u.js"
+        "assets/ReleaseWorkbench-dt0sH89B.js"
       ],
-      "compressedBytes": 4123,
+      "compressedBytes": 4122,
       "budget": {
         "status": "PASS",
-        "value": 4123,
+        "value": 4122,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -179,14 +179,14 @@
     {
       "source": "src/modules/audit/OperationAuditPage.vue",
       "files": [
-        "assets/OperationAuditPage-CFKEwdQQ.js",
+        "assets/OperationAuditPage-CdwAt6Bm.js",
         "assets/OperationAuditPage-DUaJiCcb.css",
         "assets/_plugin-vue_export-helper-DlAUqK2U.js"
       ],
-      "compressedBytes": 2974,
+      "compressedBytes": 2975,
       "budget": {
         "status": "PASS",
-        "value": 2974,
+        "value": 2975,
         "target": 122880,
         "hardLimit": 184320
       }
@@ -194,7 +194,7 @@
     {
       "source": "src/modules/users/UserQueryPage.vue",
       "files": [
-        "assets/UserQueryPage-BWHyrYDA.js",
+        "assets/UserQueryPage-BvVTcQoY.js",
         "assets/UserQueryPage-UW8KLMO7.css",
         "assets/_plugin-vue_export-helper-DlAUqK2U.js"
       ],
@@ -213,48 +213,48 @@
   ],
   "gates": {
     "build": "PASS",
-    "query": "PASS",
+    "query": "BLOCK",
     "browser": "BLOCK"
   },
   "query": {
-    "status": "PASS",
+    "status": "BLOCK",
     "dimensions": {
-      "version": "local-0.5.13",
-      "environment": "local-fixed-fixture",
-      "datasetVersion": "ADMIN_PERFORMANCE_R0"
+      "version": "",
+      "environment": "",
+      "datasetVersion": ""
     },
     "scenarios": [
       {
         "scenario": "list",
-        "sampleCount": 20,
-        "p75Ms": 20.598,
-        "p95Ms": 26.839,
-        "maxResponseBytes": 19020,
-        "status": "PASS"
+        "sampleCount": 0,
+        "p75Ms": null,
+        "p95Ms": null,
+        "maxResponseBytes": null,
+        "status": "BLOCK"
       },
       {
         "scenario": "detail",
-        "sampleCount": 20,
-        "p75Ms": 17.593,
-        "p95Ms": 19.7,
-        "maxResponseBytes": 243,
-        "status": "PASS"
+        "sampleCount": 0,
+        "p75Ms": null,
+        "p95Ms": null,
+        "maxResponseBytes": null,
+        "status": "BLOCK"
       },
       {
         "scenario": "write",
-        "sampleCount": 20,
-        "p75Ms": 15.425,
-        "p95Ms": 21.215,
-        "maxResponseBytes": 1177,
-        "status": "PASS"
+        "sampleCount": 0,
+        "p75Ms": null,
+        "p95Ms": null,
+        "maxResponseBytes": null,
+        "status": "BLOCK"
       },
       {
         "scenario": "audit",
-        "sampleCount": 20,
-        "p75Ms": 29.722,
-        "p95Ms": 38.078,
-        "maxResponseBytes": 6078,
-        "status": "PASS"
+        "sampleCount": 0,
+        "p75Ms": null,
+        "p95Ms": null,
+        "maxResponseBytes": null,
+        "status": "BLOCK"
       }
     ]
   },
@@ -275,7 +275,6 @@
     },
     "limitations": [
       "CONFLICT_SCENARIOS_NOT_RUN",
-      "EDGE_NOT_AVAILABLE",
       "NAVIGATION_LONG_TASK_SCOPE_PARTIAL",
       "PACKET_LOSS_1_PERCENT_NOT_EMULATED",
       "SINGLE_SESSION_ONLY",
@@ -401,34 +400,6 @@
             "observedMaximumMs": 4249,
             "timingGateApplied": false,
             "status": "BLOCK"
-          },
-          {
-            "browser": "Edge",
-            "networkProfile": "office",
-            "sampleCount": 0,
-            "observedSampleCount": 0,
-            "p75Ms": null,
-            "p95Ms": null,
-            "maximumMs": null,
-            "observedP75Ms": null,
-            "observedP95Ms": null,
-            "observedMaximumMs": null,
-            "timingGateApplied": true,
-            "status": "BLOCK"
-          },
-          {
-            "browser": "Edge",
-            "networkProfile": "weak",
-            "sampleCount": 0,
-            "observedSampleCount": 0,
-            "p75Ms": null,
-            "p95Ms": null,
-            "maximumMs": null,
-            "observedP75Ms": null,
-            "observedP95Ms": null,
-            "observedMaximumMs": null,
-            "timingGateApplied": false,
-            "status": "BLOCK"
           }
         ],
         "status": "BLOCK"
@@ -465,34 +436,6 @@
             "observedP75Ms": 3929,
             "observedP95Ms": 3937,
             "observedMaximumMs": 3940,
-            "timingGateApplied": false,
-            "status": "BLOCK"
-          },
-          {
-            "browser": "Edge",
-            "networkProfile": "office",
-            "sampleCount": 0,
-            "observedSampleCount": 0,
-            "p75Ms": null,
-            "p95Ms": null,
-            "maximumMs": null,
-            "observedP75Ms": null,
-            "observedP95Ms": null,
-            "observedMaximumMs": null,
-            "timingGateApplied": true,
-            "status": "BLOCK"
-          },
-          {
-            "browser": "Edge",
-            "networkProfile": "weak",
-            "sampleCount": 0,
-            "observedSampleCount": 0,
-            "p75Ms": null,
-            "p95Ms": null,
-            "maximumMs": null,
-            "observedP75Ms": null,
-            "observedP95Ms": null,
-            "observedMaximumMs": null,
             "timingGateApplied": false,
             "status": "BLOCK"
           }
@@ -533,34 +476,6 @@
             "observedMaximumMs": 308,
             "timingGateApplied": false,
             "status": "BLOCK"
-          },
-          {
-            "browser": "Edge",
-            "networkProfile": "office",
-            "sampleCount": 0,
-            "observedSampleCount": 0,
-            "p75Ms": null,
-            "p95Ms": null,
-            "maximumMs": null,
-            "observedP75Ms": null,
-            "observedP95Ms": null,
-            "observedMaximumMs": null,
-            "timingGateApplied": true,
-            "status": "BLOCK"
-          },
-          {
-            "browser": "Edge",
-            "networkProfile": "weak",
-            "sampleCount": 0,
-            "observedSampleCount": 0,
-            "p75Ms": null,
-            "p95Ms": null,
-            "maximumMs": null,
-            "observedP75Ms": null,
-            "observedP95Ms": null,
-            "observedMaximumMs": null,
-            "timingGateApplied": false,
-            "status": "BLOCK"
           }
         ],
         "status": "BLOCK"
@@ -597,34 +512,6 @@
             "observedP75Ms": 948,
             "observedP95Ms": 956,
             "observedMaximumMs": 969,
-            "timingGateApplied": false,
-            "status": "BLOCK"
-          },
-          {
-            "browser": "Edge",
-            "networkProfile": "office",
-            "sampleCount": 0,
-            "observedSampleCount": 0,
-            "p75Ms": null,
-            "p95Ms": null,
-            "maximumMs": null,
-            "observedP75Ms": null,
-            "observedP95Ms": null,
-            "observedMaximumMs": null,
-            "timingGateApplied": true,
-            "status": "BLOCK"
-          },
-          {
-            "browser": "Edge",
-            "networkProfile": "weak",
-            "sampleCount": 0,
-            "observedSampleCount": 0,
-            "p75Ms": null,
-            "p95Ms": null,
-            "maximumMs": null,
-            "observedP75Ms": null,
-            "observedP95Ms": null,
-            "observedMaximumMs": null,
             "timingGateApplied": false,
             "status": "BLOCK"
           }

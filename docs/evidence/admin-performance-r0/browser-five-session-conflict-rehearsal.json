@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "LOCAL_REHEARSAL",
+  "generatedAt": "2026-08-04T10:27:27Z",
+  "environment": "local-ued-review",
+  "browser": {
+    "name": "Chrome",
+    "supportedBrowserScope": ["Chrome"],
+    "edgeRequired": false,
+    "viewportWidth": 1240,
+    "viewportHeight": 820
+  },
+  "sessions": {
+    "sessionCount": 5,
+    "surface": "INDEPENDENT_CHROME_TABS",
+    "simultaneousLoadRequested": true,
+    "allSessionsRendered": true,
+    "allSessionsAtApprovedViewport": true
+  },
+  "conflicts": [
+    {
+      "scenario": "HOME_CAROUSEL_DRAFT",
+      "operatorCount": 2,
+      "staleWriteHttpStatus": 409,
+      "refreshInstructionVisible": true,
+      "staleEditorRemainedOpen": true,
+      "authoritativeWinnerPreserved": true,
+      "status": "PASS"
+    },
+    {
+      "scenario": "HEALTH_SCALE_DRAFT",
+      "operatorCount": 2,
+      "staleWriteHttpStatus": 409,
+      "refreshInstructionVisible": true,
+      "staleEditorRemainedOpen": true,
+      "authoritativeWinnerPreserved": true,
+      "status": "PASS"
+    }
+  ],
+  "relatedAutomatedEvidence": "capacity-conflict-rehearsal.json",
+  "summary": {
+    "conflictScenarios": 2,
+    "status": "PASS"
+  },
+  "limitations": [
+    "LOCAL_CHROME_TABS_NOT_SEPARATE_BROWSER_PROFILES",
+    "NO_OFFICE_OR_WEAK_NETWORK_EMULATION",
+    "NO_20_SAMPLE_TIMING_SERIES",
+    "THIRTY_MINUTE_STABILITY_NOT_RUN",
+    "NOT_CANDIDATE_GATE_EVIDENCE",
+    "NOT_PRODUCTION_EVIDENCE"
+  ]
+}

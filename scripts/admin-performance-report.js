@@ -191,6 +191,10 @@ function expandBrowserEvidence(input) {
 
 function aggregateBrowserEvidence(events, budgets) {
   if (!events.length) return { status: "BLOCK", sampleCount: 0, reason: "MISSING_BROWSER_EVIDENCE" };
+  const requiredBrowsers = Array.isArray(budgets.browser.supportedBrowsers)
+    ? budgets.browser.supportedBrowsers
+    : [];
+  if (!requiredBrowsers.length) return { status: "BLOCK", sampleCount: 0, reason: "MISSING_BROWSER_SCOPE" };
   const requiredNumbers = [
     "initialDomNodes", "pageDomNodes", "maxTaskMs", "maxFreezeMs", "stableMemoryMiB",
     "fps", "memoryGrowthRatio", "menuCycles", "editCycles", "journeyDurationMinutes",
@@ -201,7 +205,7 @@ function aggregateBrowserEvidence(events, budgets) {
   const dimensions = { version: String(first.version || ""), environment: String(first.environment || "") };
   const valid = events.filter((event) => requiredNumbers.every((field) => Number.isFinite(event?.[field]))
     && typeof event.scenario === "string"
-    && ["Chrome", "Edge"].includes(event.browser)
+    && requiredBrowsers.includes(event.browser)
     && typeof event.browserVersion === "string" && Boolean(event.browserVersion.trim())
     && Object.hasOwn(budgets.networkProfiles, event.networkProfile)
     && event.networkEmulationComplete === true
@@ -241,12 +245,12 @@ function aggregateBrowserEvidence(events, budgets) {
   };
   const resourcePasses = Boolean(dimensions.version && dimensions.environment)
     && valid.length === events.length
-    && browsers.has("Chrome") && browsers.has("Edge")
+    && requiredBrowsers.every((browser) => browsers.has(browser))
     && networkProfiles.has("office") && networkProfiles.has("weak")
     && Object.values(resources).every((item) => item.status !== "BLOCK")
     && valid.every((event) => event.viewportWidth === 1240 && event.viewportHeight === 820);
   const journeys = Object.entries(budgets.journeys).map(([scenario, limits]) => {
-    const groups = ["Chrome", "Edge"].flatMap((browser) => ["office", "weak"].map((networkProfile) => {
+    const groups = requiredBrowsers.flatMap((browser) => ["office", "weak"].map((networkProfile) => {
       const observedSamples = events
         .filter((event) => event.scenario === scenario
           && event.browser === browser

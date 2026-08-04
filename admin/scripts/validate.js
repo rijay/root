@@ -155,6 +155,10 @@ for (const value of [
   "startHotspot",
   "validationStatus !== \"PASS\"",
 ]) assert.equal(detailPage.includes(value), true, `shared detail must include ${value}`);
+for (const [name, source] of [["welcome", welcomePage], ["home carousel", carouselPage], ["shared detail", detailPage]]) {
+  assert.equal(source.includes("expectedRevision"), true, `${name} editor must preserve optimistic concurrency revision`);
+  assert.equal(source.includes("error.status === 409"), true, `${name} editor must show revision conflicts`);
+}
 for (const value of ["script", "style", "javascript:"]) {
   assert.equal(contentApi.includes(value), false, `content Interface must not expose arbitrary ${value}`);
 }
@@ -237,6 +241,9 @@ for (const value of ["主分类", "辅助标签", "不使用手机号、昵称�
 }
 for (const value of ["模型配置", "不输入或显示模型密钥", "最少字段", "三条轮换", "固定降级内容", "健康安全", "确认发布", "expectedRevision", "AbortController"]) {
   assert.equal(lifestylePage.includes(value), true, `lifestyle page must include ${value}`);
+}
+for (const [name, source] of [["initialization", initializationPage], ["scale", scalePage], ["recommendation", recommendationPage], ["lifestyle", lifestylePage]]) {
+  assert.equal(source.includes("error.status === 409"), true, `${name} editor must show revision conflicts`);
 }
 for (const forbidden of ["apiKey", "apiSecret", "modelSecret", "type=\"password\""]) {
   assert.equal(lifestylePage.includes(forbidden), false, `lifestyle page must not expose ${forbidden}`);

@@ -58,6 +58,7 @@
     "maximumPageSize": 50
   },
   "browser": {
+    "supportedBrowsers": ["Chrome"],
     "minimumHardwareConcurrency": 4,
     "minimumDeviceMemoryGiB": 8,
     "initialDomNodes": { "target": 1200, "hardLimit": 1800 },

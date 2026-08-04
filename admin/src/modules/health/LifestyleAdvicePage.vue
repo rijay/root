@@ -61,7 +61,7 @@ async function saveDraft() {
   if (!draft.name.trim() || !draft.modelConfigurationId || !draft.minimumFieldsSummary.trim() || !draft.fallbackContentVersionId) return ElMessage.warning("请完成所有必填项");
   saving.value = true; errorMessage.value = "";
   try { await saveLifestyleAdviceDraft({ id: draft.id, sourceVersionId: draft.sourceVersionId, expectedRevision: draft.expectedRevision, name: draft.name.trim(), modelConfigurationId: draft.modelConfigurationId, minimumFields: ["PRIMARY_CATEGORY", "AUXILIARY_TAGS", "ASSESSMENT_RESULTS"], minimumFieldsSummary: draft.minimumFieldsSummary.trim(), regenerationTrigger: "PROFILE_OR_ASSESSMENT_CHANGED", rotationSize: 3, validation: { structure: draft.structureCheck, prohibitedLanguage: draft.prohibitedLanguageCheck, healthSafety: draft.healthSafetyCheck }, fallbackContentVersionId: draft.fallbackContentVersionId, approver: draft.approver.trim(), effectiveAt: draft.effectiveAt }); ElMessage.success("建议策略草稿已保存"); drawerVisible.value = false; await load(); }
-  catch (error) { errorMessage.value = error.status === 404 ? "正式建议策略草稿能力尚未接入，内容未保存" : (error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message); }
+  catch (error) { errorMessage.value = error.status === 404 ? "正式建议策略草稿能力尚未接入，内容未保存" : (error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message); if (error.status === 409) ElMessage.error(errorMessage.value); }
   finally { saving.value = false; }
 }
 async function publishDraft(row) {

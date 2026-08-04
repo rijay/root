@@ -59,7 +59,6 @@
     }
   },
   "limitations": [
-    "EDGE_NOT_AVAILABLE",
     "WEAK_PACKET_LOSS_NOT_EMULATED",
     "SINGLE_SESSION_ONLY",
     "CONFLICT_SCENARIOS_NOT_RUN",

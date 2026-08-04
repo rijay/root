@@ -101,7 +101,7 @@ async function saveDraft() {
   saving.value = true; errorMessage.value = "";
   const payload = { ...draft, name: draft.name.trim(), questionSummary: draft.questionSummary.trim(), scoringSummary: draft.scoringSummary.trim(), questions: draft.questions.map((question) => ({ ...question, title: question.title.trim(), options: question.options.map((option) => ({ ...option, label: option.label.trim() })) })), resultLevels: draft.resultLevels.map((level) => ({ ...level, title: level.title.trim(), summary: level.summary.trim(), tips: level.tipsText.split("\n").map((item) => item.trim()).filter(Boolean).slice(0, 3) })) };
   try { await saveHealthScaleDraft(payload); ElMessage.success("量表草稿已保存"); drawerVisible.value = false; await load(); }
-  catch (error) { errorMessage.value = error.status === 404 ? "正式量表草稿能力尚未接入，内容未保存" : (error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message); }
+  catch (error) { errorMessage.value = error.status === 404 ? "正式量表草稿能力尚未接入，内容未保存" : (error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message); if (error.status === 409) ElMessage.error(errorMessage.value); }
   finally { saving.value = false; }
 }
 async function publishDraft(row) {

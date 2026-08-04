@@ -195,6 +195,7 @@ import {
 
 const emptyDraft = () => ({
   id: "",
+  expectedRevision: 0,
   order: 1,
   internalName: "",
   copy: "",
@@ -263,6 +264,7 @@ function editDraft(row) {
   Object.assign(draft, emptyDraft(), row, {
     id: row.status === "PUBLISHED" ? "" : row.id,
     sourceVersionId: row.status === "PUBLISHED" ? row.versionId : "",
+    expectedRevision: row.status === "DRAFT" ? row.revision : 0,
   });
   selectedFile.value = null;
   drawerVisible.value = true;
@@ -324,6 +326,7 @@ async function saveDraft() {
     await load();
   } catch (error) {
     errorMessage.value = error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message;
+    if (error.status === 409) ElMessage.error(errorMessage.value);
   } finally {
     saving.value = false;
   }

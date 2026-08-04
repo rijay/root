@@ -111,6 +111,7 @@ import { ElMessageBox } from "element-plus/es/components/message-box/index";
 import { fetchWelcomeContent, saveWelcomeDraft, unpublishContentVersion, uploadContentAsset } from "./adminContentApi";
 
 const emptyScreen = (slot) => ({
+  id: "",
   slot,
   status: "EMPTY",
   copy: "",
@@ -119,6 +120,7 @@ const emptyScreen = (slot) => ({
   assetMeta: "",
   previewUrl: "",
   version: "",
+  expectedRevision: 0,
   validationLabel: "待校验",
 });
 
@@ -152,7 +154,12 @@ function normalizeScreens(data) {
 }
 
 function editScreen(index) {
-  Object.assign(draft, screens.value[index]);
+  const screen = screens.value[index];
+  Object.assign(draft, emptyScreen(screen.slot), screen, {
+    id: screen.status === "DRAFT" ? screen.id : "",
+    sourceVersionId: screen.status === "PUBLISHED" ? screen.versionId : screen.sourceVersionId || "",
+    expectedRevision: screen.status === "DRAFT" ? screen.revision : 0,
+  });
   selectedFile.value = null;
   drawerVisible.value = true;
 }
@@ -202,12 +209,20 @@ async function saveDraft() {
       const uploaded = await uploadContentAsset(selectedFile.value, `welcome-${draft.slot}`);
       assetId = uploaded.assetId;
     }
-    await saveWelcomeDraft({ slot: draft.slot, copy: draft.copy.trim(), assetId });
+    await saveWelcomeDraft({
+      id: draft.id,
+      sourceVersionId: draft.sourceVersionId,
+      expectedRevision: draft.expectedRevision,
+      slot: draft.slot,
+      copy: draft.copy.trim(),
+      assetId,
+    });
     ElMessage.success("欢迎页草稿已保存");
     drawerVisible.value = false;
     await load();
   } catch (error) {
     errorMessage.value = error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message;
+    if (error.status === 409) ElMessage.error(errorMessage.value);
   } finally {
     saving.value = false;
   }

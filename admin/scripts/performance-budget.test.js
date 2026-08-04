@@ -16,6 +16,7 @@ const {
 } = require("../../scripts/admin-performance-report.js");
 const adminRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const budgets = JSON.parse(fs.readFileSync(path.join(adminRoot, "config/performance-budgets.json"), "utf8"));
+const fiveSessionEvidence = JSON.parse(fs.readFileSync(path.join(adminRoot, "..", "docs", "evidence", "admin-performance-r0", "browser-five-session-conflict-rehearsal.json"), "utf8"));
 
 test("approved admin performance budget remains internally consistent", () => {
   assert.equal(budgets.schemaVersion, 1);
@@ -33,6 +34,7 @@ test("approved admin performance budget remains internally consistent", () => {
   assert.equal(budgets.responses.maximumPageSize, 50);
   assert.equal(budgets.browser.minimumHardwareConcurrency, 4);
   assert.equal(budgets.browser.minimumDeviceMemoryGiB, 8);
+  assert.deepEqual(budgets.browser.supportedBrowsers, ["Chrome"]);
   assert.deepEqual(budgets.evidence.requiredGates, ["BUILD", "QUERY", "BROWSER"]);
   assert.equal(budgets.evidence.operationGateEnabled, false);
 });
@@ -89,7 +91,7 @@ test("candidate query and browser evidence only pass with complete bounded sampl
     networkEmulationComplete: true,
   };
   const browserEvents = Object.keys(budgets.journeys).flatMap((scenario) => (
-    ["Chrome", "Edge"].flatMap((browser) => ["office", "weak"].flatMap((networkProfile) => (
+    budgets.browser.supportedBrowsers.flatMap((browser) => ["office", "weak"].flatMap((networkProfile) => (
       Array.from({ length: 20 }, () => ({
         ...browserMetrics,
         scenario,
@@ -102,7 +104,8 @@ test("candidate query and browser evidence only pass with complete bounded sampl
   const browserEvidence = aggregateBrowserEvidence(browserEvents, budgets);
   assert.equal(browserEvidence.status, "PASS");
   assert.equal(browserEvidence.resources.sessionCount.status, "PASS");
-  assert.equal(browserEvidence.journeys[0].groups.length, 4);
+  assert.equal(browserEvidence.journeys[0].groups.length, 2);
+  assert.equal(aggregateBrowserEvidence(browserEvents.map((event) => ({ ...event, browser: "Edge" })), budgets).status, "BLOCK");
   assert.equal(aggregateBrowserEvidence([{ ...browserMetrics, scenario: "coldStart", durationMs: 100, fps: 49 }], budgets).status, "BLOCK");
 });
 
@@ -129,4 +132,17 @@ test("compact browser sessions expand without duplicating sensitive data", () =>
   assert.equal(events[0].networkEmulationComplete, true);
   assert.equal(events[0].hardwareConcurrency, 10);
   assert.deepEqual(events[0].evidenceLimitations, ["LOCAL_ONLY"]);
+});
+
+test("controlled Chrome five-session evidence stays local and covers both conflict paths", () => {
+  assert.equal(fiveSessionEvidence.evidenceClass, "LOCAL_REHEARSAL");
+  assert.deepEqual(fiveSessionEvidence.browser.supportedBrowserScope, ["Chrome"]);
+  assert.equal(fiveSessionEvidence.browser.edgeRequired, false);
+  assert.equal(fiveSessionEvidence.sessions.sessionCount, 5);
+  assert.equal(fiveSessionEvidence.sessions.allSessionsAtApprovedViewport, true);
+  assert.deepEqual(fiveSessionEvidence.conflicts.map((item) => [item.scenario, item.staleWriteHttpStatus, item.status]), [
+    ["HOME_CAROUSEL_DRAFT", 409, "PASS"],
+    ["HEALTH_SCALE_DRAFT", 409, "PASS"],
+  ]);
+  assert.equal(fiveSessionEvidence.limitations.includes("NOT_CANDIDATE_GATE_EVIDENCE"), true);
 });

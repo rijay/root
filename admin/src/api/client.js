@@ -53,6 +53,11 @@ function abortedError(isRead) {
   return error;
 }
 
+function validResponseCode(code) {
+  return typeof code === "number"
+    || (typeof code === "string" && /^[A-Z][A-Z0-9_-]{1,63}$/.test(code));
+}
+
 function drainAdminReads() {
   while (activeAdminReads < MAX_CONCURRENT_ADMIN_READS && pendingAdminReads.length) {
     const queued = pendingAdminReads.shift();
@@ -162,7 +167,7 @@ async function executeAdminRequest(path, options, isRead, adminToken, requestSig
     || typeof payload !== "object"
     || Array.isArray(payload)
     || !Object.prototype.hasOwnProperty.call(payload, "code")
-    || typeof payload.code !== "number") {
+    || !validResponseCode(payload.code)) {
     throw invalidResponseEnvelope(isRead, response.status);
   }
   if (!response.ok && payload.code === 0) {
