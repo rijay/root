@@ -24,12 +24,17 @@ node scripts/admin-performance-report.js \
 
 ```sh
 npm run evidence:admin-query:rehearse
+npm run evidence:admin-capacity:rehearse
 node scripts/admin-performance-report.js \
   --rehearsal \
   --query-events docs/evidence/admin-performance-r0/query-rehearsal-events.json
 ```
 
 该命令只启动进程内存储和本机 HTTP 服务，按固定规模采集列表、用户详情、审计与草稿写入各 20 次，不连接候选或生产环境。输出结构可直接被候选报告复用，但其 `environment=local-fixed-fixture`，只能作为 `LOCAL_REHEARSAL` 排障材料，不关闭候选查询 Gate。
+
+`evidence:admin-capacity:rehearse` 额外启动 5 个相互独立的本地运营会话，每个会话同时发起 2 个读取请求；内存 Store Adapter 的一次性并发屏障会确认服务实际接收到合计 10 路并发读取，且每个会话不超过浏览器 4 路读取上限。随后，两名模拟运营分别对首页轮播草稿和 Root4U 量表草稿执行“同一版本读取—甲先保存—乙用旧版本保存”：乙的两次写入都必须收到 HTTP 409 和刷新提示，权威读取必须保留甲的结果。结果写入 `capacity-conflict-rehearsal.json`，不包含令牌、手机号或健康答案。
+
+这项自动化用于提前发现服务端容量编排和乐观并发控制回归，属于本机 HTTP Interface 预演；它不等同于 5 个真实浏览器会话，也不关闭 Chrome/Edge 候选浏览器 Gate。
 
 Chrome 本地浏览器预演结果保存在 `browser-rehearsal-samples.json`，可运行：
 

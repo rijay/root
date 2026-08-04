@@ -10,6 +10,7 @@
     "evidence:local:write": "npm run build --prefix admin && node scripts/formal-launch-local-evidence.js --write",
     "evidence:local:check": "node scripts/formal-launch-local-evidence.js --check",
     "evidence:admin-query:rehearse": "node scripts/admin-query-performance-rehearsal.js --output docs/evidence/admin-performance-r0/query-rehearsal-events.json",
+    "evidence:admin-capacity:rehearse": "node scripts/admin-capacity-conflict-rehearsal.js --output docs/evidence/admin-performance-r0/capacity-conflict-rehearsal.json",
     "db:schema-snapshot:write": "node backend/scripts/mysql-schema-snapshot.js --write",
     "db:schema-snapshot:verify": "node backend/scripts/mysql-schema-snapshot.js --verify",
     "db:formal-disposition:cloudbase": "node backend/scripts/cloudbase-formal-launch-disposition.js",
