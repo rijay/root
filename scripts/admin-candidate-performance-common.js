@@ -34,8 +34,13 @@ function buildCandidateProvenance(input = {}) {
 
 async function requestJson(fetchImpl, targetOrigin, route, options = {}) {
   const timeoutMs = Number(options.timeoutMs || 8000);
+  const targetUrl = new URL(route, `${targetOrigin}/`);
+  if (options.candidateRouteQuery) {
+    const candidateRoute = new URLSearchParams(options.candidateRouteQuery);
+    candidateRoute.forEach((value, key) => targetUrl.searchParams.set(key, value));
+  }
   const startedAt = performance.now();
-  const response = await fetchImpl(`${targetOrigin}${route}`, {
+  const response = await fetchImpl(targetUrl, {
     method: options.method || "GET",
     headers: {
       Accept: "application/json",
@@ -69,8 +74,11 @@ function requireSuccess(result, label) {
   return result.body.data;
 }
 
-async function readCandidateRuntime(fetchImpl, provenance) {
-  const result = await requestJson(fetchImpl, provenance.targetOrigin, "/health", { timeoutMs: 8000 });
+async function readCandidateRuntime(fetchImpl, provenance, options = {}) {
+  const result = await requestJson(fetchImpl, provenance.targetOrigin, "/health", {
+    timeoutMs: 8000,
+    candidateRouteQuery: options.candidateRouteQuery,
+  });
   const data = requireSuccess(result, "candidate /health");
   if (data.version !== provenance.version) throw new Error("candidate /health version does not match requested version");
   if (data.releaseId !== provenance.releaseId) throw new Error("candidate /health releaseId does not match requested release id");

@@ -6,6 +6,10 @@ const path = require("node:path");
 
 const budgets = require("../admin/config/performance-budgets.json");
 const {
+  assertPrivateRegularFile,
+  validateRouteMetadata,
+} = require("./generate-wechat-trial-qrcode");
+const {
   buildCandidateProvenance,
   readCandidateRuntime,
   requestJson,
@@ -27,6 +31,8 @@ function parseArgs(argv) {
     environment: "",
     version: "",
     releaseId: "",
+    routeFile: "",
+    expectedRouteVersion: "",
     outputDir: "",
     samples: budgets.queries.samplesPerScenario,
   };
@@ -39,6 +45,8 @@ function parseArgs(argv) {
     else if (value === "--environment") options.environment = argv[++index];
     else if (value === "--version") options.version = argv[++index];
     else if (value === "--release-id") options.releaseId = argv[++index];
+    else if (value === "--route-file") options.routeFile = argv[++index];
+    else if (value === "--expected-route-version") options.expectedRouteVersion = argv[++index];
     else if (value === "--output-dir") options.outputDir = argv[++index];
     else if (value === "--samples") options.samples = Number(argv[++index]);
     else throw new Error(`Unknown argument: ${value}`);
@@ -47,10 +55,27 @@ function parseArgs(argv) {
     throw new Error(`samples must be an integer between ${budgets.queries.samplesPerScenario} and 100`);
   }
   options.provenance = buildCandidateProvenance(options);
+  if (Boolean(options.routeFile) !== Boolean(options.expectedRouteVersion)) {
+    throw new Error("route file and expected route version must be provided together");
+  }
+  options.candidateRoute = options.routeFile
+    ? readCandidateRoute(options.routeFile, options.expectedRouteVersion)
+    : null;
   if (options.mode === "execute-query" && !String(options.outputDir || "").trim()) {
     throw new Error("output dir is required for query execution");
   }
   return options;
+}
+
+function readCandidateRoute(routeFile, expectedVersion) {
+  const resolved = assertPrivateRegularFile(routeFile, "Candidate route file");
+  let payload;
+  try {
+    payload = JSON.parse(fs.readFileSync(resolved, "utf8"));
+  } catch (_error) {
+    throw new Error("candidate route file must contain valid JSON");
+  }
+  return validateRouteMetadata(payload, expectedVersion);
 }
 
 function credentialState(env = process.env) {
@@ -73,6 +98,15 @@ function preflight(options, env = process.env) {
     samplesPerScenario: options.samples,
     requiredScenarios: ["list", "detail", "audit", "write"],
     requiredCandidateRuntimeConfiguration: `ROOT_ADMIN_PERFORMANCE_DATASET_VERSION=${budgets.fixture.version}`,
+    candidateRouting: options.candidateRoute ? {
+      mode: "PRIVATE_ROUTE_FILE",
+      versionName: options.candidateRoute.versionName,
+      routeFingerprint: crypto.createHash("sha256").update(options.candidateRoute.query).digest("hex").slice(0, 12),
+      routeValueDisclosed: false,
+    } : {
+      mode: "DIRECT_ORIGIN",
+      routeValueDisclosed: false,
+    },
     credentials,
     executeReady: Object.values(credentials).every(Boolean),
     warnings: [
@@ -102,6 +136,7 @@ async function measure(fetchImpl, runtime, token, scenario, route, options = {})
   const measured = await requestJson(fetchImpl, runtime.targetOrigin, route, {
     ...options,
     token,
+    candidateRouteQuery: runtime.candidateRouteQuery,
     timeoutMs: options.method === "POST" && scenario === "write"
       ? budgets.network.writeTimeoutMs : budgets.network.readTimeoutMs,
   });
@@ -126,7 +161,13 @@ async function collectCandidateQueries(options, dependencies = {}) {
   const env = dependencies.env || process.env;
   const fetchImpl = dependencies.fetchImpl || fetch;
   const authority = requireExecutionAuthority(env);
-  const runtime = await readCandidateRuntime(fetchImpl, options.provenance);
+  const runtimeReadback = await readCandidateRuntime(fetchImpl, options.provenance, {
+    candidateRouteQuery: options.candidateRoute && options.candidateRoute.query,
+  });
+  const runtime = {
+    ...runtimeReadback,
+    candidateRouteQuery: options.candidateRoute && options.candidateRoute.query,
+  };
   const events = [];
   const readScenarios = [
     ["list", "/api/v1/admin/content/home-carousel?page=1&pageSize=20", {}],
@@ -143,6 +184,7 @@ async function collectCandidateQueries(options, dependencies = {}) {
   const welcome = await requestJson(fetchImpl, runtime.targetOrigin, "/api/v1/admin/content/welcome", {
     token: authority.token,
     timeoutMs: budgets.network.readTimeoutMs,
+    candidateRouteQuery: runtime.candidateRouteQuery,
   });
   const welcomeData = requireSuccess(welcome, "candidate welcome draft lookup");
   let draft = (welcomeData.screens || []).find((item) => item.id === authority.draftId);
@@ -177,7 +219,8 @@ async function collectCandidateQueries(options, dependencies = {}) {
     events.push(measured.event);
   }
 
-  return { runtime, events };
+  const { candidateRouteQuery: _candidateRouteQuery, ...safeRuntime } = runtime;
+  return { runtime: safeRuntime, events };
 }
 
 function writeCollection(options, collection) {
@@ -221,6 +264,7 @@ module.exports = {
   credentialState,
   parseArgs,
   preflight,
+  readCandidateRoute,
   requireExecutionAuthority,
   writeCollection,
 };

@@ -41,6 +41,15 @@ npm run evidence:admin-candidate:query -- \
   --release-id myroot-candidate-COMMIT_PREFIX
 ```
 
+如果候选与稳定版共用 CloudBase 公网 Origin，并通过 0% URL 参数定向路由，预检和执行命令还必须同时增加：
+
+```sh
+  --route-file /private/tmp/myroot-api-NNN-route.json \
+  --expected-route-version myroot-api-NNN
+```
+
+路由文件必须是位于系统私有临时目录中的普通文件，权限为 `0600` 或更严格，结构与受控体验码路由文件一致。采集器会把路由参数附加到 `/health` 和全部后台请求，但只输出候选版本名及路由指纹，不会把路由值写入日志、证据或报告。独立候选 Origin 不需要这两个参数。
+
 查询执行还要求以下值由受控凭据渠道注入环境，禁止把真实值写入仓库、证据文件或命令历史：
 
 - `ROOT_ADMIN_PERFORMANCE_TOKEN`：候选后台测试口令；

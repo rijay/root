@@ -1,4 +1,6 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const test = require("node:test");
 
 const budgets = require("../admin/config/performance-budgets.json");
@@ -17,6 +19,7 @@ const {
   sealBrowserCapture,
   validateRawCapture,
 } = require("./admin-candidate-browser-intake");
+const { PRIVATE_TMP_ROOT } = require("./generate-wechat-trial-qrcode");
 
 const commit = "a".repeat(40);
 const releaseId = "myroot-candidate-aaaaaaaaaaaa";
@@ -38,11 +41,12 @@ function executionEnv(overrides = {}) {
   };
 }
 
-function fakeCandidateFetch() {
+function fakeCandidateFetch(expectedRouteValue = "") {
   let revision = 1;
   const calls = [];
   const fetchImpl = async (url, options = {}) => {
     const parsed = new URL(url);
+    if (expectedRouteValue) assert.equal(parsed.searchParams.get("myroot_canary"), expectedRouteValue);
     calls.push({ path: parsed.pathname, method: options.method || "GET", headers: options.headers, body: options.body });
     let data = {};
     if (parsed.pathname === "/health") {
@@ -83,6 +87,20 @@ function fakeCandidateFetch() {
     });
   };
   return { calls, fetchImpl };
+}
+
+function privateRouteFixture() {
+  const directory = fs.mkdtempSync(path.join(PRIVATE_TMP_ROOT, "root-admin-candidate-route-"));
+  fs.chmodSync(directory, 0o700);
+  const file = path.join(directory, "route.json");
+  const value = "candidateRoute42";
+  fs.writeFileSync(file, JSON.stringify({
+    key: "myroot_canary",
+    value,
+    versionName: "myroot-api-042",
+    query: `myroot_canary=${value}`,
+  }), { mode: 0o600 });
+  return { directory, file, value };
 }
 
 function runtimeReadback() {
@@ -166,8 +184,14 @@ test("candidate query preflight is zero-network and reports authority without ex
 });
 
 test("candidate query collector binds runtime and emits 20 safe samples per scenario", async () => {
-  const options = parseQueryArgs(["--execute-query", ...candidateArgs, "--output-dir", "/tmp/not-written-by-unit-test"]);
-  const candidate = fakeCandidateFetch();
+  const route = privateRouteFixture();
+  const options = parseQueryArgs([
+    "--execute-query", ...candidateArgs,
+    "--route-file", route.file,
+    "--expected-route-version", "myroot-api-042",
+    "--output-dir", "/tmp/not-written-by-unit-test",
+  ]);
+  const candidate = fakeCandidateFetch(route.value);
   const result = await collectCandidateQueries(options, { env: executionEnv(), fetchImpl: candidate.fetchImpl });
   assert.equal(result.events.length, 80);
   assert.deepEqual(Object.fromEntries(["list", "detail", "audit", "write"].map((scenario) => [
@@ -178,6 +202,7 @@ test("candidate query collector binds runtime and emits 20 safe samples per scen
   assert.equal(candidate.calls.filter((call) => call.path === "/api/v1/admin/content/welcome/draft").length, 20);
   assert.equal(JSON.stringify(result).includes("candidate-admin-secret"), false);
   assert.equal(JSON.stringify(result).includes("13900000001"), false);
+  assert.equal(JSON.stringify(result).includes(route.value), false);
   await assert.rejects(
     collectCandidateQueries(options, {
       env: executionEnv({ ROOT_ADMIN_PERFORMANCE_CANDIDATE_WRITE_ACK: "" }),
@@ -185,6 +210,25 @@ test("candidate query collector binds runtime and emits 20 safe samples per scen
     }),
     /requires ROOT_ADMIN_PERFORMANCE_TOKEN/,
   );
+  fs.rmSync(route.directory, { recursive: true });
+});
+
+test("candidate route preflight validates private metadata without disclosing the route", () => {
+  const route = privateRouteFixture();
+  const options = parseQueryArgs([
+    "--preflight", ...candidateArgs,
+    "--route-file", route.file,
+    "--expected-route-version", "myroot-api-042",
+  ]);
+  const result = preflight(options, executionEnv());
+  assert.equal(result.candidateRouting.mode, "PRIVATE_ROUTE_FILE");
+  assert.equal(result.candidateRouting.versionName, "myroot-api-042");
+  assert.equal(result.candidateRouting.routeValueDisclosed, false);
+  assert.equal(JSON.stringify(result).includes(route.value), false);
+  assert.throws(() => parseQueryArgs([
+    "--preflight", ...candidateArgs, "--route-file", route.file,
+  ]), /provided together/);
+  fs.rmSync(route.directory, { recursive: true });
 });
 
 test("browser intake stamps trusted runtime provenance and rejects incomplete capture", () => {
