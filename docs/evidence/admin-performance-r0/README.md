@@ -31,6 +31,16 @@ node scripts/admin-performance-report.js \
 
 该命令只启动进程内存储和本机 HTTP 服务，按固定规模采集列表、用户详情、审计与草稿写入各 20 次，不连接候选或生产环境。输出结构可直接被候选报告复用，但其 `environment=local-fixed-fixture`，只能作为 `LOCAL_REHEARSAL` 排障材料，不关闭候选查询 Gate。
 
+Chrome 本地浏览器预演结果保存在 `browser-rehearsal-samples.json`，可运行：
+
+```sh
+node scripts/admin-performance-report.js \
+  --rehearsal \
+  --browser-events docs/evidence/admin-performance-r0/browser-rehearsal-samples.json
+```
+
+紧凑文件按浏览器会话保存公共资源指标和各旅程时长数组，报告器会展开为事件。候选 Gate 要求 Chrome/Edge × 标准办公网/完整弱网四个组合各场景至少 20 次；办公网应用时延硬上限，弱网只验证完整覆盖、等待、超时和恢复，不套用办公网时延上限。网络模拟、浏览器、会话、冲突或 30 分钟稳定性不完整时仍必须 `BLOCK`。
+
 ## 判定边界
 
 - 构建通过只说明静态资源未越过硬上限，不等于正式上线性能门禁通过。

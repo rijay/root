@@ -10,6 +10,7 @@ const {
   aggregateBrowserEvidence,
   aggregateQueryEvidence,
   evaluateMetric,
+  expandBrowserEvidence,
   parseArgs,
   percentile,
 } = require("../../scripts/admin-performance-report.js");
@@ -30,6 +31,8 @@ test("approved admin performance budget remains internally consistent", () => {
   assert.equal(budgets.network.writeTimeoutMs, 15000);
   assert.equal(budgets.responses.defaultPageSize, 20);
   assert.equal(budgets.responses.maximumPageSize, 50);
+  assert.equal(budgets.browser.minimumHardwareConcurrency, 4);
+  assert.equal(budgets.browser.minimumDeviceMemoryGiB, 8);
   assert.deepEqual(budgets.evidence.requiredGates, ["BUILD", "QUERY", "BROWSER"]);
   assert.equal(budgets.evidence.operationGateEnabled, false);
 });
@@ -74,22 +77,56 @@ test("candidate query and browser evidence only pass with complete bounded sampl
     version: "candidate-sha",
     environment: "local-fixed-fixture",
     browser: "Chrome",
+    browserVersion: "150.0.7871.187",
+    hardwareConcurrency: 10,
+    deviceMemoryGiB: 24,
     networkProfile: "office",
     viewportWidth: 1240,
     viewportHeight: 820,
     sessionCount: 5,
     maxConcurrentReads: 10,
     conflictScenarios: 2,
+    networkEmulationComplete: true,
   };
   const browserEvents = Object.keys(budgets.journeys).flatMap((scenario) => (
-    Array.from({ length: 20 }, (_, index) => ({
-      ...browserMetrics,
-      scenario,
-      durationMs: 100,
-      browser: index % 2 ? "Chrome" : "Edge",
-      networkProfile: index % 2 ? "office" : "weak",
-    }))
+    ["Chrome", "Edge"].flatMap((browser) => ["office", "weak"].flatMap((networkProfile) => (
+      Array.from({ length: 20 }, () => ({
+        ...browserMetrics,
+        scenario,
+        durationMs: 100,
+        browser,
+        networkProfile,
+      }))
+    )))
   ));
-  assert.equal(aggregateBrowserEvidence(browserEvents, budgets).status, "PASS");
+  const browserEvidence = aggregateBrowserEvidence(browserEvents, budgets);
+  assert.equal(browserEvidence.status, "PASS");
+  assert.equal(browserEvidence.resources.sessionCount.status, "PASS");
+  assert.equal(browserEvidence.journeys[0].groups.length, 4);
   assert.equal(aggregateBrowserEvidence([{ ...browserMetrics, scenario: "coldStart", durationMs: 100, fps: 49 }], budgets).status, "BLOCK");
+});
+
+test("compact browser sessions expand without duplicating sensitive data", () => {
+  const events = expandBrowserEvidence({
+    dimensions: {
+      version: "candidate-sha",
+      environment: "candidate",
+      browser: "Chrome",
+      browserVersion: "150",
+      hardwareConcurrency: 10,
+      deviceMemoryGiB: 24,
+      viewportWidth: 1240,
+      viewportHeight: 820,
+    },
+    resources: { initialDomNodes: 100, pageDomNodes: 200 },
+    capacity: { sessionCount: 1 },
+    networks: { office: { networkEmulationComplete: true, limitations: [] } },
+    journeys: { coldStart: { office: [100, 110] } },
+    limitations: ["LOCAL_ONLY"],
+  });
+  assert.equal(events.length, 2);
+  assert.equal(events[0].scenario, "coldStart");
+  assert.equal(events[0].networkEmulationComplete, true);
+  assert.equal(events[0].hardwareConcurrency, 10);
+  assert.deepEqual(events[0].evidenceLimitations, ["LOCAL_ONLY"]);
 });

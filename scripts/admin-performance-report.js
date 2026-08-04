@@ -154,63 +154,163 @@ function aggregateQueryEvidence(events, budgets) {
   };
 }
 
+function expandBrowserEvidence(input) {
+  if (Array.isArray(input)) return input;
+  if (!input || typeof input !== "object" || Array.isArray(input.journeys)) {
+    throw new Error("browser evidence must be an event array or compact browser session object");
+  }
+  const dimensions = input.dimensions || {};
+  const resources = input.resources || {};
+  const capacity = input.capacity || {};
+  const networks = input.networks || {};
+  return Object.entries(input.journeys || {}).flatMap(([scenario, profiles]) => (
+    Object.entries(profiles || {}).flatMap(([networkProfile, durations]) => {
+      if (!Array.isArray(durations)) throw new Error(`browser journey ${scenario}/${networkProfile} must be an array`);
+      const network = networks[networkProfile] || {};
+      return durations.map((durationMs) => ({
+        ...resources,
+        ...capacity,
+        version: dimensions.version,
+        environment: dimensions.environment,
+        browser: dimensions.browser,
+        browserVersion: dimensions.browserVersion || "",
+        hardwareConcurrency: dimensions.hardwareConcurrency,
+        deviceMemoryGiB: dimensions.deviceMemoryGiB,
+        viewportWidth: dimensions.viewportWidth,
+        viewportHeight: dimensions.viewportHeight,
+        scenario,
+        networkProfile,
+        networkEmulationComplete: network.networkEmulationComplete === true,
+        networkLimitations: network.limitations || [],
+        evidenceLimitations: input.limitations || [],
+        durationMs,
+      }));
+    })
+  ));
+}
+
 function aggregateBrowserEvidence(events, budgets) {
   if (!events.length) return { status: "BLOCK", sampleCount: 0, reason: "MISSING_BROWSER_EVIDENCE" };
   const requiredNumbers = [
     "initialDomNodes", "pageDomNodes", "maxTaskMs", "maxFreezeMs", "stableMemoryMiB",
     "fps", "memoryGrowthRatio", "menuCycles", "editCycles", "journeyDurationMinutes",
     "durationMs", "viewportWidth", "viewportHeight", "sessionCount", "maxConcurrentReads", "conflictScenarios",
+    "hardwareConcurrency", "deviceMemoryGiB",
   ];
   const first = events[0] || {};
   const dimensions = { version: String(first.version || ""), environment: String(first.environment || "") };
   const valid = events.filter((event) => requiredNumbers.every((field) => Number.isFinite(event?.[field]))
     && typeof event.scenario === "string"
     && ["Chrome", "Edge"].includes(event.browser)
+    && typeof event.browserVersion === "string" && Boolean(event.browserVersion.trim())
     && Object.hasOwn(budgets.networkProfiles, event.networkProfile)
+    && event.networkEmulationComplete === true
     && event.version === dimensions.version
     && event.environment === dimensions.environment);
   const browsers = new Set(valid.map((event) => event.browser));
   const networkProfiles = new Set(valid.map((event) => event.networkProfile));
+  const maximum = (field) => valid.length ? Math.max(...valid.map((event) => event[field])) : null;
+  const minimum = (field) => valid.length ? Math.min(...valid.map((event) => event[field])) : null;
+  const upperCheck = (value, hardLimit, target = hardLimit) => ({
+    value,
+    target,
+    hardLimit,
+    status: value === null || value > hardLimit ? "BLOCK" : value > target ? "WARN" : "PASS",
+  });
+  const minimumCheck = (value, required) => ({
+    value,
+    required,
+    status: value !== null && value >= required ? "PASS" : "BLOCK",
+  });
+  const resources = {
+    initialDomNodes: upperCheck(maximum("initialDomNodes"), budgets.browser.initialDomNodes.hardLimit, budgets.browser.initialDomNodes.target),
+    pageDomNodes: upperCheck(maximum("pageDomNodes"), budgets.browser.pageDomNodes.hardLimit, budgets.browser.pageDomNodes.target),
+    maxTaskMs: upperCheck(maximum("maxTaskMs"), budgets.browser.singleSynchronousTaskHardLimitMs),
+    maxFreezeMs: upperCheck(maximum("maxFreezeMs"), budgets.browser.continuousFreezeHardLimitMs),
+    stableMemoryMiB: upperCheck(maximum("stableMemoryMiB"), budgets.browser.stableMemory.hardLimitMiB, budgets.browser.stableMemory.targetMiB),
+    fps: minimumCheck(minimum("fps"), budgets.browser.fpsMinimum),
+    memoryGrowthRatio: upperCheck(maximum("memoryGrowthRatio"), budgets.browser.menuCycleGrowthHardLimitRatio),
+    menuCycles: minimumCheck(minimum("menuCycles"), budgets.browser.menuCycles),
+    editCycles: minimumCheck(minimum("editCycles"), budgets.browser.editCycles),
+    journeyDurationMinutes: minimumCheck(minimum("journeyDurationMinutes"), budgets.browser.journeyDurationMinutes),
+    sessionCount: minimumCheck(minimum("sessionCount"), budgets.capacity.maximumSessions),
+    maxConcurrentReads: upperCheck(maximum("maxConcurrentReads"), budgets.capacity.maximumConcurrentReadsAcrossSessions),
+    conflictScenarios: minimumCheck(minimum("conflictScenarios"), 2),
+    hardwareConcurrency: minimumCheck(minimum("hardwareConcurrency"), budgets.browser.minimumHardwareConcurrency),
+    deviceMemoryGiB: minimumCheck(minimum("deviceMemoryGiB"), budgets.browser.minimumDeviceMemoryGiB),
+  };
   const resourcePasses = Boolean(dimensions.version && dimensions.environment)
     && valid.length === events.length
     && browsers.has("Chrome") && browsers.has("Edge")
     && networkProfiles.has("office") && networkProfiles.has("weak")
-    && valid.every((event) => (
-    event.initialDomNodes <= budgets.browser.initialDomNodes.hardLimit
-      && event.pageDomNodes <= budgets.browser.pageDomNodes.hardLimit
-      && event.maxTaskMs <= budgets.browser.singleSynchronousTaskHardLimitMs
-      && event.maxFreezeMs <= budgets.browser.continuousFreezeHardLimitMs
-      && event.stableMemoryMiB <= budgets.browser.stableMemory.hardLimitMiB
-      && event.fps >= budgets.browser.fpsMinimum
-      && event.memoryGrowthRatio <= budgets.browser.menuCycleGrowthHardLimitRatio
-      && event.menuCycles >= budgets.browser.menuCycles
-      && event.editCycles >= budgets.browser.editCycles
-      && event.journeyDurationMinutes >= budgets.browser.journeyDurationMinutes
-      && event.viewportWidth === 1240
-      && event.viewportHeight === 820
-      && event.sessionCount >= budgets.capacity.maximumSessions
-      && event.maxConcurrentReads <= budgets.capacity.maximumConcurrentReadsAcrossSessions
-      && event.conflictScenarios >= 2
-  ));
+    && Object.values(resources).every((item) => item.status !== "BLOCK")
+    && valid.every((event) => event.viewportWidth === 1240 && event.viewportHeight === 820);
   const journeys = Object.entries(budgets.journeys).map(([scenario, limits]) => {
-    const samples = valid.filter((event) => event.scenario === scenario).map((event) => event.durationMs);
-    const p75Ms = percentile(samples, 0.75);
-    const p95Ms = percentile(samples, 0.95);
-    const maximumMs = samples.length ? Math.max(...samples) : null;
-    const status = samples.length >= budgets.queries.samplesPerScenario
-      && p75Ms <= limits.p75Ms && maximumMs <= limits.hardLimitMs ? "PASS" : "BLOCK";
-    return { scenario, sampleCount: samples.length, p75Ms, p95Ms, maximumMs, status };
+    const groups = ["Chrome", "Edge"].flatMap((browser) => ["office", "weak"].map((networkProfile) => {
+      const observedSamples = events
+        .filter((event) => event.scenario === scenario
+          && event.browser === browser
+          && event.networkProfile === networkProfile)
+        .map((event) => event.durationMs);
+      const samples = valid
+        .filter((event) => event.scenario === scenario
+          && event.browser === browser
+          && event.networkProfile === networkProfile)
+        .map((event) => event.durationMs);
+      const p75Ms = percentile(samples, 0.75);
+      const p95Ms = percentile(samples, 0.95);
+      const maximumMs = samples.length ? Math.max(...samples) : null;
+      const enoughSamples = samples.length >= budgets.queries.samplesPerScenario;
+      const timingPass = networkProfile === "weak"
+        || (p75Ms <= limits.p75Ms && maximumMs <= limits.hardLimitMs);
+      return {
+        browser,
+        networkProfile,
+        sampleCount: samples.length,
+        observedSampleCount: observedSamples.length,
+        p75Ms,
+        p95Ms,
+        maximumMs,
+        observedP75Ms: percentile(observedSamples, 0.75),
+        observedP95Ms: percentile(observedSamples, 0.95),
+        observedMaximumMs: observedSamples.length ? Math.max(...observedSamples) : null,
+        timingGateApplied: networkProfile === "office",
+        status: enoughSamples && timingPass ? "PASS" : "BLOCK",
+      };
+    }));
+    const officeSamples = groups
+      .filter((group) => group.networkProfile === "office")
+      .flatMap((group) => valid
+        .filter((event) => event.scenario === scenario
+          && event.browser === group.browser
+          && event.networkProfile === "office")
+        .map((event) => event.durationMs));
+    return {
+      scenario,
+      sampleCount: groups.reduce((total, group) => total + group.sampleCount, 0),
+      p75Ms: percentile(officeSamples, 0.75),
+      p95Ms: percentile(officeSamples, 0.95),
+      maximumMs: officeSamples.length ? Math.max(...officeSamples) : null,
+      groups,
+      status: groups.every((group) => group.status === "PASS") ? "PASS" : "BLOCK",
+    };
   });
   const status = resourcePasses && journeys.every((journey) => journey.status === "PASS") ? "PASS" : "BLOCK";
   return {
     status,
     sampleCount: valid.length,
+    invalidSampleCount: events.length - valid.length,
     dimensions: {
       ...dimensions,
       browsers: Array.from(browsers).sort(),
       networkProfiles: Array.from(networkProfiles).sort(),
       viewport: "1240x820",
     },
+    limitations: Array.from(new Set(events.flatMap((event) => [
+      ...(Array.isArray(event.evidenceLimitations) ? event.evidenceLimitations : []),
+      ...(Array.isArray(event.networkLimitations) ? event.networkLimitations : []),
+    ]))).sort(),
+    resources,
     journeys,
   };
 }
@@ -250,8 +350,9 @@ function main() {
     evidenceClass: options.evidenceClass,
   });
   const queryEvents = options.queryEventsPath ? readJson(path.resolve(options.queryEventsPath)) : [];
-  const browserEvents = options.browserEventsPath ? readJson(path.resolve(options.browserEventsPath)) : [];
-  if (!Array.isArray(queryEvents) || !Array.isArray(browserEvents)) throw new Error("performance evidence files must contain arrays");
+  const browserEvidence = options.browserEventsPath ? readJson(path.resolve(options.browserEventsPath)) : [];
+  if (!Array.isArray(queryEvents)) throw new Error("query performance evidence file must contain an array");
+  const browserEvents = expandBrowserEvidence(browserEvidence);
   const query = aggregateQueryEvidence(queryEvents, budgets);
   const browser = aggregateBrowserEvidence(browserEvents, budgets);
   const report = {
@@ -292,6 +393,7 @@ module.exports = {
   aggregateQueryEvidence,
   buildAdminPerformanceReport,
   evaluateMetric,
+  expandBrowserEvidence,
   parseArgs,
   percentile,
 };
