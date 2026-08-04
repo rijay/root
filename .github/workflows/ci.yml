@@ -135,7 +135,7 @@ jobs:
           set -o pipefail
           result="$RUNNER_TEMP/mysql-001-068.tap"
           npm run v1:mysql-001-068-authorized:check 2>&1 | tee "$result"
-          node -e 'const fs=require("node:fs"); const {parseNodeTestSummary}=require("./backend/src/mysqlLocalAuthorizedRunner"); parseNodeTestSummary(fs.readFileSync(process.argv[1], "utf8"), 1);' "$result"
+          node -e 'const fs=require("node:fs"); const {parseNodeTestSummary}=require("./backend/src/mysqlLocalAuthorizedRunner"); parseNodeTestSummary(fs.readFileSync(process.argv[1], "utf8"), 2);' "$result"
         env:
           MYSQL_LOCAL_READINESS_INTEGRATION_ENABLED: "true"
 
