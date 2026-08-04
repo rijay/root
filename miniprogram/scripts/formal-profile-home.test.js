@@ -5,12 +5,17 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
 const script = read("pages/profile/index.js");
+const envScript = read("config/env.js");
 const wxml = read("pages/profile/index.wxml");
 const wxss = read("pages/profile/index.wxss");
 const supportScript = read("subpkg/profile/pages/support/index.js");
 
 assert.match(script, /\/api\/v1\/user\/formal-profile/);
 assert.match(script, /navigateToMiniProgram/);
+assert.match(script, /shortLink/);
+assert.doesNotMatch(script, /rootMemberCenterOrdersPath|rootMemberCenterCouponsPath/);
+assert.match(envScript, /rootMemberCenterOrdersShortLink:\s*"#小程序:\/\/ROOT会员中心\/vTORPdF67tiEwCb"/);
+assert.match(envScript, /rootMemberCenterCouponsShortLink:\s*"#小程序:\/\/ROOT会员中心\/vTORPdF67tiEwCb"/);
 assert.match(script, /clearToken/);
 assert.match(wxml, /我的订单/);
 assert.match(wxml, /优惠券/);
