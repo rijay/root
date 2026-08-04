@@ -253,7 +253,7 @@ const auditPage = read("src/modules/audit/OperationAuditPage.vue");
 for (const value of ["BATCH_SETTLEMENT_EXECUTE", "REWARD_DELIVERY_BATCH_EXECUTE", "PUBLISH_CAMPAIGN_RULE_VERSION"]) {
   assert.equal(auditPage.includes(value), false, `audit filters must not prescribe ${value}`);
 }
-for (const value of ["pageSize: 20", "AbortController", "300", "request_id", "outcome_unknown", "selectedLog.summary"]) {
+for (const value of ["pageSize: 20", "AbortController", "300", "request_id", "outcome_unknown", "selectedLog.summary", "暂无审计记录"]) {
   assert.equal(auditPage.includes(value), true, `operation audit must include ${value}`);
 }
 for (const value of ["selectedLog.before", "selectedLog.after", "selectedLog.metadata"]) {

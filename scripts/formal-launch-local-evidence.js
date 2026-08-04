@@ -54,7 +54,7 @@ const SCREENS = Object.freeze([
     sectionNode: "372:14",
     boardNodes: ["372:19", "372:21"],
     viewport: "390x844",
-    implementationPaths: ["miniprogram/pages/health-consent/index.wxml", "miniprogram/subpkg/health/pages/scale-assessment/index.wxml"],
+    implementationPaths: ["miniprogram/pages/health/index.wxml", "miniprogram/pages/health-consent/index.wxml", "miniprogram/subpkg/health/pages/scale-assessment/index.wxml"],
   },
   {
     key: "activity-discovery-enrollment",
@@ -88,7 +88,7 @@ const SCREENS = Object.freeze([
     title: "后台框架与发布工作台",
     surface: "ADMIN",
     sectionNode: "372:502",
-    boardNodes: ["372:502"],
+    boardNodes: ["372:506"],
     viewport: "1240x820",
     implementationPaths: ["admin/src/App.vue", "admin/src/modules/release/ReleaseWorkbench.vue"],
   },
@@ -97,7 +97,7 @@ const SCREENS = Object.freeze([
     title: "内容运营",
     surface: "ADMIN",
     sectionNode: "372:593",
-    boardNodes: ["372:593"],
+    boardNodes: ["372:597"],
     viewport: "1240x820",
     implementationPaths: ["admin/src/modules/content/WelcomeContentPage.vue", "admin/src/modules/content/HomeCarouselPage.vue"],
   },
@@ -106,7 +106,7 @@ const SCREENS = Object.freeze([
     title: "共用详情编辑",
     surface: "ADMIN",
     sectionNode: "372:747",
-    boardNodes: ["372:747"],
+    boardNodes: ["372:751"],
     viewport: "1240x820",
     implementationPaths: ["admin/src/modules/content/SharedDetailPage.vue"],
   },
@@ -115,7 +115,7 @@ const SCREENS = Object.freeze([
     title: "活动管理",
     surface: "ADMIN",
     sectionNode: "372:945",
-    boardNodes: ["372:945"],
+    boardNodes: ["372:949"],
     viewport: "1240x820",
     implementationPaths: ["admin/src/modules/activities/ActivityManagementPage.vue"],
   },
@@ -124,7 +124,7 @@ const SCREENS = Object.freeze([
     title: "活动报名记录",
     surface: "ADMIN",
     sectionNode: "372:1096",
-    boardNodes: ["372:1096"],
+    boardNodes: ["372:1100"],
     viewport: "1240x820",
     implementationPaths: ["admin/src/modules/activities/ActivityRegistrationsPage.vue"],
   },
@@ -133,7 +133,7 @@ const SCREENS = Object.freeze([
     title: "初始化建档",
     surface: "ADMIN",
     sectionNode: "372:1248",
-    boardNodes: ["372:1248"],
+    boardNodes: ["372:1252"],
     viewport: "1240x820",
     implementationPaths: ["admin/src/modules/health/InitializationPage.vue"],
   },
@@ -142,7 +142,7 @@ const SCREENS = Object.freeze([
     title: "量表管理",
     surface: "ADMIN",
     sectionNode: "372:1399",
-    boardNodes: ["372:1399"],
+    boardNodes: ["372:1403"],
     viewport: "1240x820",
     implementationPaths: ["admin/src/modules/health/ScaleManagementPage.vue"],
   },
@@ -151,7 +151,7 @@ const SCREENS = Object.freeze([
     title: "推荐规则",
     surface: "ADMIN",
     sectionNode: "372:1550",
-    boardNodes: ["372:1550"],
+    boardNodes: ["372:1554"],
     viewport: "1240x820",
     implementationPaths: ["admin/src/modules/health/RecommendationRulesPage.vue"],
   },
@@ -160,7 +160,7 @@ const SCREENS = Object.freeze([
     title: "生活方式建议",
     surface: "ADMIN",
     sectionNode: "372:1701",
-    boardNodes: ["372:1701"],
+    boardNodes: ["372:1705"],
     viewport: "1240x820",
     implementationPaths: ["admin/src/modules/health/LifestyleAdvicePage.vue"],
   },
@@ -169,7 +169,7 @@ const SCREENS = Object.freeze([
     title: "用户查询",
     surface: "ADMIN",
     sectionNode: "372:1853",
-    boardNodes: ["372:1853"],
+    boardNodes: ["372:1857"],
     viewport: "1240x820",
     implementationPaths: ["admin/src/modules/users/UserQueryPage.vue"],
   },
@@ -178,7 +178,7 @@ const SCREENS = Object.freeze([
     title: "操作审计",
     surface: "ADMIN",
     sectionNode: "372:2004",
-    boardNodes: ["372:2004"],
+    boardNodes: ["372:2008"],
     viewport: "1240x820",
     implementationPaths: ["admin/src/modules/audit/OperationAuditPage.vue"],
   },
@@ -187,19 +187,148 @@ const SCREENS = Object.freeze([
     title: "发布确认",
     surface: "ADMIN",
     sectionNode: "372:2155",
-    boardNodes: ["372:2155"],
+    boardNodes: ["372:2239"],
     viewport: "1240x820",
     implementationPaths: ["admin/src/modules/publish/PublishConfirmationDialog.vue"],
   },
 ]);
 
+const CONTROLLED_CAPTURED_AT = "2026-08-04T08:34:00.000Z";
+const miniCapture = (names) => names.map((name) => `screenshots/implementation/miniprogram/${name}`);
+const adminCapture = (name) => [`screenshots/implementation/admin/${name}`];
+const referenceCapture = (name) => [`screenshots/reference/${name}`];
+
+const CONTROLLED_REVIEWS = Object.freeze({
+  welcome: {
+    screenshotRefs: miniCapture(["01-welcome-01.png", "01-welcome-02.png"]),
+    captureClass: "LOCAL_SIMULATOR_DEVELOPMENT_PLACEHOLDER",
+    differences: ["正式摄影背景尚未进入代码库，本次只验收安全区、文案、轮播指示与跳过按钮。"],
+  },
+  "home-and-shared-detail": {
+    screenshotRefs: miniCapture(["02-home.png", "02-content-detail.png"]),
+    captureClass: "LOCAL_MOCKED_STATE",
+    differences: ["正式商品与活动摄影素材尚未进入代码库，当前使用开发占位背景。"],
+  },
+  "wechat-login-register": {
+    screenshotRefs: miniCapture(["03-login.png", "03-register.png"]),
+    captureClass: "LOCAL_SIMULATOR_RUNTIME",
+    differences: ["微信隐私保护授权弹窗属于平台态，本轮未取得可重复截图。"],
+  },
+  "root4u-entry-assessment": {
+    screenshotRefs: miniCapture(["04-health-entry.png", "04-health-initial-assessment.png"]),
+    captureClass: "LOCAL_MOCKED_STATE",
+    differences: ["题目态使用本地临时代表数据，不证明候选环境问卷版本或真实用户数据。"],
+  },
+  "root4u-result-safety": {
+    screenshotRefs: miniCapture(["05-health-result.png", "05-health-safety.png"]),
+    captureClass: "LOCAL_MOCKED_STATE",
+    differences: ["结果与安全分流使用本地临时代表数据，不证明真实评分结果或医疗处置。"],
+  },
+  "activity-discovery-enrollment": {
+    screenshotRefs: miniCapture(["06-activities.png", "06-activity-detail.png", "06-activity-enrollments-guest.png"]),
+    captureClass: "LOCAL_MOCKED_STATE",
+    differences: ["活动卡片与详情使用本地临时代表数据，正式活动摄影与候选环境报名状态仍待验证。"],
+  },
+  "profile-guest-member": {
+    screenshotRefs: miniCapture(["07-profile.png", "07-profile-member.png", "07-profile-member-failure.png"]),
+    captureClass: "LOCAL_MOCKED_STATE",
+    differences: ["会员中心失败态为本地临时状态，不证明跨小程序跳转已在真机通过。"],
+  },
+  "profile-privacy-account": {
+    screenshotRefs: miniCapture(["08-about-root.png", "08-privacy-account.png", "08-account-cancellation.png"]),
+    captureClass: "LOCAL_MOCKED_STATE",
+    differences: ["注销弹层仅验收视觉和文案，不代表注销申请已接入或提交。"],
+  },
+  "admin-release-workbench": {
+    screenshotRefs: adminCapture("09-release-workbench.png"),
+    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
+    differences: ["内存数据为零，未覆盖有草稿、有阻断项和回滚入口的完整状态。"],
+  },
+  "admin-content-operations": {
+    screenshotRefs: adminCapture("10-content-operations.png"),
+    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
+    differences: ["空表已取证，尚未覆盖欢迎页与首页轮播的代表数据和编辑抽屉。"],
+  },
+  "admin-shared-detail": {
+    screenshotRefs: adminCapture("11-shared-detail.png"),
+    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
+    differences: ["空表已取证，尚未覆盖热点编辑、跨小程序路径和公众号链接的编辑态。"],
+  },
+  "admin-activities": {
+    screenshotRefs: adminCapture("12-activity-management.png"),
+    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
+    differences: ["空表已取证，尚未覆盖正式活动代表数据、场次和编辑抽屉。"],
+  },
+  "admin-registrations": {
+    screenshotRefs: adminCapture("13-activity-registrations.png"),
+    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
+    differences: ["空表已取证，尚未覆盖报名审核、导出和状态详情。"],
+  },
+  "admin-initialization": {
+    screenshotRefs: adminCapture("14-health-initialization.png"),
+    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
+    differences: ["12 问列表已取证，尚未覆盖题目编辑抽屉。"],
+  },
+  "admin-scales": {
+    screenshotRefs: adminCapture("15-health-scales.png"),
+    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
+    differences: ["空表已取证，尚未覆盖量表题目、计分规则与发布态。"],
+  },
+  "admin-recommendations": {
+    screenshotRefs: adminCapture("16-health-recommendations.png"),
+    referenceRefs: referenceCapture("372_1550-20260804_162258703.webp"),
+    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
+    differences: ["设计基准为有数据加编辑抽屉；实现截图仅覆盖空表，未完成该状态对齐。"],
+  },
+  "admin-lifestyle": {
+    screenshotRefs: adminCapture("17-health-lifestyle.png"),
+    referenceRefs: referenceCapture("372_1701-20260804_162258704.webp"),
+    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
+    differences: ["设计基准为有数据加编辑抽屉；实现截图仅覆盖空表，未完成该状态对齐。"],
+  },
+  "admin-user-query": {
+    screenshotRefs: adminCapture("18-user-query.png"),
+    referenceRefs: referenceCapture("372_1853-20260804_162258705.webp"),
+    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
+    differences: ["设计基准包含查询结果与详情抽屉；实现截图仅覆盖查询入口。"],
+  },
+  "admin-audit": {
+    screenshotRefs: adminCapture("19-operation-audit.png"),
+    referenceRefs: referenceCapture("372_2004-20260804_162258705.webp"),
+    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
+    differences: ["已把默认英文空态修正为中文；仍缺有数据列表与审计详情抽屉截图。"],
+  },
+  "admin-publish-confirmation": {
+    screenshotRefs: adminCapture("20-publish-confirmation.png"),
+    referenceRefs: referenceCapture("372_2155-20260804_162258707.webp"),
+    captureClass: "LOCAL_BROWSER_MEMORY_STORE",
+    differences: ["弹窗结构已对齐；内存态无内容版本且小程序预览未完成，确认发布保持禁用。"],
+  },
+});
+
 function validateScreenDefinitions() {
   assert.equal(SCREENS.length, 20, "R12 must map exactly 20 approved sections");
   assert.equal(new Set(SCREENS.map((screen) => screen.key)).size, 20, "screen keys must be unique");
   assert.equal(new Set(SCREENS.map((screen) => screen.sectionNode)).size, 20, "section nodes must be unique");
+  assert.deepEqual(Object.keys(CONTROLLED_REVIEWS).sort(), SCREENS.map((screen) => screen.key).sort(), "controlled review keys must match screen keys");
   SCREENS.forEach((screen) => screen.implementationPaths.forEach((file) => {
     assert.equal(fs.existsSync(path.join(projectRoot, file)), true, `mapped implementation missing: ${file}`);
   }));
+  SCREENS.forEach((screen) => {
+    const review = CONTROLLED_REVIEWS[screen.key];
+    assert.equal(review.screenshotRefs.length > 0, true, `controlled screenshots missing: ${screen.key}`);
+    review.screenshotRefs.forEach((reference) => {
+      const target = path.join(evidenceRoot, "ued-r0", reference);
+      assert.equal(fs.existsSync(target), true, `controlled screenshot file missing: ${reference}`);
+      const header = fs.readFileSync(target).subarray(0, 24);
+      assert.equal(header.subarray(1, 4).toString("ascii"), "PNG", `controlled screenshot must be PNG: ${reference}`);
+      const expected = screen.surface === "ADMIN" ? [1240, 820] : [602, 1300];
+      assert.deepEqual([header.readUInt32BE(16), header.readUInt32BE(20)], expected, `controlled screenshot dimensions invalid: ${reference}`);
+    });
+    (review.referenceRefs || []).forEach((reference) => {
+      assert.equal(fs.existsSync(path.join(evidenceRoot, "ued-r0", reference)), true, `Ardot reference screenshot missing: ${reference}`);
+    });
+  });
 }
 
 function screenIndex(generatedAt) {
@@ -212,42 +341,62 @@ function screenIndex(generatedAt) {
       file: "myRoot",
       uri: "cocraft://localhost/file/684679021092544",
       approvedPageNode: "368:1",
-      liveReadbackStatus: "NOT_PERFORMED_BY_THIS_EVIDENCE_GENERATOR",
+      liveReadbackStatus: "VERIFIED_2026-08-04_20_TOP_LEVEL_SECTIONS",
     },
     expectedScreenCount: 20,
     mappedScreenCount: SCREENS.length,
     handoffClaims: {
-      screenCount: null,
-      archivedPagesExcluded: null,
+      screenCount: 20,
+      archivedPagesExcluded: true,
       allCanonicalStatesCovered: false,
     },
-    screens: SCREENS.map((screen) => ({
-      ...screen,
-      implementationStatus: "MAPPED_LOCAL_SOURCE",
-      screenshotStatus: "PENDING_CONTROLLED_CAPTURE",
-      screenshotRefs: [],
-    })),
+    screens: SCREENS.map((screen) => {
+      const review = CONTROLLED_REVIEWS[screen.key];
+      return {
+        ...screen,
+        implementationStatus: "MAPPED_LOCAL_SOURCE",
+        screenshotStatus: "CONTROLLED_CAPTURE_COMPLETE",
+        captureClass: review.captureClass,
+        screenshotRefs: review.screenshotRefs,
+        referenceRefs: review.referenceRefs || [],
+      };
+    }),
   };
 }
 
 function visualReview(generatedAt) {
+  const directComparisons = SCREENS.filter((screen) => (CONTROLLED_REVIEWS[screen.key].referenceRefs || []).length > 0);
   return {
     schemaVersion: 1,
     generatedAt,
-    evidenceClass: "VISUAL_REVIEW_PENDING",
+    evidenceClass: "LOCAL_CONTROLLED_VISUAL_REVIEW_PARTIAL",
     status: "BLOCK",
     releaseGateEligible: false,
     requiredReviewCount: SCREENS.length,
-    completedReviewCount: 0,
-    reviews: SCREENS.map((screen) => ({
-      key: screen.key,
-      sectionNode: screen.sectionNode,
-      status: "PENDING_CONTROLLED_CAPTURE",
-      ownerRole: "ENGINEERING_AND_QA",
-      reviewedAt: null,
-      screenshotRefs: [],
-      differences: [],
-    })),
+    controlledCaptureCount: SCREENS.length,
+    completedReviewCount: directComparisons.length,
+    referenceExportBlockedCount: SCREENS.length - directComparisons.length,
+    allCanonicalStatesCovered: false,
+    externalGatesRemain: ["WECHAT_PRIVACY_AUTHORIZATION", "REAL_DEVICE_IOS", "REAL_DEVICE_ANDROID", "FORMAL_PHOTOGRAPHY", "CANDIDATE_DATA_STATES"],
+    reviews: SCREENS.map((screen) => {
+      const review = CONTROLLED_REVIEWS[screen.key];
+      const directlyCompared = (review.referenceRefs || []).length > 0;
+      return {
+        key: screen.key,
+        sectionNode: screen.sectionNode,
+        boardNodes: screen.boardNodes,
+        status: directlyCompared ? "REVIEWED_WITH_OPEN_DIFFERENCES" : "CAPTURED_REFERENCE_EXPORT_BLOCKED",
+        ownerRole: "ENGINEERING_AND_QA",
+        capturedAt: CONTROLLED_CAPTURED_AT,
+        reviewedAt: directlyCompared ? CONTROLLED_CAPTURED_AT : null,
+        viewport: screen.viewport,
+        captureClass: review.captureClass,
+        referenceStatus: directlyCompared ? "ARDOT_REFERENCE_EXPORTED" : "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+        screenshotRefs: review.screenshotRefs,
+        referenceRefs: review.referenceRefs || [],
+        differences: review.differences,
+      };
+    }),
   };
 }
 

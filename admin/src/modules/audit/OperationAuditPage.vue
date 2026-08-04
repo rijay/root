@@ -26,7 +26,7 @@
         </div>
       </template>
 
-      <el-table v-loading="loading" :data="auditLogs" height="560" @row-click="selectLog">
+      <el-table v-loading="loading" :data="auditLogs" empty-text="暂无审计记录" height="560" @row-click="selectLog">
         <el-table-column label="序号" width="66">
           <template #default="{ $index }">{{ String((filters.page - 1) * filters.pageSize + $index + 1).padStart(2, "0") }}</template>
         </el-table-column>

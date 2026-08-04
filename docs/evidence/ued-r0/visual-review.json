@@ -1,191 +1,474 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-04T08:08:49.418Z",
-  "evidenceClass": "VISUAL_REVIEW_PENDING",
+  "generatedAt": "2026-08-04T08:40:46.957Z",
+  "evidenceClass": "LOCAL_CONTROLLED_VISUAL_REVIEW_PARTIAL",
   "status": "BLOCK",
   "releaseGateEligible": false,
   "requiredReviewCount": 20,
-  "completedReviewCount": 0,
+  "controlledCaptureCount": 20,
+  "completedReviewCount": 5,
+  "referenceExportBlockedCount": 15,
+  "allCanonicalStatesCovered": false,
+  "externalGatesRemain": [
+    "WECHAT_PRIVACY_AUTHORIZATION",
+    "REAL_DEVICE_IOS",
+    "REAL_DEVICE_ANDROID",
+    "FORMAL_PHOTOGRAPHY",
+    "CANDIDATE_DATA_STATES"
+  ],
   "reviews": [
     {
       "key": "welcome",
       "sectionNode": "368:3",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "368:8",
+        "368:12"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "390x844",
+      "captureClass": "LOCAL_SIMULATOR_DEVELOPMENT_PLACEHOLDER",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/01-welcome-01.png",
+        "screenshots/implementation/miniprogram/01-welcome-02.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "正式摄影背景尚未进入代码库，本次只验收安全区、文案、轮播指示与跳过按钮。"
+      ]
     },
     {
       "key": "home-and-shared-detail",
       "sectionNode": "368:50",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "368:55",
+        "368:59"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "390x844",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/02-home.png",
+        "screenshots/implementation/miniprogram/02-content-detail.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "正式商品与活动摄影素材尚未进入代码库，当前使用开发占位背景。"
+      ]
     },
     {
       "key": "wechat-login-register",
       "sectionNode": "369:40",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "369:45",
+        "369:47",
+        "369:50"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "390x844",
+      "captureClass": "LOCAL_SIMULATOR_RUNTIME",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/03-login.png",
+        "screenshots/implementation/miniprogram/03-register.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "微信隐私保护授权弹窗属于平台态，本轮未取得可重复截图。"
+      ]
     },
     {
       "key": "root4u-entry-assessment",
       "sectionNode": "372:2",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:7",
+        "372:9"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "390x844",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/04-health-entry.png",
+        "screenshots/implementation/miniprogram/04-health-initial-assessment.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "题目态使用本地临时代表数据，不证明候选环境问卷版本或真实用户数据。"
+      ]
     },
     {
       "key": "root4u-result-safety",
       "sectionNode": "372:14",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:19",
+        "372:21"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "390x844",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/05-health-result.png",
+        "screenshots/implementation/miniprogram/05-health-safety.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "结果与安全分流使用本地临时代表数据，不证明真实评分结果或医疗处置。"
+      ]
     },
     {
       "key": "activity-discovery-enrollment",
       "sectionNode": "372:143",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:148",
+        "372:150",
+        "372:154"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "390x844",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/06-activities.png",
+        "screenshots/implementation/miniprogram/06-activity-detail.png",
+        "screenshots/implementation/miniprogram/06-activity-enrollments-guest.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "活动卡片与详情使用本地临时代表数据，正式活动摄影与候选环境报名状态仍待验证。"
+      ]
     },
     {
       "key": "profile-guest-member",
       "sectionNode": "372:240",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:245",
+        "372:247",
+        "372:249"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "390x844",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/07-profile.png",
+        "screenshots/implementation/miniprogram/07-profile-member.png",
+        "screenshots/implementation/miniprogram/07-profile-member-failure.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "会员中心失败态为本地临时状态，不证明跨小程序跳转已在真机通过。"
+      ]
     },
     {
       "key": "profile-privacy-account",
       "sectionNode": "372:254",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:259",
+        "372:261",
+        "372:263"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "390x844",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/08-about-root.png",
+        "screenshots/implementation/miniprogram/08-privacy-account.png",
+        "screenshots/implementation/miniprogram/08-account-cancellation.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "注销弹层仅验收视觉和文案，不代表注销申请已接入或提交。"
+      ]
     },
     {
       "key": "admin-release-workbench",
       "sectionNode": "372:502",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:506"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "1240x820",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/09-release-workbench.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "内存数据为零，未覆盖有草稿、有阻断项和回滚入口的完整状态。"
+      ]
     },
     {
       "key": "admin-content-operations",
       "sectionNode": "372:593",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:597"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "1240x820",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/10-content-operations.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "空表已取证，尚未覆盖欢迎页与首页轮播的代表数据和编辑抽屉。"
+      ]
     },
     {
       "key": "admin-shared-detail",
       "sectionNode": "372:747",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:751"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "1240x820",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/11-shared-detail.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "空表已取证，尚未覆盖热点编辑、跨小程序路径和公众号链接的编辑态。"
+      ]
     },
     {
       "key": "admin-activities",
       "sectionNode": "372:945",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:949"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "1240x820",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/12-activity-management.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "空表已取证，尚未覆盖正式活动代表数据、场次和编辑抽屉。"
+      ]
     },
     {
       "key": "admin-registrations",
       "sectionNode": "372:1096",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:1100"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "1240x820",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/13-activity-registrations.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "空表已取证，尚未覆盖报名审核、导出和状态详情。"
+      ]
     },
     {
       "key": "admin-initialization",
       "sectionNode": "372:1248",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:1252"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "1240x820",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/14-health-initialization.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "12 问列表已取证，尚未覆盖题目编辑抽屉。"
+      ]
     },
     {
       "key": "admin-scales",
       "sectionNode": "372:1399",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:1403"
+      ],
+      "status": "CAPTURED_REFERENCE_EXPORT_BLOCKED",
       "ownerRole": "ENGINEERING_AND_QA",
+      "capturedAt": "2026-08-04T08:34:00.000Z",
       "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "viewport": "1240x820",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "referenceStatus": "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/15-health-scales.png"
+      ],
+      "referenceRefs": [],
+      "differences": [
+        "空表已取证，尚未覆盖量表题目、计分规则与发布态。"
+      ]
     },
     {
       "key": "admin-recommendations",
       "sectionNode": "372:1550",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:1554"
+      ],
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "capturedAt": "2026-08-04T08:34:00.000Z",
+      "reviewedAt": "2026-08-04T08:34:00.000Z",
+      "viewport": "1240x820",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/16-health-recommendations.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/372_1550-20260804_162258703.webp"
+      ],
+      "differences": [
+        "设计基准为有数据加编辑抽屉；实现截图仅覆盖空表，未完成该状态对齐。"
+      ]
     },
     {
       "key": "admin-lifestyle",
       "sectionNode": "372:1701",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:1705"
+      ],
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "capturedAt": "2026-08-04T08:34:00.000Z",
+      "reviewedAt": "2026-08-04T08:34:00.000Z",
+      "viewport": "1240x820",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/17-health-lifestyle.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/372_1701-20260804_162258704.webp"
+      ],
+      "differences": [
+        "设计基准为有数据加编辑抽屉；实现截图仅覆盖空表，未完成该状态对齐。"
+      ]
     },
     {
       "key": "admin-user-query",
       "sectionNode": "372:1853",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:1857"
+      ],
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "capturedAt": "2026-08-04T08:34:00.000Z",
+      "reviewedAt": "2026-08-04T08:34:00.000Z",
+      "viewport": "1240x820",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/18-user-query.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/372_1853-20260804_162258705.webp"
+      ],
+      "differences": [
+        "设计基准包含查询结果与详情抽屉；实现截图仅覆盖查询入口。"
+      ]
     },
     {
       "key": "admin-audit",
       "sectionNode": "372:2004",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:2008"
+      ],
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "capturedAt": "2026-08-04T08:34:00.000Z",
+      "reviewedAt": "2026-08-04T08:34:00.000Z",
+      "viewport": "1240x820",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/19-operation-audit.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/372_2004-20260804_162258705.webp"
+      ],
+      "differences": [
+        "已把默认英文空态修正为中文；仍缺有数据列表与审计详情抽屉截图。"
+      ]
     },
     {
       "key": "admin-publish-confirmation",
       "sectionNode": "372:2155",
-      "status": "PENDING_CONTROLLED_CAPTURE",
+      "boardNodes": [
+        "372:2239"
+      ],
+      "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "reviewedAt": null,
-      "screenshotRefs": [],
-      "differences": []
+      "capturedAt": "2026-08-04T08:34:00.000Z",
+      "reviewedAt": "2026-08-04T08:34:00.000Z",
+      "viewport": "1240x820",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/20-publish-confirmation.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/372_2155-20260804_162258707.webp"
+      ],
+      "differences": [
+        "弹窗结构已对齐；内存态无内容版本且小程序预览未完成，确认发布保持禁用。"
+      ]
     }
   ]
 }

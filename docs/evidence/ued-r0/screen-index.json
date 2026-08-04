@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-04T08:08:49.418Z",
+  "generatedAt": "2026-08-04T08:40:46.957Z",
   "evidenceClass": "LOCAL_IMPLEMENTATION_MAPPING",
   "releaseGateEligible": false,
   "designSource": {
     "file": "myRoot",
     "uri": "cocraft://localhost/file/684679021092544",
     "approvedPageNode": "368:1",
-    "liveReadbackStatus": "NOT_PERFORMED_BY_THIS_EVIDENCE_GENERATOR"
+    "liveReadbackStatus": "VERIFIED_2026-08-04_20_TOP_LEVEL_SECTIONS"
   },
   "expectedScreenCount": 20,
   "mappedScreenCount": 20,
   "handoffClaims": {
-    "screenCount": null,
-    "archivedPagesExcluded": null,
+    "screenCount": 20,
+    "archivedPagesExcluded": true,
     "allCanonicalStatesCovered": false
   },
   "screens": [
@@ -32,8 +32,13 @@
         "miniprogram/pages/welcome/index.wxss"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_SIMULATOR_DEVELOPMENT_PLACEHOLDER",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/01-welcome-01.png",
+        "screenshots/implementation/miniprogram/01-welcome-02.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "home-and-shared-detail",
@@ -50,8 +55,13 @@
         "miniprogram/subpkg/content/pages/detail/index.wxml"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/02-home.png",
+        "screenshots/implementation/miniprogram/02-content-detail.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "wechat-login-register",
@@ -70,8 +80,13 @@
         "miniprogram/pages/legal/index.wxml"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_SIMULATOR_RUNTIME",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/03-login.png",
+        "screenshots/implementation/miniprogram/03-register.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "root4u-entry-assessment",
@@ -88,8 +103,13 @@
         "miniprogram/subpkg/health/pages/initial-assessment/index.wxml"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/04-health-entry.png",
+        "screenshots/implementation/miniprogram/04-health-initial-assessment.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "root4u-result-safety",
@@ -102,12 +122,18 @@
       ],
       "viewport": "390x844",
       "implementationPaths": [
+        "miniprogram/pages/health/index.wxml",
         "miniprogram/pages/health-consent/index.wxml",
         "miniprogram/subpkg/health/pages/scale-assessment/index.wxml"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/05-health-result.png",
+        "screenshots/implementation/miniprogram/05-health-safety.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "activity-discovery-enrollment",
@@ -126,8 +152,14 @@
         "miniprogram/subpkg/activity/pages/enrollments/index.wxml"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/06-activities.png",
+        "screenshots/implementation/miniprogram/06-activity-detail.png",
+        "screenshots/implementation/miniprogram/06-activity-enrollments-guest.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "profile-guest-member",
@@ -145,8 +177,14 @@
         "miniprogram/subpkg/profile/pages/support/index.wxml"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/07-profile.png",
+        "screenshots/implementation/miniprogram/07-profile-member.png",
+        "screenshots/implementation/miniprogram/07-profile-member-failure.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "profile-privacy-account",
@@ -164,8 +202,14 @@
         "miniprogram/subpkg/profile/pages/about/index.wxml"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/08-about-root.png",
+        "screenshots/implementation/miniprogram/08-privacy-account.png",
+        "screenshots/implementation/miniprogram/08-account-cancellation.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "admin-release-workbench",
@@ -173,7 +217,7 @@
       "surface": "ADMIN",
       "sectionNode": "372:502",
       "boardNodes": [
-        "372:502"
+        "372:506"
       ],
       "viewport": "1240x820",
       "implementationPaths": [
@@ -181,8 +225,12 @@
         "admin/src/modules/release/ReleaseWorkbench.vue"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/09-release-workbench.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "admin-content-operations",
@@ -190,7 +238,7 @@
       "surface": "ADMIN",
       "sectionNode": "372:593",
       "boardNodes": [
-        "372:593"
+        "372:597"
       ],
       "viewport": "1240x820",
       "implementationPaths": [
@@ -198,8 +246,12 @@
         "admin/src/modules/content/HomeCarouselPage.vue"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/10-content-operations.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "admin-shared-detail",
@@ -207,15 +259,19 @@
       "surface": "ADMIN",
       "sectionNode": "372:747",
       "boardNodes": [
-        "372:747"
+        "372:751"
       ],
       "viewport": "1240x820",
       "implementationPaths": [
         "admin/src/modules/content/SharedDetailPage.vue"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/11-shared-detail.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "admin-activities",
@@ -223,15 +279,19 @@
       "surface": "ADMIN",
       "sectionNode": "372:945",
       "boardNodes": [
-        "372:945"
+        "372:949"
       ],
       "viewport": "1240x820",
       "implementationPaths": [
         "admin/src/modules/activities/ActivityManagementPage.vue"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/12-activity-management.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "admin-registrations",
@@ -239,15 +299,19 @@
       "surface": "ADMIN",
       "sectionNode": "372:1096",
       "boardNodes": [
-        "372:1096"
+        "372:1100"
       ],
       "viewport": "1240x820",
       "implementationPaths": [
         "admin/src/modules/activities/ActivityRegistrationsPage.vue"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/13-activity-registrations.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "admin-initialization",
@@ -255,15 +319,19 @@
       "surface": "ADMIN",
       "sectionNode": "372:1248",
       "boardNodes": [
-        "372:1248"
+        "372:1252"
       ],
       "viewport": "1240x820",
       "implementationPaths": [
         "admin/src/modules/health/InitializationPage.vue"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/14-health-initialization.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "admin-scales",
@@ -271,15 +339,19 @@
       "surface": "ADMIN",
       "sectionNode": "372:1399",
       "boardNodes": [
-        "372:1399"
+        "372:1403"
       ],
       "viewport": "1240x820",
       "implementationPaths": [
         "admin/src/modules/health/ScaleManagementPage.vue"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/15-health-scales.png"
+      ],
+      "referenceRefs": []
     },
     {
       "key": "admin-recommendations",
@@ -287,15 +359,21 @@
       "surface": "ADMIN",
       "sectionNode": "372:1550",
       "boardNodes": [
-        "372:1550"
+        "372:1554"
       ],
       "viewport": "1240x820",
       "implementationPaths": [
         "admin/src/modules/health/RecommendationRulesPage.vue"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/16-health-recommendations.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/372_1550-20260804_162258703.webp"
+      ]
     },
     {
       "key": "admin-lifestyle",
@@ -303,15 +381,21 @@
       "surface": "ADMIN",
       "sectionNode": "372:1701",
       "boardNodes": [
-        "372:1701"
+        "372:1705"
       ],
       "viewport": "1240x820",
       "implementationPaths": [
         "admin/src/modules/health/LifestyleAdvicePage.vue"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/17-health-lifestyle.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/372_1701-20260804_162258704.webp"
+      ]
     },
     {
       "key": "admin-user-query",
@@ -319,15 +403,21 @@
       "surface": "ADMIN",
       "sectionNode": "372:1853",
       "boardNodes": [
-        "372:1853"
+        "372:1857"
       ],
       "viewport": "1240x820",
       "implementationPaths": [
         "admin/src/modules/users/UserQueryPage.vue"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/18-user-query.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/372_1853-20260804_162258705.webp"
+      ]
     },
     {
       "key": "admin-audit",
@@ -335,15 +425,21 @@
       "surface": "ADMIN",
       "sectionNode": "372:2004",
       "boardNodes": [
-        "372:2004"
+        "372:2008"
       ],
       "viewport": "1240x820",
       "implementationPaths": [
         "admin/src/modules/audit/OperationAuditPage.vue"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/19-operation-audit.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/372_2004-20260804_162258705.webp"
+      ]
     },
     {
       "key": "admin-publish-confirmation",
@@ -351,15 +447,21 @@
       "surface": "ADMIN",
       "sectionNode": "372:2155",
       "boardNodes": [
-        "372:2155"
+        "372:2239"
       ],
       "viewport": "1240x820",
       "implementationPaths": [
         "admin/src/modules/publish/PublishConfirmationDialog.vue"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
-      "screenshotStatus": "PENDING_CONTROLLED_CAPTURE",
-      "screenshotRefs": []
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_MEMORY_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/20-publish-confirmation.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/372_2155-20260804_162258707.webp"
+      ]
     }
   ]
 }
