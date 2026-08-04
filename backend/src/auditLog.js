@@ -31,7 +31,13 @@ function listAuditLogs(data, query = {}) {
   const operatorId = query.operatorId || query.operator_id || "";
   const date = query.date || "";
   const q = String(query.q || "").trim().toLowerCase();
-  const limit = Math.max(1, Math.min(Number(query.limit || 50), 200));
+  const limit = Number(query.limit || 20);
+  if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+    const error = new Error("审计分页参数无效");
+    error.code = "AUDIT_QUERY_INVALID";
+    error.status = 400;
+    throw error;
+  }
   return ensureAuditLogs(data)
     .filter((log) => !targetType || log.target_type === targetType)
     .filter((log) => !targetId || log.target_id === targetId)

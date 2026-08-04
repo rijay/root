@@ -10,6 +10,7 @@ const requiredFiles = [
   "index.html",
   "package.json",
   "vite.config.js",
+  "config/performance-budgets.json",
   "src/main.js",
   "src/App.vue",
   "src/api/client.js",
@@ -165,7 +166,7 @@ for (const capability of [
 ]) assert.equal(access.includes(capability), false, `access must remove ${capability}`);
 
 const client = read("src/api/client.js");
-for (const value of ["ROOT_ADMIN_TOKEN", "sessionStorage", "outcomeUnknown", "postAdminRead", "postAdminForm", "ADMIN_ABORTED", "readOnly: true"]) {
+for (const value of ["ROOT_ADMIN_TOKEN", "sessionStorage", "outcomeUnknown", "postAdminRead", "postAdminForm", "ADMIN_ABORTED", "readOnly: true", "MAX_CONCURRENT_ADMIN_READS", "ADMIN_READ_TIMEOUT_MS", "ADMIN_WRITE_TIMEOUT_MS"]) {
   assert.equal(client.includes(value), true, `admin request module must include ${value}`);
 }
 

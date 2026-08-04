@@ -72,7 +72,7 @@ const filters = reactive({
   q: "",
   action: "",
   operatorId: "",
-  limit: 100,
+  limit: 50,
 });
 
 function formatJson(value) {

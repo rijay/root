@@ -170,7 +170,7 @@ function main() {
     runCommand("backend tests", "npm", ["test", "--prefix", "backend"]),
     runCommand("miniprogram formal scope and performance", "npm", ["run", "check", "--prefix", "miniprogram"]),
     runCommand("admin checks", "npm", ["run", "check", "--prefix", "admin"]),
-    runCommand("admin production build", "npm", ["run", "build", "--prefix", "admin"]),
+    runCommand("admin production build and performance gate", "npm", ["run", "build:verify", "--prefix", "admin"]),
   ];
 
   for (const check of checks) {

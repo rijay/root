@@ -7,8 +7,10 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5177",
     "build": "vite build",
+    "build:verify": "vite build && node ../scripts/admin-performance-report.js --build-gate",
     "preview": "vite preview --host 127.0.0.1 --port 5178",
-    "check": "node scripts/validate.js && node --test scripts/activity-command-recovery.test.js scripts/admin-client-outcome.test.js"
+    "check": "node scripts/validate.js && node --test scripts/activity-command-recovery.test.js scripts/admin-client-outcome.test.js scripts/admin-request-performance.test.js scripts/performance-budget.test.js",
+    "performance:report": "node ../scripts/admin-performance-report.js --legacy"
   },
   "dependencies": {
     "element-plus": "^2.10.2",
