@@ -75,11 +75,11 @@ function fixtureRepository(options = {}) {
   if (options.omitModule !== "MINIPROGRAM") {
     write(root, "miniprogram/app.js", "App({});\n");
   }
-  write(root, "contracts/route-registry/v1.0.0.json", "{}\n");
-  write(root, "contracts/inbox-handler-registry/v1.0.0.json", "{}\n");
-  write(root, "scripts/lib/route-registry.js", "module.exports = {};\n");
-  write(root, "scripts/route-registry-v1.test.js", "module.exports = true;\n");
-  write(root, "scripts/validate-v1-route-registry.js", "module.exports = true;\n");
+  if (options.omitModule !== "FORMAL_ROUTES") {
+    write(root, "miniprogram/app.json", "{\"pages\":[]}\n");
+    write(root, "miniprogram/config/formal-launch-routes.js", "module.exports = {};\n");
+    write(root, "miniprogram/scripts/formal-launch-scope.test.js", "module.exports = true;\n");
+  }
   write(root, ".github/workflows/ci.yml", "name: fixture-ci\n");
   write(root, "contracts/baseline-signoff/v1.0.0.json", "{}\n");
   write(root, "contracts/formal-launch-readiness/v1.0.0.json", "{}\n");
@@ -135,9 +135,9 @@ test("contract fixes seven module policies and keeps every authorization false",
     "BACKEND",
     "CLOUD_FUNCTION",
     "CONTENT",
+    "FORMAL_ROUTES",
     "MIGRATION",
     "MINIPROGRAM",
-    "ROUTE_REGISTRY",
   ]);
   assert.deepEqual(
     contract.moduleSourcePolicies.find(({ moduleId }) => moduleId === "BACKEND"),
@@ -223,15 +223,11 @@ test("CI exposes a least-privilege source-only provenance check with pinned acti
     "Full verification must use the pinned Node 22 runtime that provides node:sqlite"
   );
   assert.match(workflow, /npm run v1:mysql-001-066-authorized:check/);
-  assert.match(workflow, /parseNodeTestSummary\(fs\.readFileSync\(process\.argv\[1\], "utf8"\), 13\)/);
+  assert.match(workflow, /parseNodeTestSummary\(fs\.readFileSync\(process\.argv\[1\], "utf8"\), 5\)/);
   for (const variable of [
     "MYSQL_LOCAL_READINESS_INTEGRATION_ENABLED",
     "IDENTITY_NOTIFICATION_BINDING_MYSQL_INTEGRATION_ENABLED",
     "NOTIFICATION_PROVIDER_FENCE_MYSQL_INTEGRATION_ENABLED",
-    "V1_RUNTIME_ALERT_DELIVERY_MYSQL_INTEGRATION_ENABLED",
-    "SETTLEMENT_SOURCE_AUTHORITY_MYSQL_INTEGRATION_ENABLED",
-    "V1_RUNTIME_LEDGER_INTEGRATION_ENABLED",
-    "MYSQL_RUNTIME_PRINCIPAL_BOOTSTRAP_INTEGRATION_ENABLED",
   ]) {
     assert.match(workflow, new RegExp(`${variable}: "true"`), variable);
   }
@@ -308,7 +304,7 @@ test("source, module and USTAR digests are deterministic while builder refs stay
     assert.equal(listed.status, 0, listed.stderr);
     assert.match(listed.stdout, /^source\/admin\/src\/app\.js$/m);
     assert.match(listed.stdout, /^source\/contracts\/artifact-provenance\/v1\.0\.0\.json$/m);
-    assert.match(listed.stdout, /^source\/contracts\/inbox-handler-registry\/v1\.0\.0\.json$/m);
+    assert.match(listed.stdout, /^source\/miniprogram\/config\/formal-launch-routes\.js$/m);
   } finally {
     fs.rmSync(fixture.root, { recursive: true, force: true });
     fs.rmSync(firstOutput, { recursive: true, force: true });
@@ -386,7 +382,7 @@ test("archive and payload tampering fail local verification", () => {
 });
 
 test("missing modules, symlinks and secret-shaped tracked files fail closed", () => {
-  const missing = fixtureRepository({ omitModule: "MINIPROGRAM" });
+  const missing = fixtureRepository({ omitModule: "FORMAL_ROUTES" });
   const symlink = fixtureRepository({ symlink: true });
   const forbidden = fixtureRepository({ forbiddenFile: true });
   try {

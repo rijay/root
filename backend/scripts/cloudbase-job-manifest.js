@@ -47,11 +47,6 @@ function buildCloudbaseJobManifest(options = {}) {
         "ROOT_HEALTH_DATA_RETENTION_CLEANUP_LIMIT",
         "ROOT_PRIVACY_CONTROLLER_NAME",
         "ROOT_PRIVACY_CONTACT",
-        "ROOT_V1_RUNTIME_SCHEDULER_DRY_RUN",
-        "ROOT_V1_RUNTIME_BRIDGE_LIMIT",
-        "ROOT_V1_RUNTIME_RECOVERY_LIMIT",
-        "ROOT_V1_RUNTIME_WORKER_LIMIT",
-        "ROOT_V1_RUNTIME_SCHEDULER_TIMEOUT_SECONDS",
       ],
       tokenHeader: "X-Admin-Token",
       tokenPolicy: "每个保留 Job 路径使用独立轮换 token；生产环境启用 scoped token。",
@@ -79,31 +74,6 @@ function buildCloudbaseJobManifest(options = {}) {
           "执行前支持 dry-run；外部对象清理失败会阻断成功状态。",
         ],
       },
-      {
-        id: "v1_runtime_cycle",
-        title: "V1 可靠性运行周期",
-        schedule: {
-          cron: "* * * * *",
-          timezone: "Asia/Shanghai",
-          description: "每分钟推进保留的 Outbox/Inbox 与恢复控制。",
-        },
-        http: {
-          method: "POST",
-          path: "/api/v1/jobs/v1-runtime-cycle",
-          body: { dryRun: true },
-        },
-        invocation: {
-          mode: "CLOUDBASE_TIMER_ONLY",
-          functionName: "myroot-v1-runtime-scheduler",
-          triggerName: "v1_runtime_cycle",
-          dryRunEnv: "ROOT_V1_RUNTIME_SCHEDULER_DRY_RUN",
-        },
-        requiredEnv: REQUIRED_ENV,
-        safeguards: [
-          "默认 preview；生产执行由独立运行控制证据授权。",
-          "固定 timer identity 与 request_id，拒绝任意调用者提供运行身份。",
-        ],
-      },
     ],
   };
 }
@@ -118,8 +88,8 @@ function validateCloudbaseJobManifest(manifest, options = {}) {
   if (!manifest || manifest.version !== 2) errors.push("manifest.version must be 2");
   if (!manifest || !manifest.environment) errors.push("manifest.environment is required");
   const jobs = manifest && Array.isArray(manifest.jobs) ? manifest.jobs : [];
-  const expectedIds = ["health_data_retention_cleanup", "v1_runtime_cycle"];
-  if (jobs.length !== expectedIds.length) errors.push("manifest.jobs must contain exactly the two formal-launch jobs");
+  const expectedIds = ["health_data_retention_cleanup"];
+  if (jobs.length !== expectedIds.length) errors.push("manifest.jobs must contain exactly the formal-launch health retention job");
   if (!manifest || !manifest.environment || !Array.isArray(manifest.environment.anyOfEnv)
     || !manifest.environment.anyOfEnv.some((group) => (
       Array.isArray(group) && JOB_TOKEN_ENV.every((name) => group.includes(name))
@@ -137,13 +107,7 @@ function validateCloudbaseJobManifest(manifest, options = {}) {
     if (!Array.isArray(job.requiredEnv) || !REQUIRED_ENV.every((name) => job.requiredEnv.includes(name))) {
       errors.push(`${job.id || "job"} is missing required environment`);
     }
-    if (job.id === "v1_runtime_cycle") {
-      if (!job.invocation || job.invocation.mode !== "CLOUDBASE_TIMER_ONLY"
-        || job.invocation.functionName !== "myroot-v1-runtime-scheduler"
-        || job.invocation.triggerName !== "v1_runtime_cycle") {
-        errors.push("v1_runtime_cycle timer-only invocation contract is invalid");
-      }
-    } else if (!job.executeCommand?.includes("--execute") || !job.dryRunCommand?.includes("--dry-run")) {
+    if (!job.executeCommand?.includes("--execute") || !job.dryRunCommand?.includes("--dry-run")) {
       errors.push(`${job.id || "job"} must expose explicit dry-run and execute commands`);
     }
   }

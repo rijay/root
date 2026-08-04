@@ -135,15 +135,11 @@ jobs:
           set -o pipefail
           result="$RUNNER_TEMP/mysql-001-066.tap"
           npm run v1:mysql-001-066-authorized:check 2>&1 | tee "$result"
-          node -e 'const fs=require("node:fs"); const {parseNodeTestSummary}=require("./backend/src/mysqlLocalAuthorizedRunner"); parseNodeTestSummary(fs.readFileSync(process.argv[1], "utf8"), 13);' "$result"
+          node -e 'const fs=require("node:fs"); const {parseNodeTestSummary}=require("./backend/src/mysqlLocalAuthorizedRunner"); parseNodeTestSummary(fs.readFileSync(process.argv[1], "utf8"), 5);' "$result"
         env:
           MYSQL_LOCAL_READINESS_INTEGRATION_ENABLED: "true"
           IDENTITY_NOTIFICATION_BINDING_MYSQL_INTEGRATION_ENABLED: "true"
           NOTIFICATION_PROVIDER_FENCE_MYSQL_INTEGRATION_ENABLED: "true"
-          V1_RUNTIME_ALERT_DELIVERY_MYSQL_INTEGRATION_ENABLED: "true"
-          SETTLEMENT_SOURCE_AUTHORITY_MYSQL_INTEGRATION_ENABLED: "true"
-          V1_RUNTIME_LEDGER_INTEGRATION_ENABLED: "true"
-          MYSQL_RUNTIME_PRINCIPAL_BOOTSTRAP_INTEGRATION_ENABLED: "true"
 
       - name: Verify v1 local Foundation contracts
         run: npm run v1:foundation:check

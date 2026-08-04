@@ -87,7 +87,7 @@ function inputBinding() {
     designDigest: sha256("design:v1.0.0"),
     authorizationPacketDigest: sha256("authorization-packet:v1.0.0"),
     candidateManifestDigest: sha256("candidate-manifest:v1.0.0"),
-    routeRegistryDigest: sha256("route-registry:v1.0.0"),
+    formalRoutesDigest: sha256("route-registry:v1.0.0"),
     artifactProvenanceDigest: sha256("artifact-provenance:v1.0.0"),
   };
 }

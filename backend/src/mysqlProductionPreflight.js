@@ -1,5 +1,4 @@
 const crypto = require("node:crypto");
-const { calculateV1MysqlConnectionCapacity } = require("./mysqlConnectionCapacity");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -263,40 +262,10 @@ function statusMetrics(rows) {
 
 function capacityEvidence(env, serverMaximumConnections) {
   const mainPool = boundedInteger(
-    env.MYROOT_V1_MAIN_CONNECTION_LIMIT,
+    env.MYSQL_CONNECTION_LIMIT || env.MYROOT_V1_MAIN_CONNECTION_LIMIT,
     1,
     1024,
     "MYSQL_PREFLIGHT_MAIN_POOL_INVALID"
-  );
-  const orchestrationPool = boundedInteger(
-    env.MYROOT_V1_RUNTIME_CONNECTION_LIMIT,
-    3,
-    64,
-    "MYSQL_PREFLIGHT_RUNTIME_POOL_INVALID"
-  );
-  const heartbeatPool = boundedInteger(
-    env.MYROOT_V1_RUNTIME_HEARTBEAT_CONNECTION_LIMIT,
-    1,
-    1,
-    "MYSQL_PREFLIGHT_HEARTBEAT_POOL_INVALID"
-  );
-  const registrarPool = boundedInteger(
-    env.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CONNECTION_LIMIT,
-    1,
-    64,
-    "MYSQL_PREFLIGHT_REGISTRAR_POOL_INVALID"
-  );
-  const workerPool = boundedInteger(
-    env.MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CONNECTION_LIMIT,
-    1,
-    64,
-    "MYSQL_PREFLIGHT_WORKER_POOL_INVALID"
-  );
-  const inspectorPool = boundedInteger(
-    env.MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT,
-    1,
-    64,
-    "MYSQL_PREFLIGHT_INSPECTOR_POOL_INVALID"
   );
   const maximumInstances = boundedInteger(
     env.MYROOT_CLOUDRUN_MAX_INSTANCES,
@@ -324,33 +293,19 @@ function capacityEvidence(env, serverMaximumConnections) {
   );
   const expectedRuntimeHeadroom = observedOtherConnectionConsumers
     + reservedContingencyHeadroom;
-  const capacity = calculateV1MysqlConnectionCapacity({
-    mainPool,
-    orchestrationPool,
-    registrarPool,
-    registrarHeartbeatPool: heartbeatPool,
-    workerPool,
-    inspectorPool,
-    maximumInstances,
-    headroom: expectedRuntimeHeadroom,
-  });
+  const calculatedRequirement = (mainPool * maximumInstances) + expectedRuntimeHeadroom;
   return Object.freeze({
     mainPool,
-    orchestrationPool,
-    registrarPool,
-    heartbeatPool,
-    workerPool,
-    inspectorPool,
     maximumInstances,
     observedOtherConnectionConsumers,
     reservedContingencyHeadroom,
     runtimeConfiguredHeadroom,
     expectedRuntimeHeadroom,
     serverMaximumConnections,
-    perInstance: capacity.perInstance,
-    calculatedRequirement: capacity.calculatedRequirement,
+    perInstance: mainPool,
+    calculatedRequirement,
     runtimeHeadroomMatches: runtimeConfiguredHeadroom === expectedRuntimeHeadroom,
-    withinServerMaximum: capacity.calculatedRequirement <= serverMaximumConnections,
+    withinServerMaximum: calculatedRequirement <= serverMaximumConnections,
   });
 }
 

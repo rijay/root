@@ -1,5 +1,4 @@
 const { nowISO } = require("./dates");
-const { TASK_EVENT_IDEMPOTENCY_OPERATION } = require("./taskEventIdempotency");
 const { WECHAT_UNIONID_TRUST_STATUS } = require("./wechatIdentityAuthority");
 
 const SNAPSHOT_PROJECTION_AUTHORITY_TABLES = new Set([
@@ -134,18 +133,6 @@ function rootUserRows(data) {
   return Array.from(byId.values());
 }
 
-function taskEventRows(data) {
-  return (Array.isArray(data.taskEvents) ? data.taskEvents : []).map((row) => ({
-    ...row,
-    idempotency_operation: row.idempotency_operation || TASK_EVENT_IDEMPOTENCY_OPERATION,
-    occurred_at_client_supplied: row.occurred_at_client_supplied === true
-      ? true
-      : row.occurred_at_client_supplied === false
-        ? false
-        : null,
-  }));
-}
-
 const PROJECTIONS = [
   {
     table: "root_user",
@@ -247,24 +234,6 @@ const PROJECTIONS = [
     columns: [
       "activity_enrollment_event_id", "activity_enrollment_id", "activity_session_id", "root_user_id",
       "attempt_generation", "event_sequence", "operation", "from_status", "to_status", "reason_code", "request_id", "occurred_at",
-    ],
-  },
-  {
-    table: "task_definition",
-    source: "taskDefinitions",
-    id: "task_definition_id",
-    columns: ["task_definition_id", "campaign_id", "task_type", "title", "description", "required", "display_order", "status", "config_json", "created_at", "updated_at"],
-  },
-  {
-    table: "task_event",
-    source: "taskEvents",
-    id: "task_event_id",
-    rows: taskEventRows,
-    columns: [
-      "task_event_id", "root_user_id", "campaign_id", "task_definition_id", "task_type", "event_type",
-      "task_date", "payload_json", "idempotency_key", "idempotency_operation",
-      "request_canonical_version", "request_digest", "request_digest_scheme", "request_digest_key_id",
-      "status", "source_channel", "occurred_at", "occurred_at_client_supplied", "created_at",
     ],
   },
   {
@@ -432,6 +401,5 @@ module.exports = {
   projectionValue,
   rootUserRows,
   syncCoreProjections,
-  taskEventRows,
   toMysqlDateTime,
 };

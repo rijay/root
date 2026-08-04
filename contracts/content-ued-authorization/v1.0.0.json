@@ -90,7 +90,7 @@
       "designDigest",
       "authorizationPacketDigest",
       "candidateManifestDigest",
-      "routeRegistryDigest",
+      "formalRoutesDigest",
       "artifactProvenanceDigest"
     ],
     "signoffExactFields": [

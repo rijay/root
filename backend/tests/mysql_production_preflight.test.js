@@ -21,12 +21,7 @@ function env(overrides = {}) {
     ROOT_CLOUDBASE_ENV_ID: "cloudbase-secret-environment",
     MYROOT_EVIDENCE_ENVIRONMENT_KIND: "CANDIDATE",
     MYROOT_EVIDENCE_CAPTURED_BY_SIGNER_REF: `actor:sha256:${"a".repeat(64)}`,
-    MYROOT_V1_MAIN_CONNECTION_LIMIT: "10",
-    MYROOT_V1_RUNTIME_CONNECTION_LIMIT: "4",
-    MYROOT_V1_RUNTIME_HEARTBEAT_CONNECTION_LIMIT: "1",
-    MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CONNECTION_LIMIT: "2",
-    MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CONNECTION_LIMIT: "3",
-    MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT: "1",
+    MYSQL_CONNECTION_LIMIT: "10",
     MYROOT_CLOUDRUN_MAX_INSTANCES: "4",
     MYROOT_MYSQL_OTHER_CONNECTION_CONSUMERS: "5",
     MYROOT_MYSQL_RESERVED_CONTINGENCY_HEADROOM: "15",
@@ -94,8 +89,8 @@ test("read-only collector emits separate Candidate evidence without raw authorit
   assert.equal(report.status, "PASS");
   assert.equal(report.environmentKind, "CANDIDATE");
   assert.equal(report.readOnly, true);
-  assert.equal(report.capacity.calculatedRequirement, 104);
-  assert.equal(report.capacity.perInstance, 21);
+  assert.equal(report.capacity.calculatedRequirement, 60);
+  assert.equal(report.capacity.perInstance, 10);
   assert.equal(report.capacity.serverMaximumConnections, 200);
   assert.equal(report.capacity.runtimeHeadroomMatches, true);
   assert.equal(report.grantSummary.globalScopePresent, false);

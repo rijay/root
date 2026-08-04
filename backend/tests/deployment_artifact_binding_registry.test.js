@@ -38,14 +38,13 @@ const MODULE_IDS = Object.freeze([
   "BACKEND",
   "CLOUD_FUNCTION",
   "CONTENT",
+  "FORMAL_ROUTES",
   "MIGRATION",
   "MINIPROGRAM",
-  "ROUTE_REGISTRY",
 ]);
 const FUNCTION_KEYS = Object.freeze([
   "MYROOT_HEALTH_RETENTION",
   "MYROOT_JOB_DISPATCHER",
-  "MYROOT_V1_RUNTIME_SCHEDULER",
 ]);
 const ARTIFACT_KINDS = Object.freeze({
   ADMIN: "STATIC_ADMIN_BUNDLE_SHA256_V1",
@@ -54,7 +53,7 @@ const ARTIFACT_KINDS = Object.freeze({
   CONTENT: "CONTENT_SET_SHA256_V1",
   MIGRATION: "MIGRATION_SET_SHA256_V1",
   MINIPROGRAM: "WECHAT_UPLOAD_PACKAGE_SHA256_V1",
-  ROUTE_REGISTRY: "ROUTE_REGISTRY_BUNDLE_SHA256_V1",
+  FORMAL_ROUTES: "FORMAL_ROUTES_BUNDLE_SHA256_V1",
 });
 const EVALUATED_AT = "2026-07-18T10:00:00.000Z";
 const VERIFIED_AT = "2026-07-18T10:30:00.000Z";
@@ -106,7 +105,7 @@ function deploymentDigests(functions = functionReadbacks()) {
     CONTENT: sha256("deployment:content-set"),
     MIGRATION: sha256("deployment:migration-set"),
     MINIPROGRAM: sha256("deployment:miniprogram-upload-package"),
-    ROUTE_REGISTRY: sha256("deployment:route-registry-bundle"),
+    FORMAL_ROUTES: sha256("deployment:formal-routes-bundle"),
   });
 }
 
@@ -171,7 +170,7 @@ function candidateManifest(source, candidateArtifactDigests) {
     migrationSetDigest: sha256("candidate:migration-set"),
     relationalSchemaDigest: sha256("candidate:relational-schema"),
     eventSchemaSetDigest: sha256("candidate:event-schema-set"),
-    routeRegistryDigest: sha256("candidate:route-registry"),
+    formalRoutesDigest: sha256("candidate:route-registry"),
     runtimeConfigDigest: sha256("candidate:runtime-config"),
     secretReferenceVersionDigest: sha256("candidate:secret-reference-version"),
     adapterRequirementRegistryDigest: sha256("candidate:adapter-requirement-registry"),
@@ -318,7 +317,6 @@ test("Contract fixes the seven Module kinds, full cloud-function set, and zero a
   assert.deepEqual(cloudbaserc.functions.map((entry) => entry.name).sort(), [
     "myroot-health-retention",
     "myroot-job-dispatcher",
-    "myroot-v1-runtime-scheduler",
   ]);
   assert.deepEqual(description.authorization, {
     runtimeAuthorized: false,
@@ -417,7 +415,7 @@ test("cloud-function set is exact and rejects missing or duplicate functions", (
   const duplicateFunctions = duplicate.document.modules.find(
     (entry) => entry.moduleId === "CLOUD_FUNCTION"
   ).cloudFunctions.functions;
-  duplicateFunctions[2] = clone(duplicateFunctions[0]);
+  duplicateFunctions[1] = clone(duplicateFunctions[0]);
   expectCode(
     () => registry.evaluate(duplicate.document, duplicate.context),
     "DEPLOYMENT_ARTIFACT_BINDING_CLOUD_FUNCTION_DUPLICATE_OR_UNKNOWN"

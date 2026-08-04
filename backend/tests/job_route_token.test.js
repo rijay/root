@@ -10,16 +10,16 @@ const {
 const { buildProductionEnvMatrix } = require("../src/productionEnvMatrix");
 
 const CHECKIN_ROUTE = "/api/v1/jobs/health-data-retention-cleanup";
-const ALERT_ROUTE = "/api/v1/jobs/v1-runtime-cycle";
+const OTHER_ROUTE = "/api/v1/jobs/other-scope";
 const CHECKIN_OLD = "checkin-route-old-secret-2026";
 const CHECKIN_CURRENT = "checkin-route-current-secret-2026";
-const ALERT_CURRENT = "alert-route-current-secret-2026";
+const OTHER_CURRENT = "other-route-current-secret-2026";
 
 function scopedEnv(extra = {}) {
   return {
     ROOT_ADMIN_JOB_ROUTE_TOKENS: JSON.stringify({
       [CHECKIN_ROUTE]: [CHECKIN_OLD, { token: CHECKIN_CURRENT }],
-      [ALERT_ROUTE]: [ALERT_CURRENT],
+      [OTHER_ROUTE]: [OTHER_CURRENT],
     }),
     ...extra,
   };
@@ -29,8 +29,8 @@ test("scoped Job token rotation authenticates only its exact route", () => {
   const env = scopedEnv({ ROOT_REQUIRE_SCOPED_JOB_TOKENS: "true" });
   assert.equal(authenticateJobRouteToken(env, CHECKIN_ROUTE, CHECKIN_OLD).matched, true);
   assert.equal(authenticateJobRouteToken(env, CHECKIN_ROUTE, CHECKIN_CURRENT).matched, true);
-  assert.equal(authenticateJobRouteToken(env, ALERT_ROUTE, CHECKIN_CURRENT).matched, false);
-  assert.equal(authenticateJobRouteToken(env, ALERT_ROUTE, ALERT_CURRENT).matched, true);
+  assert.equal(authenticateJobRouteToken(env, OTHER_ROUTE, CHECKIN_CURRENT).matched, false);
+  assert.equal(authenticateJobRouteToken(env, OTHER_ROUTE, OTHER_CURRENT).matched, true);
   assert.equal(resolveJobRouteTokenCandidates(env, CHECKIN_ROUTE).mode, "SCOPED");
 });
 
@@ -88,7 +88,7 @@ test("malformed scoped configuration and token reuse across routes fail closed",
     () => parseScopedJobRouteTokens({
       ROOT_ADMIN_JOB_ROUTE_TOKENS: JSON.stringify({
         [CHECKIN_ROUTE]: [duplicateToken],
-        [ALERT_ROUTE]: [duplicateToken],
+        [OTHER_ROUTE]: [duplicateToken],
       }),
     }),
     /cannot reuse one token across Job routes/
@@ -117,7 +117,10 @@ test("production matrix requires scoped Job tokens and rejects legacy-only crede
   };
   const scoped = buildProductionEnvMatrix({
     ...common,
-    ...scopedEnv({ ROOT_REQUIRE_SCOPED_JOB_TOKENS: "true" }),
+    ROOT_REQUIRE_SCOPED_JOB_TOKENS: "true",
+    ROOT_ADMIN_JOB_ROUTE_TOKENS: JSON.stringify({
+      [CHECKIN_ROUTE]: [CHECKIN_OLD, { token: CHECKIN_CURRENT }],
+    }),
   }, { target: "production" }).groups.find((group) => group.id === "cloudbase_jobs");
   assert.equal(scoped.status, "PASS");
 

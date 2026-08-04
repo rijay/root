@@ -73,12 +73,11 @@ npm run deploy:prepare-admin
 npm run jobs:manifest --prefix backend -- --base-url https://<myroot-api-host> --strict
 ```
 
-Manifest 只保留两个正式 Job：
+Manifest 只保留一个正式 Job：
 
 1. `health_data_retention_cleanup`：每日 04:15 调用 `POST /api/v1/jobs/health-data-retention-cleanup`；正式执行前必须完成隐私配置、dry-run 和单独授权。
-2. `v1_runtime_cycle`：每分钟调用 `POST /api/v1/jobs/v1-runtime-cycle`；默认 preview，仅由独立 CloudBase timer scheduler 调用。
 
-生产环境使用 `ROOT_ADMIN_JOB_ROUTE_TOKENS` 为两个路径配置互不复用的轮换 token，并启用 `ROOT_REQUIRE_SCOPED_JOB_TOKENS=true`。CloudBase 配置和本地 Manifest 不证明函数已经部署或取得执行授权。
+生产环境使用 `ROOT_ADMIN_JOB_ROUTE_TOKENS` 为健康数据清理路径配置轮换 token，并启用 `ROOT_REQUIRE_SCOPED_JOB_TOKENS=true`。CloudBase 配置和本地 Manifest 不证明函数已经部署或取得执行授权。
 
 0% 候选验收可使用 CloudBase 官方 URL 参数定向流量：稳定版保持默认版本，候选版只匹配一次性非秘密参数。Cloud Function 临时设置 `ROOT_JOB_ROUTE_QUERY=<key>=<value>`，灰度验证脚本设置同值 `ROOT_CANARY_ROUTE_QUERY` 或传 `--route-query <key>=<value>`；调度器会把参数附加到 Job Interface，默认未配置时 URL 完全不变。验收结束后移除两个变量并恢复百分比流量配置，路由参数不能替代鉴权，也不得承载 token、密码或用户标识。
 
@@ -115,7 +114,7 @@ tcb cloudrun traffic rollback \
 
 脚本退出码：`0` 全部通过；`2` 未命中候选健康探针；`3` 候选 Store 未就绪；`4` CloudBase 对象存储上传或删除未通过；`5` 候选公开隐私说明缺处理者、有效联系方式、正整数保存天数或版本归因。不要把 Admin token 写入命令参数、文档或证据包。
 
-健康数据清理首次开启 execute 前必须完成 dry-run、隐私保存期限核对和单独授权；v1 Runtime cycle 保持独立 preview/execute 控制。Job token 不写入仓库，只放 CloudBase 环境变量或密钥管理，并按路径独立配置。
+健康数据清理首次开启 execute 前必须完成 dry-run、隐私保存期限核对和单独授权。Job token 不写入仓库，只放 CloudBase 环境变量或密钥管理，并按路径独立配置。
 
 ## 2. 小程序改正式接口
 

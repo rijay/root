@@ -7,10 +7,6 @@ const { normalizePersistedCredentials } = require("./credentialProtection");
 const { createCommandRequestDigestCodec } = require("./commandRequestDigest");
 const { createCommandResultCodec } = require("./commandResultProtection");
 const {
-  normalizeTaskEventIdempotencyState,
-  validateTaskEventIdempotencyCollection,
-} = require("./taskEventIdempotency");
-const {
   normalizeWechatIdentityAuthority,
   validateWechatIdentityCollection,
 } = require("./wechatIdentityAuthority");
@@ -19,7 +15,6 @@ const {
   markRecipientBindingUnverified,
   validateRecipientBindingCollection,
 } = require("./wechatRecipientBinding");
-const { runtimeAlertDeliveryMode } = require("./v1RuntimeAlertPayloadAdapter");
 
 const SQLITE_SCHEMA_VERSION = 1;
 const SQLITE_STORE_KEY = "root-checkin";
@@ -107,9 +102,6 @@ function defaultsForOptions(options = {}) {
 function normalizeStoreData(rawData, options = {}) {
   const normalized = minimizePersistedExternalEvidence(mergeDefaults(clone(rawData || {}), defaultsForOptions(options)));
   normalizePersistedCredentials(normalized);
-  if (Array.isArray(normalized.taskEvents)) {
-    normalized.taskEvents.forEach(normalizeTaskEventIdempotencyState);
-  }
   if (Array.isArray(normalized.wechatIdentities)) {
     normalized.wechatIdentities.forEach(normalizeWechatIdentityAuthority);
   }
@@ -181,8 +173,6 @@ function validateSnapshot(snapshot, options = {}) {
     ["activityEnrollments", "activity_enrollment_id"],
     ["activityEnrollmentEvents", "activity_enrollment_event_id"],
     ["activityEnrollmentEvents", "request_id"],
-    ["taskDefinitions", "task_definition_id"],
-    ["taskEvents", "task_event_id"],
     ["notificationTemplates", "notification_template_id"],
     ["notificationSubscriptions", "notification_subscription_id"],
     ["notificationSubscriptionGrants", "notification_subscription_grant_id"],
@@ -237,9 +227,6 @@ function validateSnapshot(snapshot, options = {}) {
     });
   });
 
-  const taskEventIdempotency = validateTaskEventIdempotencyCollection(snapshot.taskEvents);
-  errors.push(...taskEventIdempotency.errors);
-  warnings.push(...taskEventIdempotency.warnings);
   const wechatIdentityAuthority = validateWechatIdentityCollection(snapshot.wechatIdentities, {
     env: options.env || process.env,
   });
@@ -635,15 +622,6 @@ function validateMysqlConfig(config = {}) {
   return config;
 }
 
-function strictOptionalBooleanFlag(env, name) {
-  const value = env && Object.prototype.hasOwnProperty.call(env, name) ? env[name] : "";
-  if (value === undefined || value === null || value === "" || value === "false") return false;
-  if (value === "true") return true;
-  const error = new Error(`${name} must be the exact string true or false`);
-  error.code = "V1_RUNTIME_CONTROL_PLANE_CONFIGURATION_INVALID";
-  throw error;
-}
-
 function resolveMysqlMigrationMode(env = process.env) {
   const raw = String(env.ROOT_MYSQL_MIGRATION_MODE || "").trim().toLowerCase();
   const production = String(env.NODE_ENV || "").trim().toLowerCase() === "production";
@@ -653,51 +631,6 @@ function resolveMysqlMigrationMode(env = process.env) {
   const error = new Error("ROOT_MYSQL_MIGRATION_MODE must be verify_only in production");
   error.code = "MYSQL_MIGRATION_MODE_INVALID";
   throw error;
-}
-
-function v1RuntimeConnectionLimit(env) {
-  const raw = env && Object.prototype.hasOwnProperty.call(env, "MYROOT_V1_RUNTIME_CONNECTION_LIMIT")
-    ? env.MYROOT_V1_RUNTIME_CONNECTION_LIMIT
-    : "3";
-  if (typeof raw !== "string" || !/^\d+$/.test(raw)) {
-    const error = new Error("MYROOT_V1_RUNTIME_CONNECTION_LIMIT must be an integer from 3 to 64");
-    error.code = "V1_RUNTIME_CONTROL_PLANE_CONFIGURATION_INVALID";
-    throw error;
-  }
-  const value = Number(raw);
-  if (!Number.isSafeInteger(value) || value < 3 || value > 64) {
-    const error = new Error("MYROOT_V1_RUNTIME_CONNECTION_LIMIT must be an integer from 3 to 64");
-    error.code = "V1_RUNTIME_CONTROL_PLANE_CONFIGURATION_INVALID";
-    throw error;
-  }
-  return value;
-}
-
-function v1RuntimeAlertRoleMysqlConfig(env, role) {
-  const prefix = `MYROOT_V1_RUNTIME_ALERT_${role}_MYSQL_`;
-  const user = env[`${prefix}USERNAME`];
-  const password = env[`${prefix}PASSWORD`];
-  const expectedCurrentUser = env[`${prefix}CURRENT_USER`];
-  const rawLimit = env[`${prefix}CONNECTION_LIMIT`];
-  const valid = typeof user === "string" && user.length >= 1 && user.length <= 128
-    && user === user.trim()
-    && !/[\u0000-\u001f\u007f]/.test(user)
-    && typeof password === "string" && password.length >= 16 && password.length <= 4096
-    && password === password.trim()
-    && !/[\u0000-\u001f\u007f]/.test(password)
-    && typeof expectedCurrentUser === "string"
-    && expectedCurrentUser.length >= 3 && expectedCurrentUser.length <= 288
-    && expectedCurrentUser.includes("@")
-    && /^[\x21-\x7e]+$/.test(expectedCurrentUser)
-    && typeof rawLimit === "string" && /^[1-9][0-9]*$/.test(rawLimit);
-  const connectionLimit = Number(rawLimit);
-  if (!valid || !Number.isSafeInteger(connectionLimit)
-    || connectionLimit < 1 || connectionLimit > 64) {
-    const error = new Error("V1 runtime alert database authority configuration is invalid");
-    error.code = "V1_RUNTIME_ALERT_DELIVERY_AUTHORITY_CONFIGURATION_INVALID";
-    throw error;
-  }
-  return Object.freeze({ user, password, expectedCurrentUser, connectionLimit });
 }
 
 function parseMysqlPayload(value) {
@@ -714,11 +647,8 @@ async function createMysqlStore(config = {}, options = {}) {
   const migrationModule = require("./mysqlMigrations");
   const projectionModule = require("./mysqlProjection");
   const privilegeModule = require("./mysqlPrivilegePolicy");
-  const eventTransportModule = require("./mysqlEventTransportAdapter");
   const commandIdempotencyModule = require("./mysqlCommandIdempotencyAdapter");
   const commandRecoveryModule = require("./mysqlCommandRecovery");
-  const runtimeControlPlaneModule = require("./v1RuntimeControlPlaneFoundation");
-  const runtimePrincipalReadinessModule = require("./mysqlRuntimePrincipalReadiness");
   const notificationDeliveryModule = require("./mysqlNotificationDeliveryCore");
   const applyMysqlMigrations = dependencies.applyMysqlMigrations || migrationModule.applyMysqlMigrations;
   const verifyMysqlMigrations = dependencies.verifyMysqlMigrations || migrationModule.verifyMysqlMigrations;
@@ -728,19 +658,10 @@ async function createMysqlStore(config = {}, options = {}) {
   const readMysqlPrivilegePolicy = dependencies.readMysqlPrivilegePolicy || privilegeModule.readMysqlPrivilegePolicy;
   const readMysqlPrivilegePolicyFromConnection = dependencies.readMysqlPrivilegePolicyFromConnection
     || privilegeModule.readMysqlPrivilegePolicyFromConnection;
-  const createMysqlEventTransportAdapter = dependencies.createMysqlEventTransportAdapter
-    || eventTransportModule.createMysqlEventTransportAdapter;
   const createMysqlCommandIdempotencyAdapter = dependencies.createMysqlCommandIdempotencyAdapter
     || commandIdempotencyModule.createMysqlCommandIdempotencyAdapter;
   const createMysqlCommandRecovery = dependencies.createMysqlCommandRecovery
     || commandRecoveryModule.createMysqlCommandRecovery;
-  const createV1RuntimeControlPlane = dependencies.createV1RuntimeControlPlane
-    || runtimeControlPlaneModule.createV1RuntimeControlPlane;
-  const createMysqlRuntimePrincipalReadiness = dependencies.createMysqlRuntimePrincipalReadiness
-    || runtimePrincipalReadinessModule.createMysqlRuntimePrincipalReadiness;
-  const assertMysqlRuntimePrincipalReadinessStatus = dependencies
-    .assertMysqlRuntimePrincipalReadinessStatus
-    || runtimePrincipalReadinessModule.assertMysqlRuntimePrincipalReadinessStatus;
   const createMysqlNotificationDeliveryCore = dependencies.createMysqlNotificationDeliveryCore
     || notificationDeliveryModule.createMysqlNotificationDeliveryCore;
   const policyEnvSource = options.env || process.env;
@@ -804,151 +725,6 @@ async function createMysqlStore(config = {}, options = {}) {
       : await applyMysqlMigrations(pool, { ...options, database });
   } catch (error) {
     await pool.end().catch(() => {});
-    throw error;
-  }
-  let v1RuntimeControlPlane = null;
-  let v1RuntimePool = null;
-  let v1RuntimeHeartbeatPool = null;
-  let v1RuntimeRegistrarPool = null;
-  let v1RuntimeWorkerPool = null;
-  let v1RuntimeInspectorPool = null;
-  let runtimePrincipalReadiness = null;
-  let runtimePrincipalReadinessStatus = runtimePrincipalReadinessModule
-    .disabledMysqlRuntimePrincipalReadinessStatus();
-  try {
-    const runtimeControlEnabled = strictOptionalBooleanFlag(
-      policyEnv,
-      "MYROOT_V1_RUNTIME_CONTROL_PLANE_ENABLED"
-    );
-    const runtimeReadinessRequired = strictOptionalBooleanFlag(
-      policyEnv,
-      "ROOT_V1_RUNTIME_READY_REQUIRED"
-    );
-    if (
-      runtimeControlEnabled
-      || runtimeReadinessRequired
-      || Object.prototype.hasOwnProperty.call(dependencies, "createV1RuntimeControlPlane")
-    ) {
-      // Runtime governance holds a named-lock connection while phase work and
-      // heartbeat renewal need independent capacity. A dedicated pool keeps
-      // ordinary Store traffic from consuming that capacity at this Seam.
-      const runtimeConnectionLimit = v1RuntimeConnectionLimit(policyEnv);
-      const runtimePoolOptions = Object.freeze({
-        ...mysqlPoolOptions,
-        connectionLimit: runtimeConnectionLimit,
-      });
-      v1RuntimePool = mysql.createPool({ ...runtimePoolOptions });
-      const deliveryMode = runtimeAlertDeliveryMode(policyEnv);
-      const controlEnv = {
-        ...policyEnv,
-        MYSQL_DATABASE: database,
-        MYSQL_HOST: String(mergedConfig.host),
-        MYSQL_PORT: String(mergedConfig.port || 3306),
-        MYSQL_USERNAME: String(mergedConfig.user),
-        MYSQL_CONNECTION_LIMIT: String(runtimeConnectionLimit),
-        MYROOT_V1_MAIN_CONNECTION_LIMIT: String(mysqlPoolOptions.connectionLimit),
-        MYROOT_V1_RUNTIME_CONNECTION_LIMIT: String(runtimeConnectionLimit),
-        MYROOT_V1_RUNTIME_HEARTBEAT_CONNECTION_LIMIT: "1",
-      };
-      let controlOptions;
-      if (deliveryMode === "DISABLED") {
-        // renewCycle alone uses this one-connection Adapter, so readiness or
-        // preview traffic cannot consume the lease heartbeat reservation.
-        v1RuntimeHeartbeatPool = mysql.createPool({
-          ...runtimePoolOptions,
-          connectionLimit: 1,
-        });
-        controlOptions = {
-          pool: v1RuntimePool,
-          heartbeatPool: v1RuntimeHeartbeatPool,
-          env: Object.freeze(controlEnv),
-        };
-      } else {
-        const registrar = v1RuntimeAlertRoleMysqlConfig(policyEnv, "REGISTRAR");
-        const inspector = v1RuntimeAlertRoleMysqlConfig(policyEnv, "INSPECTOR");
-        const worker = deliveryMode === "CONTROLLED"
-          ? v1RuntimeAlertRoleMysqlConfig(policyEnv, "WORKER") : null;
-        for (const role of ["REGISTRAR", "WORKER", "INSPECTOR"]) {
-          for (const suffix of ["USERNAME", "PASSWORD", "CURRENT_USER", "CONNECTION_LIMIT"]) {
-            delete controlEnv[`MYROOT_V1_RUNTIME_ALERT_${role}_MYSQL_${suffix}`];
-          }
-        }
-        const rolePoolOptions = (role) => ({
-          ...mysqlPoolOptions,
-          user: role.user,
-          password: role.password,
-          connectionLimit: role.connectionLimit,
-        });
-        v1RuntimeRegistrarPool = mysql.createPool(rolePoolOptions(registrar));
-        v1RuntimeHeartbeatPool = mysql.createPool({
-          ...rolePoolOptions(registrar),
-          connectionLimit: 1,
-        });
-        v1RuntimeInspectorPool = mysql.createPool(rolePoolOptions(inspector));
-        if (worker) v1RuntimeWorkerPool = mysql.createPool(rolePoolOptions(worker));
-        runtimePrincipalReadiness = createMysqlRuntimePrincipalReadiness({
-          database,
-          registrationMode: deliveryMode,
-          registrarPool: v1RuntimeRegistrarPool,
-          registrarCurrentUser: registrar.expectedCurrentUser,
-          ...(worker ? {
-            workerPool: v1RuntimeWorkerPool,
-            workerCurrentUser: worker.expectedCurrentUser,
-          } : {}),
-          inspectorPool: v1RuntimeInspectorPool,
-          inspectorCurrentUser: inspector.expectedCurrentUser,
-        });
-        if (!runtimePrincipalReadiness
-          || typeof runtimePrincipalReadiness.inspect !== "function"
-          || typeof runtimePrincipalReadiness.getStatus !== "function") {
-          throw new Error("MySQL runtime principal readiness Interface is unavailable");
-        }
-        runtimePrincipalReadinessStatus = assertMysqlRuntimePrincipalReadinessStatus(
-          runtimePrincipalReadiness.getStatus(),
-          true
-        );
-        controlEnv.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_CONNECTION_LIMIT =
-          String(registrar.connectionLimit);
-        controlEnv.MYROOT_V1_RUNTIME_ALERT_WORKER_CONNECTION_LIMIT =
-          String(worker ? worker.connectionLimit : 0);
-        controlEnv.MYROOT_V1_RUNTIME_ALERT_INSPECTOR_CONNECTION_LIMIT =
-          String(inspector.connectionLimit);
-        controlOptions = {
-          orchestrationPool: v1RuntimePool,
-          registrarPool: v1RuntimeRegistrarPool,
-          registrarHeartbeatPool: v1RuntimeHeartbeatPool,
-          ...(worker ? { runtimeAlertWorkerPool: v1RuntimeWorkerPool } : {}),
-          runtimeAlertInspectorPool: v1RuntimeInspectorPool,
-          runtimeAlertRegistrarCurrentUser: registrar.expectedCurrentUser,
-          ...(worker ? { runtimeAlertWorkerCurrentUser: worker.expectedCurrentUser } : {}),
-          runtimeAlertInspectorCurrentUser: inspector.expectedCurrentUser,
-          env: Object.freeze(controlEnv),
-        };
-      }
-      const implementation = createV1RuntimeControlPlane(controlOptions);
-      const interfaceKeys = ["inspect", "previewScheduledCycle", "runScheduledCycle"];
-      if (!implementation || interfaceKeys.some((key) => typeof implementation[key] !== "function")) {
-        const error = new Error("v1 Runtime Control Plane Interface is unavailable");
-        error.code = "V1_RUNTIME_CONTROL_PLANE_CONFIGURATION_INVALID";
-        throw error;
-      }
-      // The Store exposes a deliberately narrow Interface. The raw pool and the
-      // control plane implementation remain private to this Module.
-      v1RuntimeControlPlane = Object.freeze({
-        inspect: (...args) => implementation.inspect(...args),
-        previewScheduledCycle: (...args) => implementation.previewScheduledCycle(...args),
-        runScheduledCycle: (...args) => implementation.runScheduledCycle(...args),
-      });
-    }
-  } catch (error) {
-    await Promise.all([
-      v1RuntimeHeartbeatPool ? v1RuntimeHeartbeatPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimeRegistrarPool ? v1RuntimeRegistrarPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimeWorkerPool ? v1RuntimeWorkerPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimeInspectorPool ? v1RuntimeInspectorPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimePool ? v1RuntimePool.end().catch(() => {}) : Promise.resolve(),
-      pool.end().catch(() => {}),
-    ]);
     throw error;
   }
   try {
@@ -1116,13 +892,6 @@ async function createMysqlStore(config = {}, options = {}) {
         leastPrivilegeReady: privilegePolicy.ready === true,
         privilegeScope: privilegePolicy.scope,
         privilegePolicyEnforced: privilegePolicy.enforced === true,
-        runtimeAlertDeliveryEnabled: runtimePrincipalReadinessStatus.enabled,
-        runtimePrincipalReady: runtimePrincipalReadinessStatus.ready,
-        runtimePrincipalRequiredRoleCount: runtimePrincipalReadinessStatus.requiredRoleCount,
-        runtimePrincipalVerifiedRoleCount: runtimePrincipalReadinessStatus.verifiedRoleCount,
-        runtimePrincipalRequiredRoutineCount: runtimePrincipalReadinessStatus.requiredRoutineCount,
-        runtimePrincipalVerifiedRoutineCount: runtimePrincipalReadinessStatus.verifiedRoutineCount,
-        runtimePrincipalIssueCount: runtimePrincipalReadinessStatus.issueCount,
         database,
         host: mergedConfig.host,
         port: Number(mergedConfig.port || 3306),
@@ -1137,41 +906,11 @@ async function createMysqlStore(config = {}, options = {}) {
         let phase = "store";
         let transactionActive = false;
         let awaitingResume = false;
-        let transactionEventTransport = null;
-        let transactionEventTransportFacade = null;
         let transactionCommandIdempotency = null;
-        let transactionGeneration = 0;
-
-        const createEventTransportFacade = (implementation) => {
-          const generation = ++transactionGeneration;
-          return Object.freeze({
-            stageOutbox(envelope) {
-              if (requestOptions.write === false) {
-                const error = new Error("MySQL Store Event Transport requires a writable request");
-                error.code = "STORE_EVENT_TRANSPORT_READ_ONLY";
-                throw error;
-              }
-              if (
-                !transactionActive ||
-                awaitingResume ||
-                !transactionEventTransport ||
-                transactionEventTransport !== implementation ||
-                transactionGeneration !== generation
-              ) {
-                const error = new Error("MySQL Store Event Transport requires an active transaction generation");
-                error.code = "STORE_EVENT_TRANSPORT_NOT_ACTIVE";
-                throw error;
-              }
-              return implementation.stageOutbox(envelope);
-            },
-          });
-        };
 
         const beginRequestTransaction = async () => {
           await connection.beginTransaction();
           transactionActive = true;
-          transactionEventTransport = createMysqlEventTransportAdapter(connection);
-          transactionEventTransportFacade = createEventTransportFacade(transactionEventTransport);
           transactionCommandIdempotency = createMysqlCommandIdempotencyAdapter(connection, {
             requestDigestCodec: commandRequestDigestCodec,
             resultCodec: commandResultCodec,
@@ -1197,14 +936,6 @@ async function createMysqlStore(config = {}, options = {}) {
           const changedKeys = changedCollectionKeys(beforePersisted, afterPersisted);
           if (commitOptions.commandClaimOnly === true) {
             if (changedKeys.size) throw commandClaimCheckpointDirty();
-            try {
-              transactionEventTransport.assertNoStagedFacts();
-            } catch (error) {
-              if (error && error.code === "OUTBOX_STAGED_FACTS_PRESENT") {
-                throw commandClaimCheckpointDirty();
-              }
-              throw error;
-            }
           }
           const nextRevision = changedKeys.size ? revision + 1 : revision;
           if (changedKeys.size) {
@@ -1213,11 +944,8 @@ async function createMysqlStore(config = {}, options = {}) {
               changedKeys,
             });
           }
-          if (transactionEventTransport) await transactionEventTransport.flushBeforeCommit();
           await connection.commit();
           transactionActive = false;
-          if (transactionEventTransport) transactionEventTransport.afterCommit();
-          transactionEventTransport = null;
           if (transactionCommandIdempotency) transactionCommandIdempotency.discard();
           transactionCommandIdempotency = null;
           revision = nextRevision;
@@ -1268,7 +996,7 @@ async function createMysqlStore(config = {}, options = {}) {
             }
             awaitingResume = false;
             phase = "work";
-            return { revision, eventTransport: transactionEventTransportFacade };
+            return { revision };
           };
           const commandRecovery = createMysqlCommandRecovery({
             data,
@@ -1304,9 +1032,6 @@ async function createMysqlStore(config = {}, options = {}) {
             checkpoint,
             resume,
             commandRecovery,
-            get eventTransport() {
-              return transactionEventTransportFacade;
-            },
           };
           const result = await work(data, transactionControl);
           if (awaitingResume) {
@@ -1320,8 +1045,6 @@ async function createMysqlStore(config = {}, options = {}) {
           if (!shouldCommit) {
             if (transactionActive) await connection.rollback();
             transactionActive = false;
-            if (transactionEventTransport) transactionEventTransport.discard();
-            transactionEventTransport = null;
             if (transactionCommandIdempotency) transactionCommandIdempotency.discard();
             transactionCommandIdempotency = null;
             replaceStoreData(data, beforePersisted, options);
@@ -1337,15 +1060,12 @@ async function createMysqlStore(config = {}, options = {}) {
             ? await connection.rollback().then(() => null, (failure) => failure)
             : null;
           transactionActive = false;
-          if (transactionEventTransport) transactionEventTransport.discard();
-          transactionEventTransport = null;
           if (transactionCommandIdempotency) transactionCommandIdempotency.discard();
           transactionCommandIdempotency = null;
           if (beforePersisted) replaceStoreData(data, beforePersisted, options);
           if (phase === "store" || rollbackError) lastError = (rollbackError || error).message;
           throw error;
         } finally {
-          if (transactionEventTransport) transactionEventTransport.discard();
           if (transactionCommandIdempotency) transactionCommandIdempotency.discard();
           connection.release();
         }
@@ -1361,12 +1081,6 @@ async function createMysqlStore(config = {}, options = {}) {
           "SELECT COUNT(*) AS migration_count, MAX(version) AS latest_version FROM schema_migrations"
         );
         const row = await selectSnapshot(connection, false);
-        runtimePrincipalReadinessStatus = runtimePrincipalReadiness
-          ? assertMysqlRuntimePrincipalReadinessStatus(
-            await runtimePrincipalReadiness.inspect(),
-            true
-          )
-          : runtimePrincipalReadinessModule.disabledMysqlRuntimePrincipalReadinessStatus();
         revision = Number(row.revision || 0);
         lastReadAt = new Date().toISOString();
         lastError = "";
@@ -1378,13 +1092,6 @@ async function createMysqlStore(config = {}, options = {}) {
           leastPrivilegeReady: privilegePolicy.ready === true,
           privilegeScope: privilegePolicy.scope,
           privilegePolicyEnforced: privilegePolicy.enforced === true,
-          runtimeAlertDeliveryEnabled: runtimePrincipalReadinessStatus.enabled,
-          runtimePrincipalReady: runtimePrincipalReadinessStatus.ready,
-          runtimePrincipalRequiredRoleCount: runtimePrincipalReadinessStatus.requiredRoleCount,
-          runtimePrincipalVerifiedRoleCount: runtimePrincipalReadinessStatus.verifiedRoleCount,
-          runtimePrincipalRequiredRoutineCount: runtimePrincipalReadinessStatus.requiredRoutineCount,
-          runtimePrincipalVerifiedRoutineCount: runtimePrincipalReadinessStatus.verifiedRoutineCount,
-          runtimePrincipalIssueCount: runtimePrincipalReadinessStatus.issueCount,
         };
       } catch (error) {
         lastError = error.message;
@@ -1396,24 +1103,9 @@ async function createMysqlStore(config = {}, options = {}) {
     async close() {
       await operationQueue;
       closing = true;
-      const results = await Promise.allSettled([
-        v1RuntimeHeartbeatPool ? v1RuntimeHeartbeatPool.end() : Promise.resolve(),
-        v1RuntimeRegistrarPool ? v1RuntimeRegistrarPool.end() : Promise.resolve(),
-        v1RuntimeWorkerPool ? v1RuntimeWorkerPool.end() : Promise.resolve(),
-        v1RuntimeInspectorPool ? v1RuntimeInspectorPool.end() : Promise.resolve(),
-        v1RuntimePool ? v1RuntimePool.end() : Promise.resolve(),
-        pool.end(),
-      ]);
-      const failed = results.find((result) => result.status === "rejected");
-      if (failed) throw failed.reason;
+      await pool.end();
     },
   };
-  Object.defineProperty(adapter, "v1RuntimeControlPlane", {
-    value: v1RuntimeControlPlane,
-    enumerable: false,
-    configurable: false,
-    writable: false,
-  });
   Object.defineProperty(adapter, "notificationDeliveryCore", {
     value: notificationDeliveryCore,
     enumerable: false,
@@ -1423,14 +1115,7 @@ async function createMysqlStore(config = {}, options = {}) {
   await enqueue(projectLatestSnapshot);
   return adapter;
   } catch (error) {
-    await Promise.all([
-      v1RuntimeHeartbeatPool ? v1RuntimeHeartbeatPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimeRegistrarPool ? v1RuntimeRegistrarPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimeWorkerPool ? v1RuntimeWorkerPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimeInspectorPool ? v1RuntimeInspectorPool.end().catch(() => {}) : Promise.resolve(),
-      v1RuntimePool ? v1RuntimePool.end().catch(() => {}) : Promise.resolve(),
-      pool.end().catch(() => {}),
-    ]);
+    await pool.end().catch(() => {});
     throw error;
   }
 }

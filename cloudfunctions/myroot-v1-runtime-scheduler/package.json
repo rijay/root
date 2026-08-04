@@ -1,9 +1,0 @@
-{
-  "name": "myroot-v1-runtime-scheduler",
-  "version": "0.5.13",
-  "private": true,
-  "main": "index.js",
-  "engines": {
-    "node": "18.x"
-  }
-}

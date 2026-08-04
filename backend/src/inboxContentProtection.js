@@ -1,7 +1,6 @@
 const crypto = require("node:crypto");
 
 const { isProtectedRuntime } = require("./credentialProtection");
-const { payloadSnapshot } = require("./eventTransport");
 
 const PROTECTION = "A256GCM";
 const CODEC_VERSION = "A256GCM:v1";
@@ -50,6 +49,11 @@ function canonicalJson(value) {
     return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
   }
   return JSON.stringify(value);
+}
+
+function plaintextDigest(value) {
+  const normalized = clone(value);
+  return crypto.createHash("sha256").update(canonicalJson(normalized), "utf8").digest("hex");
 }
 
 function plainRecord(value) {
@@ -258,7 +262,7 @@ function createInboxContentCodec(env = process.env) {
     const purpose = normalizePurpose(options.purpose);
     const expectedBindingDigest = bindingDigest(options.binding);
     const current = config();
-    if (!current.enabled) return payloadSnapshot(value).digest;
+    if (!current.enabled) return plaintextDigest(value);
     const keyId = options.keyId === undefined ? current.activeKeyId : options.keyId;
     if (!validateKeyId(keyId)) {
       throw contentError("INBOX_CONTENT_KEY_ID_INVALID", "Inbox content key identifier is invalid", 409);
@@ -283,7 +287,7 @@ function createInboxContentCodec(env = process.env) {
       if (!current.enabled) {
         return Object.freeze({
           stored: normalized,
-          contentDigest: payloadSnapshot(normalized).digest,
+          contentDigest: plaintextDigest(normalized),
           keyId: null,
           protected: false,
           codecVersion: "PLAINTEXT:v0",
@@ -331,7 +335,7 @@ function createInboxContentCodec(env = process.env) {
         const value = clone(stored);
         return Object.freeze({
           value,
-          contentDigest: payloadSnapshot(value).digest,
+          contentDigest: plaintextDigest(value),
           keyId: null,
           protected: false,
           codecVersion: "PLAINTEXT:v0",

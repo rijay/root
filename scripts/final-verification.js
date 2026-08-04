@@ -18,6 +18,7 @@ const RETIRED_JOB_ROUTES = Object.freeze([
   "/api/v1/jobs/lifecycle-user-exports-cleanup",
   "/api/v1/jobs/lifecycle-user-exports-delivery-retry",
   "/api/v1/jobs/youzan-identity-reconcile",
+  "/api/v1/jobs/v1-runtime-cycle",
 ]);
 
 const RETIRED_ADMIN_ROUTES = Object.freeze([
@@ -140,7 +141,6 @@ function verifyFormalRouteSurface() {
   const backendPackage = JSON.parse(fs.readFileSync(path.join(projectRoot, "backend", "package.json"), "utf8"));
   const missingRequiredRoutes = [
     "/api/v1/jobs/health-data-retention-cleanup",
-    "POST ${V1_RUNTIME_CYCLE_ROUTE}",
   ].filter((route) => !appSource.includes(route));
   const remainingRetiredRoutes = [...RETIRED_JOB_ROUTES, ...RETIRED_ADMIN_ROUTES, ...RETIRED_USER_ROUTES, ...RETIRED_STATIC_ROUTES]
     .filter((route) => appSource.includes(route));
@@ -171,7 +171,6 @@ function main() {
     runCommand("miniprogram formal scope and performance", "npm", ["run", "check", "--prefix", "miniprogram"]),
     runCommand("admin checks", "npm", ["run", "check", "--prefix", "admin"]),
     runCommand("admin production build", "npm", ["run", "build", "--prefix", "admin"]),
-    runCommand("V1 route registry", "npm", ["run", "v1:routes:check"]),
   ];
 
   for (const check of checks) {

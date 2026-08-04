@@ -148,7 +148,7 @@ test("Store normalization removes persisted WeChat access-token cache without mu
 });
 
 
-test("formal Job HTTP Interfaces expose only retention and V1 runtime cycle", async (t) => {
+test("formal Job HTTP Interface exposes only health retention", async (t) => {
   const server = createApp({
     env: { ROOT_ADMIN_JOB_TOKEN: "job-secret" },
   });
@@ -167,6 +167,7 @@ test("formal Job HTTP Interfaces expose only retention and V1 runtime cycle", as
     "/api/v1/jobs/lifecycle-user-exports-cleanup",
     "/api/v1/jobs/lifecycle-user-exports-delivery-retry",
     "/api/v1/jobs/youzan-identity-reconcile",
+    "/api/v1/jobs/v1-runtime-cycle",
   ];
   for (const route of retiredRoutes) {
     const response = await request(baseUrl, route, {
@@ -184,12 +185,6 @@ test("formal Job HTTP Interfaces expose only retention and V1 runtime cycle", as
   });
   assert.notEqual(retention.code, 404);
 
-  const runtimeCycle = await request(baseUrl, "/api/v1/jobs/v1-runtime-cycle", {
-    method: "POST",
-    headers: { "X-ROOT-ADMIN-TOKEN": "job-secret" },
-    body: JSON.stringify({ dryRun: true }),
-  });
-  assert.equal(runtimeCycle.code, 50351);
 });
 
 test("retired task, settlement, reward, order, check-in and legacy operations HTTP Interfaces return 404", async (t) => {
@@ -512,21 +507,6 @@ test("MySQL migrations and core relational projection cover production Store fac
     source: "CLOUDBASE",
     verifiedAt: "2026-07-11T10:00:00+08:00",
   }, { env: verifiedWechatTestEnv }));
-  data.taskEvents.push({
-    task_event_id: "tev_mysql_projection",
-    root_user_id: "usr_mysql_projection",
-    campaign_id: "ROOT_7D_RESET",
-    task_definition_id: "td_root_7d_checkin",
-    task_type: "CHECKIN",
-    event_type: "CHECKIN_COMPLETED",
-    task_date: "2026-07-11",
-    payload_json: { taskDate: "2026-07-11" },
-    idempotency_key: "mysql-projection-checkin",
-    status: "RECORDED",
-    source_channel: "MYROOT",
-    occurred_at: "2026-07-11T10:00:00+08:00",
-    created_at: "2026-07-11T10:00:00+08:00",
-  });
   data.privacyConsentRecords.push({
     privacy_consent_record_id: "pcr_mysql_projection",
     root_user_id: "usr_mysql_projection",
@@ -575,13 +555,11 @@ test("MySQL migrations and core relational projection cover production Store fac
   };
   const report = await syncCoreProjections(connection, data, { force: true });
   assert.ok(report.tables.includes("root_user"));
-  assert.ok(report.tables.includes("task_event"));
   assert.ok(report.tables.includes("settlement_record"));
   assert.ok(report.tables.includes("notification_job"));
   assert.ok(report.tables.includes("notification_subscription_grant"));
   assert.ok(report.tables.includes("privacy_consent_record"));
   assert.ok(calls.some((call) => /INSERT INTO `root_user`/.test(call.sql)));
-  assert.ok(calls.some((call) => /INSERT INTO `task_event`/.test(call.sql)));
   assert.ok(calls.some((call) => /INSERT INTO `privacy_consent_record`/.test(call.sql)));
   assert.ok(calls.some((call) => /INSERT INTO `notification_subscription_grant`/.test(call.sql)));
   assert.equal(rootUserRows(data)[0].unionid, "union_mysql_projection");
@@ -624,27 +602,22 @@ test("cloudbase job manifest captures scheduled job Interface and environment se
     "ROOT_ADMIN_JOB_TOKEN",
     "ROOT_ADMIN_JOB_TOKENS",
   ]]);
-  assert.deepEqual(manifest.jobs.map((job) => job.id), ["health_data_retention_cleanup", "v1_runtime_cycle"]);
+  assert.deepEqual(manifest.jobs.map((job) => job.id), ["health_data_retention_cleanup"]);
   assert.ok(manifest.jobs.every((job) => job.http.method === "POST"));
   assert.ok(manifest.jobs.every((job) => job.http.path.startsWith("/api/v1/jobs/")));
   assert.match(manifest.jobs[0].executeCommand, /npm run health-data-retention-cleanup/);
   assert.equal(manifest.jobs[0].schedule.cron, "15 4 * * *");
   assert.equal(manifest.jobs[0].http.path, "/api/v1/jobs/health-data-retention-cleanup");
   assert.equal(manifest.jobs[0].http.body.objectCleanup, true);
-  assert.equal(manifest.jobs[1].schedule.cron, "* * * * *");
-  assert.equal(manifest.jobs[1].http.path, "/api/v1/jobs/v1-runtime-cycle");
-  assert.equal(manifest.jobs[1].http.body.dryRun, true);
-  assert.equal(manifest.jobs[1].invocation.mode, "CLOUDBASE_TIMER_ONLY");
-  assert.equal(manifest.jobs[1].invocation.functionName, "myroot-v1-runtime-scheduler");
   assert.equal(manifest.environment.optionalEnv.includes("ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED"), true);
   assert.equal(manifest.environment.optionalEnv.includes("ROOT_HEALTH_DATA_RETENTION_CLEANUP_LIMIT"), true);
   assert.equal(manifest.environment.optionalEnv.includes("ROOT_PRIVACY_CONTROLLER_NAME"), true);
   assert.equal(manifest.environment.optionalEnv.includes("ROOT_PRIVACY_CONTACT"), true);
-  assert.equal(manifest.environment.optionalEnv.includes("ROOT_V1_RUNTIME_SCHEDULER_DRY_RUN"), true);
+  assert.equal(manifest.environment.optionalEnv.some((name) => /V1_RUNTIME/.test(name)), false);
   assert.equal(manifest.environment.optionalEnv.some((name) => /CHECKIN|LIFECYCLE|WEWORK|YOUZAN|ADAPTER_RETRY/.test(name)), false);
   assert.match(report, /ROOT 正式上线定时任务 Manifest/);
   assert.match(report, /health_data_retention_cleanup/);
-  assert.match(report, /v1_runtime_cycle/);
+  assert.doesNotMatch(report, /v1_runtime_cycle/);
   assert.equal(parseCloudbaseJobManifestArgs(["--base-url", "https://job.example.com/"]).baseUrl, "https://job.example.com");
   assert.equal(resolveCloudbaseJobBaseUrl({ ROOT_JOB_BASE_URL: "https://job.example.com/", ROOT_PUBLIC_BASE_URL: "https://public.example.com" }), "https://job.example.com");
   const legacyMutation = JSON.parse(JSON.stringify(manifest));
@@ -842,6 +815,7 @@ test("production cutover readiness gates live external proof", () => {
 });
 
 test("production environment matrix validates the formal launch runtime", () => {
+  const retentionRoute = "/api/v1/jobs/health-data-retention-cleanup";
   const readyEnv = {
     WECHAT_APPID: "wx-root",
     WECHAT_APPSECRET: "wechat-secret",
@@ -850,14 +824,8 @@ test("production environment matrix validates the formal launch runtime", () => 
     ROOT_PHONE_HMAC_KEY: "test-phone-hmac-key",
     ROOT_COMMAND_REQUEST_DIGEST_KEY: "test-command-request-digest-key-with-strong-entropy-2026",
     ROOT_COMMAND_REQUEST_DIGEST_KEY_ID: "test-command-request-v1",
-    ROOT_COMMAND_REQUEST_DIGEST_VERIFICATION_KEYS_JSON: JSON.stringify({
-      "test-command-request-v0": "test-command-request-previous-key-with-strong-entropy-2025",
-    }),
     ROOT_COMMAND_RESULT_ENCRYPTION_KEY: "test-command-result-key-with-at-least-32-characters",
     ROOT_COMMAND_RESULT_KEY_ID: "test-command-result-v1",
-    ROOT_COMMAND_RESULT_DECRYPTION_KEYS_JSON: JSON.stringify({
-      "test-command-result-v0": "test-command-result-previous-key-with-strong-entropy-2025",
-    }),
     ROOT_INBOX_CONTENT_ENCRYPTION_KEY: "test-inbox-content-key-with-at-least-32-characters",
     ROOT_INBOX_CONTENT_KEY_ID: "test-inbox-content-v1",
     ROOT_ADMIN_TOKEN: "admin-secret-with-strong-entropy-2026",
@@ -872,56 +840,6 @@ test("production environment matrix validates the formal launch runtime", () => 
     MYSQL_USERNAME: "root",
     MYSQL_PASSWORD: "mysql-secret",
     MYSQL_DATABASE: "root_checkin",
-    MYSQL_CONNECTION_LIMIT: "8",
-    MYROOT_V1_RUNTIME_CONTROL_PLANE_ENABLED: "true",
-    ROOT_V1_RUNTIME_READY_REQUIRED: "true",
-    MYROOT_V1_RUNTIME_KILL_SWITCH: "DISENGAGED",
-    MYROOT_V1_RUNTIME_OWNER: "runtime-owner-production-test",
-    MYROOT_V1_RUNTIME_ATTESTATION_MAX_AGE_SECONDS: "180",
-    MYROOT_V1_RUNTIME_ENVIRONMENT_ID: "production-test",
-    MYROOT_V1_RUNTIME_TARGET_GENERATION: "production-test-initial",
-    K_REVISION: "myroot-api-00001-test",
-    MYROOT_V1_RUNTIME_CONNECTION_LIMIT: "3",
-    MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE: "controlled",
-    ROOT_V1_RUNTIME_ALERT_RECEIVER_BINDING_REF: "runtime-alert-receiver-test-v1",
-    ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT: "https://alerts.example.test/myroot/runtime",
-    ROOT_V1_RUNTIME_ALERT_RECEIVER_SECRET:
-      "runtime-alert-receiver-secret-with-strong-entropy-2026",
-    ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY:
-      "runtime-alert-binding-digest-key-with-strong-entropy-2026",
-    ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID: "runtime-alert-binding-test-v1",
-    ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY:
-      "runtime-alert-payload-signing-key-with-strong-entropy-2026",
-    ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY_ID: "runtime-alert-payload-test-v1",
-    ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY:
-      "runtime-alert-receipt-digest-key-with-strong-entropy-2026",
-    ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID: "runtime-alert-receipt-test-v1",
-    MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_USERNAME: "runtime-alert-registrar",
-    MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD: "registrar-role-secret-2026",
-    MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CURRENT_USER: "runtime-alert-registrar@%",
-    MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CONNECTION_LIMIT: "2",
-    MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_USERNAME: "runtime-alert-worker",
-    MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_PASSWORD: "worker-role-secret-2026",
-    MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CURRENT_USER: "runtime-alert-worker@%",
-    MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CONNECTION_LIMIT: "3",
-    MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_USERNAME: "runtime-alert-inspector",
-    MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_PASSWORD: "inspector-role-secret-2026",
-    MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CURRENT_USER: "runtime-alert-inspector@%",
-    MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT: "1",
-    MYROOT_CLOUDRUN_MAX_INSTANCES: "2",
-    MYSQL_SERVER_MAX_CONNECTIONS: "100",
-    MYROOT_MYSQL_CONNECTION_HEADROOM: "20",
-    MYROOT_MYSQL_CAPACITY_EVIDENCE_REF: "candidate-mysql-capacity-proof",
-    MYROOT_V1_RUNTIME_ORCHESTRATOR_ENABLED: "true",
-    MYROOT_OUTBOX_INBOX_BRIDGE_ENABLED: "true",
-    MYROOT_INBOX_WORKER_HARNESS_ENABLED: "true",
-    ROOT_KEY_INVENTORY_READINESS_ENABLED: "true",
-    ROOT_KEY_INVENTORY_RETIRED_KEY_IDS_JSON: JSON.stringify({
-      REQUEST_DIGEST: [],
-      COMMAND_RESULT: [],
-      INBOX_CONTENT: [],
-      NOTIFICATION_RECEIPT: [],
-    }),
     ROOT_CLOUDBASE_STORE_DECISION: "MYSQL_ON_CLOUDBASE",
     ROOT_CLOUDBASE_ENV_ID: "root-prod-env",
     ROOT_CLOUDBASE_REGION: "ap-shanghai",
@@ -933,530 +851,50 @@ test("production environment matrix validates the formal launch runtime", () => 
     ROOT_CLOUDBASE_JOB_INVOCATION_POLICY_EVIDENCE: "candidate-timer-only-policy-proof",
     ROOT_REQUIRE_SCOPED_JOB_TOKENS: "true",
     ROOT_ADMIN_JOB_ROUTE_TOKENS: JSON.stringify({
-      "/api/v1/jobs/v1-runtime-cycle": ["runtime-route-secret-with-strong-entropy-2026"],
+      [retentionRoute]: ["retention-route-secret-with-strong-entropy-2026"],
     }),
-    ROOT_ADMIN_JOB_TOKEN: "job-secret-with-strong-entropy-2026",
-    MYROOT_NOTIFICATION_DELIVERY_FOUNDATION_ENABLED: "true",
-    ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY:
-      "test-notification-receipt-hmac-key-with-strong-entropy-2026",
-    ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID: "test-notification-receipt-v1",
-    ROOT_MEMBER_CENTER_APPID: "wxfb75c0b432670215",
-    ROOT_MEMBER_CENTER_PRODUCT_PATH: "pages/goods/detail/index.html?alias=36ep2dcgnia7nf0",
-    ROOT_MEMBER_CENTER_ENV_VERSION: "release",
-    YOUZAN_CLIENT_ID: "youzan-client",
-    YOUZAN_GRANT_ID: "12345678",
-    YOUZAN_ACCESS_TOKEN: "youzan-token",
-    YOUZAN_ACCESS_TOKEN_EXPIRES_AT: "2099-01-01T00:00:00+08:00",
-    YOUZAN_TOKEN_MANAGEMENT_MODE: "STATIC_ROTATION",
-    YOUZAN_TOKEN_ROTATION_OWNER: "root-ops",
-    YOUZAN_ORDER_LIST_URL: "https://youzan.example.com/orders",
-    ROOT_AFTER_SALES_STATUS_MAP: JSON.stringify({ REFUND_SUCCESS: "REFUNDED" }),
-    YOUZAN_CUSTOMER_LIST_URL: "https://youzan.example.com/customers",
-    YOUZAN_USER_QUERY_URL: "https://youzan.example.com/users/query",
-    ROOT_YOUZAN_IDENTITY_RECONCILE_ENABLED: "true",
-    YOUZAN_COUPON_SEND_URL: "https://youzan.example.com/coupons/send",
-    YOUZAN_COUPON_STATUS_URL: "https://youzan.example.com/coupons/status",
-    ROOT_FULFILLMENT_LIST_URL: "https://logistics.example.com/events",
-    ROOT_FULFILLMENT_SECRET: "fulfillment-secret",
-    WEWORK_CORP_ID: "ww-root",
-    WEWORK_CONTACT_LIST_URL: "https://wework.example.com/contacts",
-    WEWORK_CONTACT_SECRET: "wework-secret",
-    WEWORK_ACCESS_TOKEN: "wework-token",
-    WEWORK_TAG_APPLY_URL: "https://wework.example.com/tags",
   };
   const ready = buildProductionEnvMatrix(readyEnv, { target: "production" });
-  const rotatingJobToken = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_ADMIN_JOB_ROUTE_TOKENS: JSON.stringify({
-      "/api/v1/jobs/v1-runtime-cycle": [
-        "runtime-route-old-secret-with-strong-entropy-2026",
-        "runtime-route-secret-with-strong-entropy-2026",
-      ],
-    }),
-  }, { target: "production" });
+  assert.equal(ready.status, "READY");
+  assert.equal(ready.groups.some((group) => group.id === "v1_runtime_control"), false);
+  assert.equal(ready.groups.every((group) => ["PASS", "OPTIONAL"].includes(group.status)), true);
+
   const blocked = buildProductionEnvMatrix({}, { target: "production" });
+  assert.equal(blocked.status, "BLOCKED");
   const gray = buildProductionEnvMatrix({}, { target: "gray" });
-  const disabledConsent = buildProductionEnvMatrix({
+  assert.equal(gray.status, "NEEDS_REVIEW");
+
+  const invalidConsent = buildProductionEnvMatrix({
     ...readyEnv,
     ROOT_REQUIRE_HEALTH_CONSENT: "false",
   }, { target: "production" });
+  assert.equal(invalidConsent.status, "BLOCKED");
+
   const invalidRetention = buildProductionEnvMatrix({
     ...readyEnv,
     ROOT_HEALTH_DATA_RETENTION_DAYS: "0",
   }, { target: "production" });
+  assert.equal(invalidRetention.status, "BLOCKED");
+
   const invalidPrivacyContact = buildProductionEnvMatrix({
     ...readyEnv,
     ROOT_PRIVACY_CONTACT: "待确认",
   }, { target: "production" });
-  const untrustedWechatOpenApiEndpoint = buildProductionEnvMatrix({
+  assert.equal(invalidPrivacyContact.status, "BLOCKED");
+
+  const untrustedWechatEndpoint = buildProductionEnvMatrix({
     ...readyEnv,
     ROOT_WECHAT_OPENAPI_BASE_URL: "https://attacker.example",
   }, { target: "production" });
-  const exactWechatEndpoint = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_WECHAT_OPENAPI_BASE_URL: "https://api.weixin.qq.com",
-  }, { target: "production" });
-  const disabledNotificationDeliveryFoundation = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_NOTIFICATION_DELIVERY_FOUNDATION_ENABLED: "false",
-  }, { target: "production" });
-  const weakNotificationReceiptKey = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY: "too-short",
-  }, { target: "production" });
-  const invalidNotificationReceiptKeyId = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID: "invalid receipt key id",
-  }, { target: "production" });
-  const missingPhoneHmacKey = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_PHONE_HMAC_KEY: "",
-  }, { target: "production" });
-  const missingCommandResultKey = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_COMMAND_RESULT_ENCRYPTION_KEY: "",
-  }, { target: "production" });
-  const missingCommandResultKeyId = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_COMMAND_RESULT_KEY_ID: "",
-  }, { target: "production" });
-  const weakCommandResultKey = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_COMMAND_RESULT_ENCRYPTION_KEY: "too-short",
-  }, { target: "production" });
-  const missingInboxContentKey = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_INBOX_CONTENT_ENCRYPTION_KEY: "",
-  }, { target: "production" });
-  const missingInboxContentKeyId = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_INBOX_CONTENT_KEY_ID: "",
-  }, { target: "production" });
-  const missingCommandRequestDigestKey = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_COMMAND_REQUEST_DIGEST_KEY: "",
-  }, { target: "production" });
-  const invalidCommandRequestDigestKeyId = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_COMMAND_REQUEST_DIGEST_KEY_ID: "invalid key id",
-  }, { target: "production" });
-  const malformedRequestDigestKeyring = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_COMMAND_REQUEST_DIGEST_VERIFICATION_KEYS_JSON: "not-json",
-  }, { target: "production" });
-  const emptyConfiguredRequestDigestKeyring = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_COMMAND_REQUEST_DIGEST_VERIFICATION_KEYS_JSON: "",
-  }, { target: "production" });
-  const activeCommandResultInPreviousKeyring = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_COMMAND_RESULT_DECRYPTION_KEYS_JSON: JSON.stringify({
-      [readyEnv.ROOT_COMMAND_RESULT_KEY_ID]: "duplicate-current-result-key-material-with-strong-entropy",
-    }),
-  }, { target: "production" });
-  const malformedRetiredKeyIds = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_KEY_INVENTORY_RETIRED_KEY_IDS_JSON: JSON.stringify({
-      COMMAND_RESULT: [],
-      INBOX_CONTENT: [],
-    }),
-  }, { target: "production" });
-  const overlappingRetiredKeyIds = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_KEY_INVENTORY_RETIRED_KEY_IDS_JSON: JSON.stringify({
-      REQUEST_DIGEST: ["test-command-request-v0"],
-      COMMAND_RESULT: [],
-      INBOX_CONTENT: [],
-      NOTIFICATION_RECEIPT: [],
-    }),
-  }, { target: "production" });
-  const activeNotificationReceiptRetired = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_KEY_INVENTORY_RETIRED_KEY_IDS_JSON: JSON.stringify({
-      REQUEST_DIGEST: [],
-      COMMAND_RESULT: [],
-      INBOX_CONTENT: [],
-      NOTIFICATION_RECEIPT: [readyEnv.ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID],
-    }),
-  }, { target: "production" });
-  const nonMysqlProductionStore = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_STORE_ADAPTER: "sqlite",
-  }, { target: "production" });
-  const invalidAdminCredentials = [
-    { ROOT_ADMIN_TOKEN: "   ", ROOT_ADMIN_TOKENS: "" },
-    { ROOT_ADMIN_TOKEN: "short", ROOT_ADMIN_TOKENS: "" },
-    { ROOT_ADMIN_TOKEN: "", ROOT_ADMIN_TOKENS: JSON.stringify({ ops: { token: "   ", role: "operator" } }) },
-    { ROOT_ADMIN_TOKEN: "", ROOT_ADMIN_TOKENS: JSON.stringify(["admin-secret-with-strong-entropy-2026"]) },
-  ].map((override) => buildProductionEnvMatrix({ ...readyEnv, ...override }, { target: "production" }));
-  const rotatingAdminToken = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_ADMIN_TOKEN: "",
-    ROOT_ADMIN_TOKENS: JSON.stringify({
-      previous: { token: "admin-old-secret-with-strong-entropy-2026", role: "admin" },
-      current: { token: "admin-new-secret-with-strong-entropy-2026", role: "admin" },
-    }),
-  }, { target: "production" });
-  const invalidMysqlAuthorities = [
-    { MYSQL_ADDRESS: "db.example.com" },
-    { MYSQL_ADDRESS: "db.example.com:0" },
-    { MYSQL_ADDRESS: "db.example.com:65536" },
-    { MYSQL_ADDRESS: "bad host:3306" },
-    { MYSQL_USERNAME: "bad user" },
-    { MYSQL_PASSWORD: "   " },
-    { MYSQL_DATABASE: "bad/database" },
-    { MYSQL_HOST: "bad host" },
-    { MYSQL_PORT: "notaport" },
-    { MYSQL_PORT: "0" },
-    { MYSQL_PORT: "65536" },
-  ].map((override) => buildProductionEnvMatrix({ ...readyEnv, ...override }, { target: "production" }));
-  const invalidCloudbaseEnvironmentIds = [
-    "bad env",
-    "root/prod",
-    `r${"x".repeat(128)}`,
-  ].map((value) => buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_CLOUDBASE_ENV_ID: value,
-    CLOUDBASE_APIKEY: "",
-  }, { target: "production" }));
-  const missingDeploymentIdentity = buildProductionEnvMatrix({
-    ...readyEnv,
-    K_REVISION: "",
-    ROOT_RELEASE_ARTIFACT_DIGEST: "",
-  }, { target: "production" });
-  const invalidDeploymentIdentities = [
-    { K_REVISION: "revision with spaces", ROOT_RELEASE_ARTIFACT_DIGEST: "" },
-    { K_REVISION: "", ROOT_RELEASE_ARTIFACT_DIGEST: "ABC123" },
-  ].map((override) => buildProductionEnvMatrix({ ...readyEnv, ...override }, { target: "production" }));
-  const artifactDigestDeploymentIdentity = buildProductionEnvMatrix({
-    ...readyEnv,
-    K_REVISION: "",
-    ROOT_RELEASE_ARTIFACT_DIGEST: "a".repeat(64),
-  }, { target: "production" });
-  const runtimeControlDisabled = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_V1_RUNTIME_CONTROL_PLANE_ENABLED: "false",
-  }, { target: "production" });
-  const runtimeKillSwitchWrongCase = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_V1_RUNTIME_KILL_SWITCH: "disengaged",
-  }, { target: "production" });
-  const runtimeOwnerInvalid = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_V1_RUNTIME_OWNER: "owner with spaces",
-  }, { target: "production" });
-  const runtimeConnectionPoolTooSmall = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYSQL_CONNECTION_LIMIT: "1",
-  }, { target: "production" });
-  const runtimeDedicatedPoolTooSmall = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_V1_RUNTIME_CONNECTION_LIMIT: "2",
-  }, { target: "production" });
-  const runtimeDedicatedPoolTooLarge = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_V1_RUNTIME_CONNECTION_LIMIT: "65",
-    MYSQL_SERVER_MAX_CONNECTIONS: "500",
-  }, { target: "production" });
-  const runtimeDedicatedPoolMaximum = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_V1_RUNTIME_CONNECTION_LIMIT: "64",
-    MYSQL_SERVER_MAX_CONNECTIONS: "500",
-  }, { target: "production" });
-  const runtimeCapacityExceeded = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYSQL_SERVER_MAX_CONNECTIONS: "30",
-  }, { target: "production" });
-  const runtimeCapacityExact = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYSQL_SERVER_MAX_CONNECTIONS: "56",
-  }, { target: "production" });
-  const runtimeCapacityOneShort = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYSQL_SERVER_MAX_CONNECTIONS: "55",
-  }, { target: "production" });
-  const missingRuntimeWorkerPassword = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_PASSWORD: "",
-  }, { target: "production" });
-  const missingRuntimeAlertDeliveryFields = [
-    "ROOT_V1_RUNTIME_ALERT_RECEIVER_BINDING_REF",
-    "ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT",
-    "ROOT_V1_RUNTIME_ALERT_RECEIVER_SECRET",
-    "ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY",
-    "ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID",
-    "ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY",
-    "ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY_ID",
-    "ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY",
-    "ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID",
-  ].map((name) => ({
-    name,
-    matrix: buildProductionEnvMatrix({ ...readyEnv, [name]: "" }, { target: "production" }),
-  }));
-  const invalidRuntimeAlertEndpoint = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT: "http://alerts.example.test/myroot/runtime",
-  }, { target: "production" });
-  const duplicateRuntimeAlertKeyId = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID:
-      readyEnv.ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID,
-  }, { target: "production" });
-  const duplicateRuntimeAlertKey = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY:
-      readyEnv.ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY,
-  }, { target: "production" });
-  const weakRuntimeRegistrarPassword = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD: "too-short",
-  }, { target: "production" });
-  const invalidRuntimeInspectorCurrentUser = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CURRENT_USER: "missing-at-sign",
-  }, { target: "production" });
-  const duplicateRuntimePrincipal = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CURRENT_USER:
-      readyEnv.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CURRENT_USER,
-  }, { target: "production" });
-  const duplicateRuntimeUsername = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_USERNAME:
-      readyEnv.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_USERNAME,
-  }, { target: "production" });
-  const duplicateRuntimeCredential = buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_PASSWORD:
-      readyEnv.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD,
-  }, { target: "production" });
-  const invalidRuntimeRoleLimits = ["0", "65", "01", "1.0", "1e1", "+1"]
-    .map((value) => buildProductionEnvMatrix({
-      ...readyEnv,
-      MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT: value,
-    }, { target: "production" }));
-  const invalidRuntimeCapacityBounds = [
-    { MYSQL_CONNECTION_LIMIT: "1025", MYSQL_SERVER_MAX_CONNECTIONS: "5000" },
-    { MYROOT_CLOUDRUN_MAX_INSTANCES: "10001", MYSQL_SERVER_MAX_CONNECTIONS: "1000000000" },
-    { MYSQL_SERVER_MAX_CONNECTIONS: "1000000001" },
-    { MYROOT_MYSQL_CONNECTION_HEADROOM: "1000000001", MYSQL_SERVER_MAX_CONNECTIONS: "1000000000" },
-  ].map((override) => buildProductionEnvMatrix({ ...readyEnv, ...override }, { target: "production" }));
-  const invalidRuntimeAttestationAges = ["0", "3601"].map((value) => buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_V1_RUNTIME_ATTESTATION_MAX_AGE_SECONDS: value,
-  }, { target: "production" }));
-  const validRuntimeAttestationBoundaries = ["1", "3600"].map((value) => buildProductionEnvMatrix({
-    ...readyEnv,
-    MYROOT_V1_RUNTIME_ATTESTATION_MAX_AGE_SECONDS: value,
-  }, { target: "production" }));
-  const invalidReleaseIds = ["release with spaces", "中午版本", `r${"x".repeat(128)}`]
-    .map((value) => buildProductionEnvMatrix({ ...readyEnv, ROOT_RELEASE_ID: value }, { target: "production" }));
-  const invalidJobBaseUrl = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_JOB_BASE_URL: "http://root.example.com",
-  }, { target: "production" });
-  const malformedJobRotation = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_ADMIN_JOB_ROUTE_TOKENS: "not-json",
-  }, { target: "production" });
-  const emptyJobRotation = buildProductionEnvMatrix({
-    ...readyEnv,
-    ROOT_ADMIN_JOB_ROUTE_TOKENS: "{}",
-  }, { target: "production" });
-  const whitespaceJobToken = buildProductionEnvMatrix({
+  assert.equal(untrustedWechatEndpoint.status, "BLOCKED");
+
+  const invalidJobTokens = buildProductionEnvMatrix({
     ...readyEnv,
     ROOT_ADMIN_JOB_ROUTE_TOKENS: JSON.stringify({
-      "/api/v1/jobs/v1-runtime-cycle": ["   "],
+      "/api/v1/jobs/v1-runtime-cycle": ["retired-route-secret-with-strong-entropy-2026"],
     }),
   }, { target: "production" });
-  const invalidSchedulerOptions = [
-    { ROOT_JOB_DRY_RUN: "yes" },
-    { ROOT_V1_RUNTIME_SCHEDULER_DRY_RUN: "treu" },
-    { ROOT_V1_RUNTIME_SCHEDULER_TIMEOUT_SECONDS: "26" },
-    { ROOT_V1_RUNTIME_BRIDGE_LIMIT: "101" },
-    { ROOT_V1_RUNTIME_RECOVERY_LIMIT: "0" },
-    { ROOT_V1_RUNTIME_WORKER_LIMIT: "1.5" },
-  ].map((override) => buildProductionEnvMatrix({ ...readyEnv, ...override }, { target: "production" }));
-  const report = buildProductionEnvMatrixReport(ready);
-
-  assert.equal(ready.status, "READY");
-  assert.equal(ready.summary.blockers, 0);
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_store" && group.status === "PASS"));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_object_storage" && group.status === "PASS"));
-  assert.ok(buildProductionEnvMatrix({
-    ...readyEnv,
-    CLOUDBASE_APIKEY: "",
-  }, { target: "production" }).groups.some((group) =>
-    group.id === "cloudbase_object_storage" && group.status === "BLOCKER"));
-  assert.ok(ready.groups.some((group) => group.id === "cloudbase_jobs" && group.status === "PASS"));
-  assert.ok(ready.groups.some((group) => group.id === "v1_runtime_control" && group.status === "PASS"));
-  assert.ok(ready.groups.some((group) => group.id === "privacy_compliance" && group.status === "PASS"));
-  assert.ok(disabledConsent.groups.some((group) => group.id === "privacy_compliance" && group.status === "BLOCKER"));
-  assert.ok(invalidRetention.groups.some((group) => group.id === "privacy_compliance" && group.status === "BLOCKER"));
-  assert.ok(invalidPrivacyContact.groups.some((group) => group.id === "privacy_compliance" && group.status === "BLOCKER"));
-  assert.ok(untrustedWechatOpenApiEndpoint.groups.some((group) =>
-    group.id === "runtime" && group.status === "BLOCKER"));
-  assert.ok(exactWechatEndpoint.groups.some((group) =>
-    group.id === "runtime" && group.status === "PASS"));
-  for (const invalidNotificationDelivery of [
-    disabledNotificationDeliveryFoundation,
-    weakNotificationReceiptKey,
-    invalidNotificationReceiptKeyId,
-  ]) {
-    assert.ok(invalidNotificationDelivery.groups.some((group) =>
-      group.id === "v1_runtime_control" && group.status === "BLOCKER"));
-  }
-  assert.ok(missingPhoneHmacKey.groups.some((group) =>
-    group.id === "runtime" && group.status === "BLOCKER" && group.missingRequired.includes("ROOT_PHONE_HMAC_KEY")));
-  assert.ok(missingCommandResultKey.groups.some((group) =>
-    group.id === "runtime" && group.status === "BLOCKER" && group.missingRequired.includes("ROOT_COMMAND_RESULT_ENCRYPTION_KEY")));
-  assert.ok(missingCommandResultKeyId.groups.some((group) =>
-    group.id === "runtime" && group.status === "BLOCKER" && group.missingRequired.includes("ROOT_COMMAND_RESULT_KEY_ID")));
-  assert.ok(weakCommandResultKey.groups.some((group) =>
-    group.id === "runtime" && group.status === "BLOCKER" && group.missingRequired.some((item) => item.startsWith("ROOT_COMMAND_RESULT_ENCRYPTION_KEY="))));
-  assert.ok(missingInboxContentKey.groups.some((group) =>
-    group.id === "runtime" && group.status === "BLOCKER" && group.missingRequired.includes("ROOT_INBOX_CONTENT_ENCRYPTION_KEY")));
-  assert.ok(missingInboxContentKeyId.groups.some((group) =>
-    group.id === "runtime" && group.status === "BLOCKER" && group.missingRequired.includes("ROOT_INBOX_CONTENT_KEY_ID")));
-  assert.ok(missingCommandRequestDigestKey.groups.some((group) =>
-    group.id === "runtime" && group.status === "BLOCKER" && group.missingRequired.includes("ROOT_COMMAND_REQUEST_DIGEST_KEY")));
-  assert.ok(invalidCommandRequestDigestKeyId.groups.some((group) =>
-    group.id === "runtime" && group.status === "BLOCKER" && group.missingRequired.some((item) => item.startsWith("ROOT_COMMAND_REQUEST_DIGEST_KEY_ID="))));
-  assert.ok(malformedRequestDigestKeyring.groups.some((group) =>
-    group.id === "runtime" && group.status === "BLOCKER"));
-  assert.ok(emptyConfiguredRequestDigestKeyring.groups.some((group) =>
-    group.id === "runtime" && group.status === "BLOCKER"));
-  assert.ok(activeCommandResultInPreviousKeyring.groups.some((group) =>
-    group.id === "runtime" && group.status === "BLOCKER"));
-  assert.ok(malformedRetiredKeyIds.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"));
-  assert.ok(overlappingRetiredKeyIds.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"));
-  assert.ok(activeNotificationReceiptRetired.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"));
-  assert.ok(nonMysqlProductionStore.groups.some((group) => group.id === "store" && group.status === "BLOCKER"));
-  for (const invalidAdminCredential of invalidAdminCredentials) {
-    assert.ok(invalidAdminCredential.groups.some((group) => group.id === "runtime" && group.status === "BLOCKER"));
-  }
-  assert.ok(rotatingAdminToken.groups.some((group) => group.id === "runtime" && group.status === "PASS"));
-  for (const invalidMysqlAuthority of invalidMysqlAuthorities) {
-    assert.ok(invalidMysqlAuthority.groups.some((group) => group.id === "store" && group.status === "BLOCKER"));
-  }
-  for (const invalidCloudbaseEnvironmentId of invalidCloudbaseEnvironmentIds) {
-    assert.ok(invalidCloudbaseEnvironmentId.groups.some((group) =>
-      ["cloudbase_store", "cloudbase_object_storage"].includes(group.id) && group.status === "BLOCKER"));
-  }
-  assert.ok(missingDeploymentIdentity.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"));
-  for (const invalidDeploymentIdentity of invalidDeploymentIdentities) {
-    assert.ok(invalidDeploymentIdentity.groups.some((group) =>
-      group.id === "v1_runtime_control" && group.status === "BLOCKER"));
-  }
-  assert.ok(artifactDigestDeploymentIdentity.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "PASS"));
-  assert.ok(runtimeControlDisabled.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.some((item) => item.startsWith("MYROOT_V1_RUNTIME_CONTROL_PLANE_ENABLED="))));
-  assert.ok(runtimeKillSwitchWrongCase.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.some((item) => item.startsWith("MYROOT_V1_RUNTIME_KILL_SWITCH="))));
-  assert.ok(runtimeOwnerInvalid.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.some((item) => item.startsWith("MYROOT_V1_RUNTIME_OWNER="))));
-  assert.ok(runtimeConnectionPoolTooSmall.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.some((item) => item.startsWith("MYSQL_CONNECTION_LIMIT="))));
-  for (const invalidRuntimePool of [runtimeDedicatedPoolTooSmall, runtimeDedicatedPoolTooLarge]) {
-    assert.ok(invalidRuntimePool.groups.some((group) =>
-      group.id === "v1_runtime_control" && group.status === "BLOCKER"
-        && group.missingRequired.some((item) => item.startsWith("MYROOT_V1_RUNTIME_CONNECTION_LIMIT="))));
-  }
-  assert.ok(runtimeDedicatedPoolMaximum.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "PASS"));
-  assert.ok(runtimeCapacityExceeded.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.some((item) => item.startsWith("MYSQL_CONNECTION_CAPACITY_BUDGET="))));
-  assert.ok(runtimeCapacityExact.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "PASS"));
-  assert.ok(runtimeCapacityOneShort.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.includes("MYSQL_CONNECTION_CAPACITY_BUDGET=56<=55")));
-  assert.ok(missingRuntimeWorkerPassword.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.includes("MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_PASSWORD")));
-  for (const { name, matrix } of missingRuntimeAlertDeliveryFields) {
-    assert.ok(matrix.groups.some((group) =>
-      group.id === "v1_runtime_control" && group.status === "BLOCKER"
-        && group.missingRequired.includes(name)));
-  }
-  assert.ok(invalidRuntimeAlertEndpoint.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.some((item) =>
-        item.startsWith("ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT="))));
-  assert.ok(duplicateRuntimeAlertKeyId.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.includes("ROOT_V1_RUNTIME_ALERT_DIGEST_KEY_IDS_DISTINCT=required")));
-  assert.ok(duplicateRuntimeAlertKey.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.includes("ROOT_V1_RUNTIME_ALERT_DIGEST_KEYS_DISTINCT=required")));
-  assert.ok(weakRuntimeRegistrarPassword.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.some((item) => item.startsWith("MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD="))));
-  assert.ok(invalidRuntimeInspectorCurrentUser.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.some((item) => item.startsWith("MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CURRENT_USER="))));
-  assert.ok(duplicateRuntimePrincipal.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.includes("MYROOT_V1_RUNTIME_ALERT_MYSQL_PRINCIPALS_DISTINCT=required")));
-  assert.ok(duplicateRuntimeUsername.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.includes("MYROOT_V1_RUNTIME_ALERT_MYSQL_USERNAMES_DISTINCT=required")));
-  assert.ok(duplicateRuntimeCredential.groups.some((group) =>
-    group.id === "v1_runtime_control" && group.status === "BLOCKER"
-      && group.missingRequired.includes("MYROOT_V1_RUNTIME_ALERT_MYSQL_CREDENTIALS_DISTINCT=required")));
-  for (const invalidRoleLimit of invalidRuntimeRoleLimits) {
-    assert.ok(invalidRoleLimit.groups.some((group) =>
-      group.id === "v1_runtime_control" && group.status === "BLOCKER"
-        && group.missingRequired.some((item) => item.startsWith("MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT="))));
-  }
-  const serializedReadyMatrix = JSON.stringify(ready);
-  for (const secret of [
-    readyEnv.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD,
-    readyEnv.MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_PASSWORD,
-    readyEnv.MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_PASSWORD,
-  ]) assert.equal(serializedReadyMatrix.includes(secret), false);
-  for (const invalidCapacityBound of invalidRuntimeCapacityBounds) {
-    assert.ok(invalidCapacityBound.groups.some((group) =>
-      group.id === "v1_runtime_control" && group.status === "BLOCKER"));
-  }
-  for (const invalidAge of invalidRuntimeAttestationAges) {
-    assert.ok(invalidAge.groups.some((group) => group.id === "v1_runtime_control" && group.status === "BLOCKER"));
-  }
-  for (const validAge of validRuntimeAttestationBoundaries) {
-    assert.ok(validAge.groups.some((group) => group.id === "v1_runtime_control" && group.status === "PASS"));
-  }
-  for (const invalidRelease of invalidReleaseIds) {
-    assert.ok(invalidRelease.groups.some((group) => group.id === "runtime" && group.status === "BLOCKER"));
-  }
-  for (const invalidJob of [invalidJobBaseUrl, malformedJobRotation, emptyJobRotation, whitespaceJobToken]) {
-    assert.ok(invalidJob.groups.some((group) => group.id === "cloudbase_jobs" && group.status === "BLOCKER"));
-  }
-  for (const invalidSchedulerOption of invalidSchedulerOptions) {
-    assert.ok(invalidSchedulerOption.groups.some((group) =>
-      group.id === "cloudbase_jobs" && group.status === "BLOCKER"));
-  }
-  assert.ok(rotatingJobToken.groups.some((group) =>
-    group.id === "cloudbase_jobs" &&
-    group.status === "PASS" &&
-    group.required.some((item) => item.name === "ROOT_ADMIN_JOB_ROUTE_TOKENS" && item.present)));
-  assert.equal(determineProductionEnvExitCode(ready), 0);
-  assert.equal(blocked.status, "BLOCKED");
-  assert.ok(blocked.missingEnv.some((item) => item.name === "ROOT_JOB_BASE_URL"));
-  assert.equal(determineProductionEnvExitCode(blocked), 2);
-  assert.equal(gray.status, "NEEDS_REVIEW");
-  assert.equal(parseProductionEnvArgs(["--target", "gray", "--json"]).target, "gray");
-  assert.match(report, /ROOT 生产环境变量矩阵/);
-  assert.match(report, /CloudBase 定时 Job/);
+  assert.equal(invalidJobTokens.status, "BLOCKED");
 });
 
 test("store snapshot validation catches missing keys and script arguments", () => {

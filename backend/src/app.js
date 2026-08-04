@@ -21,9 +21,6 @@ const { clientErrorResponse, createClientError } = require("./clientError");
 const sessionModule = require("./sessionModule");
 const adminFormalUserQuery = require("./adminFormalUserQuery");
 
-function safeAggregateCount(value) {
-  return Number.isSafeInteger(value) && value >= 0 ? value : 0;
-}
 const {
   ADMIN_CAPABILITIES,
   capabilityListForRole,
@@ -106,369 +103,7 @@ const sourceAdminDistDir = path.join(__dirname, "..", "..", "admin", "dist");
 const bundledAdminDistDir = path.join(publicDir, "admin-dist");
 const defaultAdminDistDirs = [sourceAdminDistDir, bundledAdminDistDir];
 
-const V1_RUNTIME_CYCLE_ROUTE = "/api/v1/jobs/v1-runtime-cycle";
 const PERFORMANCE_METRICS_ROUTE = "/api/v1/performance/events";
-const V1_RUNTIME_CYCLE_BODY_KEYS = Object.freeze([
-  "bridgeLimit",
-  "dryRun",
-  "execute",
-  "recoveryLimit",
-  "requestId",
-  "scheduleId",
-  "scheduledAt",
-  "workerLimit",
-]);
-const V1_RUNTIME_TERMINAL_STATUSES = Object.freeze([
-  "SUCCEEDED",
-  "SKIPPED_BUSY",
-  "FAILED_PRECONDITION",
-  "REVIEW_REQUIRED",
-]);
-
-function plainRecord(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
-}
-
-function exactRuntimeRequiredFlag(env = {}) {
-  const value = Object.prototype.hasOwnProperty.call(env, "ROOT_V1_RUNTIME_READY_REQUIRED")
-    ? env.ROOT_V1_RUNTIME_READY_REQUIRED
-    : "";
-  if (value === undefined || value === null || value === "" || value === "false") return false;
-  if (value === "true") return true;
-  throw createClientError(
-    50051,
-    "v1 runtime readiness configuration invalid",
-    500
-  );
-}
-
-function stableRuntimeCode(value, fallback) {
-  return typeof value === "string" && /^[A-Z][A-Z0-9_]{0,95}$/.test(value)
-    ? value
-    : fallback;
-}
-
-function fallbackV1RuntimeStatus(required, status) {
-  return Object.freeze({
-    contractVersion: "V1_RUNTIME_CONTROL_PLANE:v1",
-    enabled: false,
-    required,
-    ready: !required && status === "V1_RUNTIME_CONTROL_PLANE_NOT_REQUIRED",
-    status,
-    killSwitch: "UNKNOWN",
-    attestation: Object.freeze({
-      state: "MISSING",
-      cycleId: null,
-      completedAt: null,
-      ageSeconds: null,
-      latestTerminalCycleId: null,
-      latestTerminalStatus: null,
-      latestTerminalCompletedAt: null,
-    }),
-    openAlerts: Object.freeze({
-      totalCount: 0,
-      blockerCount: 0,
-      warningCount: 0,
-      latestObservedAt: null,
-    }),
-    reviewRequiredCount: 0,
-  });
-}
-
-function publicV1RuntimeStatus(report, required) {
-  if (!plainRecord(report)
-    || typeof report.ready !== "boolean"
-    || typeof report.enabled !== "boolean"
-    || !plainRecord(report.attestation)
-    || !plainRecord(report.openAlerts)
-    || !Number.isSafeInteger(report.openAlerts.totalCount)
-    || report.openAlerts.totalCount < 0
-    || !Number.isSafeInteger(report.openAlerts.blockerCount)
-    || report.openAlerts.blockerCount < 0
-    || !Number.isSafeInteger(report.openAlerts.warningCount)
-    || report.openAlerts.warningCount < 0
-    || !Number.isSafeInteger(report.reviewRequiredCount)
-    || report.reviewRequiredCount < 0) {
-    return fallbackV1RuntimeStatus(required, "V1_RUNTIME_CONTROL_PLANE_INSPECTION_INVALID");
-  }
-  const sourceAttestation = report.attestation;
-  const sourceAlerts = report.openAlerts;
-  const attestationState = ["BLOCKED", "BUSY", "MISSING", "SAFE", "STALE", "WARNING"]
-    .includes(sourceAttestation.state) ? sourceAttestation.state : "MISSING";
-  const cycleId = typeof sourceAttestation.cycleId === "string"
-    && /^[0-9a-f]{64}$/.test(sourceAttestation.cycleId)
-    ? sourceAttestation.cycleId
-    : null;
-  const completedAt = typeof sourceAttestation.completedAt === "string"
-    && sourceAttestation.completedAt.length <= 32
-    && Number.isFinite(Date.parse(sourceAttestation.completedAt))
-    && new Date(Date.parse(sourceAttestation.completedAt)).toISOString() === sourceAttestation.completedAt
-    ? sourceAttestation.completedAt
-    : null;
-  const ageSeconds = Number.isSafeInteger(sourceAttestation.ageSeconds)
-    && sourceAttestation.ageSeconds >= 0
-    ? sourceAttestation.ageSeconds
-    : null;
-  const latestTerminalCycleId = typeof sourceAttestation.latestTerminalCycleId === "string"
-    && /^[0-9a-f]{64}$/.test(sourceAttestation.latestTerminalCycleId)
-    ? sourceAttestation.latestTerminalCycleId
-    : null;
-  const latestTerminalStatus = V1_RUNTIME_TERMINAL_STATUSES
-    .includes(sourceAttestation.latestTerminalStatus)
-    ? sourceAttestation.latestTerminalStatus
-    : null;
-  const latestTerminalCompletedAt = typeof sourceAttestation.latestTerminalCompletedAt === "string"
-    && sourceAttestation.latestTerminalCompletedAt.length <= 32
-    && Number.isFinite(Date.parse(sourceAttestation.latestTerminalCompletedAt))
-    && new Date(Date.parse(sourceAttestation.latestTerminalCompletedAt)).toISOString()
-      === sourceAttestation.latestTerminalCompletedAt
-    ? sourceAttestation.latestTerminalCompletedAt
-    : null;
-  const status = stableRuntimeCode(
-    report.status,
-    "V1_RUNTIME_CONTROL_PLANE_INSPECTION_INVALID"
-  );
-  const enabled = report.enabled === true;
-  const killSwitch = ["DISENGAGED", "ENGAGED"].includes(report.killSwitch)
-    ? report.killSwitch
-    : "UNKNOWN";
-  const totalCount = sourceAlerts.totalCount;
-  const blockerCount = sourceAlerts.blockerCount;
-  const warningCount = sourceAlerts.warningCount;
-  const reviewRequiredCount = report.reviewRequiredCount;
-  const rawProofFields = [
-    sourceAttestation.cycleId,
-    sourceAttestation.completedAt,
-    sourceAttestation.ageSeconds,
-  ];
-  const hasProof = [cycleId, completedAt, ageSeconds].every((value) => value !== null);
-  const proofShapeValid = hasProof || rawProofFields.every((value) => value === null);
-  const rawTerminalFields = [
-    sourceAttestation.latestTerminalCycleId,
-    sourceAttestation.latestTerminalStatus,
-    sourceAttestation.latestTerminalCompletedAt,
-  ];
-  const terminalFields = [
-    latestTerminalCycleId,
-    latestTerminalStatus,
-    latestTerminalCompletedAt,
-  ];
-  const hasLatestTerminal = terminalFields.every((value) => value !== null);
-  const terminalShapeValid = hasLatestTerminal || rawTerminalFields.every((value) => value === null);
-  const validAttestation = proofShapeValid
-    && terminalShapeValid
-    && (attestationState === "MISSING"
-      ? !hasProof && !hasLatestTerminal
-      : attestationState === "BLOCKED"
-        ? hasProof || hasLatestTerminal
-        : hasProof);
-  const structurallyValid = report.contractVersion === "V1_RUNTIME_CONTROL_PLANE:v1"
-    && status !== "V1_RUNTIME_CONTROL_PLANE_INSPECTION_INVALID"
-    && ["DISENGAGED", "ENGAGED"].includes(report.killSwitch)
-    && validAttestation
-    && totalCount === blockerCount + warningCount
-    && (sourceAlerts.latestObservedAt === null
-      || (typeof sourceAlerts.latestObservedAt === "string"
-        && sourceAlerts.latestObservedAt.length <= 32
-        && Number.isFinite(Date.parse(sourceAlerts.latestObservedAt))
-        && new Date(Date.parse(sourceAlerts.latestObservedAt)).toISOString()
-          === sourceAlerts.latestObservedAt));
-  const readyStatusByState = {
-    SAFE: "V1_RUNTIME_CONTROL_PLANE_READY",
-    WARNING: "V1_RUNTIME_CONTROL_PLANE_READY_WITH_WARNING",
-    BUSY: "V1_RUNTIME_CONTROL_PLANE_READY_BUSY",
-  };
-  const ready = structurallyValid
-    && report.ready === true
-    && enabled
-    && status === readyStatusByState[attestationState]
-    && killSwitch === "DISENGAGED"
-    && blockerCount === 0
-    && reviewRequiredCount === 0;
-  return Object.freeze({
-    contractVersion: "V1_RUNTIME_CONTROL_PLANE:v1",
-    enabled,
-    required,
-    ready,
-    status: structurallyValid ? status : "V1_RUNTIME_CONTROL_PLANE_INSPECTION_INVALID",
-    killSwitch,
-    attestation: Object.freeze({
-      state: attestationState,
-      cycleId,
-      completedAt,
-      ageSeconds,
-      latestTerminalCycleId,
-      latestTerminalStatus,
-      latestTerminalCompletedAt,
-    }),
-    openAlerts: Object.freeze({
-      totalCount,
-      blockerCount,
-      warningCount,
-      latestObservedAt: typeof sourceAlerts.latestObservedAt === "string"
-        && sourceAlerts.latestObservedAt.length <= 32
-        ? sourceAlerts.latestObservedAt
-        : null,
-    }),
-    reviewRequiredCount,
-  });
-}
-
-async function inspectV1RuntimeControlPlane(controlPlane, required) {
-  if (!controlPlane || typeof controlPlane.inspect !== "function") {
-    return fallbackV1RuntimeStatus(
-      required,
-      required
-        ? "V1_RUNTIME_CONTROL_PLANE_REQUIRED_BUT_UNAVAILABLE"
-        : "V1_RUNTIME_CONTROL_PLANE_NOT_REQUIRED"
-    );
-  }
-  try {
-    return publicV1RuntimeStatus(await controlPlane.inspect(), required);
-  } catch {
-    return fallbackV1RuntimeStatus(required, "V1_RUNTIME_CONTROL_PLANE_INSPECTION_FAILED");
-  }
-}
-
-function normalizeV1RuntimeCycleBody(body) {
-  if (!plainRecord(body)
-    || Object.keys(body).some((key) => !V1_RUNTIME_CYCLE_BODY_KEYS.includes(key))) {
-    throw createClientError(40051, "v1 runtime cycle request invalid", 400);
-  }
-  if ((Object.prototype.hasOwnProperty.call(body, "dryRun") && typeof body.dryRun !== "boolean")
-    || (Object.prototype.hasOwnProperty.call(body, "execute") && typeof body.execute !== "boolean")) {
-    throw createClientError(40051, "v1 runtime cycle request invalid", 400);
-  }
-  if ((body.execute === true && body.dryRun === true)
-    || (body.execute === false && body.dryRun === false)) {
-    throw createClientError(40051, "v1 runtime cycle request flags conflict", 400);
-  }
-  if (Object.prototype.hasOwnProperty.call(body, "requestId")
-    && (typeof body.requestId !== "string"
-      || body.requestId.length < 1
-      || body.requestId.length > 128
-      || body.requestId !== body.requestId.trim()
-      || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(body.requestId))) {
-    throw createClientError(40051, "v1 runtime cycle request invalid", 400);
-  }
-  const schedule = {
-    bridgeLimit: body.bridgeLimit,
-    recoveryLimit: body.recoveryLimit,
-    scheduleId: body.scheduleId,
-    scheduledAt: body.scheduledAt,
-    workerLimit: body.workerLimit,
-  };
-  if (!Number.isSafeInteger(schedule.bridgeLimit)
-    || !Number.isSafeInteger(schedule.recoveryLimit)
-    || !Number.isSafeInteger(schedule.workerLimit)
-    || [schedule.bridgeLimit, schedule.recoveryLimit, schedule.workerLimit]
-      .some((value) => value < 1 || value > 100)
-    || typeof schedule.scheduleId !== "string"
-    || schedule.scheduleId.length < 1
-    || schedule.scheduleId.length > 128
-    || schedule.scheduleId !== schedule.scheduleId.trim()
-    || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(schedule.scheduleId)
-    || typeof schedule.scheduledAt !== "string"
-    || schedule.scheduledAt.length > 32
-    || !Number.isFinite(Date.parse(schedule.scheduledAt))
-    || new Date(Date.parse(schedule.scheduledAt)).toISOString() !== schedule.scheduledAt) {
-    throw createClientError(40051, "v1 runtime cycle request invalid", 400);
-  }
-  return Object.freeze({
-    execute: body.execute === true || body.dryRun === false,
-    requestId: body.requestId || "",
-    schedule: Object.freeze(schedule),
-  });
-}
-
-function publicV1RuntimeCycleResult(result, dryRun, expectedScheduleId) {
-  if (!plainRecord(result)
-    || result.contractVersion !== "V1_RUNTIME_CONTROL_PLANE:v1"
-    || result.scheduleId !== expectedScheduleId
-    || typeof result.inputDigest !== "string"
-    || !/^[0-9a-f]{64}$/.test(result.inputDigest)
-    || !stableRuntimeCode(result.status, "")) {
-    throw createClientError(50351, "v1 runtime cycle result invalid", 503);
-  }
-  if (dryRun) {
-    const keyInventory = result.keyInventory;
-    const runtime = result.runtime;
-    if (typeof result.enabled !== "boolean"
-      || typeof result.ready !== "boolean"
-      || !plainRecord(keyInventory)
-      || typeof keyInventory.ready !== "boolean"
-      || !stableRuntimeCode(keyInventory.status, "")
-      || !stableRuntimeCode(keyInventory.schemaStatus, "")
-      || !Number.isSafeInteger(keyInventory.issueCount)
-      || keyInventory.issueCount < 0
-      || !plainRecord(runtime)
-      || typeof runtime.ready !== "boolean"
-      || !Array.isArray(runtime.blockerCodes)
-      || runtime.blockerCodes.length > 64
-      || runtime.blockerCodes.some((code) => !stableRuntimeCode(code, ""))) {
-      throw createClientError(50351, "v1 runtime cycle result invalid", 503);
-    }
-    return Object.freeze({
-      contractVersion: result.contractVersion,
-      dryRun: true,
-      enabled: result.enabled === true,
-      ready: result.ready === true,
-      status: result.status,
-      scheduleId: result.scheduleId,
-      inputDigest: result.inputDigest,
-      keyInventory: Object.freeze({
-        ready: keyInventory.ready === true,
-        status: keyInventory.status,
-        schemaStatus: keyInventory.schemaStatus,
-        issueCount: keyInventory.issueCount,
-      }),
-      runtime: Object.freeze({
-        ready: runtime.ready === true,
-        blockerCodes: Object.freeze([...runtime.blockerCodes]),
-      }),
-    });
-  }
-  if (typeof result.cycleId !== "string"
-    || !/^[0-9a-f]{64}$/.test(result.cycleId)
-    || typeof result.replayed !== "boolean"
-    || !Number.isSafeInteger(result.blockerCount)
-    || result.blockerCount < 0
-    || !["FAILED_PRECONDITION", "REVIEW_REQUIRED", "RUNNING", "SKIPPED_BUSY", "SUCCEEDED"]
-      .includes(result.status)) {
-    throw createClientError(50351, "v1 runtime cycle result invalid", 503);
-  }
-  const resultDigest = typeof result.resultDigest === "string" && /^[0-9a-f]{64}$/.test(result.resultDigest)
-    ? result.resultDigest
-    : null;
-  const errorCode = result.errorCode === null ? null : stableRuntimeCode(result.errorCode, "");
-  const completedAt = typeof result.completedAt === "string" && result.completedAt.length <= 32
-    ? result.completedAt
-    : null;
-  const running = result.status === "RUNNING";
-  const succeeded = result.status === "SUCCEEDED";
-  if ((running && (resultDigest !== null || errorCode !== null || completedAt !== null || result.blockerCount !== 0))
-    || (!running && (resultDigest === null || completedAt === null))
-    || (succeeded && (errorCode !== null || result.blockerCount !== 0))
-    || (!running && !succeeded && errorCode === "")) {
-    throw createClientError(50351, "v1 runtime cycle result invalid", 503);
-  }
-  return Object.freeze({
-    contractVersion: result.contractVersion,
-    dryRun: false,
-    scheduleId: result.scheduleId,
-    cycleId: result.cycleId,
-    status: result.status,
-    replayed: result.replayed,
-    inputDigest: result.inputDigest,
-    resultDigest,
-    blockerCount: result.blockerCount,
-    errorCode,
-    completedAt,
-  });
-}
-
 const REQUEST_BODY_PROMISE = Symbol("root.requestBodyPromise");
 const PREPARED_WECHAT_LOGIN = Symbol("root.preparedWechatLogin");
 
@@ -855,10 +490,6 @@ function createApp(options = {}) {
   const storeAdapter = options.storeAdapter || createMemoryStore(options.store || createStore());
   const data = storeAdapter.data;
   const runtimeEnv = options.env || process.env;
-  const v1RuntimeReadyRequired = exactRuntimeRequiredFlag(runtimeEnv);
-  const v1RuntimeControlPlane = options.v1RuntimeControlPlane
-    || storeAdapter.v1RuntimeControlPlane
-    || null;
   const commandRequestDigestCodec = options.commandRequestDigestCodec || createCommandRequestDigestCodec(runtimeEnv);
   const commandResultCodec = options.commandResultCodec || createCommandResultCodec(runtimeEnv);
   const responseSecurityPolicy = createHttpResponseSecurityPolicy(runtimeEnv);
@@ -880,7 +511,6 @@ function createApp(options = {}) {
     notificationDeliveryCore: options.notificationDeliveryCore
       || storeAdapter.notificationDeliveryCore
       || null,
-    v1RuntimeControlPlane,
     runtimeMetadata,
   };
   const initialPersistPromise = Promise.resolve();
@@ -901,43 +531,10 @@ function createApp(options = {}) {
       const persistence = getRuntimePersistenceStatus({ env: runtimeEnv, storeAdapter });
       const commandRequestDigest = commandRequestDigestCodec.getStatus();
       const commandResultProtection = commandResultCodec.getStatus();
-      // This read crosses only the Control Plane Interface. It does not run the
-      // key inventory scan or any runtime worker from the readiness path.
-      const v1Runtime = await inspectV1RuntimeControlPlane(
-        runtimeContext.v1RuntimeControlPlane,
-        v1RuntimeReadyRequired
-      );
-      const runtimePrincipalRequired = storeAdapter.kind === "mysql"
-        && health.runtimeAlertDeliveryEnabled === true;
-      const runtimePrincipalRequiredRoleCount = safeAggregateCount(
-        health.runtimePrincipalRequiredRoleCount
-      );
-      const runtimePrincipalVerifiedRoleCount = safeAggregateCount(
-        health.runtimePrincipalVerifiedRoleCount
-      );
-      const runtimePrincipalRequiredRoutineCount = safeAggregateCount(
-        health.runtimePrincipalRequiredRoutineCount
-      );
-      const runtimePrincipalVerifiedRoutineCount = safeAggregateCount(
-        health.runtimePrincipalVerifiedRoutineCount
-      );
-      const runtimePrincipalIssueCount = safeAggregateCount(
-        health.runtimePrincipalIssueCount
-      );
-      const runtimePrincipalReady = !runtimePrincipalRequired || (
-        health.runtimePrincipalReady === true
-        && runtimePrincipalRequiredRoleCount > 0
-        && runtimePrincipalVerifiedRoleCount === runtimePrincipalRequiredRoleCount
-        && runtimePrincipalRequiredRoutineCount > 0
-        && runtimePrincipalVerifiedRoutineCount === runtimePrincipalRequiredRoutineCount
-        && runtimePrincipalIssueCount === 0
-      );
       const ready = health.ok !== false
         && persistence.ready
         && commandResultProtection.ready
-        && commandRequestDigest.ready
-        && runtimePrincipalReady
-        && (!v1RuntimeReadyRequired || v1Runtime.ready);
+        && commandRequestDigest.ready;
       const code = health.ok === false
         ? 50301
         : !persistence.ready
@@ -946,11 +543,7 @@ function createApp(options = {}) {
             ? 50303
             : !commandRequestDigest.ready
               ? 50304
-              : v1RuntimeReadyRequired && !v1Runtime.ready
-                ? 50305
-                : !runtimePrincipalReady
-                  ? 50306
-                : 0;
+              : 0;
       return send(res, ready ? 200 : 503, {
         code,
         message: health.ok === false
@@ -958,11 +551,7 @@ function createApp(options = {}) {
           : persistence.ready
             ? commandResultProtection.ready
               ? commandRequestDigest.ready
-                ? v1RuntimeReadyRequired && !v1Runtime.ready
-                  ? "v1 runtime attestation unavailable"
-                  : !runtimePrincipalReady
-                    ? "runtime principal authority unavailable"
-                  : "ready"
+                ? "ready"
                 : "command request digest unavailable"
               : "command result protection unavailable"
             : "transactional multi-instance store required",
@@ -982,18 +571,10 @@ function createApp(options = {}) {
               leastPrivilegeReady: health.leastPrivilegeReady === true,
               privilegeScope: health.privilegeScope || "UNKNOWN",
               privilegePolicyEnforced: health.privilegePolicyEnforced === true,
-              runtimeAlertDeliveryEnabled: runtimePrincipalRequired,
-              runtimePrincipalReady,
-              runtimePrincipalRequiredRoleCount,
-              runtimePrincipalVerifiedRoleCount,
-              runtimePrincipalRequiredRoutineCount,
-              runtimePrincipalVerifiedRoutineCount,
-              runtimePrincipalIssueCount,
             } : {}),
           },
           commandRequestDigest,
           commandResultProtection,
-          v1Runtime,
         },
       });
     }
@@ -1145,56 +726,6 @@ function createApp(options = {}) {
         ));
       }
       if (route === "POST /api/v1/user/formal-profile") return ok(res, withIdempotency(data, req, () => submitFormalProfile(data, token, body)));
-      if (route === `POST ${V1_RUNTIME_CYCLE_ROUTE}`) {
-        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
-        if (!runtimeContext.v1RuntimeControlPlane) {
-          throw createClientError(50351, "v1 runtime control plane unavailable", 503);
-        }
-        const request = normalizeV1RuntimeCycleBody(body);
-        if (request.execute) {
-          requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.RUNTIME_CYCLE_EXECUTE);
-        }
-        const rawHeaderRequestId = String(req.headers["x-request-id"] || "");
-        const headerRequestId = rawHeaderRequestId.trim();
-        if (headerRequestId && (headerRequestId !== rawHeaderRequestId
-          || headerRequestId.length > 128
-          || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(headerRequestId))) {
-          throw createClientError(40051, "v1 runtime cycle request id invalid", 400);
-        }
-        if (request.requestId && headerRequestId && request.requestId !== headerRequestId) {
-          throw createClientError(40051, "v1 runtime cycle request id mismatch", 400);
-        }
-        const requestId = headerRequestId || request.requestId;
-        if (request.execute && !requestId) {
-          throw createClientError(40051, "v1 runtime cycle request id required", 400);
-        }
-        // scheduleId is the durable cross-instance idempotency identity stored
-        // by the Control Plane. Execute correlation must be the same value so a
-        // caller cannot reuse one request id with multiple durable cycles.
-        if (request.execute && requestId !== request.schedule.scheduleId) {
-          throw createClientError(40051, "v1 runtime cycle request identity mismatch", 400);
-        }
-        let result;
-        try {
-          result = request.execute
-            ? await runtimeContext.v1RuntimeControlPlane.runScheduledCycle(request.schedule)
-            : await runtimeContext.v1RuntimeControlPlane.previewScheduledCycle(request.schedule);
-        } catch {
-          throw createClientError(50351, "v1 runtime cycle unavailable", 503);
-        }
-        return ok(res, {
-          code: 0,
-          message: "ok",
-          data: {
-            ...publicV1RuntimeCycleResult(
-              result,
-              !request.execute,
-              request.schedule.scheduleId
-            ),
-            requestId,
-          },
-        });
-      }
       if (route === "POST /api/v1/jobs/health-data-retention-cleanup") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CONFIG_WRITE);
         const requestId = req.headers["x-request-id"] || body.requestId || body.request_id || "";
@@ -1558,7 +1089,7 @@ function createApp(options = {}) {
         }
       }
       const bypassSnapshotTransaction = method === "POST"
-        && [V1_RUNTIME_CYCLE_ROUTE, PERFORMANCE_METRICS_ROUTE].includes(url.pathname);
+        && url.pathname === PERFORMANCE_METRICS_ROUTE;
       if (!url.pathname.startsWith("/api/") || method === "OPTIONS" || bypassSnapshotTransaction) {
         await handleRequest(req, realResponse);
         return;
@@ -1568,8 +1099,6 @@ function createApp(options = {}) {
         transactionCheckpoint: transactionControl.checkpoint,
         transactionResume: transactionControl.resume,
         commandRecovery: transactionControl.commandRecovery,
-        getEventTransport: () => transactionControl.eventTransport,
-        eventTransport: transactionControl.eventTransport,
       });
       if (typeof storeAdapter.runRequest === "function") {
         const writesStore = method !== "GET";

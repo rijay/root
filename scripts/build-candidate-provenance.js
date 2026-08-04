@@ -17,9 +17,9 @@ const REQUIRED_MODULE_IDS = Object.freeze([
   "BACKEND",
   "CLOUD_FUNCTION",
   "CONTENT",
+  "FORMAL_ROUTES",
   "MIGRATION",
   "MINIPROGRAM",
-  "ROUTE_REGISTRY",
 ]);
 const MODULE_SOURCE_POLICIES = Object.freeze([
   Object.freeze({ moduleId: "ADMIN", includePrefixes: Object.freeze(["admin/"]), includeFiles: Object.freeze([]) }),
@@ -43,20 +43,20 @@ const MODULE_SOURCE_POLICIES = Object.freeze([
     ]),
   }),
   Object.freeze({
+    moduleId: "FORMAL_ROUTES",
+    includePrefixes: Object.freeze([]),
+    includeFiles: Object.freeze([
+      "miniprogram/app.json",
+      "miniprogram/config/formal-launch-routes.js",
+      "miniprogram/scripts/formal-launch-scope.test.js",
+    ]),
+  }),
+  Object.freeze({
     moduleId: "MIGRATION",
     includePrefixes: Object.freeze(["backend/db/migrations/"]),
     includeFiles: Object.freeze(["backend/db/schema.sql"]),
   }),
   Object.freeze({ moduleId: "MINIPROGRAM", includePrefixes: Object.freeze(["miniprogram/"]), includeFiles: Object.freeze([]) }),
-  Object.freeze({
-    moduleId: "ROUTE_REGISTRY",
-    includePrefixes: Object.freeze(["contracts/route-registry/"]),
-    includeFiles: Object.freeze([
-      "scripts/lib/route-registry.js",
-      "scripts/route-registry-v1.test.js",
-      "scripts/validate-v1-route-registry.js",
-    ]),
-  }),
 ]);
 const GOVERNANCE_SOURCE_PATHS = Object.freeze([
   ".github/workflows/ci.yml",

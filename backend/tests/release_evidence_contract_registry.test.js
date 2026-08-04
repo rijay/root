@@ -28,7 +28,7 @@ const DIGESTS = Object.freeze({
   migrationSet: "8".repeat(64),
   relationalSchema: "9".repeat(64),
   eventSchema: "a".repeat(64),
-  routeRegistry: "b".repeat(64),
+  formalRoutes: "b".repeat(64),
   runtimeConfig: "c".repeat(64),
   secretReferences: "d".repeat(64),
   requiredAdapterContract: "e".repeat(64),
@@ -98,7 +98,7 @@ function candidate(overrides = {}) {
     targetEnvironmentId: "isolated-foundation-fixture",
     sourceCommit: "a".repeat(40),
     artifactDigestByModule: [
-      { moduleId: "ROUTE_REGISTRY", artifactDigest: DIGESTS.routeArtifact },
+      { moduleId: "FORMAL_ROUTES", artifactDigest: DIGESTS.routeArtifact },
       { moduleId: "BACKEND", artifactDigest: DIGESTS.backend },
       { moduleId: "MINIPROGRAM", artifactDigest: DIGESTS.miniprogram },
       { moduleId: "CONTENT", artifactDigest: DIGESTS.content },
@@ -110,7 +110,7 @@ function candidate(overrides = {}) {
     migrationSetDigest: DIGESTS.migrationSet,
     relationalSchemaDigest: DIGESTS.relationalSchema,
     eventSchemaSetDigest: DIGESTS.eventSchema,
-    routeRegistryDigest: DIGESTS.routeRegistry,
+    formalRoutesDigest: DIGESTS.formalRoutes,
     runtimeConfigDigest: DIGESTS.runtimeConfig,
     secretReferenceVersionDigest: DIGESTS.secretReferences,
     adapterRequirementRegistryDigest: DIGESTS.adapterRequirementRegistry,
@@ -134,7 +134,7 @@ function observedCandidate(candidateDocument, overrides = {}) {
     migrationSetDigest: candidateDocument.migrationSetDigest,
     relationalSchemaDigest: candidateDocument.relationalSchemaDigest,
     eventSchemaSetDigest: candidateDocument.eventSchemaSetDigest,
-    routeRegistryDigest: candidateDocument.routeRegistryDigest,
+    formalRoutesDigest: candidateDocument.formalRoutesDigest,
     runtimeConfigDigest: candidateDocument.runtimeConfigDigest,
     secretReferenceVersionDigest: candidateDocument.secretReferenceVersionDigest,
     featureFlagSnapshot: candidateDocument.featureFlagSnapshot,
@@ -330,7 +330,7 @@ test("Registry freezes all release-evidence contracts as non-runtime Foundation"
   });
   const description = registry.describe();
   assert.equal(description.registryDigest, computeReleaseEvidenceContractRegistryDigest(manifest));
-  assert.equal(description.registryDigest, "5d4462d05880d15c1405bd340d9891572684479a4e6e52f4aa7b0a41610633d6");
+  assert.equal(description.registryDigest, "9b4e0a3f9a5e6788f897ca0f7be699d21e8700d5ec4c13ff7cbc5f17a44a02d2");
   assert.equal(description.authoritativeAdapterRequirementRegistryBundled, false);
   assert.deepEqual(description.documentTypes, [
     "ADAPTER_ATTESTATION",
@@ -362,7 +362,7 @@ test("Candidate sealing sorts configured collections and produces a stable exter
     adapterContractDigests: [...candidate().adapterContractDigests].reverse(),
   }));
   assert.equal(first.digestFieldName, "candidateManifestDigest");
-  assert.equal(first.digest, "ffdf0b397940fdb22ec89e3a4d33e493feae6eadb2b0351e62a84f8652a3c09c");
+  assert.equal(first.digest, "b5a245a314afea2126f3612425d54e3964f1160d01fbeed2e8b0bfdbe7a2cca9");
   assert.equal(first.digest, reordered.digest);
   assert.equal(first.digest, computeReleaseEvidenceDocumentDigest(
     "CANDIDATE_MANIFEST",
@@ -373,9 +373,9 @@ test("Candidate sealing sorts configured collections and produces a stable exter
     "BACKEND",
     "CLOUD_FUNCTION",
     "CONTENT",
+    "FORMAL_ROUTES",
     "MIGRATION",
     "MINIPROGRAM",
-    "ROUTE_REGISTRY",
   ]);
   assert.deepEqual(first.document.featureFlagSnapshot.map((entry) => entry.flagId), [
     "v1-read",
@@ -617,7 +617,7 @@ test("evidence creation is monotonic from Candidate through the Index", () => {
   );
 });
 
-test("config, schema, Route Registry and Adapter contract drift each invalidate the Candidate", () => {
+test("config, schema, Formal Routes and Adapter contract drift each invalidate the Candidate", () => {
   const registry = getDefaultReleaseEvidenceContractRegistry();
   const candidateEnvelope = registry.seal("CANDIDATE_MANIFEST", candidate());
   const source = candidateEnvelope.document;
@@ -632,7 +632,7 @@ test("config, schema, Route Registry and Adapter contract drift each invalidate 
   const cases = [
     ["RUNTIME_CONFIG_CHANGED", { runtimeConfigDigest: "1".repeat(64) }],
     ["RELATIONAL_SCHEMA_CHANGED", { relationalSchemaDigest: "2".repeat(64) }],
-    ["ROUTE_REGISTRY_CHANGED", { routeRegistryDigest: "3".repeat(64) }],
+    ["FORMAL_ROUTES_CHANGED", { formalRoutesDigest: "3".repeat(64) }],
     ["ADAPTER_CONTRACT_CHANGED", {
       adapterContractDigests: source.adapterContractDigests.map((entry) => (
         entry.adapterId === "wechat-subscription-send"
@@ -659,7 +659,7 @@ test("manifest field or invalidation-rule drift fails closed", () => {
   alteredField.documents.find((entry) => entry.documentType === "CANDIDATE_MANIFEST")
     .exactFields.push("rawSecret");
   const alteredRule = JSON.parse(JSON.stringify(source));
-  alteredRule.invalidationRules.find((entry) => entry.ruleId === "ROUTE_REGISTRY_CHANGED")
+  alteredRule.invalidationRules.find((entry) => entry.ruleId === "FORMAL_ROUTES_CHANGED")
     .ruleId = "ROUTE_CHANGE_IGNORED";
   const reversedDocumentOrder = JSON.parse(JSON.stringify(source));
   reversedDocumentOrder.documents.reverse();

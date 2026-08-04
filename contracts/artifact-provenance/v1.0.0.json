@@ -17,9 +17,9 @@
     "BACKEND",
     "CLOUD_FUNCTION",
     "CONTENT",
+    "FORMAL_ROUTES",
     "MIGRATION",
-    "MINIPROGRAM",
-    "ROUTE_REGISTRY"
+    "MINIPROGRAM"
   ],
   "moduleSourcePolicies": [
     {
@@ -47,6 +47,15 @@
       ]
     },
     {
+      "moduleId": "FORMAL_ROUTES",
+      "includePrefixes": [],
+      "includeFiles": [
+        "miniprogram/app.json",
+        "miniprogram/config/formal-launch-routes.js",
+        "miniprogram/scripts/formal-launch-scope.test.js"
+      ]
+    },
+    {
       "moduleId": "MIGRATION",
       "includePrefixes": ["backend/db/migrations/"],
       "includeFiles": ["backend/db/schema.sql"]
@@ -55,15 +64,6 @@
       "moduleId": "MINIPROGRAM",
       "includePrefixes": ["miniprogram/"],
       "includeFiles": []
-    },
-    {
-      "moduleId": "ROUTE_REGISTRY",
-      "includePrefixes": ["contracts/route-registry/"],
-      "includeFiles": [
-        "scripts/lib/route-registry.js",
-        "scripts/route-registry-v1.test.js",
-        "scripts/validate-v1-route-registry.js"
-      ]
     }
   ],
   "overlapPolicy": "ALLOWED_AND_DOMAIN_SEPARATED",

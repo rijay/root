@@ -153,7 +153,7 @@ const INPUT_BINDING_FIELDS = Object.freeze([
   "designDigest",
   "authorizationPacketDigest",
   "candidateManifestDigest",
-  "routeRegistryDigest",
+  "formalRoutesDigest",
   "artifactProvenanceDigest",
 ]);
 const SIGNOFF_FIELDS = Object.freeze([

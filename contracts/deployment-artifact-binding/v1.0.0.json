@@ -24,9 +24,9 @@
     "BACKEND",
     "CLOUD_FUNCTION",
     "CONTENT",
+    "FORMAL_ROUTES",
     "MIGRATION",
-    "MINIPROGRAM",
-    "ROUTE_REGISTRY"
+    "MINIPROGRAM"
   ],
   "artifactKinds": [
     {
@@ -46,22 +46,21 @@
       "artifactKind": "CONTENT_SET_SHA256_V1"
     },
     {
+      "moduleId": "FORMAL_ROUTES",
+      "artifactKind": "FORMAL_ROUTES_BUNDLE_SHA256_V1"
+    },
+    {
       "moduleId": "MIGRATION",
       "artifactKind": "MIGRATION_SET_SHA256_V1"
     },
     {
       "moduleId": "MINIPROGRAM",
       "artifactKind": "WECHAT_UPLOAD_PACKAGE_SHA256_V1"
-    },
-    {
-      "moduleId": "ROUTE_REGISTRY",
-      "artifactKind": "ROUTE_REGISTRY_BUNDLE_SHA256_V1"
     }
   ],
   "requiredCloudFunctionKeys": [
     "MYROOT_HEALTH_RETENTION",
-    "MYROOT_JOB_DISPATCHER",
-    "MYROOT_V1_RUNTIME_SCHEDULER"
+    "MYROOT_JOB_DISPATCHER"
   ],
   "requiredSignoffRoles": [
     "ENGINEERING",

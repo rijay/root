@@ -52,7 +52,6 @@ MYSQL_USERNAME=最小权限应用账号
 MYSQL_PASSWORD=由正式环境密钥配置注入
 MYSQL_DATABASE=目标数据库名
 MYSQL_CONNECTION_LIMIT=8
-MYROOT_V1_RUNTIME_CONNECTION_LIMIT=3
 MYROOT_CLOUDRUN_MAX_INSTANCES=2
 MYSQL_SERVER_MAX_CONNECTIONS=100
 MYROOT_MYSQL_CONNECTION_HEADROOM=20
@@ -88,29 +87,9 @@ MySQL Adapter 使用连接池和数据库级迁移锁，应用启动时幂等执
 
 生产环境会在迁移前读取 `SHOW GRANTS FOR CURRENT_USER()` 并强制最小权限。运行账号只能在 `MYSQL_DATABASE` 对应 schema 上具备 `SELECT / INSERT / UPDATE / DELETE / CREATE / ALTER`；存在全局数据权限、额外 schema 权限或 `GRANT OPTION` 时拒绝启动。非生产环境可用 `ROOT_ENFORCE_MYSQL_LEAST_PRIVILEGE=true` 显式启用同一检查；`/ready` 和发布证据只暴露是否通过与权限作用域，不返回账号或原始授权语句。
 
-## v1.0.0 本地 Foundation Modules
+## 正式上线保留的可靠性能力
 
-| Module | 本地状态 | 正式 Gate |
-| --- | --- | --- |
-| Inbox Worker Harness | `MYROOT_INBOX_WORKER_HARNESS_ENABLED=false` | 仅由受控 Runtime cycle 调用；无正式 runtime 流量接线 |
-| Governed Replay Control | `MYROOT_INBOX_REPLAY_CONTROL_ENABLED=false` | 未在 Candidate/生产 MySQL 授权运行 |
-| Inbox Shadow Replay Runner | `MYROOT_INBOX_SHADOW_REPLAY_RUNNER_ENABLED=false` | 仅 shadow projection；无 Outbox / network |
-| Outbox→Inbox Bridge Harness | `MYROOT_OUTBOX_INBOX_BRIDGE_ENABLED=false` | 仅由受控 Runtime cycle 调用；无正式告警接收端或流量接线 |
-| v1 Runtime Orchestration Foundation | `MYROOT_V1_RUNTIME_ORCHESTRATOR_ENABLED=false`；kill-switch 默认 engaged | 仅由 Runtime Control 执行 one-shot；每个协调/子 Module 连接先核对实际目标库，历史 dead-letter/companion 三锚点与 postflight 均 fail-close；无 Candidate 多实例证明 |
-| v1 Runtime Control Plane | `MYROOT_V1_RUNTIME_CONTROL_PLANE_ENABLED=false`；`ROOT_V1_RUNTIME_READY_REQUIRED=false` | `032/033` cycle/alert ledger、DB-time lease/generation fencing、30 秒续租、默认 preview 的 HTTP Interface 与专属 CloudBase timer scheduler；`/ready` 只读 attestation；调度配置未部署，无 Candidate 运行、告警接收端或发布授权 |
-| Notification Delivery Core | `MYROOT_NOTIFICATION_DELIVERY_FOUNDATION_ENABLED=false` | 关系权威 Inspect Interface 与 replay/ACK-unknown 收敛已落盘；无真实微信发送/设备回执，也无持久 provider-call lease/owner/expiry/generation fencing |
-| Migration Execution Foundation | `MYROOT_MIGRATION_EXECUTION_FOUNDATION_ENABLED=false` | 仅 `LOCAL_ISOLATED` 合成 `TASK_SHARE` scope；无网络 / Outbox / 生产执行 / 运行时 reversal |
-| v1 Route Negotiation Foundation | `MYROOT_V1_ROUTE_NEGOTIATION_ENABLED=false` | `runtimeIntegrated=false` |
-| Release Evidence Contract Registry | `NON_RUNTIME_FOUNDATION_CONTRACT` | Candidate/runtime/releaseId authorized 均为 `false` |
-| Key Inventory Readiness Foundation | `ROOT_KEY_INVENTORY_READINESS_ENABLED=false` | 目标库绑定的只读快照使用固定 10 秒 statement deadline 并精确回读/复原，核验 `REQUEST_DIGEST / COMMAND_RESULT / INBOX_CONTENT / NOTIFICATION_RECEIPT` 四域；REQUEST_DIGEST 覆盖 command、task-event、UnionID provenance 与 legacy/v1 recipient-binding HMAC，receipt 域覆盖 attempt/transition digest metadata。四域 current/retired/unknown 与前三域 previous、schema/index/enforced CHECK、全状态 envelope metadata 漂移均 fail-close，并认证每条可解密受保护记录；每来源最多 1000 条；receipt 因原文不持久化仅能 metadata-only，且当前没有 previous-key keyring；由受控 cycle 运行而 `/ready` 只读持久结果；无 Candidate inventory/rotation 证明 |
-
-这些 Module 的 Interface 只形成可测试 Seam；当前不提供生产流量、网络发送、Candidate 创建或 release 权限。
-
-Runtime Orchestration 仅在 orchestrator、Bridge、Worker 三个开关精确为 `true`，`MYROOT_V1_RUNTIME_KILL_SWITCH=DISENGAGED`、`MYROOT_V1_RUNTIME_OWNER` 合法且目标与容量检查通过时运行一次固定顺序 cycle。Store 的生产连接预算包含六项：main pool（`MYSQL_CONNECTION_LIMIT`）、Runtime Orchestration pool（`MYROOT_V1_RUNTIME_CONNECTION_LIMIT`）、Registrar pool（`MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CONNECTION_LIMIT`）、固定 1 连接的 Registrar heartbeat pool、Worker pool（`MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CONNECTION_LIMIT`）和 Inspector pool（`MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT`）。Runtime Orchestration pool 必须为 `3..64`，三类告警角色 pool 分别必须为 `1..64`；连接取得继续受对应 Module 的 fail-close deadline 约束。生产矩阵强制 `(MYSQL_CONNECTION_LIMIT + MYROOT_V1_RUNTIME_CONNECTION_LIMIT + MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CONNECTION_LIMIT + 1 + MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CONNECTION_LIMIT + MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT) * MYROOT_CLOUDRUN_MAX_INSTANCES + MYROOT_MYSQL_CONNECTION_HEADROOM <= MYSQL_SERVER_MAX_CONNECTIONS`，要求容量证据引用，并拒绝三类角色之间或与 main pool 复用 username/凭据，以及角色之间复用预期 `CURRENT_USER()`。这些静态配置与算式不构成真实容量、grants 或独立 principal 证明。协调连接及发给 Bridge/Worker 的每个连接都会先用 `DATABASE()` 证明实际目标库，告警角色连接还会核对预期 `CURRENT_USER()`；复用连接发生目标漂移时在事务或业务 SQL 前销毁。`GET_LOCK=NULL` 是协调失败而不是 busy。advisory lock 仅用于 non-overlap coordination；持久 ledger 以 generation/lease 提供 cycle fencing。Bridge 对 scoped DEAD source、linked source 与 self-claimed OUTBOX 三个锚点核对 companion 漂移，cycle 新增 dead-letter、终态或 postflight blocker 时返回 `REVIEW_REQUIRED`。
-
-Runtime Control Plane 以持久 cycle/alert ledger 收敛跨实例 claim、终态、ACK unknown 与 stale recovery，租约使用 DB time、owner、generation fencing，并由独立 heartbeat pool 在长任务期间每 30 秒续期；heartbeat 失败不会写成功终态。专属 `myroot-v1-runtime-scheduler` 只接受 CloudBase timer `v1_runtime_cycle`，从规范化 `event.Time` 生成完全相同的 `scheduleId=requestId`，只调用固定 HTTPS Runtime route，并强制核对响应 identity。调度默认 preview；execute 必须显式开启并具有专属 `RUNTIME_CYCLE_EXECUTE` 权限。Job 凭据使用 `ROOT_ADMIN_JOB_ROUTE_TOKENS`（精确 pathname 对应独立轮换列表）；受保护运行时同时强制 `ROOT_REQUIRE_SCOPED_JOB_TOKENS=true`，缺少精确路由 token、跨路由复用或试图回落 legacy/通用后台 token 均 fail-close。仅 local/test 兼容路径可在显式关闭 strict 时保留 `ROOT_ADMIN_JOB_TOKEN(S)`。`cloudbaserc.json` 与 Job Manifest 只是本地待发布配置，不等于 scheduler 已部署、timer-only IAM 已启用或获得运行授权。`GET /ready` 只执行 ledger `inspect`，不在探针路径运行 inventory 或 worker。
-
-用于 Candidate 的 Runtime scope 与容量证据必须共同绑定逻辑 environment id、有效 MySQL host/port/user/database、CloudBase environment id、`MYROOT_V1_RUNTIME_TARGET_GENERATION`、Cloud Run `K_REVISION` 或显式 64 位小写 build artifact digest、main/Runtime Orchestration/Registrar/Registrar heartbeat/Worker/Inspector 六项连接限额、实例/服务器/headroom 容量输入，以及当前/历史/退休 key 配置指纹；任一绑定输入变化都不得复用旧 SAFE attestation。环境声明进入 scope 不自证构建摘要来源、真实平台 identity、克隆/恢复代际、真实 principal/grants、真实容量或 timer-only IAM，这些 Candidate 证据仍是上线 Gate。请求摘要与命令结果历史 key 分别通过 `ROOT_COMMAND_REQUEST_DIGEST_VERIFICATION_KEYS_JSON`、`ROOT_COMMAND_RESULT_DECRYPTION_KEYS_JSON` 暂存，Inbox 延续 `ROOT_INBOX_CONTENT_DECRYPTION_KEYS_JSON`；三者均为最多 8 项的有界 JSON object，只供按持久 `keyId` 读/验，新写始终使用 current key。Key Inventory 要求 `MYSQL_DATABASE` 与 `DATABASE()` 一致，并通过 `ROOT_KEY_INVENTORY_RETIRED_KEY_IDS_JSON` 的精确 `{ "REQUEST_DIGEST": [], "COMMAND_RESULT": [], "INBOX_CONTENT": [], "NOTIFICATION_RECEIPT": [] }` 四域结构声明退休 key id；它以固定 10 秒 `max_execution_time` 在只读一致快照内对账 command/task-event/UnionID provenance/recipient-binding 请求摘要 key references，认证每条可解密受保护记录及 Inbox completion manifest keyed digest，并检查 notification attempt/transition provider receipt digest 的 scheme/key reference/shape。原始 provider receipt 不持久化，所以该域只能 metadata-only，不构成离线内容认证。设置与复原都精确回读，失败即销毁连接。legacy `sha256:v0` 仅保留 metadata 可见警告并在正常 replay 时升级；每个来源最多 1000 条，出现第 1001 条即 fail-close；报告不返回 secret、密文或明文。本轮使用真实 MySQL 8.0.43 引擎上的本机一次性合成数据探针，未使用真实会员数据；该 session-local 证明不等于 Candidate/生产平台身份、权限、容量、并发、全量 inventory 或 rotation 通过。
+当前后端保留并持续验证以下通用能力：微信可信身份、隐私与健康单独同意、命令幂等与结果保护、MySQL 迁移和最小权限、审计、内容发布 Gate、健康数据到期清理及 Candidate 验证。旧任务分享 Inbox/Replay、V1 Runtime Control、旧路由兼容 Registry 和 Fact Authority 证明层已退出正式运行范围；历史 migration 仍保持不可改写，后续只通过新的 forward migration 处理历史表。
 
 `GET /api/v1/admin/release-record` 只汇总正式内容发布状态，不再读取旧 Adapter、订单、咨询或结算证明。
 
@@ -125,7 +104,6 @@ Runtime Control Plane 以持久 cycle/alert ledger 收敛跨实例 claim、终�
 - `GET|POST /api/v1/health/root4u/*`
 - `GET|POST /api/v1/activities/*`
 - `POST /api/v1/jobs/health-data-retention-cleanup`
-- `POST /api/v1/jobs/v1-runtime-cycle`
 - `/api/v1/admin/*`：只保留正式内容、活动、Root4U、用户查询、审计和发布记录 Interface。
 
 任务、奖励、打卡、内部订单、退款、咨询、外部 Adapter 与旧 Admin Interface 均返回 `404`。

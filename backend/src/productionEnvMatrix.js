@@ -5,8 +5,11 @@ const {
   parseRetiredKeyIds,
 } = require("./keyRotationConfiguration");
 const { parseScopedJobRouteTokens } = require("./jobRouteToken");
-const { calculateV1MysqlConnectionCapacity } = require("./mysqlConnectionCapacity");
 const { resolveWechatOpenApiUrl } = require("./wechatOpenApiEndpoint");
+
+const FORMAL_JOB_ROUTES = Object.freeze([
+  "/api/v1/jobs/health-data-retention-cleanup",
+]);
 
 const ENV_GROUPS = [
   {
@@ -76,111 +79,6 @@ const ENV_GROUPS = [
     },
     optional: ["ROOT_HEALTH_DATA_RETENTION_CLEANUP_LIMIT"],
     action: "开启健康类敏感信息单独同意，配置处理者、联系方式和保存天数，并启用可审计的到期脱敏与 CloudBase 图片清理 Job。",
-  },
-  {
-    id: "v1_runtime_control",
-    label: "v1 Runtime Control Plane",
-    ownerRole: "研发/SRE",
-    required: [
-      "MYROOT_V1_RUNTIME_CONTROL_PLANE_ENABLED",
-      "ROOT_V1_RUNTIME_READY_REQUIRED",
-      "MYROOT_V1_RUNTIME_KILL_SWITCH",
-      "MYROOT_V1_RUNTIME_OWNER",
-      "MYROOT_V1_RUNTIME_ATTESTATION_MAX_AGE_SECONDS",
-      "MYROOT_V1_RUNTIME_ENVIRONMENT_ID",
-      "MYROOT_V1_RUNTIME_TARGET_GENERATION",
-      "MYROOT_V1_RUNTIME_CONNECTION_LIMIT",
-      "MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE",
-      "ROOT_V1_RUNTIME_ALERT_RECEIVER_BINDING_REF",
-      "ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT",
-      "ROOT_V1_RUNTIME_ALERT_RECEIVER_SECRET",
-      "ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY",
-      "ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID",
-      "ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY",
-      "ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY_ID",
-      "ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY",
-      "ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID",
-      "MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_USERNAME",
-      "MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD",
-      "MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CURRENT_USER",
-      "MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CONNECTION_LIMIT",
-      "MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_USERNAME",
-      "MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_PASSWORD",
-      "MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CURRENT_USER",
-      "MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CONNECTION_LIMIT",
-      "MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_USERNAME",
-      "MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_PASSWORD",
-      "MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CURRENT_USER",
-      "MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT",
-      "MYROOT_CLOUDRUN_MAX_INSTANCES",
-      "MYSQL_SERVER_MAX_CONNECTIONS",
-      "MYROOT_MYSQL_CONNECTION_HEADROOM",
-      "MYROOT_MYSQL_CAPACITY_EVIDENCE_REF",
-      "MYROOT_V1_RUNTIME_ORCHESTRATOR_ENABLED",
-      "MYROOT_OUTBOX_INBOX_BRIDGE_ENABLED",
-      "MYROOT_INBOX_WORKER_HARNESS_ENABLED",
-      "ROOT_KEY_INVENTORY_READINESS_ENABLED",
-      "MYROOT_NOTIFICATION_DELIVERY_FOUNDATION_ENABLED",
-      "ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY",
-      "ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID",
-      "MYSQL_CONNECTION_LIMIT",
-    ],
-    requiredRules: {
-      MYROOT_V1_RUNTIME_CONTROL_PLANE_ENABLED: "exact_true",
-      ROOT_V1_RUNTIME_READY_REQUIRED: "exact_true",
-      MYROOT_V1_RUNTIME_KILL_SWITCH: "exact_disengaged",
-      MYROOT_V1_RUNTIME_OWNER: "opaque_ascii",
-      MYROOT_V1_RUNTIME_ATTESTATION_MAX_AGE_SECONDS: "integer_1_3600",
-      MYROOT_V1_RUNTIME_ENVIRONMENT_ID: "opaque_ascii",
-      MYROOT_V1_RUNTIME_TARGET_GENERATION: "opaque_ascii",
-      MYROOT_V1_RUNTIME_CONNECTION_LIMIT: "integer_3_64",
-      ROOT_V1_RUNTIME_ALERT_RECEIVER_BINDING_REF: "opaque_ascii_128",
-      ROOT_V1_RUNTIME_ALERT_RECEIVER_ENDPOINT: "https_endpoint",
-      ROOT_V1_RUNTIME_ALERT_RECEIVER_SECRET: "strong_key",
-      ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY: "strong_key",
-      ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID: "key_id",
-      ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY: "strong_key",
-      ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY_ID: "key_id",
-      ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY: "strong_key",
-      ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID: "key_id",
-      MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_USERNAME: "mysql_role_username",
-      MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD: "mysql_role_password",
-      MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CURRENT_USER: "mysql_current_user",
-      MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CONNECTION_LIMIT: "integer_1_64",
-      MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_USERNAME: "mysql_role_username",
-      MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_PASSWORD: "mysql_role_password",
-      MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CURRENT_USER: "mysql_current_user",
-      MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CONNECTION_LIMIT: "integer_1_64",
-      MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_USERNAME: "mysql_role_username",
-      MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_PASSWORD: "mysql_role_password",
-      MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CURRENT_USER: "mysql_current_user",
-      MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT: "integer_1_64",
-      MYROOT_CLOUDRUN_MAX_INSTANCES: "integer_1_10000",
-      MYSQL_SERVER_MAX_CONNECTIONS: "integer_1_1000000000",
-      MYROOT_MYSQL_CONNECTION_HEADROOM: "integer_0_1000000000",
-      MYROOT_MYSQL_CAPACITY_EVIDENCE_REF: "opaque_ascii",
-      MYROOT_V1_RUNTIME_ORCHESTRATOR_ENABLED: "exact_true",
-      MYROOT_OUTBOX_INBOX_BRIDGE_ENABLED: "exact_true",
-      MYROOT_INBOX_WORKER_HARNESS_ENABLED: "exact_true",
-      ROOT_KEY_INVENTORY_READINESS_ENABLED: "exact_true",
-      MYROOT_NOTIFICATION_DELIVERY_FOUNDATION_ENABLED: "exact_true",
-      ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY: "strong_key",
-      ROOT_NOTIFICATION_PROVIDER_RECEIPT_HMAC_KEY_ID: "key_id",
-      MYSQL_CONNECTION_LIMIT: "integer_3_1024",
-    },
-    requiredValues: {
-      MYROOT_V1_RUNTIME_ALERT_DELIVERY_MODE: ["controlled"],
-    },
-    anyOf: [["K_REVISION", "ROOT_RELEASE_ARTIFACT_DIGEST"]],
-    anyOfRules: {
-      K_REVISION: "opaque_ascii_128",
-      ROOT_RELEASE_ARTIFACT_DIGEST: "sha256_digest",
-    },
-    optional: ["ROOT_KEY_INVENTORY_RETIRED_KEY_IDS_JSON"],
-    optionalRules: {
-      ROOT_KEY_INVENTORY_RETIRED_KEY_IDS_JSON: "retired_key_ids",
-    },
-    action: "在 Candidate 中显式启用 Control Plane、持久 readiness、Orchestration、Bridge、Worker、Key Inventory 与受控告警投递；Registrar、Worker、Inspector 必须使用独立凭据和 pool，并以主池 + orchestration 池 + Registrar/heartbeat + Worker + Inspector、实例上限及运维余量核验数据库总连接预算；正式执行仍须先取得运行授权。",
   },
   {
     id: "store",
@@ -277,19 +175,9 @@ const ENV_GROUPS = [
     },
     optional: [
       "ROOT_JOB_DRY_RUN",
-      "ROOT_V1_RUNTIME_SCHEDULER_DRY_RUN",
-      "ROOT_V1_RUNTIME_SCHEDULER_TIMEOUT_SECONDS",
-      "ROOT_V1_RUNTIME_BRIDGE_LIMIT",
-      "ROOT_V1_RUNTIME_RECOVERY_LIMIT",
-      "ROOT_V1_RUNTIME_WORKER_LIMIT",
     ],
     optionalRules: {
       ROOT_JOB_DRY_RUN: "exact_boolean",
-      ROOT_V1_RUNTIME_SCHEDULER_DRY_RUN: "exact_boolean",
-      ROOT_V1_RUNTIME_SCHEDULER_TIMEOUT_SECONDS: "integer_1_25",
-      ROOT_V1_RUNTIME_BRIDGE_LIMIT: "integer_1_100",
-      ROOT_V1_RUNTIME_RECOVERY_LIMIT: "integer_1_100",
-      ROOT_V1_RUNTIME_WORKER_LIMIT: "integer_1_100",
     },
     action: "在 CloudBase 环境变量或密钥管理中注入 HTTPS Job 域名、可解析的定时任务专用口令轮换配置，并附上仅允许平台 timer 调用函数的策略证据。",
   },
@@ -481,7 +369,9 @@ function isJobTokenRotation(value) {
 
 function isJobRouteTokenRotation(value) {
   try {
-    return parseScopedJobRouteTokens({ ROOT_ADMIN_JOB_ROUTE_TOKENS: value }).configured;
+    const parsed = parseScopedJobRouteTokens({ ROOT_ADMIN_JOB_ROUTE_TOKENS: value });
+    return parsed.configured
+      && Object.keys(parsed.routes).sort().join("\0") === FORMAL_JOB_ROUTES.join("\0");
   } catch {
     return false;
   }
@@ -685,95 +575,11 @@ function anyOfRows(env, groups = [], rules = {}) {
 }
 
 function crossGroupMissing(group, env) {
-  if (group.id === "cloudbase_jobs") {
-    return String(env && env.ROOT_REQUIRE_SCOPED_JOB_TOKENS || "") === "true"
-      && !isJobRouteTokenRotation(env && env.ROOT_ADMIN_JOB_ROUTE_TOKENS)
-      ? ["ROOT_ADMIN_JOB_ROUTE_TOKENS=每个 exact Job route 的独立轮换 token"]
-      : [];
-  }
-  if (group.id !== "v1_runtime_control") return [];
-  const registrarUsername = String(env && env.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_USERNAME || "");
-  const workerUsername = String(env && env.MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_USERNAME || "");
-  const inspectorUsername = String(env && env.MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_USERNAME || "");
-  const registrarCurrentUser = String(env && env.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CURRENT_USER || "");
-  const workerCurrentUser = String(env && env.MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CURRENT_USER || "");
-  const inspectorCurrentUser = String(env && env.MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CURRENT_USER || "");
-  const authorityMissing = [];
-  if ([registrarUsername, workerUsername, inspectorUsername].every(Boolean)
-    && new Set([registrarUsername, workerUsername, inspectorUsername]).size !== 3) {
-    authorityMissing.push("MYROOT_V1_RUNTIME_ALERT_MYSQL_USERNAMES_DISTINCT=required");
-  }
-  if ([registrarCurrentUser, workerCurrentUser, inspectorCurrentUser].every(Boolean)
-    && new Set([registrarCurrentUser, workerCurrentUser, inspectorCurrentUser]).size !== 3) {
-    authorityMissing.push("MYROOT_V1_RUNTIME_ALERT_MYSQL_PRINCIPALS_DISTINCT=required");
-  }
-  const rolePasswords = [
-    String(env && env.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_PASSWORD || ""),
-    String(env && env.MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_PASSWORD || ""),
-    String(env && env.MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_PASSWORD || ""),
-  ];
-  if (rolePasswords.every(Boolean) && new Set(rolePasswords).size !== 3) {
-    authorityMissing.push("MYROOT_V1_RUNTIME_ALERT_MYSQL_CREDENTIALS_DISTINCT=required");
-  }
-  const mainUsername = String(env && env.MYSQL_USERNAME || "");
-  if (mainUsername && [registrarUsername, workerUsername, inspectorUsername].includes(mainUsername)) {
-    authorityMissing.push("MYROOT_V1_RUNTIME_ALERT_MYSQL_USERNAMES_DISTINCT_FROM_MAIN=required");
-  }
-  const mainPassword = String(env && env.MYSQL_PASSWORD || "");
-  if (mainPassword && rolePasswords.includes(mainPassword)) {
-    authorityMissing.push("MYROOT_V1_RUNTIME_ALERT_MYSQL_CREDENTIALS_DISTINCT_FROM_MAIN=required");
-  }
-  const alertDigestKeyIds = [
-    String(env && env.ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY_ID || ""),
-    String(env && env.ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY_ID || ""),
-    String(env && env.ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY_ID || ""),
-  ];
-  if (alertDigestKeyIds.every(Boolean) && new Set(alertDigestKeyIds).size !== 3) {
-    authorityMissing.push("ROOT_V1_RUNTIME_ALERT_DIGEST_KEY_IDS_DISTINCT=required");
-  }
-  const alertDigestKeys = [
-    String(env && env.ROOT_V1_RUNTIME_ALERT_BINDING_DIGEST_KEY || ""),
-    String(env && env.ROOT_V1_RUNTIME_ALERT_PAYLOAD_SIGNING_KEY || ""),
-    String(env && env.ROOT_V1_RUNTIME_ALERT_RECEIPT_DIGEST_KEY || ""),
-  ];
-  if (alertDigestKeys.every(Boolean) && new Set(alertDigestKeys).size !== 3) {
-    authorityMissing.push("ROOT_V1_RUNTIME_ALERT_DIGEST_KEYS_DISTINCT=required");
-  }
-  const names = [
-    "MYSQL_CONNECTION_LIMIT",
-    "MYROOT_V1_RUNTIME_CONNECTION_LIMIT",
-    "MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CONNECTION_LIMIT",
-    "MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CONNECTION_LIMIT",
-    "MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT",
-    "MYROOT_CLOUDRUN_MAX_INSTANCES",
-    "MYSQL_SERVER_MAX_CONNECTIONS",
-    "MYROOT_MYSQL_CONNECTION_HEADROOM",
-  ];
-  const positiveNames = names.filter((name) => name !== "MYROOT_MYSQL_CONNECTION_HEADROOM");
-  if (positiveNames.some((name) => !/^[1-9][0-9]*$/.test(String(env && env[name] || "")))
-    || !/^(0|[1-9][0-9]*)$/.test(String(env && env.MYROOT_MYSQL_CONNECTION_HEADROOM || ""))) {
-    return authorityMissing;
-  }
-  const server = Number(env.MYSQL_SERVER_MAX_CONNECTIONS);
-  if (!Number.isSafeInteger(server)) return authorityMissing;
-  let capacity;
-  try {
-    capacity = calculateV1MysqlConnectionCapacity({
-      mainPool: Number(env.MYSQL_CONNECTION_LIMIT),
-      orchestrationPool: Number(env.MYROOT_V1_RUNTIME_CONNECTION_LIMIT),
-      registrarPool: Number(env.MYROOT_V1_RUNTIME_ALERT_REGISTRAR_MYSQL_CONNECTION_LIMIT),
-      registrarHeartbeatPool: 1,
-      workerPool: Number(env.MYROOT_V1_RUNTIME_ALERT_WORKER_MYSQL_CONNECTION_LIMIT),
-      inspectorPool: Number(env.MYROOT_V1_RUNTIME_ALERT_INSPECTOR_MYSQL_CONNECTION_LIMIT),
-      maximumInstances: Number(env.MYROOT_CLOUDRUN_MAX_INSTANCES),
-      headroom: Number(env.MYROOT_MYSQL_CONNECTION_HEADROOM),
-    });
-  } catch {
-    return authorityMissing;
-  }
-  return capacity.calculatedRequirement <= server
-    ? authorityMissing
-    : [...authorityMissing, `MYSQL_CONNECTION_CAPACITY_BUDGET=${capacity.calculatedRequirement}<=${server}`];
+  if (group.id !== "cloudbase_jobs") return [];
+  return String(env && env.ROOT_REQUIRE_SCOPED_JOB_TOKENS || "") === "true"
+    && !isJobRouteTokenRotation(env && env.ROOT_ADMIN_JOB_ROUTE_TOKENS)
+    ? ["ROOT_ADMIN_JOB_ROUTE_TOKENS=每个 exact Job route 的独立轮换 token"]
+    : [];
 }
 
 function groupStatus(group, target, missingRequired, missingAnyOf) {
@@ -862,9 +668,9 @@ function buildProductionEnvMatrix(env = process.env, options = {}) {
       return group && group.status !== "OPTIONAL";
     }),
     sequence: [
-      "先配置运行、数据仓库、CloudBase Store 决策和 CloudBase Job 环境变量。",
-      "再逐个启用有赞、物流、企微真实 Adapter，并保留 MANUAL_SAMPLE 回退。",
-      "外部预警通道未配置时不阻塞上线，但 execute 前必须确认站内通知与负责人路由。",
+      "先配置运行、隐私、数据仓库和 CloudBase Store 决策。",
+      "再配置对象存储与健康数据清理 Job，并完成 scoped token 校验。",
+      "最后通过正式接口、性能和 Candidate 证据门禁，不以本地配置替代真实发布证明。",
     ],
   };
 }

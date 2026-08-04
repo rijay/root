@@ -1,13 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const retentionScheduler = require("../../cloudfunctions/myroot-job-dispatcher");
-const runtimeScheduler = require("../../cloudfunctions/myroot-v1-runtime-scheduler");
 
-test("formal CloudBase topology exposes only health retention and V1 runtime jobs", () => {
+test("formal CloudBase topology exposes only the health retention job", () => {
   assert.equal(retentionScheduler.RELEASE_VERSION, "0.5.13");
   assert.deepEqual(Object.keys(retentionScheduler.JOBS), ["health_data_retention_cleanup"]);
-  assert.equal(runtimeScheduler.TRIGGER_NAME, "v1_runtime_cycle");
-  assert.equal(runtimeScheduler.ROUTE, "/api/v1/jobs/v1-runtime-cycle");
   assert.throws(
     () => retentionScheduler.resolveJob({ TriggerName: "checkin_reminders" }),
     /Unknown scheduled job/
@@ -80,36 +77,4 @@ test("health retention scheduler preserves candidate query and sanitizes output"
     retentionScheduler.summarizeJobData({ selectedCount: 2, results: [{ userId: "private" }], openid: "private" }),
     { selectedCount: 2, resultsCount: 1 }
   );
-});
-
-test("V1 runtime scheduler derives a canonical timer identity and defaults to preview", async () => {
-  const event = { TriggerName: "v1_runtime_cycle", Time: "2026-08-03T20:16:00Z" };
-  const schedule = runtimeScheduler.canonicalTimerSchedule(event);
-  let captured;
-  const result = await runtimeScheduler.dispatch(event, {
-    ROOT_ADMIN_JOB_TOKEN: "runtime-job-secret",
-    ROOT_JOB_BASE_URL: "https://runtime.example.test",
-  }, async (url, body, headers) => {
-    captured = { url, body, headers };
-    return {
-      statusCode: 200,
-      body: {
-        code: 0,
-        message: "ok",
-        data: {
-          status: "READY",
-          requestId: body.requestId,
-          scheduleId: body.scheduleId,
-          dryRun: body.dryRun,
-          internalPool: "private",
-        },
-      },
-    };
-  });
-
-  assert.equal(captured.url, "https://runtime.example.test/api/v1/jobs/v1-runtime-cycle");
-  assert.equal(captured.body.dryRun, true);
-  assert.equal(captured.body.requestId, schedule.scheduleId);
-  assert.equal(captured.headers["X-Request-Id"], schedule.scheduleId);
-  assert.equal(result.data.internalPool, undefined);
 });
