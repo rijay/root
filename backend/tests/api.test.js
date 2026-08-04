@@ -648,6 +648,7 @@ test("prepare backend admin dist copies Element Plus build for backend-only depl
     "users",
     "audit",
   ]);
+  assert.equal(buildManifest.modules.find((item) => item.key === "audit").file, "modules/audit/OperationAuditPage.vue");
 });
 
 test("production cutover readiness gates live external proof", () => {

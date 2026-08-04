@@ -141,7 +141,7 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage } from "element-plus/es/components/message/index";
 import { fetchSharedDetails, uploadContentAsset } from "@/modules/content/adminContentApi";
 import { fetchFormalActivities, saveFormalActivityDraft } from "./adminActivityApi";
 

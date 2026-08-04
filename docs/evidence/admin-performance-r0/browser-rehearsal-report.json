@@ -1,0 +1,550 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-04T10:49:57.684Z",
+  "evidenceClass": "LOCAL_REHEARSAL",
+  "gate": "BUILD",
+  "status": "PASS",
+  "releaseGateEligible": false,
+  "distState": "VITE_PRODUCTION_BUILD",
+  "metrics": {
+    "initialCompressed": {
+      "status": "PASS",
+      "value": 227286,
+      "target": 430080,
+      "hardLimit": 532480
+    },
+    "firstScreenCompressed": {
+      "status": "PASS",
+      "value": 227614,
+      "target": 512000,
+      "hardLimit": 665600
+    },
+    "totalCompressed": {
+      "status": "PASS",
+      "value": 282762,
+      "target": 819200,
+      "hardLimit": 1048576
+    }
+  },
+  "initialFiles": [
+    "assets/element-DhW6rax2.css",
+    "assets/element-S1uxt_2J.js",
+    "assets/index-BWWitWaR.js",
+    "assets/index-eJah-qYD.css",
+    "assets/vue-DBlZkBQZ.js"
+  ],
+  "asyncPages": [
+    {
+      "source": "src/modules/content/SharedDetailPage.vue",
+      "files": [
+        "assets/SharedDetailPage-oMDPYkLU.js",
+        "assets/adminContentApi-BqWwfGex.js"
+      ],
+      "compressedBytes": 7298,
+      "budget": {
+        "status": "PASS",
+        "value": 7298,
+        "target": 122880,
+        "hardLimit": 184320
+      }
+    },
+    {
+      "source": "src/modules/activities/ActivityManagementPage.vue",
+      "files": [
+        "assets/ActivityManagementPage-CltT25vI.js",
+        "assets/adminActivityApi-EUz2VIkC.js",
+        "assets/adminContentApi-BqWwfGex.js"
+      ],
+      "compressedBytes": 6834,
+      "budget": {
+        "status": "PASS",
+        "value": 6834,
+        "target": 122880,
+        "hardLimit": 184320
+      }
+    },
+    {
+      "source": "src/modules/health/ScaleManagementPage.vue",
+      "files": [
+        "assets/ScaleManagementPage-CHQxQcbf.js",
+        "assets/ScaleManagementPage-uwCHYnAH.css",
+        "assets/_plugin-vue_export-helper-DlAUqK2U.js",
+        "assets/adminHealthApi-Ciyh50m9.js"
+      ],
+      "compressedBytes": 6740,
+      "budget": {
+        "status": "PASS",
+        "value": 6740,
+        "target": 122880,
+        "hardLimit": 184320
+      }
+    },
+    {
+      "source": "src/modules/content/HomeCarouselPage.vue",
+      "files": [
+        "assets/HomeCarouselPage-bcCCxEwh.js",
+        "assets/adminContentApi-BqWwfGex.js"
+      ],
+      "compressedBytes": 5516,
+      "budget": {
+        "status": "PASS",
+        "value": 5516,
+        "target": 122880,
+        "hardLimit": 184320
+      }
+    },
+    {
+      "source": "src/modules/activities/ActivityRegistrationsPage.vue",
+      "files": [
+        "assets/ActivityRegistrationsPage-DHgnv21R.js",
+        "assets/adminActivityApi-EUz2VIkC.js"
+      ],
+      "compressedBytes": 5189,
+      "budget": {
+        "status": "PASS",
+        "value": 5189,
+        "target": 122880,
+        "hardLimit": 184320
+      }
+    },
+    {
+      "source": "src/modules/health/LifestyleAdvicePage.vue",
+      "files": [
+        "assets/LifestyleAdvicePage-CIM3Wt_J.js",
+        "assets/adminHealthApi-Ciyh50m9.js"
+      ],
+      "compressedBytes": 5083,
+      "budget": {
+        "status": "PASS",
+        "value": 5083,
+        "target": 122880,
+        "hardLimit": 184320
+      }
+    },
+    {
+      "source": "src/modules/health/RecommendationRulesPage.vue",
+      "files": [
+        "assets/RecommendationRulesPage-BwyEbHq4.js",
+        "assets/adminHealthApi-Ciyh50m9.js"
+      ],
+      "compressedBytes": 4992,
+      "budget": {
+        "status": "PASS",
+        "value": 4992,
+        "target": 122880,
+        "hardLimit": 184320
+      }
+    },
+    {
+      "source": "src/modules/health/InitializationPage.vue",
+      "files": [
+        "assets/InitializationPage-DGCADHDi.js",
+        "assets/adminHealthApi-Ciyh50m9.js"
+      ],
+      "compressedBytes": 4946,
+      "budget": {
+        "status": "PASS",
+        "value": 4946,
+        "target": 122880,
+        "hardLimit": 184320
+      }
+    },
+    {
+      "source": "src/modules/content/WelcomeContentPage.vue",
+      "files": [
+        "assets/WelcomeContentPage-CvdZ9RYV.js",
+        "assets/adminContentApi-BqWwfGex.js"
+      ],
+      "compressedBytes": 4483,
+      "budget": {
+        "status": "PASS",
+        "value": 4483,
+        "target": 122880,
+        "hardLimit": 184320
+      }
+    },
+    {
+      "source": "src/modules/release/ReleaseWorkbench.vue",
+      "files": [
+        "assets/ReleaseWorkbench-Cpf_cvuE.js"
+      ],
+      "compressedBytes": 4121,
+      "budget": {
+        "status": "PASS",
+        "value": 4121,
+        "target": 122880,
+        "hardLimit": 184320
+      }
+    },
+    {
+      "source": "src/modules/audit/OperationAuditPage.vue",
+      "files": [
+        "assets/OperationAuditPage-BV0pwn5A.js",
+        "assets/OperationAuditPage-DUaJiCcb.css",
+        "assets/_plugin-vue_export-helper-DlAUqK2U.js"
+      ],
+      "compressedBytes": 2974,
+      "budget": {
+        "status": "PASS",
+        "value": 2974,
+        "target": 122880,
+        "hardLimit": 184320
+      }
+    },
+    {
+      "source": "src/modules/users/UserQueryPage.vue",
+      "files": [
+        "assets/UserQueryPage-D3CUNg2J.js",
+        "assets/UserQueryPage-UW8KLMO7.css",
+        "assets/_plugin-vue_export-helper-DlAUqK2U.js"
+      ],
+      "compressedBytes": 2913,
+      "budget": {
+        "status": "PASS",
+        "value": 2913,
+        "target": 122880,
+        "hardLimit": 184320
+      }
+    }
+  ],
+  "warnings": [
+    "构建门禁通过不等于正式上线性能门禁通过；仍需查询与浏览器证据",
+    "本地固定夹具仅用于开发排障，不得作为候选或正式上线 Gate 通过证据"
+  ],
+  "gates": {
+    "build": "PASS",
+    "query": "BLOCK",
+    "browser": "BLOCK"
+  },
+  "query": {
+    "status": "BLOCK",
+    "dimensions": {
+      "version": "",
+      "environment": "",
+      "datasetVersion": ""
+    },
+    "provenance": {
+      "expectedEvidenceClass": "LOCAL_REHEARSAL",
+      "observedEvidenceClass": "",
+      "targetOrigin": "",
+      "artifactCommit": "",
+      "releaseId": "",
+      "releaseIdConfigured": false,
+      "status": "BLOCK",
+      "reason": "EVIDENCE_PROVENANCE_MISSING_OR_MIXED"
+    },
+    "scenarios": [
+      {
+        "scenario": "list",
+        "sampleCount": 0,
+        "p75Ms": null,
+        "p95Ms": null,
+        "maxResponseBytes": null,
+        "status": "BLOCK"
+      },
+      {
+        "scenario": "detail",
+        "sampleCount": 0,
+        "p75Ms": null,
+        "p95Ms": null,
+        "maxResponseBytes": null,
+        "status": "BLOCK"
+      },
+      {
+        "scenario": "write",
+        "sampleCount": 0,
+        "p75Ms": null,
+        "p95Ms": null,
+        "maxResponseBytes": null,
+        "status": "BLOCK"
+      },
+      {
+        "scenario": "audit",
+        "sampleCount": 0,
+        "p75Ms": null,
+        "p95Ms": null,
+        "maxResponseBytes": null,
+        "status": "BLOCK"
+      }
+    ]
+  },
+  "browser": {
+    "status": "BLOCK",
+    "sampleCount": 80,
+    "invalidSampleCount": 80,
+    "dimensions": {
+      "version": "local-0.5.13",
+      "environment": "local-ued-review",
+      "evidenceClass": "LOCAL_REHEARSAL",
+      "targetOrigin": "http://127.0.0.1:4173",
+      "artifactCommit": "",
+      "releaseId": "",
+      "releaseIdConfigured": false,
+      "browsers": [
+        "Chrome"
+      ],
+      "networkProfiles": [
+        "office"
+      ],
+      "viewport": "1240x820"
+    },
+    "limitations": [
+      "CONFLICT_SCENARIOS_NOT_RUN",
+      "NAVIGATION_LONG_TASK_SCOPE_PARTIAL",
+      "PACKET_LOSS_1_PERCENT_NOT_EMULATED",
+      "SINGLE_SESSION_ONLY",
+      "THIRTY_MINUTE_STABILITY_NOT_RUN",
+      "WEAK_PACKET_LOSS_NOT_EMULATED"
+    ],
+    "provenance": {
+      "expectedEvidenceClass": "LOCAL_REHEARSAL",
+      "observedEvidenceClass": "LOCAL_REHEARSAL",
+      "targetOrigin": "http://127.0.0.1:4173",
+      "artifactCommit": "",
+      "releaseId": "",
+      "releaseIdConfigured": false,
+      "status": "PASS"
+    },
+    "resources": {
+      "initialDomNodes": {
+        "value": 183,
+        "target": 1200,
+        "hardLimit": 1800,
+        "status": "PASS"
+      },
+      "pageDomNodes": {
+        "value": 300,
+        "target": 2500,
+        "hardLimit": 3500,
+        "status": "PASS"
+      },
+      "maxTaskMs": {
+        "value": 88,
+        "target": 50,
+        "hardLimit": 50,
+        "status": "BLOCK"
+      },
+      "maxFreezeMs": {
+        "value": 12.2,
+        "target": 200,
+        "hardLimit": 200,
+        "status": "PASS"
+      },
+      "stableMemoryMiB": {
+        "value": 170.635,
+        "target": 200,
+        "hardLimit": 300,
+        "status": "PASS"
+      },
+      "fps": {
+        "value": 116.187,
+        "required": 50,
+        "status": "PASS"
+      },
+      "memoryGrowthRatio": {
+        "value": 0,
+        "target": 0.2,
+        "hardLimit": 0.2,
+        "status": "PASS"
+      },
+      "menuCycles": {
+        "value": 10,
+        "required": 10,
+        "status": "PASS"
+      },
+      "editCycles": {
+        "value": 10,
+        "required": 10,
+        "status": "PASS"
+      },
+      "journeyDurationMinutes": {
+        "value": 7.721,
+        "required": 30,
+        "status": "BLOCK"
+      },
+      "sessionCount": {
+        "value": 1,
+        "required": 5,
+        "status": "BLOCK"
+      },
+      "maxConcurrentReads": {
+        "value": 4,
+        "target": 10,
+        "hardLimit": 10,
+        "status": "PASS"
+      },
+      "conflictScenarios": {
+        "value": 0,
+        "required": 2,
+        "status": "BLOCK"
+      },
+      "hardwareConcurrency": {
+        "value": 10,
+        "required": 4,
+        "status": "PASS"
+      },
+      "deviceMemoryGiB": {
+        "value": 24,
+        "required": 8,
+        "status": "PASS"
+      }
+    },
+    "journeys": [
+      {
+        "scenario": "coldStart",
+        "sampleCount": 20,
+        "p75Ms": 1075,
+        "p95Ms": 1495,
+        "maximumMs": 1531,
+        "groups": [
+          {
+            "browser": "Chrome",
+            "networkProfile": "office",
+            "sampleCount": 20,
+            "observedSampleCount": 20,
+            "p75Ms": 1075,
+            "p95Ms": 1495,
+            "maximumMs": 1531,
+            "observedP75Ms": 1075,
+            "observedP95Ms": 1495,
+            "observedMaximumMs": 1531,
+            "timingGateApplied": true,
+            "status": "PASS"
+          },
+          {
+            "browser": "Chrome",
+            "networkProfile": "weak",
+            "sampleCount": 0,
+            "observedSampleCount": 20,
+            "p75Ms": null,
+            "p95Ms": null,
+            "maximumMs": null,
+            "observedP75Ms": 3924,
+            "observedP95Ms": 3947,
+            "observedMaximumMs": 4249,
+            "timingGateApplied": false,
+            "status": "BLOCK"
+          }
+        ],
+        "status": "BLOCK"
+      },
+      {
+        "scenario": "cachedRefresh",
+        "sampleCount": 20,
+        "p75Ms": 1062,
+        "p95Ms": 1082,
+        "maximumMs": 1093,
+        "groups": [
+          {
+            "browser": "Chrome",
+            "networkProfile": "office",
+            "sampleCount": 20,
+            "observedSampleCount": 20,
+            "p75Ms": 1062,
+            "p95Ms": 1082,
+            "maximumMs": 1093,
+            "observedP75Ms": 1062,
+            "observedP95Ms": 1082,
+            "observedMaximumMs": 1093,
+            "timingGateApplied": true,
+            "status": "PASS"
+          },
+          {
+            "browser": "Chrome",
+            "networkProfile": "weak",
+            "sampleCount": 0,
+            "observedSampleCount": 20,
+            "p75Ms": null,
+            "p95Ms": null,
+            "maximumMs": null,
+            "observedP75Ms": 3929,
+            "observedP95Ms": 3937,
+            "observedMaximumMs": 3940,
+            "timingGateApplied": false,
+            "status": "BLOCK"
+          }
+        ],
+        "status": "BLOCK"
+      },
+      {
+        "scenario": "loadedMenuSwitch",
+        "sampleCount": 20,
+        "p75Ms": 302,
+        "p95Ms": 306,
+        "maximumMs": 307,
+        "groups": [
+          {
+            "browser": "Chrome",
+            "networkProfile": "office",
+            "sampleCount": 20,
+            "observedSampleCount": 20,
+            "p75Ms": 302,
+            "p95Ms": 306,
+            "maximumMs": 307,
+            "observedP75Ms": 302,
+            "observedP95Ms": 306,
+            "observedMaximumMs": 307,
+            "timingGateApplied": true,
+            "status": "PASS"
+          },
+          {
+            "browser": "Chrome",
+            "networkProfile": "weak",
+            "sampleCount": 0,
+            "observedSampleCount": 20,
+            "p75Ms": null,
+            "p95Ms": null,
+            "maximumMs": null,
+            "observedP75Ms": 300,
+            "observedP95Ms": 306,
+            "observedMaximumMs": 308,
+            "timingGateApplied": false,
+            "status": "BLOCK"
+          }
+        ],
+        "status": "BLOCK"
+      },
+      {
+        "scenario": "firstAsyncPage",
+        "sampleCount": 20,
+        "p75Ms": 449,
+        "p95Ms": 469,
+        "maximumMs": 525,
+        "groups": [
+          {
+            "browser": "Chrome",
+            "networkProfile": "office",
+            "sampleCount": 20,
+            "observedSampleCount": 20,
+            "p75Ms": 449,
+            "p95Ms": 469,
+            "maximumMs": 525,
+            "observedP75Ms": 449,
+            "observedP95Ms": 469,
+            "observedMaximumMs": 525,
+            "timingGateApplied": true,
+            "status": "PASS"
+          },
+          {
+            "browser": "Chrome",
+            "networkProfile": "weak",
+            "sampleCount": 0,
+            "observedSampleCount": 20,
+            "p75Ms": null,
+            "p95Ms": null,
+            "maximumMs": null,
+            "observedP75Ms": 948,
+            "observedP95Ms": 956,
+            "observedMaximumMs": 969,
+            "timingGateApplied": false,
+            "status": "BLOCK"
+          }
+        ],
+        "status": "BLOCK"
+      }
+    ]
+  },
+  "candidateBinding": {
+    "status": "NOT_APPLICABLE"
+  }
+}

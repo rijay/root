@@ -160,6 +160,43 @@ test("published versions are never edited in place and copying creates a new dra
   assert.equal(copied.sourceVersionId, published.versionId);
 });
 
+test("content draft updates require the current revision and preserve the first operator write", () => {
+  const data = createSeedData();
+  data.contentAssets = [];
+  data.contentVersions = [];
+  data.contentPublicationRecords = [];
+  const asset = upload(data, "welcome-1", "welcome.png");
+  const created = contentModule.saveWelcomeDraft(data, {
+    slot: 1,
+    copy: "欢迎加入 Root Member Club",
+    assetId: asset.assetId,
+  }, context("first-operator")).version;
+  const winning = contentModule.saveWelcomeDraft(data, {
+    id: created.versionId,
+    expectedRevision: created.revision,
+    slot: 1,
+    copy: "欢迎加入 Root Member Club · 运营甲",
+    assetId: asset.assetId,
+  }, context("first-operator")).version;
+
+  assert.throws(() => contentModule.saveWelcomeDraft(data, {
+    id: created.versionId,
+    expectedRevision: created.revision,
+    slot: 1,
+    copy: "欢迎加入 Root Member Club · 运营乙",
+    assetId: asset.assetId,
+  }, context("second-operator")), { code: "CONTENT_REVISION_CONFLICT" });
+  assert.throws(() => contentModule.saveWelcomeDraft(data, {
+    slot: 1,
+    copy: "绕过版本检查",
+    assetId: asset.assetId,
+  }, context("second-operator")), { code: "CONTENT_REVISION_CONFLICT" });
+
+  const authority = data.contentVersions.find((row) => row.versionId === created.versionId);
+  assert.equal(authority.revision, winning.revision);
+  assert.equal(authority.content.copy, "欢迎加入 Root Member Club · 运营甲");
+});
+
 test("candidate blocks a detail replacement until every published home reference is updated", () => {
   const data = createSeedData();
   data.contentAssets = [];

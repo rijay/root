@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-04T10:29:25.856Z",
+  "evidenceClass": "MISSING_EXTERNAL_EVIDENCE",
+  "gate": "REAL_DEVICE",
+  "status": "BLOCK",
+  "releaseGateEligible": false,
+  "requiredSamplesPerCoreScenario": 30,
+  "samples": [],
+  "missing": [
+    "IOS_DEVICE",
+    "ANDROID_DEVICE",
+    "OFFICE_NETWORK",
+    "WEAK_NETWORK",
+    "WECHAT_BUILD_ARTIFACT"
+  ]
+}

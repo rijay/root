@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "LOCAL_REHEARSAL",
+  "generatedAt": "2026-08-04T09:24:06.413Z",
+  "dimensions": {
+    "version": "local-0.5.13",
+    "environment": "local-ued-review",
+    "evidenceClass": "LOCAL_REHEARSAL",
+    "targetOrigin": "http://127.0.0.1:4173",
+    "artifactCommit": "",
+    "releaseId": "",
+    "releaseIdConfigured": false,
+    "browser": "Chrome",
+    "browserVersion": "150.0.7871.187",
+    "hardwareConcurrency": 10,
+    "deviceMemoryGiB": 24,
+    "viewportWidth": 1240,
+    "viewportHeight": 820
+  },
+  "resources": {
+    "initialDomNodes": 183,
+    "pageDomNodes": 300,
+    "maxTaskMs": 88,
+    "maxFreezeMs": 12.2,
+    "stableMemoryMiB": 170.635,
+    "fps": 116.187,
+    "memoryGrowthRatio": 0,
+    "menuCycles": 10,
+    "editCycles": 10,
+    "journeyDurationMinutes": 7.721,
+    "measurementScope": "LOCAL_SINGLE_TAB_SESSION_MAX_AND_STABLE_CYCLES"
+  },
+  "capacity": {
+    "sessionCount": 1,
+    "maxConcurrentReads": 4,
+    "conflictScenarios": 0
+  },
+  "networks": {
+    "office": {
+      "networkEmulationComplete": true,
+      "limitations": []
+    },
+    "weak": {
+      "networkEmulationComplete": false,
+      "limitations": ["PACKET_LOSS_1_PERCENT_NOT_EMULATED"]
+    }
+  },
+  "journeys": {
+    "coldStart": {
+      "office": [1495, 1052, 1068, 1114, 1073, 1050, 1060, 1058, 1055, 1058, 1070, 1061, 1054, 1085, 1075, 1075, 1531, 1059, 1058, 1054],
+      "weak": [4249, 3929, 3919, 3908, 3901, 3924, 3909, 3929, 3914, 3926, 3920, 3921, 3919, 3897, 3947, 3918, 3918, 3922, 3892, 3904]
+    },
+    "cachedRefresh": {
+      "office": [1072, 1065, 1046, 1093, 1049, 1056, 1050, 1054, 1062, 1038, 1042, 1061, 1058, 1082, 1040, 1047, 1047, 1075, 1039, 1048],
+      "weak": [3926, 3914, 3929, 3926, 3925, 3917, 3935, 3937, 3930, 3940, 3936, 3929, 3909, 3909, 3921, 3913, 3922, 3925, 3925, 3902]
+    },
+    "loadedMenuSwitch": {
+      "office": [304, 301, 302, 300, 300, 298, 307, 286, 301, 290, 302, 296, 291, 303, 300, 306, 298, 296, 299, 299],
+      "weak": [279, 280, 301, 296, 293, 305, 300, 298, 287, 299, 280, 308, 304, 300, 306, 281, 286, 291, 295, 290]
+    },
+    "firstAsyncPage": {
+      "office": [433, 464, 417, 449, 456, 418, 410, 525, 427, 433, 418, 414, 419, 414, 446, 469, 407, 397, 443, 450],
+      "weak": [931, 940, 956, 947, 936, 947, 942, 939, 943, 969, 948, 923, 951, 937, 956, 928, 918, 946, 913, 949]
+    }
+  },
+  "limitations": [
+    "WEAK_PACKET_LOSS_NOT_EMULATED",
+    "SINGLE_SESSION_ONLY",
+    "CONFLICT_SCENARIOS_NOT_RUN",
+    "THIRTY_MINUTE_STABILITY_NOT_RUN",
+    "NAVIGATION_LONG_TASK_SCOPE_PARTIAL"
+  ],
+  "diagnostic": {
+    "firstUncalibratedMemoryGrowthRatio": 0.2775,
+    "calibratedMenuGrowthRatio": -0.1349,
+    "calibratedEditGrowthRatio": -0.0008,
+    "observedSessionMaxTaskMs": 88
+  }
+}

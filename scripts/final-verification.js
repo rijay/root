@@ -118,6 +118,14 @@ const RETIRED_PACKAGE_COMMANDS = Object.freeze([
   "wework-touch",
 ]);
 
+const RETIRED_SOURCE_FILES = Object.freeze([
+  "backend/src/rootMemberCenterReadiness.js",
+  "miniprogram/utils/date-display.js",
+  "miniprogram/utils/questionnaire-branching.js",
+  "miniprogram/utils/task-presenter.js",
+  "miniprogram/utils/youzan-jump.js",
+]);
+
 function runCommand(label, command, args, cwd = projectRoot) {
   const startedAt = Date.now();
   const result = spawnSync(command, args, {
@@ -146,11 +154,13 @@ function verifyFormalRouteSurface() {
     .filter((route) => appSource.includes(route));
   const remainingCommands = RETIRED_PACKAGE_COMMANDS.filter((name) =>
     Object.prototype.hasOwnProperty.call(backendPackage.scripts || {}, name));
+  const remainingRetiredFiles = RETIRED_SOURCE_FILES.filter((file) => fs.existsSync(path.join(projectRoot, file)));
 
   const details = [];
   if (missingRequiredRoutes.length) details.push(`missing required routes: ${missingRequiredRoutes.join(", ")}`);
   if (remainingRetiredRoutes.length) details.push(`retired routes remain: ${remainingRetiredRoutes.join(", ")}`);
   if (remainingCommands.length) details.push(`retired commands remain: ${remainingCommands.join(", ")}`);
+  if (remainingRetiredFiles.length) details.push(`retired source files remain: ${remainingRetiredFiles.join(", ")}`);
   return {
     label: "formal route surface",
     status: details.length ? "FAIL" : "PASS",
@@ -170,7 +180,8 @@ function main() {
     runCommand("backend tests", "npm", ["test", "--prefix", "backend"]),
     runCommand("miniprogram formal scope and performance", "npm", ["run", "check", "--prefix", "miniprogram"]),
     runCommand("admin checks", "npm", ["run", "check", "--prefix", "admin"]),
-    runCommand("admin production build", "npm", ["run", "build", "--prefix", "admin"]),
+    runCommand("admin production build and performance gate", "npm", ["run", "build:verify", "--prefix", "admin"]),
+    runCommand("formal launch local evidence", "npm", ["run", "evidence:local:check"]),
   ];
 
   for (const check of checks) {

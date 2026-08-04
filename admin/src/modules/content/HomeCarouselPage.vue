@@ -21,6 +21,7 @@
       type="info"
     />
 
+    <template v-if="contentReady">
     <el-form class="content-filter-bar" inline @submit.prevent>
       <el-input
         v-model="filters.keyword"
@@ -95,6 +96,7 @@
         @current-change="load"
       />
     </section>
+    </template>
 
     <el-drawer v-model="drawerVisible" class="content-edit-drawer" size="408px" :show-close="true">
       <template #header>
@@ -181,7 +183,8 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus/es/components/message/index";
+import { ElMessageBox } from "element-plus/es/components/message-box/index";
 import {
   fetchHomeCarousel,
   fetchSharedDetails,
@@ -192,6 +195,7 @@ import {
 
 const emptyDraft = () => ({
   id: "",
+  expectedRevision: 0,
   order: 1,
   internalName: "",
   copy: "",
@@ -214,6 +218,7 @@ const errorMessage = ref("");
 const interfaceUnavailable = ref(false);
 const previewPath = ref("");
 const drawerVisible = ref(false);
+const contentReady = ref(false);
 const sharedDetailOptions = ref([]);
 const selectedFile = ref(null);
 const objectUrls = new Set();
@@ -222,6 +227,8 @@ const filters = reactive({ keyword: "", status: "", schedule: "", page: 1 });
 let searchTimer = null;
 let loadSequence = 0;
 let loadController = null;
+let contentMountFrame = null;
+let initialLoadFrame = null;
 
 function statusLabel(status) {
   return ({ PUBLISHED: "已上线", DRAFT: "草稿", BLOCKED: "阻断", OFFLINE: "已下线" })[status] || "待确认";
@@ -257,6 +264,7 @@ function editDraft(row) {
   Object.assign(draft, emptyDraft(), row, {
     id: row.status === "PUBLISHED" ? "" : row.id,
     sourceVersionId: row.status === "PUBLISHED" ? row.versionId : "",
+    expectedRevision: row.status === "DRAFT" ? row.revision : 0,
   });
   selectedFile.value = null;
   drawerVisible.value = true;
@@ -318,6 +326,7 @@ async function saveDraft() {
     await load();
   } catch (error) {
     errorMessage.value = error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message;
+    if (error.status === 409) ElMessage.error(errorMessage.value);
   } finally {
     saving.value = false;
   }
@@ -379,11 +388,16 @@ async function load() {
 }
 
 onMounted(() => {
-  load();
   loadSharedDetails();
+  contentMountFrame = requestAnimationFrame(() => {
+    contentReady.value = true;
+    initialLoadFrame = requestAnimationFrame(load);
+  });
 });
 onBeforeUnmount(() => {
   clearTimeout(searchTimer);
+  if (contentMountFrame !== null) cancelAnimationFrame(contentMountFrame);
+  if (initialLoadFrame !== null) cancelAnimationFrame(initialLoadFrame);
   loadController?.abort();
   objectUrls.forEach((url) => URL.revokeObjectURL(url));
 });

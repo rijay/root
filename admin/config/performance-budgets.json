@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "units": {
+    "bytesPerKiB": 1024,
+    "bytesPerMiB": 1048576
+  },
+  "capacity": {
+    "coreOperators": 2,
+    "maximumSessions": 5,
+    "maximumConcurrentReadsAcrossSessions": 10
+  },
+  "fixture": {
+    "version": "ADMIN_PERFORMANCE_R0",
+    "users": 10000,
+    "activityEnrollments": 5000,
+    "auditLogs": 20000,
+    "contentVersions": 1000,
+    "scaleQuestions": 100
+  },
+  "build": {
+    "initialCompressed": { "targetBytes": 430080, "hardLimitBytes": 532480 },
+    "firstScreenCompressed": { "targetBytes": 512000, "hardLimitBytes": 665600 },
+    "singleAsyncPageCompressed": { "targetBytes": 122880, "hardLimitBytes": 184320 },
+    "totalCompressed": { "targetBytes": 819200, "hardLimitBytes": 1048576 },
+    "releaseGrowth": { "warningBytes": 30720, "approvalRequiredBytes": 61440 }
+  },
+  "network": {
+    "maxConcurrentReadsPerBrowser": 4,
+    "readTimeoutMs": 8000,
+    "writeTimeoutMs": 15000,
+    "sameReadDedupe": true,
+    "cancelStaleReads": true,
+    "automaticWriteRetry": false
+  },
+  "networkProfiles": {
+    "office": { "rttMs": 80, "downlinkMbps": 10, "uplinkMbps": 5, "packetLossRatio": 0 },
+    "weak": { "rttMs": 200, "downlinkMbps": 2, "uplinkMbps": 1, "packetLossRatio": 0.01 }
+  },
+  "journeys": {
+    "coldStart": { "p75Ms": 2500, "hardLimitMs": 4000 },
+    "cachedRefresh": { "p75Ms": 1200, "hardLimitMs": 2000 },
+    "loadedMenuSwitch": { "p75Ms": 500, "hardLimitMs": 500 },
+    "firstAsyncPage": { "p75Ms": 1500, "hardLimitMs": 1500 }
+  },
+  "queries": {
+    "list": { "p75Ms": 800, "p95Ms": 1500 },
+    "detail": { "p75Ms": 600, "p95Ms": 1200 },
+    "write": { "p75Ms": 1000, "p95Ms": 2000 },
+    "audit": { "p75Ms": 1000, "p95Ms": 2000 },
+    "samplesPerScenario": 20
+  },
+  "responses": {
+    "listHardLimitBytes": 102400,
+    "detailHardLimitBytes": 204800,
+    "writeHardLimitBytes": 51200,
+    "auditHardLimitBytes": 153600,
+    "defaultPageSize": 20,
+    "maximumPageSize": 50
+  },
+  "browser": {
+    "supportedBrowsers": ["Chrome"],
+    "minimumHardwareConcurrency": 4,
+    "minimumDeviceMemoryGiB": 8,
+    "initialDomNodes": { "target": 1200, "hardLimit": 1800 },
+    "pageDomNodes": { "target": 2500, "hardLimit": 3500 },
+    "singleSynchronousTaskHardLimitMs": 50,
+    "continuousFreezeHardLimitMs": 200,
+    "stableMemory": { "targetMiB": 200, "hardLimitMiB": 300 },
+    "menuCycles": 10,
+    "menuCycleGrowthHardLimitRatio": 0.2,
+    "editCycles": 10,
+    "journeyDurationMinutes": 30,
+    "fpsMinimum": 50
+  },
+  "regression": {
+    "warningRatio": 0.05,
+    "blockingRatio": 0.1
+  },
+  "evidence": {
+    "requiredGates": ["BUILD", "QUERY", "BROWSER"],
+    "operationGateEnabled": false,
+    "legacyEvidenceReleaseGateEligible": false
+  }
+}

@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-04T10:29:25.856Z",
+  "evidenceClass": "LOCAL_FORMAL_SOURCE_ESTIMATE",
+  "releaseGateEligible": false,
+  "packageState": "LOCAL_SOURCE_ESTIMATE",
+  "status": "PASS",
+  "baseLibrary": {
+    "minimum": "2.32.3",
+    "acceptanceStable": "3.15.2",
+    "requiredCapabilities": [
+      {
+        "name": "wx.getPerformance",
+        "minimum": "2.11.0"
+      },
+      {
+        "name": "lazyCodeLoading.requiredComponents",
+        "minimum": "2.11.1"
+      },
+      {
+        "name": "button.open-type.chooseAvatar",
+        "minimum": "2.21.2"
+      },
+      {
+        "name": "wx.requirePrivacyAuthorize",
+        "minimum": "2.32.3"
+      }
+    ]
+  },
+  "packages": {
+    "main": {
+      "bytes": 225840,
+      "fileCount": 95,
+      "budget": {
+        "status": "PASS",
+        "value": 225840,
+        "target": 1363148.8,
+        "hardLimit": 1572864
+      }
+    },
+    "subpackages": [
+      {
+        "root": "subpkg/content",
+        "bytes": 7677,
+        "fileCount": 8,
+        "budget": {
+          "status": "PASS",
+          "value": 7677,
+          "target": 819200,
+          "hardLimit": 1258291.2
+        }
+      },
+      {
+        "root": "subpkg/health",
+        "bytes": 23689,
+        "fileCount": 8,
+        "budget": {
+          "status": "PASS",
+          "value": 23689,
+          "target": 819200,
+          "hardLimit": 1258291.2
+        }
+      },
+      {
+        "root": "subpkg/activity",
+        "bytes": 54265,
+        "fileCount": 9,
+        "budget": {
+          "status": "PASS",
+          "value": 54265,
+          "target": 819200,
+          "hardLimit": 1258291.2
+        }
+      },
+      {
+        "root": "subpkg/profile",
+        "bytes": 18638,
+        "fileCount": 12,
+        "budget": {
+          "status": "PASS",
+          "value": 18638,
+          "target": 819200,
+          "hardLimit": 1258291.2
+        }
+      }
+    ],
+    "total": {
+      "bytes": 330109,
+      "fileCount": 132,
+      "budget": {
+        "status": "PASS",
+        "value": 330109,
+        "target": 6291456,
+        "hardLimit": 8388608
+      }
+    },
+    "mainLocalMedia": {
+      "bytes": 30443,
+      "fileCount": 10,
+      "budget": {
+        "status": "PASS",
+        "value": 30443,
+        "target": 204800,
+        "hardLimit": 307200
+      }
+    }
+  },
+  "globalDependencies": {
+    "componentCount": 0,
+    "components": []
+  },
+  "localMedia": [
+    {
+      "path": "static/brand/root-logo-horizontal-light.png",
+      "bytes": 8460,
+      "category": "LOGO_OR_TAB_ICON",
+      "budget": {
+        "status": "PASS",
+        "value": 8460,
+        "target": 20480,
+        "hardLimit": 40960
+      }
+    },
+    {
+      "path": "static/brand/root-logo-horizontal.png",
+      "bytes": 18543,
+      "category": "LOGO_OR_TAB_ICON",
+      "budget": {
+        "status": "PASS",
+        "value": 18543,
+        "target": 20480,
+        "hardLimit": 40960
+      }
+    },
+    {
+      "path": "static/icons/tab-activity-active.svg",
+      "bytes": 385,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 385,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/icons/tab-activity.svg",
+      "bytes": 385,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 385,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/icons/tab-health-active.svg",
+      "bytes": 590,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 590,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/icons/tab-health.svg",
+      "bytes": 590,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 590,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/icons/tab-home-active.svg",
+      "bytes": 410,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 410,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/icons/tab-home.svg",
+      "bytes": 410,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 410,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/icons/tab-profile-active.svg",
+      "bytes": 335,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 335,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/icons/tab-profile.svg",
+      "bytes": 335,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 335,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    }
+  ],
+  "warnings": [
+    "本地源码估算必须与微信构建产物报告交叉验证"
+  ]
+}

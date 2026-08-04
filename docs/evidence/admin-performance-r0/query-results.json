@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-04T10:29:25.856Z",
+  "evidenceClass": "MISSING_CANDIDATE_EVIDENCE",
+  "gate": "QUERY",
+  "status": "BLOCK",
+  "releaseGateEligible": false,
+  "datasetVersion": "ADMIN_PERFORMANCE_R0",
+  "requiredSamplesPerScenario": 20,
+  "scenarios": [
+    {
+      "scenario": "list",
+      "sampleCount": 0,
+      "status": "BLOCK"
+    },
+    {
+      "scenario": "detail",
+      "sampleCount": 0,
+      "status": "BLOCK"
+    },
+    {
+      "scenario": "write",
+      "sampleCount": 0,
+      "status": "BLOCK"
+    },
+    {
+      "scenario": "audit",
+      "sampleCount": 0,
+      "status": "BLOCK"
+    }
+  ]
+}

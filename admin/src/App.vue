@@ -88,7 +88,7 @@
           <RecommendationRulesPage v-else-if="currentModuleKey === 'recommendations'" ref="activeWorkbench" />
           <LifestyleAdvicePage v-else-if="currentModuleKey === 'lifestyle'" ref="activeWorkbench" />
           <UserQueryPage v-else-if="currentModuleKey === 'users'" ref="activeWorkbench" />
-          <AuditLogPage v-else-if="currentModuleKey === 'audit'" ref="activeWorkbench" />
+          <OperationAuditPage v-else-if="currentModuleKey === 'audit'" ref="activeWorkbench" />
         </div>
       </section>
     </main>
@@ -161,7 +161,8 @@ const navigationGroups = [
 
 const ReleaseWorkbench = defineAsyncComponent(() => import("./modules/release/ReleaseWorkbench.vue"));
 const WelcomeContentPage = defineAsyncComponent(() => import("./modules/content/WelcomeContentPage.vue"));
-const HomeCarouselPage = defineAsyncComponent(() => import("./modules/content/HomeCarouselPage.vue"));
+const loadHomeCarouselPage = () => import("./modules/content/HomeCarouselPage.vue");
+const HomeCarouselPage = defineAsyncComponent(loadHomeCarouselPage);
 const SharedDetailPage = defineAsyncComponent(() => import("./modules/content/SharedDetailPage.vue"));
 const ActivityManagementPage = defineAsyncComponent(() => import("./modules/activities/ActivityManagementPage.vue"));
 const ActivityRegistrationsPage = defineAsyncComponent(() => import("./modules/activities/ActivityRegistrationsPage.vue"));
@@ -170,7 +171,7 @@ const ScaleManagementPage = defineAsyncComponent(() => import("./modules/health/
 const RecommendationRulesPage = defineAsyncComponent(() => import("./modules/health/RecommendationRulesPage.vue"));
 const LifestyleAdvicePage = defineAsyncComponent(() => import("./modules/health/LifestyleAdvicePage.vue"));
 const UserQueryPage = defineAsyncComponent(() => import("./modules/users/UserQueryPage.vue"));
-const AuditLogPage = defineAsyncComponent(() => import("./modules/audit/AuditLogPage.vue"));
+const OperationAuditPage = defineAsyncComponent(() => import("./modules/audit/OperationAuditPage.vue"));
 
 function initialModule() {
   const module = new URLSearchParams(window.location.search).get("module") || "";
@@ -186,6 +187,7 @@ const showProfileSkeleton = ref(false);
 const releaseMeta = ref({ contentVersion: "—", unpublishedCount: 0 });
 const activeWorkbench = ref(null);
 let profileSkeletonTimer = null;
+let cancelHomeCarouselPreload = null;
 const adminAccess = createAdminAccess(adminProfile);
 provide(ADMIN_ACCESS_KEY, adminAccess);
 
@@ -241,10 +243,32 @@ async function refresh() {
   }
 }
 
+function scheduleHomeCarouselPreload() {
+  const preload = () => {
+    cancelHomeCarouselPreload = null;
+    loadHomeCarouselPage().catch(() => {});
+  };
+  if (typeof window.requestIdleCallback === "function") {
+    const idleId = window.requestIdleCallback(preload, { timeout: 1500 });
+    cancelHomeCarouselPreload = () => window.cancelIdleCallback(idleId);
+    return;
+  }
+  const timeoutId = window.setTimeout(preload, 500);
+  cancelHomeCarouselPreload = () => window.clearTimeout(timeoutId);
+}
+
+async function initializeApp() {
+  await loadAdminProfile();
+  scheduleHomeCarouselPreload();
+}
+
 watch(currentModuleKey, (key) => {
   if (key && key !== activeModule.value) activeModule.value = key;
 });
 
-onMounted(loadAdminProfile);
-onUnmounted(() => clearTimeout(profileSkeletonTimer));
+onMounted(initializeApp);
+onUnmounted(() => {
+  clearTimeout(profileSkeletonTimer);
+  cancelHomeCarouselPreload?.();
+});
 </script>

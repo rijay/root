@@ -34,6 +34,19 @@ test("a structured 4xx business rejection is definitive", async () => {
   );
 });
 
+test("a stable string 409 business code remains definitive", async () => {
+  globalThis.fetch = async () => response({
+    code: "CONTENT_REVISION_CONFLICT",
+    message: "内容已被其他运营更新，请刷新后重试",
+  }, { status: 409, ok: false });
+  await assert.rejects(
+    adminRequest("/write", { method: "POST" }),
+    (error) => error.code === "CONTENT_REVISION_CONFLICT"
+      && error.message === "内容已被其他运营更新，请刷新后重试"
+      && error.outcomeUnknown === false,
+  );
+});
+
 test("a structured 5xx write response remains outcome-unknown", async () => {
   globalThis.fetch = async () => response({ code: 50001, message: "failed" }, { status: 503, ok: false });
   await assert.rejects(

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-04T10:29:25.856Z",
+  "evidenceClass": "MISSING_EXTERNAL_EVIDENCE",
+  "gate": "BROWSER",
+  "status": "BLOCK",
+  "releaseGateEligible": false,
+  "requiredBrowsers": [
+    "Chrome",
+    "Edge"
+  ],
+  "requiredNetworkProfiles": [
+    "office",
+    "weak"
+  ],
+  "requiredViewport": "1240x820",
+  "sampleCount": 0,
+  "samples": []
+}

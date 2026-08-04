@@ -17,11 +17,15 @@ export default defineConfig({
     },
   },
   build: {
+    manifest: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vue: ["vue"],
-          element: ["element-plus"],
+        manualChunks(id) {
+          if (id.includes("/node_modules/element-plus/")
+            || id.includes("/node_modules/@element-plus/icons-vue/")
+            || id.includes("/node_modules/@vueuse/")) return "element";
+          if (id.includes("/node_modules/vue/") || id.includes("/node_modules/@vue/")) return "vue";
+          return undefined;
         },
       },
     },

@@ -5,16 +5,23 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
+const sourceFiles = (directory) => fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+  const absolutePath = path.join(directory, entry.name);
+  if (entry.isDirectory()) return sourceFiles(absolutePath);
+  return /\.(?:js|vue)$/.test(entry.name) ? [absolutePath] : [];
+});
 
 const requiredFiles = [
   "index.html",
   "package.json",
   "vite.config.js",
+  "config/performance-budgets.json",
   "src/main.js",
   "src/App.vue",
   "src/api/client.js",
   "src/modules/access.js",
   "src/modules/release/ReleaseWorkbench.vue",
+  "src/modules/publish/PublishConfirmationDialog.vue",
   "src/modules/content/WelcomeContentPage.vue",
   "src/modules/content/HomeCarouselPage.vue",
   "src/modules/content/SharedDetailPage.vue",
@@ -29,7 +36,7 @@ const requiredFiles = [
   "src/modules/health/adminHealthApi.js",
   "src/modules/users/UserQueryPage.vue",
   "src/modules/users/adminUserQueryApi.js",
-  "src/modules/audit/AuditLogPage.vue",
+  "src/modules/audit/OperationAuditPage.vue",
   "src/modules/audit/adminAuditApi.js",
   "src/styles/theme.css",
 ];
@@ -59,8 +66,19 @@ assert.equal(pkg.dependencies["element-plus"].startsWith("^2"), true);
 assert.equal(pkg.scripts.check.includes("scripts/validate.js"), true);
 
 const app = read("src/App.vue");
+const main = read("src/main.js");
+assert.equal(main.includes("import ElementPlus from"), false, "Admin must not register all Element Plus components");
+for (const file of sourceFiles(path.join(root, "src"))) {
+  assert.equal(fs.readFileSync(file, "utf8").includes('from "element-plus"'), false, `${path.relative(root, file)} must use a direct Element Plus import`);
+}
+for (const component of ["ElTable", "ElForm", "ElDialog", "ElLoading"]) {
+  assert.equal(main.includes(component), true, `Admin must explicitly register ${component}`);
+}
 for (const value of [
   "defineAsyncComponent",
+  "loadHomeCarouselPage",
+  "requestIdleCallback",
+  "scheduleHomeCarouselPreload",
   "发布工作台",
   "内容运营",
   "活动运营",
@@ -78,7 +96,7 @@ for (const value of [
   "WelcomeContentPage",
   "HomeCarouselPage",
   "SharedDetailPage",
-  "AuditLogPage",
+  "OperationAuditPage",
 ]) assert.equal(app.includes(value), true, `App must include ${value}`);
 for (const value of [
   "ConfigWorkbench",
@@ -92,6 +110,7 @@ for (const value of [
 ]) assert.equal(app.includes(value), false, `App must not expose ${value}`);
 
 const releasePage = read("src/modules/release/ReleaseWorkbench.vue");
+const publishDialog = read("src/modules/publish/PublishConfirmationDialog.vue");
 const releaseApi = read("src/modules/release/adminReleaseApi.js");
 for (const value of [
   "未发布修改",
@@ -101,11 +120,11 @@ for (const value of [
   "系统校验",
   "小程序预览",
   "二次确认并发布",
-  "确认发布内容版本",
-  "不代表代码部署、微信审核、正式发布或流量切换",
-  "previewConfirmed",
   "outcomeUnknown",
 ]) assert.equal(releasePage.includes(value), true, `release workbench must include ${value}`);
+for (const value of ["确认发布内容版本", "不代表代码部署、微信审核、正式发布或流量切换", "previewConfirmed", "canConfirm"]) {
+  assert.equal(publishDialog.includes(value), true, `publish confirmation must include ${value}`);
+}
 for (const value of [
   "外部动作 Adapter 校准",
   "生产证据收口",
@@ -123,7 +142,7 @@ const contentApi = read("src/modules/content/adminContentApi.js");
 for (const value of ["[emptyScreen(1), emptyScreen(2)]", "不支持新增第三屏", "600KB", "安全区", "保存草稿"]) {
   assert.equal(welcomePage.includes(value), true, `welcome content must include ${value}`);
 }
-for (const value of ["搜索内部名称或展示文案", "关联共用详情", "2 行", "3 行", "600KB", "500KB", "安全区", "AbortController", "300"]) {
+for (const value of ["搜索内部名称或展示文案", "关联共用详情", "2 行", "3 行", "600KB", "500KB", "安全区", "AbortController", "300", "contentReady", "requestAnimationFrame", "initialLoadFrame"]) {
   assert.equal(carouselPage.includes(value), true, `home carousel must include ${value}`);
 }
 for (const value of [
@@ -136,6 +155,10 @@ for (const value of [
   "startHotspot",
   "validationStatus !== \"PASS\"",
 ]) assert.equal(detailPage.includes(value), true, `shared detail must include ${value}`);
+for (const [name, source] of [["welcome", welcomePage], ["home carousel", carouselPage], ["shared detail", detailPage]]) {
+  assert.equal(source.includes("expectedRevision"), true, `${name} editor must preserve optimistic concurrency revision`);
+  assert.equal(source.includes("error.status === 409"), true, `${name} editor must show revision conflicts`);
+}
 for (const value of ["script", "style", "javascript:"]) {
   assert.equal(contentApi.includes(value), false, `content Interface must not expose arbitrary ${value}`);
 }
@@ -165,7 +188,7 @@ for (const capability of [
 ]) assert.equal(access.includes(capability), false, `access must remove ${capability}`);
 
 const client = read("src/api/client.js");
-for (const value of ["ROOT_ADMIN_TOKEN", "sessionStorage", "outcomeUnknown", "postAdminRead", "postAdminForm", "ADMIN_ABORTED", "readOnly: true"]) {
+for (const value of ["ROOT_ADMIN_TOKEN", "sessionStorage", "outcomeUnknown", "postAdminRead", "postAdminForm", "ADMIN_ABORTED", "readOnly: true", "MAX_CONCURRENT_ADMIN_READS", "ADMIN_READ_TIMEOUT_MS", "ADMIN_WRITE_TIMEOUT_MS"]) {
   assert.equal(client.includes(value), true, `admin request module must include ${value}`);
 }
 
@@ -173,11 +196,13 @@ const activityApi = read("src/modules/activities/adminActivityApi.js");
 const activityPage = read("src/modules/activities/ActivityManagementPage.vue");
 const registrationsPage = read("src/modules/activities/ActivityRegistrationsPage.vue");
 for (const route of [
-  "/api/v1/admin/formal-activities",
+  "/api/v1/admin/activities",
+  "/api/v1/admin/activity-sessions",
   "/api/v1/admin/formal-activities/draft",
   "/api/v1/admin/activity-enrollments/query",
   "/api/v1/admin/activity-enrollments/export",
 ]) assert.equal(activityApi.includes(route), true, `activity query module must include ${route}`);
+assert.equal(activityApi.includes("adminRequest(`/api/v1/admin/formal-activities"), false, "activity reads must not call the retired formal-activities route");
 assert.equal(activityApi.includes("postAdminRead"), true, "activity phone search must avoid URL query logging");
 for (const value of ["活动主视觉", "180KB", "报名规则", "发布共用详情", "报名时段", "AbortController"]) {
   assert.equal(activityPage.includes(value), true, `activity management must include ${value}`);
@@ -217,6 +242,9 @@ for (const value of ["主分类", "辅助标签", "不使用手机号、昵称�
 for (const value of ["模型配置", "不输入或显示模型密钥", "最少字段", "三条轮换", "固定降级内容", "健康安全", "确认发布", "expectedRevision", "AbortController"]) {
   assert.equal(lifestylePage.includes(value), true, `lifestyle page must include ${value}`);
 }
+for (const [name, source] of [["initialization", initializationPage], ["scale", scalePage], ["recommendation", recommendationPage], ["lifestyle", lifestylePage]]) {
+  assert.equal(source.includes("error.status === 409"), true, `${name} editor must show revision conflicts`);
+}
 for (const forbidden of ["apiKey", "apiSecret", "modelSecret", "type=\"password\""]) {
   assert.equal(lifestylePage.includes(forbidden), false, `lifestyle page must not expose ${forbidden}`);
 }
@@ -233,9 +261,15 @@ for (const value of ["task", "reward", "settlement", "birthDate", "gender"]) {
   assert.equal(userPage.includes(value), false, `user query must not include legacy/private field ${value}`);
 }
 
-const auditPage = read("src/modules/audit/AuditLogPage.vue");
+const auditPage = read("src/modules/audit/OperationAuditPage.vue");
 for (const value of ["BATCH_SETTLEMENT_EXECUTE", "REWARD_DELIVERY_BATCH_EXECUTE", "PUBLISH_CAMPAIGN_RULE_VERSION"]) {
   assert.equal(auditPage.includes(value), false, `audit filters must not prescribe ${value}`);
+}
+for (const value of ["pageSize: 20", "AbortController", "300", "request_id", "outcome_unknown", "selectedLog.summary", "暂无审计记录"]) {
+  assert.equal(auditPage.includes(value), true, `operation audit must include ${value}`);
+}
+for (const value of ["selectedLog.before", "selectedLog.after", "selectedLog.metadata"]) {
+  assert.equal(auditPage.includes(value), false, `operation audit must not expose ${value}`);
 }
 
 console.log("admin validation ok");

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "LOCAL_REHEARSAL_DIAGNOSTIC",
+  "generatedAt": "2026-08-04T09:43:33Z",
+  "version": "local-0.5.13",
+  "target": "HOME_CAROUSEL_FIRST_ASYNC_MOUNT",
+  "browser": {
+    "name": "Chrome",
+    "version": "150.0.7871.187",
+    "hardwareConcurrency": 10,
+    "deviceMemoryGiB": 24,
+    "viewportWidth": 1240,
+    "viewportHeight": 820
+  },
+  "network": {
+    "profile": "LOCAL_LOOPBACK",
+    "cacheDisabled": true
+  },
+  "originalSessionObservation": {
+    "maxTaskMs": 88,
+    "source": "browser-rehearsal-samples.json",
+    "scope": "UNCALIBRATED_SINGLE_SESSION_MAX"
+  },
+  "before": {
+    "sampleCount": 30,
+    "maxTaskMs": 72,
+    "longTaskSampleCount": 3,
+    "maxLongAnimationFrameMs": 88.5,
+    "longAnimationFrameSampleCount": 7,
+    "attribution": {
+      "invoker": "import.then",
+      "source": "admin-entry-chunk",
+      "maximumAttributedScriptMs": 60.5,
+      "maximumForcedStyleAndLayoutMs": 4.3
+    }
+  },
+  "change": {
+    "idlePreload": "Preload the HomeCarouselPage module after the authenticated shell becomes idle.",
+    "stagedMount": "Mount the page heading first, then the filters and empty table on the next frame, and start the initial data read on the following frame."
+  },
+  "preloadIsolation": {
+    "sampleCount": 20,
+    "preloadMaxTaskMs": 0,
+    "mountMaxTaskMs": 0
+  },
+  "after": {
+    "sampleCount": 30,
+    "preloadObservedCount": 30,
+    "maximumPreloadWaitMs": 37.2,
+    "maxTaskMs": 0,
+    "maxLongAnimationFrameMs": 53.5,
+    "pageDomNodes": 295
+  },
+  "functionalVerification": {
+    "representativeRows": 2,
+    "filtersVisible": true,
+    "newCarouselDrawerVisible": true,
+    "drawerRequiredFieldsVisible": true
+  },
+  "limitations": [
+    "LOCAL_REHEARSAL_ONLY",
+    "CHROME_ONLY",
+    "SINGLE_SESSION_ONLY",
+    "LOOPBACK_NETWORK_ONLY",
+    "NOT_CANDIDATE_RELEASE_EVIDENCE"
+  ],
+  "conclusion": "The repeatable long task was isolated to the first asynchronous Home Carousel mount. The local production-build rerun observed no synchronous task at or above 50ms after idle preload and staged mounting. Candidate browser Gate remains BLOCK until all approved browser, network, session and duration dimensions are complete."
+}

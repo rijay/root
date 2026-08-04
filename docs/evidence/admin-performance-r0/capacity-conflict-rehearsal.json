@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "LOCAL_REHEARSAL",
+  "version": "local-0.5.13",
+  "environment": "local-fixed-fixture",
+  "datasetVersion": "ADMIN_PERFORMANCE_R0",
+  "capacity": {
+    "sessionCount": 5,
+    "readsPerSession": 2,
+    "requestedConcurrentReads": 10,
+    "observedMaximumConcurrentReads": 10,
+    "maximumConcurrentReadsPerSession": {
+      "session-01": 2,
+      "session-02": 2,
+      "session-03": 2,
+      "session-04": 2,
+      "session-05": 2
+    },
+    "perSessionLimit": 4,
+    "aggregateLimit": 10,
+    "successfulResponses": 10,
+    "status": "PASS"
+  },
+  "conflicts": [
+    {
+      "scenario": "HOME_CAROUSEL_DRAFT",
+      "operatorCount": 2,
+      "startingRevision": 1,
+      "winningRevision": 2,
+      "staleWriteHttpStatus": 409,
+      "staleWriteErrorCode": "CONTENT_REVISION_CONFLICT",
+      "refreshInstruction": "内容已被其他运营更新，请刷新后重试",
+      "authoritativeWinnerPreserved": true,
+      "status": "PASS"
+    },
+    {
+      "scenario": "HEALTH_SCALE_DRAFT",
+      "operatorCount": 2,
+      "startingRevision": 2,
+      "winningRevision": 3,
+      "staleWriteHttpStatus": 409,
+      "staleWriteErrorCode": "HEALTH_CONTENT_REVISION_CONFLICT",
+      "refreshInstruction": "内容已被其他运营更新，请刷新后重试",
+      "authoritativeWinnerPreserved": true,
+      "status": "PASS"
+    }
+  ],
+  "summary": {
+    "conflictScenarios": 2,
+    "status": "PASS"
+  },
+  "limitations": [
+    "LOCAL_HTTP_ONLY",
+    "NOT_BROWSER_SESSION_EVIDENCE",
+    "NOT_CANDIDATE_GATE_EVIDENCE",
+    "NOT_PRODUCTION_EVIDENCE"
+  ]
+}

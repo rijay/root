@@ -53,7 +53,8 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus/es/components/message/index";
+import { ElMessageBox } from "element-plus/es/components/message-box/index";
 import { fetchInitializationQuestions, publishInitializationVersion, saveInitializationDraft } from "./adminHealthApi";
 
 const rows = ref([]), total = ref(0), loading = ref(false), saving = ref(false), copying = ref(false), publishing = ref(false), drawerVisible = ref(false);
@@ -83,7 +84,7 @@ async function copyCurrentVersion() {
   if (!currentVersion.value) return;
   copying.value = true; errorMessage.value = "";
   try { await saveInitializationDraft({ action: "COPY_VERSION", sourceVersionId: currentVersionId.value }); ElMessage.success("新版本草稿已创建"); await load(); }
-  catch (error) { errorMessage.value = error.status === 404 ? "初始化建档版本复制能力尚未接入，未创建草稿" : (error.outcomeUnknown ? "复制结果待确认，请刷新权威记录" : error.message); }
+  catch (error) { errorMessage.value = error.status === 404 ? "初始化建档版本复制能力尚未接入，未创建草稿" : (error.outcomeUnknown ? "复制结果待确认，请刷新权威记录" : error.message); if (error.status === 409) ElMessage.error(errorMessage.value); }
   finally { copying.value = false; }
 }
 function previewOnline() { ElMessage.info(`请在小程序预览：${previewPath.value}`); }
@@ -94,7 +95,7 @@ async function saveDraft() {
   try {
     await saveInitializationDraft({ versionId: draft.versionId, expectedRevision: draft.expectedRevision, questionId: draft.id, title: draft.title.trim(), options, routing: { risk: draft.riskMode, special: draft.specialMode, standard: draft.standardMode }, hitAction: draft.hitAction.trim(), guidanceVersionId: draft.guidanceVersionId });
     ElMessage.success("初始化建档草稿已保存"); drawerVisible.value = false; await load();
-  } catch (error) { errorMessage.value = error.status === 404 ? "初始化建档草稿能力尚未接入，内容未保存" : (error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message); }
+  } catch (error) { errorMessage.value = error.status === 404 ? "初始化建档草稿能力尚未接入，内容未保存" : (error.outcomeUnknown ? "保存结果待确认，请刷新权威记录" : error.message); if (error.status === 409) ElMessage.error(errorMessage.value); }
   finally { saving.value = false; }
 }
 async function publishCurrentVersion() {

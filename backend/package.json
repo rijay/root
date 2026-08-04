@@ -9,6 +9,7 @@
     "jobs:manifest": "node scripts/cloudbase-job-manifest.js",
     "production-env": "node scripts/production-env-matrix.js",
     "dev": "node src/server.js",
+    "dev:ued-review": "node scripts/ued-review-server.js",
     "store:migrate:mysql": "node scripts/store-migrate.js",
     "db:migrate": "node scripts/mysql-migrate.js",
     "store:verify": "node scripts/store-verify.js",

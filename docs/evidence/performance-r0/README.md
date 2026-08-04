@@ -27,6 +27,8 @@ node scripts/miniprogram-performance-report.js --legacy
 
 `--legacy` 只读取本地源码、分包和素材体积并输出 `LEGACY_NON_FORMAL_BASELINE`。它不会连接生产环境、写数据库、上传微信版本或生成正式上线 Gate 的通过结论。
 
+`npm run evidence:local:write` 会生成当前正式范围的本地源码包体快照 `package-budget.json`，并把尚未取得的真机证据写成明确的 `BLOCK` 状态；`npm run evidence:local:check` 用于防止快照与当前代码漂移。
+
 候选版本阶段使用 `--candidate --events <events.json>`。每个核心旅程必须包含版本、平台、系统、微信版本、基础库、设备档位、网络、入口、代码包状态、至少 30 次样本、P75、P95 和差异结论；同时必须用微信构建产物报告交叉验证本地源码体积估算。
 
 ## 隐私与运行规则

@@ -1,0 +1,558 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-04T10:29:25.856Z",
+  "evidenceClass": "LOCAL_IMPLEMENTATION_MAPPING",
+  "releaseGateEligible": false,
+  "designSource": {
+    "file": "myRoot",
+    "uri": "cocraft://localhost/file/684679021092544",
+    "approvedPageNode": "368:1",
+    "liveReadbackStatus": "VERIFIED_2026-08-04_20_TOP_LEVEL_SECTIONS"
+  },
+  "expectedScreenCount": 20,
+  "mappedScreenCount": 20,
+  "handoffClaims": {
+    "screenCount": 20,
+    "archivedPagesExcluded": true,
+    "allCanonicalStatesCovered": false
+  },
+  "screens": [
+    {
+      "key": "welcome",
+      "title": "欢迎体验",
+      "surface": "MINIPROGRAM",
+      "sectionNode": "368:3",
+      "boardNodes": [
+        "368:8",
+        "368:12"
+      ],
+      "viewport": "390x844",
+      "implementationPaths": [
+        "miniprogram/pages/welcome/index.wxml",
+        "miniprogram/pages/welcome/index.wxss"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_SIMULATOR_DEVELOPMENT_PLACEHOLDER",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/01-welcome-01.png",
+        "screenshots/implementation/miniprogram/01-welcome-02.png"
+      ],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-368_8.png",
+        "screenshots/reference/design-368_12.png"
+      ]
+    },
+    {
+      "key": "home-and-shared-detail",
+      "title": "首页与共用详情",
+      "surface": "MINIPROGRAM",
+      "sectionNode": "368:50",
+      "boardNodes": [
+        "368:55",
+        "368:59"
+      ],
+      "viewport": "390x844",
+      "implementationPaths": [
+        "miniprogram/pages/home/index.wxml",
+        "miniprogram/subpkg/content/pages/detail/index.wxml"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/02-home.png",
+        "screenshots/implementation/miniprogram/02-content-detail.png"
+      ],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-368_55.png",
+        "screenshots/reference/design-368_59.png"
+      ]
+    },
+    {
+      "key": "wechat-login-register",
+      "title": "微信登录注册",
+      "surface": "MINIPROGRAM",
+      "sectionNode": "369:40",
+      "boardNodes": [
+        "369:45",
+        "369:47",
+        "369:50"
+      ],
+      "viewport": "390x844",
+      "implementationPaths": [
+        "miniprogram/pages/login/index.wxml",
+        "miniprogram/pages/register/index.wxml",
+        "miniprogram/pages/legal/index.wxml"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_SIMULATOR_RUNTIME",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/03-login.png",
+        "screenshots/implementation/miniprogram/03-register.png"
+      ],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-369_45.png",
+        "screenshots/reference/design-369_47.png",
+        "screenshots/reference/design-369_50.png"
+      ]
+    },
+    {
+      "key": "root4u-entry-assessment",
+      "title": "Root4U 入口与评测",
+      "surface": "MINIPROGRAM",
+      "sectionNode": "372:2",
+      "boardNodes": [
+        "372:7",
+        "372:9"
+      ],
+      "viewport": "390x844",
+      "implementationPaths": [
+        "miniprogram/pages/health/index.wxml",
+        "miniprogram/subpkg/health/pages/initial-assessment/index.wxml"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/04-health-entry.png",
+        "screenshots/implementation/miniprogram/04-health-initial-assessment.png"
+      ],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_7.png",
+        "screenshots/reference/design-372_9.png"
+      ]
+    },
+    {
+      "key": "root4u-result-safety",
+      "title": "Root4U 结果与安全",
+      "surface": "MINIPROGRAM",
+      "sectionNode": "372:14",
+      "boardNodes": [
+        "372:19",
+        "372:21"
+      ],
+      "viewport": "390x844",
+      "implementationPaths": [
+        "miniprogram/pages/health/index.wxml",
+        "miniprogram/pages/health-consent/index.wxml",
+        "miniprogram/subpkg/health/pages/scale-assessment/index.wxml"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/05-health-result.png",
+        "screenshots/implementation/miniprogram/05-health-safety.png"
+      ],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_19.png",
+        "screenshots/reference/design-372_21.png"
+      ]
+    },
+    {
+      "key": "activity-discovery-enrollment",
+      "title": "活动发现与报名",
+      "surface": "MINIPROGRAM",
+      "sectionNode": "372:143",
+      "boardNodes": [
+        "372:148",
+        "372:150",
+        "372:154"
+      ],
+      "viewport": "390x844",
+      "implementationPaths": [
+        "miniprogram/pages/activities/index.wxml",
+        "miniprogram/subpkg/activity/pages/detail/index.wxml",
+        "miniprogram/subpkg/activity/pages/enrollments/index.wxml"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/06-activities.png",
+        "screenshots/implementation/miniprogram/06-activity-detail.png",
+        "screenshots/implementation/miniprogram/06-activity-enrollments-guest.png"
+      ],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_148.png",
+        "screenshots/reference/design-372_150.png",
+        "screenshots/reference/design-372_154.png"
+      ]
+    },
+    {
+      "key": "profile-guest-member",
+      "title": "我的访客与会员",
+      "surface": "MINIPROGRAM",
+      "sectionNode": "372:240",
+      "boardNodes": [
+        "372:245",
+        "372:247",
+        "372:249"
+      ],
+      "viewport": "390x844",
+      "implementationPaths": [
+        "miniprogram/pages/profile/index.wxml",
+        "miniprogram/subpkg/profile/pages/support/index.wxml"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/07-profile.png",
+        "screenshots/implementation/miniprogram/07-profile-member.png",
+        "screenshots/implementation/miniprogram/07-profile-member-failure.png"
+      ],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_245.png",
+        "screenshots/reference/design-372_247.png",
+        "screenshots/reference/design-372_249.png"
+      ]
+    },
+    {
+      "key": "profile-privacy-account",
+      "title": "我的隐私与账号",
+      "surface": "MINIPROGRAM",
+      "sectionNode": "372:254",
+      "boardNodes": [
+        "372:259",
+        "372:261",
+        "372:263"
+      ],
+      "viewport": "390x844",
+      "implementationPaths": [
+        "miniprogram/subpkg/profile/pages/privacy-account/index.wxml",
+        "miniprogram/subpkg/profile/pages/about/index.wxml"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_MOCKED_STATE",
+      "screenshotRefs": [
+        "screenshots/implementation/miniprogram/08-about-root.png",
+        "screenshots/implementation/miniprogram/08-privacy-account.png",
+        "screenshots/implementation/miniprogram/08-account-cancellation.png"
+      ],
+      "beforeRefs": [],
+      "referenceRefs": [
+        "screenshots/reference/design-372_259.png",
+        "screenshots/reference/design-372_261.png",
+        "screenshots/reference/design-372_263.png"
+      ]
+    },
+    {
+      "key": "admin-release-workbench",
+      "title": "后台框架与发布工作台",
+      "surface": "ADMIN",
+      "sectionNode": "372:502",
+      "boardNodes": [
+        "372:506"
+      ],
+      "viewport": "1240x820",
+      "implementationPaths": [
+        "admin/src/App.vue",
+        "admin/src/modules/release/ReleaseWorkbench.vue"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/09-release-workbench.png"
+      ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/09-release-workbench.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_506.png"
+      ]
+    },
+    {
+      "key": "admin-content-operations",
+      "title": "内容运营",
+      "surface": "ADMIN",
+      "sectionNode": "372:593",
+      "boardNodes": [
+        "372:597"
+      ],
+      "viewport": "1240x820",
+      "implementationPaths": [
+        "admin/src/modules/content/WelcomeContentPage.vue",
+        "admin/src/modules/content/HomeCarouselPage.vue"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/10-content-operations.png"
+      ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/10-content-operations.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_597.png"
+      ]
+    },
+    {
+      "key": "admin-shared-detail",
+      "title": "共用详情编辑",
+      "surface": "ADMIN",
+      "sectionNode": "372:747",
+      "boardNodes": [
+        "372:751"
+      ],
+      "viewport": "1240x820",
+      "implementationPaths": [
+        "admin/src/modules/content/SharedDetailPage.vue"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/11-shared-detail.png"
+      ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/11-shared-detail.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_751.png"
+      ]
+    },
+    {
+      "key": "admin-activities",
+      "title": "活动管理",
+      "surface": "ADMIN",
+      "sectionNode": "372:945",
+      "boardNodes": [
+        "372:949"
+      ],
+      "viewport": "1240x820",
+      "implementationPaths": [
+        "admin/src/modules/activities/ActivityManagementPage.vue"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/12-activity-management.png"
+      ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/12-activity-management.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_949.png"
+      ]
+    },
+    {
+      "key": "admin-registrations",
+      "title": "活动报名记录",
+      "surface": "ADMIN",
+      "sectionNode": "372:1096",
+      "boardNodes": [
+        "372:1100"
+      ],
+      "viewport": "1240x820",
+      "implementationPaths": [
+        "admin/src/modules/activities/ActivityRegistrationsPage.vue"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/13-activity-registrations.png"
+      ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/13-activity-registrations.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_1100.png"
+      ]
+    },
+    {
+      "key": "admin-initialization",
+      "title": "初始化建档",
+      "surface": "ADMIN",
+      "sectionNode": "372:1248",
+      "boardNodes": [
+        "372:1252"
+      ],
+      "viewport": "1240x820",
+      "implementationPaths": [
+        "admin/src/modules/health/InitializationPage.vue"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/14-health-initialization.png"
+      ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/14-health-initialization.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_1252.png"
+      ]
+    },
+    {
+      "key": "admin-scales",
+      "title": "量表管理",
+      "surface": "ADMIN",
+      "sectionNode": "372:1399",
+      "boardNodes": [
+        "372:1403"
+      ],
+      "viewport": "1240x820",
+      "implementationPaths": [
+        "admin/src/modules/health/ScaleManagementPage.vue"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/15-health-scales.png"
+      ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/15-health-scales.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_1403.png"
+      ]
+    },
+    {
+      "key": "admin-recommendations",
+      "title": "推荐规则",
+      "surface": "ADMIN",
+      "sectionNode": "372:1550",
+      "boardNodes": [
+        "372:1554"
+      ],
+      "viewport": "1240x820",
+      "implementationPaths": [
+        "admin/src/modules/health/RecommendationRulesPage.vue"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/16-health-recommendations.png"
+      ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/16-health-recommendations.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_1554.png",
+        "screenshots/reference/372_1550-20260804_162258703.webp"
+      ]
+    },
+    {
+      "key": "admin-lifestyle",
+      "title": "生活方式建议",
+      "surface": "ADMIN",
+      "sectionNode": "372:1701",
+      "boardNodes": [
+        "372:1705"
+      ],
+      "viewport": "1240x820",
+      "implementationPaths": [
+        "admin/src/modules/health/LifestyleAdvicePage.vue"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/17-health-lifestyle.png"
+      ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/17-health-lifestyle.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_1705.png",
+        "screenshots/reference/372_1701-20260804_162258704.webp"
+      ]
+    },
+    {
+      "key": "admin-user-query",
+      "title": "用户查询",
+      "surface": "ADMIN",
+      "sectionNode": "372:1853",
+      "boardNodes": [
+        "372:1857"
+      ],
+      "viewport": "1240x820",
+      "implementationPaths": [
+        "admin/src/modules/users/UserQueryPage.vue"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/18-user-query.png"
+      ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/18-user-query.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_1857.png",
+        "screenshots/reference/372_1853-20260804_162258705.webp"
+      ]
+    },
+    {
+      "key": "admin-audit",
+      "title": "操作审计",
+      "surface": "ADMIN",
+      "sectionNode": "372:2004",
+      "boardNodes": [
+        "372:2008"
+      ],
+      "viewport": "1240x820",
+      "implementationPaths": [
+        "admin/src/modules/audit/OperationAuditPage.vue"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/19-operation-audit.png"
+      ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/19-operation-audit.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_2008.png",
+        "screenshots/reference/372_2004-20260804_162258705.webp"
+      ]
+    },
+    {
+      "key": "admin-publish-confirmation",
+      "title": "发布确认",
+      "surface": "ADMIN",
+      "sectionNode": "372:2155",
+      "boardNodes": [
+        "372:2239"
+      ],
+      "viewport": "1240x820",
+      "implementationPaths": [
+        "admin/src/modules/publish/PublishConfirmationDialog.vue"
+      ],
+      "implementationStatus": "MAPPED_LOCAL_SOURCE",
+      "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
+      "captureClass": "LOCAL_BROWSER_UED_REVIEW_STORE",
+      "screenshotRefs": [
+        "screenshots/implementation/admin/20-publish-confirmation.png"
+      ],
+      "beforeRefs": [
+        "screenshots/implementation/admin/before/20-publish-confirmation.png"
+      ],
+      "referenceRefs": [
+        "screenshots/reference/design-372_2239.png",
+        "screenshots/reference/372_2155-20260804_162258707.webp"
+      ]
+    }
+  ]
+}
