@@ -12,6 +12,7 @@ const homeScript = read("pages/home/index.js");
 const homeWxml = read("pages/home/index.wxml");
 const detailScript = read("subpkg/content/pages/detail/index.js");
 const detailWxml = read("subpkg/content/pages/detail/index.wxml");
+const detailWxss = read("subpkg/content/pages/detail/index.wxss");
 
 assert.match(homeScript, /\/api\/v1\/public\/content\/home/);
 assert.match(homeScript, /contentId/);
@@ -23,5 +24,6 @@ assert.match(detailScript, /\/api\/v1\/public\/content\/detail/);
 assert.match(detailScript, /executeContentAction/);
 assert.match(detailWxml, /page-navigation/);
 assert.match(detailWxml, /wx:for="\{\{item\.detailImages\}\}"/);
+assert.match(detailWxss, /content-detail__kicker[^{]*\{[^}]*width:\s*calc\(100% - 48px\)/s);
 
 console.log("formal content tests ok");

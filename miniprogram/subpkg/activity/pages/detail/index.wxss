@@ -92,7 +92,7 @@ page {
   position: absolute;
   top: 444px;
   left: 24px;
-  width: 342px;
+  width: calc(100% - 48px);
   color: #a6b77a;
   font-size: 11px;
   font-weight: 600;
@@ -105,7 +105,7 @@ page {
   position: absolute;
   top: 478px;
   left: 24px;
-  width: 342px;
+  width: calc(100% - 48px);
   height: 35px;
   overflow: hidden;
   font-size: 28px;
@@ -120,7 +120,7 @@ page {
   top: 532px;
   left: 24px;
   display: -webkit-box;
-  width: 342px;
+  width: calc(100% - 48px);
   max-height: 44px;
   overflow: hidden;
   color: #f7f4ec;
@@ -134,7 +134,7 @@ page {
   position: absolute;
   top: 602px;
   left: 24px;
-  width: 342px;
+  width: calc(100% - 48px);
   height: 112px;
   padding: 18px 16px;
   box-sizing: border-box;
@@ -400,19 +400,20 @@ page {
 .sheet-handle {
   position: absolute;
   top: 12px;
-  left: 169px;
+  left: 50%;
   width: 52px;
   height: 4px;
   margin: 0;
   background: #e8e0d1;
   border-radius: 2px;
+  transform: translateX(-50%);
 }
 
 .sheet-tag {
   position: absolute;
   top: 46px;
   left: 24px;
-  width: 342px;
+  width: calc(100% - 48px);
   color: #586b3f;
   font-size: 12px;
   font-weight: 500;
@@ -423,7 +424,7 @@ page {
   position: absolute;
   top: 82px;
   left: 24px;
-  width: 342px;
+  width: calc(100% - 48px);
   overflow: hidden;
   color: #080806;
   font-size: 21px;
@@ -437,7 +438,7 @@ page {
   position: absolute;
   top: 138px;
   left: 24px;
-  width: 342px;
+  width: calc(100% - 48px);
   height: 140px;
   padding: 18px 16px;
   box-sizing: border-box;
@@ -453,7 +454,7 @@ page {
   top: 302px;
   left: 24px;
   display: -webkit-box;
-  width: 342px;
+  width: calc(100% - 48px);
   max-height: 42px;
   overflow: hidden;
   color: #8a8172;
@@ -467,7 +468,7 @@ page {
 .sheet-secondary {
   position: absolute;
   left: 20px;
-  width: 350px;
+  width: calc(100% - 40px) !important;
   margin: 0;
   padding: 0;
   border: 0;
@@ -496,23 +497,8 @@ page {
 }
 
 @media (max-width: 375px) {
-  .detail-kicker,
-  .detail-title,
-  .detail-summary,
-  .detail-meta,
-  .sheet-tag,
-  .sheet-title,
-  .sheet-summary,
-  .sheet-notice {
-    width: calc(100vw - 48px);
-  }
-
   .detail-action-bar {
     grid-template-columns: minmax(0, 1fr) 198px;
   }
 
-  .sheet-primary,
-  .sheet-secondary {
-    width: calc(100vw - 40px) !important;
-  }
 }
