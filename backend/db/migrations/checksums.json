@@ -68,6 +68,7 @@
     "064_v1_runtime_control_ledger_database_authority.sql": "ff3e05241cc024fe3ba533a325bfd65df08421a02a7f7e7e274ef80328f86e9e",
     "065_v1_runtime_alert_registration_return_row.sql": "263a4edb996596d9c8868471006ddc636e904dc17e7ce39813495fd3db20f39e",
     "066_v1_runtime_alert_delivery_severity_slo_authority.sql": "411f29a8ac26eb8ee3261555bdbd33c20f46dde315fa7d642b308d4b832e64ac",
-    "067_formal_launch_retired_runtime_cleanup.sql": "ffb01a40da73c2b73794b2df72cb8d5f019c43c84fd161ccbda7b226f900e3a2"
+    "067_formal_launch_retired_runtime_cleanup.sql": "ffb01a40da73c2b73794b2df72cb8d5f019c43c84fd161ccbda7b226f900e3a2",
+    "068_formal_launch_confirmed_prelaunch_cleanup.sql": "d2d867474c0fbc93cc5aec91b9ee18a03e8100331d66cc071bfb1f51b1189d31"
   }
 }

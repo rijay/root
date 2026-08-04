@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const {
-  OWNER_CONFIRMATION_RELATIONAL_TABLES,
+  CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES,
 } = require("../src/formalLaunchDataDisposition");
 const {
   DEPENDENCY_QUERY,
@@ -27,10 +27,10 @@ const QUERIES = [
   SCHEMA_SUMMARY_QUERY,
 ];
 
-test("disposition collector exactly covers the owner-confirmation registry with SELECT-only queries", () => {
+test("disposition collector exactly covers the confirmed-retirement registry with SELECT-only queries", () => {
   assert.deepEqual(
     TABLE_PROFILES.map(({ tableName }) => tableName).sort(),
-    [...OWNER_CONFIRMATION_RELATIONAL_TABLES].sort()
+    [...CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES].sort()
   );
   QUERIES.forEach((query) => {
     assert.match(query, /^SELECT\b/i);
@@ -68,7 +68,7 @@ test("command requires explicit app and environment identities", () => {
   assert.throws(() => rowsFromCloudBaseOutput("not-json"), { code: "FORMAL_DISPOSITION_CLOUDBASE_OUTPUT_INVALID" });
 });
 
-test("collector emits aggregate-only owner-confirmation evidence", async () => {
+test("collector emits aggregate-only confirmed-retirement evidence", async () => {
   const tableRows = TABLE_PROFILES.map((profile, index) => ({
     table_name: profile.tableName,
     row_count: index + 1,
@@ -93,7 +93,7 @@ test("collector emits aggregate-only owner-confirmation evidence", async () => {
   });
   assert.equal(report.readOnly, true);
   assert.deepEqual(report.summary, {
-    ownerConfirmationTableCount: 11,
+    confirmedRetirementTableCount: 11,
     tablesWithRows: 11,
     totalRows: 66,
     snapshotMismatchCount: 0,
@@ -102,5 +102,5 @@ test("collector emits aggregate-only owner-confirmation evidence", async () => {
     report.tables.find(({ tableName }) => tableName === "task_definition").inboundDependencies,
     ["task_activity_assignment"]
   );
-  assert.equal(report.tables[0].disposition, "OWNER_CONFIRMATION_REQUIRED");
+  assert.equal(report.tables[0].disposition, "CONFIRMED_PRELAUNCH_RETIREMENT");
 });

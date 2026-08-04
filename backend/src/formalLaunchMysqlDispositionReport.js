@@ -1,6 +1,6 @@
 const {
   FORMAL_LAUNCH_DATA_DISPOSITION_VERSION,
-  OWNER_CONFIRMATION_RELATIONAL_TABLES,
+  CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES,
 } = require("./formalLaunchDataDisposition");
 
 const TABLE_PROFILES = Object.freeze([
@@ -32,7 +32,7 @@ function dispositionError(code) {
 
 function assertRegistryCoverage() {
   const configured = TABLE_PROFILES.map(({ tableName }) => tableName).sort();
-  const registered = [...OWNER_CONFIRMATION_RELATIONAL_TABLES].sort();
+  const registered = [...CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES].sort();
   if (JSON.stringify(configured) !== JSON.stringify(registered)) {
     throw dispositionError("FORMAL_DISPOSITION_REGISTRY_DRIFT");
   }
@@ -120,7 +120,7 @@ function normalizeTableRows(rows, snapshotRow, dependencies) {
   const byName = new Map();
   for (const row of exactRows(rows, TABLE_PROFILES.length, "FORMAL_DISPOSITION_TABLE_ROWS_INVALID")) {
     const tableName = String(valueOf(row, "table_name") || "");
-    if (!OWNER_CONFIRMATION_RELATIONAL_TABLES.includes(tableName) || byName.has(tableName)) {
+    if (!CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES.includes(tableName) || byName.has(tableName)) {
       throw dispositionError("FORMAL_DISPOSITION_TABLE_ROWS_INVALID");
     }
     byName.set(tableName, row);
@@ -153,7 +153,7 @@ function normalizeTableRows(rows, snapshotRow, dependencies) {
       lastRecordAt: nullableTimestamp(valueOf(row, "last_record_at")),
       inboundDependencies,
       outboundDependencies,
-      disposition: rowCount === 0 ? "EMPTY_OWNER_CONFIRMATION_CANDIDATE" : "OWNER_CONFIRMATION_REQUIRED",
+      disposition: rowCount === 0 ? "EMPTY_CONFIRMED_RETIREMENT_CANDIDATE" : "CONFIRMED_PRELAUNCH_RETIREMENT",
     });
   });
 }
@@ -198,7 +198,7 @@ async function collectFormalLaunchMysqlDispositionReport(options = {}) {
       estimatedNonemptyTableCount: nonnegativeInteger(valueOf(schemaRow, "estimated_nonempty_table_count"), "FORMAL_DISPOSITION_SCHEMA_COUNT_INVALID"),
     }),
     summary: Object.freeze({
-      ownerConfirmationTableCount: tables.length,
+      confirmedRetirementTableCount: tables.length,
       tablesWithRows: tables.filter(({ rowCount }) => rowCount > 0).length,
       totalRows: tables.reduce((sum, { rowCount }) => sum + rowCount, 0),
       snapshotMismatchCount: tables.filter(({ snapshotCountMatches }) => !snapshotCountMatches).length,

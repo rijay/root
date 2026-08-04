@@ -2,9 +2,9 @@ const {
   ACTIVE_RELATIONAL_TABLES,
   ARCHIVE_BEFORE_PRUNE_SNAPSHOT_KEYS,
   AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS,
+  CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS,
   CONFIRMATION_REQUIRED_SNAPSHOT_KEYS,
   FORMAL_LAUNCH_DATA_DISPOSITION_VERSION,
-  OWNER_CONFIRMATION_RELATIONAL_TABLES,
   PROTECTED_SNAPSHOT_KEYS,
   SYSTEM_RELATIONAL_TABLES,
 } = require("./formalLaunchDataDisposition");
@@ -47,6 +47,11 @@ function buildFormalLaunchSnapshotCleanupPlan(snapshot) {
   const candidate = clone(snapshot);
   const automatic = summarize(snapshot, AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS);
   AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS.forEach((key) => delete candidate[key]);
+  const confirmedPrelaunchRetirement = summarize(
+    snapshot,
+    CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS
+  );
+  CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS.forEach((key) => delete candidate[key]);
 
   const auditLogs = Array.isArray(candidate.auditLogs) ? candidate.auditLogs : [];
   const retainedAuditLogs = auditLogs.filter((entry) => (
@@ -74,6 +79,7 @@ function buildFormalLaunchSnapshotCleanupPlan(snapshot) {
       ? Number((((beforeBytes - candidateBytes) / beforeBytes) * 100).toFixed(2))
       : 0,
     automatic,
+    confirmedPrelaunchRetirement,
     filteredAuditLogs: Object.freeze({
       action: "OPERATIONAL_ALERT_JOB_PREVIEW",
       itemCount: filteredAuditLogCount,
@@ -84,7 +90,6 @@ function buildFormalLaunchSnapshotCleanupPlan(snapshot) {
     retainedRelationalTables: Object.freeze({
       active: ACTIVE_RELATIONAL_TABLES,
       system: SYSTEM_RELATIONAL_TABLES,
-      ownerConfirmationRequired: OWNER_CONFIRMATION_RELATIONAL_TABLES,
     }),
     blockers: Object.freeze([
       ...(confirmationItemCount > 0

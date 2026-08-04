@@ -37,7 +37,6 @@ const {
 } = require("../scripts/cloudbase-job-manifest");
 const { buildProductionEnvMatrix } = require("../src/productionEnvMatrix");
 const { CUTOVER_ITEMS, buildProductionCutoverReadiness } = require("../src/productionCutoverReadiness");
-const { assertProbeAllowed, isIsolatedDatabaseName } = require("../scripts/mysql-checkpoint-probe");
 const {
   buildProductionEnvMatrixReport,
   determineExitCode: determineProductionEnvExitCode,
@@ -109,19 +108,6 @@ test("cloud hosting MySQL variables select the MySQL Store Adapter", () => {
   assert.throws(() => validateMysqlConfig({ host: "db", user: "app", password: "", database: "root" }), /password/);
   assert.equal(shouldUseMysql({ ...env, ROOT_STORE_ADAPTER: "sqlite" }), false);
   assert.equal(shouldUseMysql({ ROOT_STORE_ADAPTER: "mysql" }), true);
-});
-
-test("MySQL checkpoint probe refuses production-like database names", () => {
-  assert.equal(isIsolatedDatabaseName("root_checkin_probe"), true);
-  assert.equal(isIsolatedDatabaseName("root_checkin"), false);
-  assert.throws(
-    () => assertProbeAllowed(["--confirm-isolated-database"], { database: "root_checkin" }),
-    /refuses a database name/
-  );
-  assert.throws(
-    () => assertProbeAllowed([], { database: "root_checkin_probe" }),
-    /confirm-isolated-database/
-  );
 });
 
 test("Store snapshot imports do not share mutable references with the source snapshot", () => {
@@ -471,6 +457,7 @@ test("MySQL migrations and core relational projection cover production Store fac
     "065_v1_runtime_alert_registration_return_row.sql",
     "066_v1_runtime_alert_delivery_severity_slo_authority.sql",
     "067_formal_launch_retired_runtime_cleanup.sql",
+    "068_formal_launch_confirmed_prelaunch_cleanup.sql",
   ]);
   migrationFiles.forEach((fileName) => {
     const sql = fs.readFileSync(path.join(__dirname, "..", "db", "migrations", fileName), "utf8");

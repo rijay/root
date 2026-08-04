@@ -30,7 +30,6 @@ function retentionEnv(overrides = {}) {
 
 function emptyHealthCollections(data = createSeedData()) {
   data.profiles = [];
-  data.taskEvents = [];
   data.questionnaireAnswers = [];
   data.questionnaireResponses = [];
   data.healthScaleResponses = [];
@@ -113,18 +112,6 @@ test("health retention cleanup redacts expired content and deletes each unshared
       submitted_at: RECENT,
     },
   ];
-  data.taskEvents = [{
-    task_event_id: "task_old",
-    task_type: "CHECKIN",
-    payload_json: {
-      source: "MINIPROGRAM",
-      sessionId: "session_keep",
-      stoolType: "type7",
-      feedback: "urgent gut note",
-      imageUrls: [sharedRef],
-    },
-    occurred_at: OLD,
-  }];
   data.questionnaireAnswers = [{
     questionnaire_answer_id: "answer_old",
     answers_json: { symptom: "private answer" },
@@ -191,22 +178,17 @@ test("health retention cleanup redacts expired content and deletes each unshared
     },
   });
 
-  assert.equal(result.eligibleCount, 8);
-  assert.equal(result.redactedCount, 7);
+  assert.equal(result.eligibleCount, 7);
+  assert.equal(result.redactedCount, 6);
   assert.equal(result.partialRedactedCount, 0);
   assert.equal(result.removedCount, 1);
   assert.equal(result.failedCount, 0);
   assert.equal(result.objectDeletedCount, 1);
-  assert.equal(result.objectSharedCount, 1);
+  assert.equal(result.objectSharedCount, 0);
   assert.deepEqual(deleted, [uniqueRef]);
   assert.equal(data.profiles[0].gut_health_status, "");
   assert.equal(data.profiles[0].health_data_redacted_at, NOW);
   assert.equal(data.profiles[1].gut_health_status, "recent data");
-  assert.deepEqual(data.taskEvents[0].payload_json, {
-    retentionRedacted: true,
-    source: "MINIPROGRAM",
-    sessionId: "session_keep",
-  });
   assert.deepEqual(data.questionnaireAnswers[0].answers_json, {});
   assert.deepEqual(data.questionnaireResponses[0].answers, {});
   assert.deepEqual(data.healthScaleResponses[0].answers_json, {});

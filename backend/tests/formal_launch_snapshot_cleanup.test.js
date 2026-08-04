@@ -13,9 +13,11 @@ const {
   ARCHIVE_BEFORE_PRUNE_SNAPSHOT_KEYS,
   AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS,
   CONFIRMATION_REQUIRED_SNAPSHOT_KEYS,
+  CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES,
+  CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS,
   FORMAL_LAUNCH_DATA_DISPOSITION_VERSION,
-  OWNER_CONFIRMATION_RELATIONAL_TABLES,
   PROTECTED_SNAPSHOT_KEYS,
+  RELATIONAL_DISPOSITION_GROUPS,
   RETIRED_SNAPSHOT_DEFAULT_KEYS,
   SYSTEM_RELATIONAL_TABLES,
 } = require("../src/formalLaunchDataDisposition");
@@ -26,6 +28,14 @@ const { migrationChecksum, splitSqlStatements } = require("../src/mysqlMigration
 
 const cleanupMigrationName = "067_formal_launch_retired_runtime_cleanup.sql";
 const cleanupMigrationPath = path.join(__dirname, "..", "db", "migrations", cleanupMigrationName);
+const confirmedCleanupMigrationName = "068_formal_launch_confirmed_prelaunch_cleanup.sql";
+const confirmedCleanupMigrationPath = path.join(
+  __dirname,
+  "..",
+  "db",
+  "migrations",
+  confirmedCleanupMigrationName
+);
 
 test("cleanup planning is dry-run only and never exposes record content", () => {
   const snapshot = {
@@ -41,6 +51,7 @@ test("cleanup planning is dry-run only and never exposes record content", () => 
       { action: "FORMAL_CONTENT_PUBLISHED", target_id: "keep-audit" },
     ],
     taskEvents: [{ task_event_id: "legacy-event" }],
+    operationTasks: [{ operation_task_id: "still-needs-confirmation" }],
     productionCutoverProofs: [{ proof_id: "old-proof" }],
   };
   const original = JSON.stringify(snapshot);
@@ -65,6 +76,7 @@ test("one Registry classifies every snapshot key and every retained relational t
     ACTIVE_SNAPSHOT_KEYS,
     PROTECTED_SNAPSHOT_KEYS,
     AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS,
+    CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS,
     ARCHIVE_BEFORE_PRUNE_SNAPSHOT_KEYS,
     CONFIRMATION_REQUIRED_SNAPSHOT_KEYS,
   ];
@@ -97,10 +109,26 @@ test("one Registry classifies every snapshot key and every retained relational t
   const classifiedTables = [
     ...ACTIVE_RELATIONAL_TABLES,
     ...SYSTEM_RELATIONAL_TABLES,
-    ...OWNER_CONFIRMATION_RELATIONAL_TABLES,
   ].sort();
   assert.deepEqual(classifiedTables, schemaTables.sort());
   assert.equal(new Set(classifiedTables).size, classifiedTables.length);
+});
+
+test("confirmed pre-launch collections are removed from the cleanup candidate", () => {
+  const snapshot = Object.fromEntries(
+    CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS.map((key) => [key, [{ old: true }]])
+  );
+  const report = buildFormalLaunchSnapshotCleanupPlan(snapshot);
+  assert.equal(report.confirmedPrelaunchRetirement.length, 11);
+  assert.equal(report.confirmedPrelaunchRetirement.every(({ itemCount }) => itemCount === 1), true);
+  assert.equal(report.blockers.some((item) => item.includes("pre-launch business records")), false);
+});
+
+test("confirmed relational retirement is intentionally outside the final schema registry", () => {
+  assert.equal(CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES.length, 11);
+  assert.equal(RELATIONAL_DISPOSITION_GROUPS.flat().some(
+    (tableName) => CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES.includes(tableName)
+  ), false);
 });
 
 test("collection counts support arrays, maps and missing values", () => {
@@ -131,4 +159,31 @@ test("067 cleanup is forward-only, guarded by empty-table inventory and leaves u
   assert.equal((sql.match(/DROP TABLE IF EXISTS /g) || []).length, 31);
   assert.doesNotMatch(sql, /DROP TABLE IF EXISTS (root_user|wechat_identity|privacy_consent_record|user_lifecycle_event|task_event|task_progress_snapshot|campaign_participant|notification_subscription);/);
   assert.equal(manifest.files[cleanupMigrationName], migrationChecksum(sql));
+});
+
+test("068 removes only the confirmed pre-launch tables and snapshot collections", () => {
+  const sql = fs.readFileSync(confirmedCleanupMigrationPath, "utf8");
+  const statements = splitSqlStatements(sql);
+  const manifest = JSON.parse(fs.readFileSync(
+    path.join(__dirname, "..", "db", "migrations", "checksums.json"),
+    "utf8"
+  ));
+  const tableCalls = [...sql.matchAll(
+    /CALL assert_confirmed_prelaunch_table\('([a-z0-9_]+)',\s*\d+,\s*'[^']+'\)/g
+  )].map((match) => match[1]);
+  const tableDrops = [...sql.matchAll(/DROP TABLE IF EXISTS ([a-z0-9_]+)/g)]
+    .map((match) => match[1]);
+  const snapshotPaths = [...new Set([...sql.matchAll(
+    /'\$\.([A-Za-z][A-Za-z0-9]+)'/g
+  )].map((match) => match[1]))].sort();
+
+  assert.equal(statements.length, 29);
+  assert.deepEqual(tableCalls.sort(), [...CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES].sort());
+  assert.deepEqual(tableDrops.sort(), [...CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES].sort());
+  assert.deepEqual(snapshotPaths, [...CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS].sort());
+  assert.match(sql, /@actual_row_count NOT IN \(0, confirmed_row_count\)/);
+  assert.match(sql, /@actual_last_at > confirmed_last_at/);
+  assert.match(sql, /snapshot inventory drifted/);
+  assert.doesNotMatch(sql, /DROP TABLE `(?:root_user|wechat_identity|privacy_consent_record|questionnaire_answer)`/);
+  assert.equal(manifest.files[confirmedCleanupMigrationName], migrationChecksum(sql));
 });

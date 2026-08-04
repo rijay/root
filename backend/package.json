@@ -10,7 +10,6 @@
     "production-env": "node scripts/production-env-matrix.js",
     "dev": "node src/server.js",
     "store:migrate:mysql": "node scripts/store-migrate.js",
-    "store:checkpoint-probe": "node scripts/mysql-checkpoint-probe.js --confirm-isolated-database",
     "db:migrate": "node scripts/mysql-migrate.js",
     "store:verify": "node scripts/store-verify.js",
     "test": "node --test --test-reporter=tap tests/*.test.js"

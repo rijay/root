@@ -1,4 +1,4 @@
-const FORMAL_LAUNCH_DATA_DISPOSITION_VERSION = "formal-launch-data-disposition:v1";
+const FORMAL_LAUNCH_DATA_DISPOSITION_VERSION = "formal-launch-data-disposition:v2";
 
 const ACTIVE_SNAPSHOT_KEYS = Object.freeze([
   "activityDefinitionVersions",
@@ -53,6 +53,20 @@ const AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS = Object.freeze([
   "operationalAlertRuns",
 ]);
 
+const CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS = Object.freeze([
+  "campaignDefinitions",
+  "campaignParticipants",
+  "campaignRuleVersions",
+  "notificationDeliveries",
+  "notificationJobs",
+  "notificationSubscriptionGrants",
+  "notificationSubscriptions",
+  "notificationTemplates",
+  "taskDefinitions",
+  "taskEvents",
+  "taskProgressSnapshots",
+]);
+
 const ARCHIVE_BEFORE_PRUNE_SNAPSHOT_KEYS = Object.freeze([
   "externalAdapterCursors",
   "externalAdapterRuns",
@@ -65,10 +79,7 @@ const ARCHIVE_BEFORE_PRUNE_SNAPSHOT_KEYS = Object.freeze([
 ]);
 
 const CONFIRMATION_REQUIRED_SNAPSHOT_KEYS = Object.freeze([
-  "campaignDefinitions",
-  "campaignParticipants",
   "campaignProductRelations",
-  "campaignRuleVersions",
   "checkinRecords",
   "checkinSessions",
   "consultationAdvisorAssignments",
@@ -77,11 +88,6 @@ const CONFIRMATION_REQUIRED_SNAPSHOT_KEYS = Object.freeze([
   "dailyCheckinRecords",
   "dailySummaries",
   "manualReviewItems",
-  "notificationDeliveries",
-  "notificationJobs",
-  "notificationSubscriptionGrants",
-  "notificationSubscriptions",
-  "notificationTemplates",
   "operationTasks",
   "orderAfterSalesRecords",
   "orderFulfillments",
@@ -94,9 +100,6 @@ const CONFIRMATION_REQUIRED_SNAPSHOT_KEYS = Object.freeze([
   "rewardInventoryReservations",
   "rewardRecoveryRecords",
   "settlementRecords",
-  "taskDefinitions",
-  "taskEvents",
-  "taskProgressSnapshots",
   "uploads",
   "weworkTouchJobs",
   "youzanCustomers",
@@ -126,7 +129,7 @@ const SYSTEM_RELATIONAL_TABLES = Object.freeze([
   "schema_migrations",
 ]);
 
-const OWNER_CONFIRMATION_RELATIONAL_TABLES = Object.freeze([
+const CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES = Object.freeze([
   "campaign_definition",
   "campaign_participant",
   "campaign_rule_version",
@@ -152,20 +155,24 @@ const SNAPSHOT_DISPOSITION_GROUPS = Object.freeze([
   ACTIVE_SNAPSHOT_KEYS,
   PROTECTED_SNAPSHOT_KEYS,
   AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS,
+  CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS,
   ARCHIVE_BEFORE_PRUNE_SNAPSHOT_KEYS,
   CONFIRMATION_REQUIRED_SNAPSHOT_KEYS,
 ]);
 const RELATIONAL_DISPOSITION_GROUPS = Object.freeze([
   ACTIVE_RELATIONAL_TABLES,
   SYSTEM_RELATIONAL_TABLES,
-  OWNER_CONFIRMATION_RELATIONAL_TABLES,
 ]);
 
 assertUniqueDisposition(SNAPSHOT_DISPOSITION_GROUPS, "snapshot key");
-assertUniqueDisposition(RELATIONAL_DISPOSITION_GROUPS, "relational table");
+assertUniqueDisposition([
+  ...RELATIONAL_DISPOSITION_GROUPS,
+  CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES,
+], "relational table");
 
 const RETIRED_SNAPSHOT_DEFAULT_KEYS = Object.freeze([
   ...AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS,
+  ...CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS,
   ...ARCHIVE_BEFORE_PRUNE_SNAPSHOT_KEYS,
   ...CONFIRMATION_REQUIRED_SNAPSHOT_KEYS,
 ]);
@@ -176,8 +183,9 @@ module.exports = {
   ARCHIVE_BEFORE_PRUNE_SNAPSHOT_KEYS,
   AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS,
   CONFIRMATION_REQUIRED_SNAPSHOT_KEYS,
+  CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES,
+  CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS,
   FORMAL_LAUNCH_DATA_DISPOSITION_VERSION,
-  OWNER_CONFIRMATION_RELATIONAL_TABLES,
   PROTECTED_SNAPSHOT_KEYS,
   RELATIONAL_DISPOSITION_GROUPS,
   RETIRED_SNAPSHOT_DEFAULT_KEYS,

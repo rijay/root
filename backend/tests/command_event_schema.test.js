@@ -127,6 +127,8 @@ const runtimeAlertSeveritySloAuthorityMigrationName =
   "066_v1_runtime_alert_delivery_severity_slo_authority.sql";
 const formalLaunchCleanupMigrationName =
   "067_formal_launch_retired_runtime_cleanup.sql";
+const confirmedPrelaunchCleanupMigrationName =
+  "068_formal_launch_confirmed_prelaunch_cleanup.sql";
 const ACTIVITY_TASK_SOURCE_CHECKSUMS = Object.freeze({
   "040_activity_p0_content_and_session_policy.sql": "47957cd009b26ce848e9635f17d5e29b73e57bb956ffbff077a22a5d0ad03e59",
   "041_task_activity_assignment.sql": "ebb606a5353496a68a87e037ffaafd9dcec92e92d519467cfe0a6f140c90670c",
@@ -314,12 +316,13 @@ test("historical migrations remain immutable while 067 retires unused runtime st
     runtimeAlertRegistrationReturnRowMigrationName,
     runtimeAlertSeveritySloAuthorityMigrationName,
     formalLaunchCleanupMigrationName,
+    confirmedPrelaunchCleanupMigrationName,
   ]);
 
   const sql = migrationSql();
   assert.equal(splitSqlStatements(sql).length, 5);
   const manifest = JSON.parse(fs.readFileSync(path.join(migrationsDir, "checksums.json"), "utf8"));
-  assert.equal(Object.keys(manifest.files).length, 67);
+  assert.equal(Object.keys(manifest.files).length, 68);
   assert.equal(migrationChecksum(sql), IMMUTABLE_FOUNDATION_CHECKSUM);
   assert.equal(migrationChecksum(recoveryMigrationSql()), IMMUTABLE_RECOVERY_CHECKSUM);
   assert.equal(migrationChecksum(cryptoMetadataMigrationSql()), IMMUTABLE_CRYPTO_METADATA_CHECKSUM);
