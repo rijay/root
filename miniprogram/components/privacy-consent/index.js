@@ -8,9 +8,6 @@ const {
 const PURPOSE_LABELS = {
   "button.getPhoneNumber": "手机号快捷验证",
   "button.chooseAvatar": "选择头像",
-  chooseMedia: "选择打卡图片",
-  chooseImage: "选择图片",
-  saveImageToPhotosAlbum: "保存分享图到相册",
 };
 
 const PHONE_PRIVACY_COPY = "为完成会员身份验证，myRoot 将在你同意后\n申请获取并验证手机号。头像与昵称可稍后选择，\n拒绝不会影响公开内容浏览。";

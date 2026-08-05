@@ -26,7 +26,8 @@ assert.match(loginWxss, /login-page__privacy[\s\S]*margin:\s*20px 10px 0/);
 const privacyWxml = read("components/privacy-consent/index.wxml");
 const privacyWxss = read("components/privacy-consent/index.wxss");
 const privacyScript = read("components/privacy-consent/index.js");
-assert.match(privacyWxml, /微信平台隐私保护提示 · 流程示意/);
+assert.match(privacyWxml, /微信平台隐私保护提示/);
+assert.doesNotMatch(privacyWxml, /流程示意/);
 assert.match(privacyWxml, /\{\{privacyCopy\}\}/);
 assert.match(privacyWxss, /height:\s*458px/);
 assert.match(privacyWxss, /privacy-actions[\s\S]*position:\s*absolute[\s\S]*top:\s*324px/);
@@ -34,6 +35,7 @@ assert.match(privacyWxss, /privacy-button[\s\S]*width:\s*100% !important/);
 assert.match(privacyWxss, /privacy-copy[\s\S]*white-space:\s*pre-line/);
 assert.match(privacyScript, /为完成会员身份验证/);
 assert.match(privacyScript, /申请获取并验证手机号/);
+assert.doesNotMatch(privacyScript, /chooseMedia|chooseImage|saveImageToPhotosAlbum|打卡图片|分享图/);
 
 const registerWxml = read("pages/register/index.wxml");
 const registerWxss = read("pages/register/index.wxss");
@@ -67,4 +69,4 @@ platformPrivacyHandler((result) => { platformResolution = result; }, { referrer:
 assert.deepEqual(platformResolution, { event: "disagree" });
 resetPrivacyAuthorizationForTests();
 
-console.log("auth high-fidelity contract: 28/28 PASS");
+console.log("auth high-fidelity contract: 30/30 PASS");
