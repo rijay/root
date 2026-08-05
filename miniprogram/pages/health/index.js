@@ -1,9 +1,12 @@
 const router = require("../../utils/router");
-const { getToken, request } = require("../../utils/request");
+const { cancelRequestScope, getToken, requestWithDeadline } = require("../../utils/request");
+const { clearSessionPageCache, readSessionPageCache, writeSessionPageCache } = require("../../utils/page-cache");
 const { ensureHealthConsent } = require("../../utils/health-consent");
 const { syncTabBar } = require("../../utils/tab-bar");
 
 const START_PENDING_KEY = "ROOT4U_START_PENDING_V1";
+const REQUEST_SCOPE = "root4u-home";
+const SESSION_CACHE_OPTIONS = Object.freeze({ freshForMs: 30 * 1000, maxStaleMs: 30 * 60 * 1000 });
 
 Page({
   data: {
@@ -17,6 +20,16 @@ Page({
     const safety = Boolean(this.data.result && this.data.result.safetyStatus !== "STANDARD_GUIDANCE");
     syncTabBar(this, 1, { hidden: safety });
     this.load();
+  },
+
+  onHide() {
+    this._loadSequence = (this._loadSequence || 0) + 1;
+    cancelRequestScope(REQUEST_SCOPE);
+  },
+
+  onUnload() {
+    this._loadSequence = (this._loadSequence || 0) + 1;
+    cancelRequestScope(REQUEST_SCOPE);
   },
 
   applyBootstrap(bootstrap) {
@@ -46,22 +59,32 @@ Page({
   },
 
   async load() {
-    if (!getToken()) {
+    const token = getToken();
+    if (!token) {
+      clearSessionPageCache();
       this.setData({ loading: false, bootstrap: null, result: null });
       return;
     }
-    this.setData({ loading: true, error: "" });
+    const cacheKey = `root4u:${token}`;
+    const cached = readSessionPageCache(cacheKey, SESSION_CACHE_OPTIONS);
+    if (cached && !this.data.bootstrap) this.applyBootstrap(cached.value);
+    const sequence = (this._loadSequence || 0) + 1;
+    this._loadSequence = sequence;
+    this.setData({ loading: !cached && !this.data.bootstrap, error: "" });
     try {
-      const bootstrap = await request({ url: "/api/v1/health/root4u", scope: "root4u-home" });
+      const bootstrap = await requestWithDeadline({ url: "/api/v1/health/root4u", scope: REQUEST_SCOPE }, 4500);
+      if (sequence !== this._loadSequence) return;
+      writeSessionPageCache(cacheKey, bootstrap);
       this.applyBootstrap(bootstrap);
       if (wx.getStorageSync(START_PENDING_KEY) && !bootstrap.consentRequired && bootstrap.eligibility === "ELIGIBLE") {
         wx.removeStorageSync(START_PENDING_KEY);
         this.openAssessment();
       }
     } catch (error) {
-      this.setData({ error: error.message || "健康信息加载失败" });
+      if (sequence !== this._loadSequence) return;
+      if (!this.data.bootstrap) this.setData({ error: error.message || "健康信息加载失败" });
     } finally {
-      this.setData({ loading: false });
+      if (sequence === this._loadSequence) this.setData({ loading: false });
     }
   },
 

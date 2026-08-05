@@ -198,7 +198,7 @@ function inspectJpeg(buffer) {
   return null;
 }
 
-function uploadAsset(data, input = {}, context = {}) {
+function prepareAssetUpload(input = {}, context = {}) {
   const scope = String(input.scope || "content").trim();
   const name = requiredText(input.name || input.fileName, "文件名", 120);
   const mimeType = String(input.mimeType || input.mime_type || "").trim().toLowerCase();
@@ -213,18 +213,37 @@ function uploadAsset(data, input = {}, context = {}) {
   if (!dimensions || dimensions.width < 1 || dimensions.height < 1) throw contentError("CONTENT_ASSET_INVALID", "图片文件损坏或格式与声明不一致");
   const assetId = createId("content_asset");
   const createdAt = instant(context);
+  const extension = mimeType === "image/png" ? "png" : "jpg";
+  const datePath = createdAt.slice(0, 10).replace(/-/g, "/");
+  return {
+    assetId,
+    buffer,
+    objectKey: `content-assets/${datePath}/${assetId}.${extension}`,
+    record: {
+      content_asset_id: assetId,
+      scope,
+      name,
+      mime_type: mimeType,
+      byte_size: buffer.length,
+      width: dimensions.width,
+      height: dimensions.height,
+      state: "AUTHORIZED",
+      created_at: createdAt,
+      created_by: context.operatorId || "",
+    },
+  };
+}
+
+function recordUploadedAsset(data, prepared, uploadResult = {}) {
+  const externalRef = safeHttpsOrCloudUrl(uploadResult.externalRef || uploadResult.fileId);
+  if (!prepared || !prepared.record || !externalRef) {
+    throw contentError("CONTENT_ASSET_STORAGE_FAILED", "图片存储未返回可用地址", 503);
+  }
   const asset = {
-    content_asset_id: assetId,
-    scope,
-    name,
-    mime_type: mimeType,
-    byte_size: buffer.length,
-    width: dimensions.width,
-    height: dimensions.height,
-    data_base64: buffer.toString("base64"),
-    state: "AUTHORIZED",
-    created_at: createdAt,
-    created_by: context.operatorId || "",
+    ...prepared.record,
+    storage_provider: String(uploadResult.provider || "CLOUDBASE").toUpperCase(),
+    storage_object_key: prepared.objectKey,
+    storage_external_ref: externalRef,
   };
   assetRows(data).push(asset);
   return { asset: presentAsset(asset) };
@@ -240,7 +259,8 @@ function presentAsset(asset) {
     height: asset.height,
     dimensions: `${asset.width} × ${asset.height}`,
     assetMeta: `${asset.width} × ${asset.height} · ${Math.ceil(asset.byte_size / 1024)}KB`,
-    previewUrl: `/api/v1/public/content/assets/${asset.content_asset_id}`,
+    previewUrl: safeHttpsOrCloudUrl(asset.storage_external_ref)
+      || `/api/v1/public/content/assets/${asset.content_asset_id}`,
     state: asset.state,
   };
 }
@@ -249,6 +269,7 @@ function getAsset(data, assetId) {
   const id = safeId(assetId);
   const asset = assetRows(data).find((row) => row.content_asset_id === id && row.state === "AUTHORIZED");
   if (!asset) throw contentError("CONTENT_ASSET_NOT_FOUND", "图片不存在", 404);
+  if (!asset.data_base64) throw contentError("CONTENT_ASSET_MOVED", "图片已迁移至对象存储", 404);
   return { mimeType: asset.mime_type, body: Buffer.from(asset.data_base64, "base64"), etag: `"${asset.content_asset_id}"` };
 }
 
@@ -846,6 +867,7 @@ module.exports = {
   saveSharedDetailDraft,
   saveWelcomeDraft,
   unpublishVersion,
-  uploadAsset,
+  prepareAssetUpload,
+  recordUploadedAsset,
   validateTarget,
 };

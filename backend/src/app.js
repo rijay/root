@@ -543,6 +543,7 @@ function createApp(options = {}) {
   const initialPersistPromise = Promise.resolve();
 
   async function handleRequest(req, res, requestContext = {}) {
+    const data = requestContext.storeData || storeAdapter.data;
     const url = new URL(req.url, "http://localhost");
     const method = req.method || "GET";
     res.responseSecurityHeaders = responseSecurityPolicy.headersFor(req);
@@ -1128,7 +1129,8 @@ function createApp(options = {}) {
         return;
       }
       const bufferedResponse = createBufferedResponse();
-      const execute = (_storeData, transactionControl = {}) => handleRequest(req, bufferedResponse, {
+      const execute = (requestStoreData, transactionControl = {}) => handleRequest(req, bufferedResponse, {
+        storeData: requestStoreData,
         transactionCheckpoint: transactionControl.checkpoint,
         transactionResume: transactionControl.resume,
         commandRecovery: transactionControl.commandRecovery,

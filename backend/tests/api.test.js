@@ -1293,10 +1293,11 @@ test("WeChat code exchange completes before the serialized Store Interface start
 
 test("GET routes use the read-only Store Interface while login remains writable", async (t) => {
   const storeAdapter = createMemoryStore(createEmptyData());
+  const readSnapshot = createMemoryStore().data;
   const requestOptions = [];
   storeAdapter.runRequest = async (options, work) => {
     requestOptions.push(options);
-    return work(storeAdapter.data, {});
+    return work(options.write === false ? readSnapshot : storeAdapter.data, {});
   };
   const server = createApp({ storeAdapter, env: directPhoneLoginEnv });
   await server.readyPromise;
@@ -1304,13 +1305,15 @@ test("GET routes use the read-only Store Interface while login remains writable"
   const baseUrl = await listen(server);
   t.after(() => server.close());
 
-  const activities = await request(baseUrl, "/api/v1/activities");
+  const home = await request(baseUrl, "/api/v1/public/content/home");
   const login = await request(baseUrl, "/api/v1/auth/login", {
     method: "POST",
     body: JSON.stringify({ phone: "13800008888" }),
   });
 
-  assert.equal(activities.code, 0);
+  assert.equal(home.code, 0);
+  assert.equal(home.data.items.length > 0, true);
+  assert.equal(storeAdapter.data.formalContentItems.length, 0);
   assert.equal(login.code, 0);
   assert.equal(requestOptions.length, 2);
   assert.equal(requestOptions[0].write, false);

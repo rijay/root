@@ -17,6 +17,8 @@ const detailWxss = read("subpkg/activity/pages/detail/index.wxss");
 
 assert.match(listScript, /\/api\/v1\/activities\?pageSize=20/);
 assert.match(listScript, /presentActivityList/);
+assert.match(listScript, /readPublicPageCache/);
+assert.match(listScript, /requestWithDeadline/);
 assert.match(listScript, /listingState === "AVAILABLE"/);
 assert.match(listScript, /routeGuard\("\/subpkg\/activity\/pages\/enrollments\/index"\)/);
 assert.match(listScript, /我的报名/);

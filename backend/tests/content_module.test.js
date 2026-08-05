@@ -19,12 +19,16 @@ function context(operatorId = "content-operator") {
 }
 
 function upload(data, scope, name) {
-  return contentModule.uploadAsset(data, {
+  const prepared = contentModule.prepareAssetUpload({
     scope,
     name,
     mimeType: "image/png",
     dataBase64: PNG_1X1,
-  }, context()).asset;
+  }, context());
+  return contentModule.recordUploadedAsset(data, prepared, {
+    provider: "TEST",
+    externalRef: `https://assets.root.test/${prepared.objectKey}`,
+  }).asset;
 }
 
 function saveCompleteCandidate(data) {

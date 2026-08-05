@@ -20,12 +20,16 @@ function contentContext() {
 }
 
 function upload(data, scope, name) {
-  return contentModule.uploadAsset(data, {
+  const prepared = contentModule.prepareAssetUpload({
     scope,
     name,
     mimeType: "image/png",
     dataBase64: PNG_1X1,
-  }, contentContext()).asset;
+  }, contentContext());
+  return contentModule.recordUploadedAsset(data, prepared, {
+    provider: "UED_REVIEW",
+    externalRef: `https://assets.root.test/${prepared.objectKey}`,
+  }).asset;
 }
 
 function seedContent(data) {
