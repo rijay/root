@@ -10,7 +10,7 @@
     </view>
   </view>
 
-  <button wx:else class="support-page__contact" open-type="contact" bindcontact="onContact">
+  <button wx:else class="support-page__contact" style="width: 100%; margin: 64rpx 0 0;" open-type="contact" bindcontact="onContact">
     {{mode === 'feedback' ? '提交建议与反馈' : '联系客服'}}
   </button>
   <view wx:if="{{mode !== 'faq'}}" class="support-page__note">客服工作时间与反馈方式由运营统一维护。</view>

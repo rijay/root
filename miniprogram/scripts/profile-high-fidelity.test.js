@@ -19,6 +19,8 @@ const profileWxss = read("pages/profile/index.wxss");
 const profileScript = read("pages/profile/index.js");
 const aboutWxml = read("subpkg/profile/pages/about/index.wxml");
 const aboutWxss = read("subpkg/profile/pages/about/index.wxss");
+const supportWxml = read("subpkg/profile/pages/support/index.wxml");
+const supportWxss = read("subpkg/profile/pages/support/index.wxss");
 const privacyWxml = read("subpkg/profile/pages/privacy-account/index.wxml");
 const privacyWxss = read("subpkg/profile/pages/privacy-account/index.wxss");
 const privacyScript = read("subpkg/profile/pages/privacy-account/index.js");
@@ -51,6 +53,8 @@ matches(aboutWxss, /about-page__wordmark\s*\{[^}]*top:\s*210px[^}]*width:\s*126p
 matches(aboutWxml, /人如草木，根定而生。/, "品牌核心文案");
 matches(aboutWxss, /about-page__links\s*\{[^}]*top:\s*530px[^}]*height:\s*200px/s, "关于页链接区坐标");
 matches(aboutWxss, /about-page__links\s*\{[^}]*width:\s*calc\(100% - 40px\)/s, "关于页保持双侧 20px 边距");
+matches(supportWxml, /support-page__contact[^>]*style="width:\s*100%;\s*margin:\s*64rpx 0 0;"/s, "微信原生客服按钮显式占满内容区");
+matches(supportWxss, /support-page__contact\s*\{[^}]*width:\s*100%[^}]*margin:\s*64rpx 0 0[^}]*box-sizing:\s*border-box/s, "客服与反馈按钮占满内容区且不受原生按钮外边距影响");
 
 matches(privacyWxml, /个人信息收集清单/, "隐私清单入口");
 matches(privacyWxml, /第三方信息共享清单/, "第三方清单入口");

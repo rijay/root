@@ -2,7 +2,7 @@
 .support-page__eyebrow { display: block; color: #586b3f; font-size: 22rpx; font-weight: 600; letter-spacing: 3rpx; }
 .support-page__title { display: block; margin-top: 24rpx; color: #080806; font-size: 52rpx; line-height: 1.3; font-weight: 600; }
 .support-page__copy { display: block; margin-top: 28rpx; color: #6c6457; font-size: 28rpx; line-height: 1.7; }
-.support-page__contact { margin-top: 64rpx; height: 92rpx; color: #fff; background: #080806; border-radius: 24rpx; font-size: 28rpx; line-height: 92rpx; }
+.support-page__contact { width: 100%; height: 92rpx; margin: 64rpx 0 0; padding: 0 32rpx; box-sizing: border-box; color: #fff; background: #080806; border-radius: 24rpx; font-size: 28rpx; line-height: 92rpx; white-space: nowrap; }
 .support-page__contact::after { border: 0; }
 .support-page__note { margin-top: 28rpx; color: #8a8172; font-size: 22rpx; line-height: 1.6; text-align: center; }
 .support-faq { margin-top: 48rpx; padding: 0 32rpx; background: #fff; border-radius: 28rpx; }
