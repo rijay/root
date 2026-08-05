@@ -65,7 +65,9 @@ function decisionRef(approval) {
 
 function createEnvironmentActivityPublicationAuthorizationAdapter(env = process.env, options = {}) {
   const approvals = configuredApprovals(env);
-  const now = typeof options.now === "function" ? options.now : () => new Date().toISOString();
+  const now = typeof options.now === "function"
+    ? options.now
+    : () => new Date(Date.now() - 1_000).toISOString();
   return Object.freeze({
     authorizeActivityPublication(request = {}) {
       if (request.operation !== "ACTIVITY_PUBLISH"

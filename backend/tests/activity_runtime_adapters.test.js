@@ -52,6 +52,18 @@ test("environment publication Adapter authorizes only an exact approved activity
   })).authorized, false);
 });
 
+test("environment publication Adapter emits a command-safe verification instant by default", () => {
+  const before = Date.now();
+  const adapter = createEnvironmentActivityPublicationAuthorizationAdapter({
+    ROOT_ACTIVITY_PUBLICATION_APPROVALS_JSON: JSON.stringify([APPROVAL]),
+  });
+  const decision = adapter.authorizeActivityPublication(authorizationRequest());
+  const verifiedAt = Date.parse(decision.verifiedAt);
+  assert.ok(Number.isFinite(verifiedAt));
+  assert.ok(verifiedAt <= before);
+  assert.ok(before - verifiedAt < 5_000);
+});
+
 test("environment publication Adapter rejects malformed configuration at startup", () => {
   assert.throws(
     () => createEnvironmentActivityPublicationAuthorizationAdapter({
