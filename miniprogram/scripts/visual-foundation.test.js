@@ -42,8 +42,9 @@ const tokens = read("styles/tokens.wxss");
 
 assert.match(read("app.wxss"), /@import "\.\/styles\/tokens\.wxss";/);
 const navigationWxss = read("components/page-navigation/index.wxss");
-assert.match(navigationWxss, /:host\s*\{[^}]*position:\s*absolute[^}]*left:\s*0[^}]*width:\s*100%/s);
-assert.match(navigationWxss, /\.page-navigation\s*\{[^}]*left:\s*16px[^}]*pointer-events:\s*auto/s);
+assert.match(navigationWxss, /:host\s*\{[^}]*width:\s*0[^}]*height:\s*0[^}]*pointer-events:\s*none/s);
+assert.doesNotMatch(navigationWxss, /:host\s*\{[^}]*position:\s*absolute/s);
+assert.match(navigationWxss, /\.page-navigation\s*\{[^}]*position:\s*fixed[^}]*left:\s*16px[^}]*pointer-events:\s*auto/s);
 assert.match(navigationWxss, /flex:\s*0\s+0\s+40px/);
 assert.match(read("components/page-navigation/index.wxml"), /wx:if="\{\{showHome\}\}"/);
 
