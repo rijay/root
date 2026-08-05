@@ -17,11 +17,15 @@ const loginWxml = read("pages/login/index.wxml");
 const loginWxss = read("pages/login/index.wxss");
 assert.match(loginWxml, /id="root-privacy-consent"/);
 assert.match(loginWxml, /style="width: 350px;"/);
+assert.match(loginWxml, /checkbox value="accepted" checked="\{\{agreementAccepted\}\}"/);
+assert.match(loginWxml, /未勾选不会发起手机号授权/);
+assert.doesNotMatch(loginWxml, /继续即表示/);
 assert.match(loginWxss, /login-page__kicker[\s\S]*line-height:\s*18px/);
 assert.match(loginWxss, /login-page__title[\s\S]*margin:\s*18px 4px 0/);
 assert.match(loginWxss, /login-page__button[\s\S]*width:\s*100% !important/);
 assert.match(loginWxss, /login-page__button[\s\S]*margin:\s*184px 0 0/);
 assert.match(loginWxss, /login-page__privacy[\s\S]*margin:\s*20px 10px 0/);
+assert.match(loginWxss, /login-page__agreement-option[\s\S]*min-height:\s*28px/);
 
 const privacyWxml = read("components/privacy-consent/index.wxml");
 const privacyWxss = read("components/privacy-consent/index.wxss");

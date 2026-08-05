@@ -1,23 +1,5 @@
 const DEFAULT_WECHAT_LOGIN_TIMEOUT = 10000;
 
-function ensureLoginAgreement(agreed) {
-  if (agreed) return Promise.resolve(true);
-  return new Promise((resolve) => {
-    wx.showModal({
-      title: "登录 ROOT",
-      content: "继续即表示你已阅读并同意《用户协议》和《隐私政策》。健康相关信息会在后续单独征得同意。",
-      confirmText: "同意并进入",
-      cancelText: "暂不登录",
-      success(result) {
-        resolve(Boolean(result && result.confirm));
-      },
-      fail() {
-        resolve(false);
-      },
-    });
-  });
-}
-
 function getWechatLoginCode(timeout = DEFAULT_WECHAT_LOGIN_TIMEOUT) {
   return new Promise((resolve, reject) => {
     wx.login({
@@ -69,7 +51,6 @@ function showLoginFailure(message) {
 module.exports = {
   DEFAULT_WECHAT_LOGIN_TIMEOUT,
   authenticateWechat,
-  ensureLoginAgreement,
   getWechatLoginCode,
   showLoginFailure,
 };

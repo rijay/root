@@ -19,17 +19,24 @@
       style="width: 350px;"
       open-type="getPhoneNumber"
       loading="{{loading}}"
-      disabled="{{loading}}"
+      disabled="{{loading || !agreementAccepted}}"
       bindgetphonenumber="loginWithPhone"
     >{{loading ? '正在验证…' : '手机号快捷登录'}}</button>
     <view wx:if="{{loading && loginStatusText}}" class="login-page__status" aria-live="polite">{{loginStatusText}}</view>
 
     <view class="login-page__privacy">
-      <text>继续即表示你已阅读</text>
-      <text class="login-page__link" catchtap="openUserAgreement">《用户协议》</text>
-      <text>与</text>
-      <text class="login-page__link" catchtap="openPrivacyPolicy">《隐私政策》</text>
-      <text>\n手机号授权将在隐私保护提示后发起</text>
+      <checkbox-group bindchange="changeAgreement">
+        <label class="login-page__agreement-option">
+          <checkbox value="accepted" checked="{{agreementAccepted}}" color="#586B3F" />
+          <text>我已阅读并同意</text>
+        </label>
+      </checkbox-group>
+      <view class="login-page__agreement-links">
+        <text class="login-page__link" catchtap="openUserAgreement">《用户协议》</text>
+        <text>与</text>
+        <text class="login-page__link" catchtap="openPrivacyPolicy">《隐私政策》</text>
+      </view>
+      <text class="login-page__privacy-hint">未勾选不会发起手机号授权，可先阅读协议或返回浏览公开内容</text>
     </view>
   </view>
   <privacy-consent id="root-privacy-consent" />

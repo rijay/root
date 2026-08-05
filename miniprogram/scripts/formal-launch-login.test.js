@@ -31,12 +31,17 @@ assert.match(loginWxml, /探索更多可能/);
 assert.match(loginWxml, /open-type="getPhoneNumber"/);
 assert.match(loginWxml, /手机号快捷登录/);
 assert.match(loginWxml, /<privacy-consent/);
+assert.match(loginWxml, /value="accepted" checked="\{\{agreementAccepted\}\}"/);
+assert.match(loginWxml, /disabled="\{\{loading \|\| !agreementAccepted\}\}"/);
+assert.doesNotMatch(loginWxml, /继续即表示/);
 assert.doesNotMatch(loginWxml, /7 天|打卡|任务|微信身份进入/);
 
 const loginScript = read("pages/login/index.js");
 assert.match(loginScript, /consumeAuthIntent/);
 assert.match(loginScript, /手机号已验证/);
 assert.match(loginScript, /IDENTITY_CONFLICT/);
+assert.match(loginScript, /agreementAccepted:\s*false/);
+assert.match(loginScript, /请先阅读并勾选协议/);
 assert.doesNotMatch(loginScript, /consumeActivityLoginRecovery/);
 
 const registerWxml = read("pages/register/index.wxml");
@@ -60,12 +65,18 @@ assert.match(registerScript, /uploadCloudAvatar/);
 
 const customTabScript = read("custom-tab-bar/index.js");
 assert.match(customTabScript, /PROTECTED_TAB_INDEXES/);
+assert.match(customTabScript, /new Set\(\[3\]\)/);
+assert.doesNotMatch(customTabScript, /new Set\(\[1,\s*3\]\)/);
 assert.match(customTabScript, /rememberAuthIntent/);
 assert.match(customTabScript, /wx\.navigateTo/);
+
+const routerScript = read("utils/router.js");
+assert.match(routerScript, /publicRoutes[\s\S]*"\/pages\/health\/index"/);
 
 const healthScript = read("pages/health/index.js");
 const profileScript = read("pages/profile/index.js");
 assert.match(healthScript, /\/pages\/health\/index/);
+assert.match(healthScript, /if \(!getToken\(\)\)[\s\S]*\/pages\/login\/index/);
 assert.match(profileScript, /\/pages\/profile\/index/);
 assert.doesNotMatch(healthScript, /health-start/);
 assert.doesNotMatch(profileScript, /intent=profile/);

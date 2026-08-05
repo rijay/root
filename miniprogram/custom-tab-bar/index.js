@@ -2,7 +2,8 @@ const { FORMAL_TABS } = require("../config/formal-launch-routes");
 const { remember: rememberAuthIntent } = require("../utils/auth-intent");
 const { getToken } = require("../utils/request");
 
-const PROTECTED_TAB_INDEXES = new Set([1, 3]);
+// 健康 Tab 对访客开放介绍内容；只有用户主动开始评测时才进入登录流程。
+const PROTECTED_TAB_INDEXES = new Set([3]);
 
 Component({
   data: {

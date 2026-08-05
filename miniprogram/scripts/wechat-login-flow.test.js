@@ -2,29 +2,19 @@ const assert = require("node:assert/strict");
 const {
   DEFAULT_WECHAT_LOGIN_TIMEOUT,
   authenticateWechat,
-  ensureLoginAgreement,
   getWechatLoginCode,
   showLoginFailure,
 } = require("../utils/wechat-login-flow");
 
 async function run() {
   let modalOptions = null;
-  global.wx = {
-    showModal(options) {
-      modalOptions = options;
-      options.success({ confirm: true });
-    },
-  };
-  assert.equal(await ensureLoginAgreement(false), true);
-  assert.equal(modalOptions.confirmText, "同意并进入");
-  assert.match(modalOptions.content, /用户协议/);
-  assert.equal(await ensureLoginAgreement(true), true);
-
   const stages = [];
   let requestOptions = null;
-  global.wx.login = (options) => {
-    assert.equal(options.timeout, DEFAULT_WECHAT_LOGIN_TIMEOUT);
-    options.success({ code: "temporary-code" });
+  global.wx = {
+    login(options) {
+      assert.equal(options.timeout, DEFAULT_WECHAT_LOGIN_TIMEOUT);
+      options.success({ code: "temporary-code" });
+    },
   };
   const result = await authenticateWechat({
     request: async (options) => {
@@ -51,7 +41,7 @@ async function run() {
   assert.match(modalOptions.content, /再次点击“手机号快捷登录”/);
 
   delete global.wx;
-  console.log("wechat login flow scenarios: 9/9 PASS");
+  console.log("wechat login flow scenarios ok");
 }
 
 run().catch((error) => {
