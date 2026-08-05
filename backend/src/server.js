@@ -5,6 +5,8 @@ const { createCommandRequestDigestCodec } = require("./commandRequestDigest");
 const { createCommandResultCodec } = require("./commandResultProtection");
 const { assertProtectedJobRouteTokenPolicy } = require("./jobRouteToken");
 const { createCloudbaseObjectStorageAdapter } = require("./cloudbaseObjectStorageAdapter");
+const { createEnvironmentActivityPublicationAuthorizationAdapter } = require("./activityPublicationAuthorizationAdapter");
+const { createDataBackedActivityAssetAdapter } = require("./activityAssetAdapter");
 
 const port = Number(process.env.PORT || 8787);
 
@@ -43,7 +45,16 @@ async function main() {
   const objectStorageAdapter = process.env.ROOT_CLOUDBASE_ENV_ID || process.env.CLOUDBASE_ENV_ID || process.env.TCB_ENV_ID
     ? createCloudbaseObjectStorageAdapter({ provider: "CLOUDBASE" }, { env: process.env })
     : null;
-  const server = createApp({ storeAdapter, commandRequestDigestCodec, commandResultCodec, objectStorageAdapter });
+  const activityPublicationAuthorizationAdapter = createEnvironmentActivityPublicationAuthorizationAdapter(process.env);
+  const activityAssetAdapter = createDataBackedActivityAssetAdapter({ dataProvider: () => storeAdapter.data });
+  const server = createApp({
+    storeAdapter,
+    commandRequestDigestCodec,
+    commandResultCodec,
+    objectStorageAdapter,
+    activityPublicationAuthorizationAdapter,
+    activityAssetAdapter,
+  });
   await server.readyPromise;
   server.listen(port, "0.0.0.0", () => {
     const storeHealth = server.storeAdapter.getStoreHealth ? server.storeAdapter.getStoreHealth() : { kind: server.storeAdapter.kind };
