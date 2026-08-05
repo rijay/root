@@ -54,6 +54,7 @@ const BOOLEAN_COLUMNS = new Set([
 ]);
 const DATE_COLUMNS = new Set([
   "authorization_verified_at",
+  "cancel_close_at",
   "computed_at",
   "consumed_at",
   "created_at",
