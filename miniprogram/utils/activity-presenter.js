@@ -31,7 +31,9 @@ function safeOpaqueId(value) {
 
 function safePublicImageUrl(value) {
   const text = safeText(value);
-  return /^https:\/\/[^\s]{1,1016}$/.test(text) ? text : "";
+  return /^https:\/\/[^\s]{1,1016}$/.test(text) || /^cloud:\/\/[^\s]{1,1016}$/.test(text)
+    ? text
+    : "";
 }
 
 function dateText(value) {

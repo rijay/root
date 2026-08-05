@@ -14,6 +14,7 @@ const stateRoutes = Object.freeze({
 
 const publicRoutes = new Set([
   "/pages/home/index",
+  "/pages/health/index",
   "/pages/activities/index",
   "/pages/login/index",
   "/pages/legal/index",
@@ -25,7 +26,6 @@ const publicRoutes = new Set([
   "/subpkg/profile/pages/privacy-account/index",
 ]);
 const protectedRoutes = new Set([
-  "/pages/health/index",
   "/pages/register/index",
   "/pages/health-consent/index",
   "/subpkg/activity/pages/enrollments/index",

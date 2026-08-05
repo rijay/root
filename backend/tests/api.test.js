@@ -507,6 +507,24 @@ test("MySQL migrations and core relational projection cover production Store fac
     occurred_at: "2026-07-11T10:00:00+08:00",
     created_at: "2026-07-11T10:00:00+08:00",
   });
+  data.activitySessions.push({
+    activity_session_id: "session_mysql_projection",
+    activity_version_id: "activity_mysql_projection_v1",
+    status: "SCHEDULED",
+    approval_mode: "AUTO",
+    capacity: 50,
+    registration_open_at: "2026-10-01T00:00:00+08:00",
+    registration_close_at: "2026-10-10T18:00:00+08:00",
+    cancel_close_at: "2026-10-10T18:00:00+08:00",
+    review_deadline: null,
+    session_start_at: "2026-10-11T13:00:00+08:00",
+    session_end_at: "2026-10-11T18:00:00+08:00",
+    allow_reapply: false,
+    cancel_reason: null,
+    cancel_reason_detail: null,
+    created_at: "2026-08-05T22:52:35+08:00",
+    updated_at: "2026-08-05T22:52:35+08:00",
+  });
   const calls = [];
   const connection = {
     execute: async (sql, values) => {
@@ -526,6 +544,9 @@ test("MySQL migrations and core relational projection cover production Store fac
   assert.equal(report.tables.includes("notification_subscription_grant"), false);
   assert.ok(calls.some((call) => /INSERT INTO `root_user`/.test(call.sql)));
   assert.ok(calls.some((call) => /INSERT INTO `privacy_consent_record`/.test(call.sql)));
+  const activitySessionProjection = calls.find((call) => /INSERT INTO `activity_session`/.test(call.sql));
+  assert.ok(activitySessionProjection);
+  assert.equal(activitySessionProjection.values[7], "2026-10-10 18:00:00.000");
   assert.equal(calls.some((call) => /notification_subscription_grant/.test(call.sql)), false);
   assert.equal(rootUserRows(data)[0].unionid, "union_mysql_projection");
   assert.equal(toMysqlDateTime("2026-07-11T10:00:00+08:00"), "2026-07-11 10:00:00.000");

@@ -659,6 +659,12 @@ test("public listing is deterministic and never exposes UED placeholder content"
   });
   assert.equal(list.length, 1);
   assert.equal(list[0].session.listingState, "AVAILABLE");
+  assert.equal(activity.listVisible(store, {}, {
+    now: "2026-08-03T00:00:00.000Z",
+    activityAssetAdapter: {
+      resolvePublicAsset: () => ({ url: "cloud://root-prod.bucket/activity/hero.jpg" }),
+    },
+  })[0].heroAssetUrl, "cloud://root-prod.bucket/activity/hero.jpg");
   activity.enroll(store, "user_001", {
     sessionId: "root_session_001",
     requestId: "LISTING_ENROLL_001",

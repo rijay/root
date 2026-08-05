@@ -19,6 +19,7 @@ Page({
     loading: false,
     loginStatusText: "",
     identityConflict: false,
+    agreementAccepted: false,
   },
 
   onLoad(options = {}) {
@@ -34,8 +35,19 @@ Page({
     openLegalPage("privacy");
   },
 
+  changeAgreement(event) {
+    const values = event && event.detail && Array.isArray(event.detail.value)
+      ? event.detail.value
+      : [];
+    this.setData({ agreementAccepted: values.includes("accepted") });
+  },
+
   async loginWithPhone(event) {
     if (this.data.loading) return;
+    if (!this.data.agreementAccepted) {
+      wx.showToast({ title: "请先阅读并勾选协议", icon: "none" });
+      return;
+    }
     const detail = (event && event.detail) || {};
     if (!detail.code || /fail|deny|cancel/i.test(String(detail.errMsg || ""))) {
       wx.showToast({ title: "未授权手机号，可稍后重试", icon: "none" });

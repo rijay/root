@@ -1532,7 +1532,7 @@ function resolvePublicHeroAssetUrl(definition, context = {}) {
   }
   if (result && typeof result.then === "function") return "";
   const url = optionalText(typeof result === "string" ? result : result && result.url);
-  return /^https:\/\/[^\s]{1,1016}$/.test(url) ? url : "";
+  return /^https:\/\/[^\s]{1,1016}$/.test(url) || /^cloud:\/\/[^\s]{1,1016}$/.test(url) ? url : "";
 }
 
 function toDefinitionPayload(definition, context = {}) {

@@ -70,7 +70,7 @@ page {
 }
 
 .login-page__button[disabled] {
-  opacity: 0.72;
+  opacity: 0.46;
 }
 
 .login-page__status {
@@ -87,6 +87,32 @@ page {
   line-height: 18px;
   text-align: center;
   white-space: pre-line;
+}
+
+.login-page__agreement-option,
+.login-page__agreement-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-page__agreement-option {
+  gap: 6px;
+  min-height: 28px;
+}
+
+.login-page__agreement-option checkbox {
+  transform: scale(0.72);
+}
+
+.login-page__agreement-links {
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.login-page__privacy-hint {
+  display: block;
+  margin-top: 7px;
 }
 
 .login-page__link {
