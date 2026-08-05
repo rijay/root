@@ -149,7 +149,7 @@
             <label class="content-field-label">跳转类型 *</label>
             <el-select v-model="selectedHotspot.targetType" @change="resetTargetValidation">
               <el-option label="小程序内页" value="MINIPROGRAM_PAGE" />
-              <el-option label="Root 会员中心固定路径" value="ROOT_MEMBER_CENTER" />
+              <el-option label="Root 会员中心路径或短链接" value="ROOT_MEMBER_CENTER" />
               <el-option label="白名单网页" value="WEBVIEW_ALLOWLIST" />
             </el-select>
 
@@ -157,7 +157,7 @@
             <el-input
               v-model="selectedHotspot.target"
               :rows="3"
-              placeholder="选择或填写受控目标"
+              placeholder="填写受控路径或 #小程序:// 短链接"
               resize="none"
               type="textarea"
               @input="resetTargetValidation"

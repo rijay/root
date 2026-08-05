@@ -129,6 +129,17 @@ test("publication validates complete welcome content, immutable references and c
     { status: "PASS", message: "小程序路径检查通过", action: { type: "MINIPROGRAM_PAGE", path: "/pages/activities/index" } },
   );
   assert.deepEqual(
+    contentModule.validateTarget({
+      targetType: "ROOT_MEMBER_CENTER",
+      target: "#小程序://ROOT会员中心/BTsqrmF8skMJwlv",
+    }, context()),
+    {
+      status: "PASS",
+      message: "Root 会员中心短链接检查通过",
+      action: { type: "ROOT_MEMBER_CENTER", shortLink: "#小程序://ROOT会员中心/BTsqrmF8skMJwlv" },
+    },
+  );
+  assert.deepEqual(
     contentModule.validateTarget({ targetType: "WEBVIEW_ALLOWLIST", target: "https://www.root.com/article" }, context()),
     { status: "PASS", message: "白名单网页检查通过", action: { type: "BUSINESS_WEBVIEW", url: "https://www.root.com/article" } },
   );
@@ -136,6 +147,43 @@ test("publication validates complete welcome content, immutable references and c
     () => contentModule.validateTarget({ targetType: "WEBVIEW_ALLOWLIST", target: "https://evil.example.com/promo" }, context()),
     { code: "CONTENT_TARGET_INVALID" },
   );
+  assert.throws(
+    () => contentModule.validateTarget({ targetType: "ROOT_MEMBER_CENTER", target: "#小程序://其他会员中心/BTsqrmF8skMJwlv" }, context()),
+    { code: "CONTENT_TARGET_INVALID" },
+  );
+});
+
+test("a Root member-center short link survives shared-detail save and public read intact", () => {
+  const data = createSeedData();
+  data.contentAssets = [];
+  data.contentVersions = [];
+  data.contentPublicationRecords = [];
+  const detailAsset = upload(data, "shared-detail", "member-detail.png");
+  const shortLink = "#小程序://ROOT会员中心/BTsqrmF8skMJwlv";
+  const saved = contentModule.saveSharedDetailDraft(data, {
+    title: "RT-PrB-01 商品详情",
+    previewCopy: "温和清畅，敏肠之选",
+    assets: [{
+      assetId: detailAsset.assetId,
+      order: 1,
+      hotspots: [{
+        id: "member-short-link-hotspot",
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+        targetType: "ROOT_MEMBER_CENTER",
+        target: shortLink,
+      }],
+    }],
+  }, context()).version;
+
+  const storedAction = data.contentVersions[0].content.assets[0].hotspots[0].action;
+  assert.deepEqual(storedAction, { type: "ROOT_MEMBER_CENTER", shortLink });
+
+  data.contentVersions[0].status = "PUBLISHED";
+  const publicDetail = contentModule.getDetail(data, saved.logicalId, context());
+  assert.deepEqual(publicDetail.item.assets[0].hotspots[0].action, { type: "ROOT_MEMBER_CENTER", shortLink });
 });
 
 test("published versions are never edited in place and copying creates a new draft", () => {

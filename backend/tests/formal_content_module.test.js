@@ -74,6 +74,22 @@ test("unsafe media and jump targets are rejected instead of repaired", () => {
   assert.equal(result.items[0].action.type, "ROOT_MEMBER_CENTER");
 });
 
+test("verified Root member-center short links remain intact on the public Interface", () => {
+  const shortLink = "#小程序://ROOT会员中心/BTsqrmF8skMJwlv";
+  const data = {
+    formalContentItems: [item({
+      contentId: "cnt_member_short_link",
+      action: { type: "ROOT_MEMBER_CENTER", shortLink },
+    })],
+  };
+  const result = contentModule.listHome(data, {
+    now: "2026-08-03T05:00:00.000Z",
+    env: { NODE_ENV: "test", ROOT_MEMBER_CENTER_APPID: "wxfb75c0b432670215" },
+  });
+
+  assert.deepEqual(result.items[0].action, { type: "ROOT_MEMBER_CENTER", shortLink });
+});
+
 test("shared detail returns ordered images and no arbitrary styling surface", () => {
   const data = {
     formalContentItems: [item({

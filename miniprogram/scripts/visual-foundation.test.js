@@ -41,7 +41,10 @@ const tokens = read("styles/tokens.wxss");
 ].forEach((token) => assert.match(tokens.toLowerCase(), new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))));
 
 assert.match(read("app.wxss"), /@import "\.\/styles\/tokens\.wxss";/);
-assert.match(read("components/page-navigation/index.wxss"), /flex:\s*0\s+0\s+40px/);
+const navigationWxss = read("components/page-navigation/index.wxss");
+assert.match(navigationWxss, /:host\s*\{[^}]*position:\s*absolute[^}]*left:\s*0[^}]*width:\s*100%/s);
+assert.match(navigationWxss, /\.page-navigation\s*\{[^}]*left:\s*16px[^}]*pointer-events:\s*auto/s);
+assert.match(navigationWxss, /flex:\s*0\s+0\s+40px/);
 assert.match(read("components/page-navigation/index.wxml"), /wx:if="\{\{showHome\}\}"/);
 
 const wordmarkWxml = read("components/root-wordmark/index.wxml");
@@ -112,8 +115,9 @@ const navigationWxml = read("components/page-navigation/index.wxml");
 const navigationScript = read("components/page-navigation/index.js");
 assert.match(navigationWxml, /style="top: \{\{top\}\}px;"/);
 assert.match(navigationScript, /statusBarHeight/);
-assert.match(navigationScript, /statusBarHeight \+ 19/);
-assert.match(navigationScript, /Math\.min\(76, Math\.max\(52/);
+assert.match(navigationScript, /getMenuButtonBoundingClientRect/);
+assert.match(navigationScript, /capsuleTop \+ \(capsuleHeight - NAVIGATION_BUTTON_SIZE\) \/ 2/);
+assert.match(navigationScript, /Math\.min\(76, Math\.max\(20/);
 assert.doesNotMatch(navigationScript, /capsule\.bottom \+ 22/);
 
 function navigationTopFor(wxMock) {
@@ -128,10 +132,14 @@ function navigationTopFor(wxMock) {
   return top;
 }
 
-assert.equal(navigationTopFor({ getWindowInfo: () => ({ statusBarHeight: 47 }) }), 66);
-assert.equal(navigationTopFor({ getWindowInfo: () => ({ statusBarHeight: 20 }) }), 52);
+assert.equal(navigationTopFor({
+  getMenuButtonBoundingClientRect: () => ({ top: 52, height: 32 }),
+  getWindowInfo: () => ({ statusBarHeight: 47 }),
+}), 48);
+assert.equal(navigationTopFor({ getWindowInfo: () => ({ statusBarHeight: 47 }) }), 47);
+assert.equal(navigationTopFor({ getWindowInfo: () => ({ statusBarHeight: 20 }) }), 20);
 assert.equal(navigationTopFor({ getWindowInfo: () => ({ statusBarHeight: 100 }) }), 76);
-assert.equal(navigationTopFor({ getWindowInfo: () => { throw new Error("unavailable"); } }), 66);
+assert.equal(navigationTopFor({ getWindowInfo: () => { throw new Error("unavailable"); } }), 48);
 
 const detailWxml = read("subpkg/content/pages/detail/index.wxml");
 const detailWxss = read("subpkg/content/pages/detail/index.wxss");
