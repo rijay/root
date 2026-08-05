@@ -58,6 +58,13 @@ assert.equal(
   presentActivityList({ activities: [activity] })[0].heroAssetUrl,
   "https://assets.example.com/root/activity_001.jpg"
 );
+assert.equal(
+  presentActivityList({ activities: [{
+    ...activity,
+    heroAssetUrl: "cloud://myroot-prod.bucket/content-assets/activity_001.jpg",
+  }] })[0].heroAssetUrl,
+  "cloud://myroot-prod.bucket/content-assets/activity_001.jpg"
+);
 assert.throws(() => presentActivityList({ activities: [{ ...activity, session: {} }] }), /ACTIVITY_ITEM_PAYLOAD_INVALID/);
 const detail = presentActivityDetail({ activity });
 assert.equal(detail.sessionId, "session_001");

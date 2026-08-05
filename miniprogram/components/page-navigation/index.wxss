@@ -1,4 +1,8 @@
 :host {
+  position: fixed;
+  z-index: 10;
+  top: 0;
+  left: 0;
   display: block;
   width: 0;
   height: 0;
@@ -6,8 +10,7 @@
 }
 
 .page-navigation {
-  position: fixed;
-  z-index: 10;
+  position: absolute;
   left: 16px;
   display: flex;
   gap: 8px;
