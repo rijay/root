@@ -89,15 +89,15 @@ Page({
   },
 
   openMemberPath(key) {
-    const path = key === "orders" ? env.rootMemberCenterOrdersPath : env.rootMemberCenterCouponsPath;
-    if (!env.rootMemberCenterAppId || !path) {
+    const shortLink = key === "orders"
+      ? env.rootMemberCenterOrdersShortLink
+      : env.rootMemberCenterCouponsShortLink;
+    if (!shortLink) {
       this.setData({ memberLinkFailure: true, failedMemberKey: key });
       return;
     }
     wx.navigateToMiniProgram({
-      appId: env.rootMemberCenterAppId,
-      path,
-      envVersion: "release",
+      shortLink,
       success: () => this.setData({ memberLinkFailure: false, failedMemberKey: "" }),
       fail: () => this.setData({ memberLinkFailure: true, failedMemberKey: key }),
     });

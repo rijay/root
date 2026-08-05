@@ -28,6 +28,6 @@ module.exports = {
   youzanAppId: "",
   youzanProductPath: "",
   rootMemberCenterAppId: "wxfb75c0b432670215",
-  rootMemberCenterOrdersPath: "",
-  rootMemberCenterCouponsPath: "",
+  rootMemberCenterOrdersShortLink: "#小程序://ROOT会员中心/vTORPdF67tiEwCb",
+  rootMemberCenterCouponsShortLink: "#小程序://ROOT会员中心/vTORPdF67tiEwCb",
 };

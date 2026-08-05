@@ -29,11 +29,11 @@
   },
   "packages": {
     "main": {
-      "bytes": 225753,
+      "bytes": 225791,
       "fileCount": 95,
       "budget": {
         "status": "PASS",
-        "value": 225753,
+        "value": 225791,
         "target": 1363148.8,
         "hardLimit": 1572864
       }
@@ -85,11 +85,11 @@
       }
     ],
     "total": {
-      "bytes": 329768,
+      "bytes": 329806,
       "fileCount": 132,
       "budget": {
         "status": "PASS",
-        "value": 329768,
+        "value": 329806,
         "target": 6291456,
         "hardLimit": 8388608
       }

@@ -37,6 +37,8 @@ matches(profileWxss, /profile-row__arrow\s*\{[^}]*width:\s*4px[^}]*height:\s*8px
 matches(profileWxss, /profile-member-failure\s*\{[^}]*top:\s*374px[^}]*height:\s*100px/s, "MY-03 失败卡坐标");
 matches(profileWxml, /暂时无法打开 Root 会员中心/, "会员中心失败状态真实呈现");
 matches(profileScript, /ROOT_PROFILE_MEMBER_TARGET_V1/, "登录前保存会员中心目标");
+matches(profileScript, /navigateToMiniProgram\(\{[\s\S]*shortLink,/s, "订单与优惠券通过正式短链接进入会员中心");
+excludes(profileScript, /rootMemberCenterOrdersPath|rootMemberCenterCouponsPath/, "不得把微信短链接当作内部页面路径");
 matches(profileScript, /success:[\s\S]*memberLinkFailure:\s*false/, "成功后清除失败状态");
 matches(profileScript, /fail:[\s\S]*memberLinkFailure:\s*true/, "跳转失败保留当前页面");
 matches(profileScript, /clearTransientHealthData\(\)/, "退出登录清除内存健康状态");
