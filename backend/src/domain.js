@@ -659,8 +659,23 @@ function saveAdminContentSharedDetailDraft(data, body = {}, context = {}) {
   return saveAdminContentVersion(data, body, context, contentModule.saveSharedDetailDraft, "CONTENT_DETAIL_DRAFT_SAVE", "CONTENT_DETAIL_VERSION");
 }
 
-function uploadAdminContentAsset(data, body = {}, context = {}) {
-  const result = contentModule.uploadAsset(data, body, { ...context, operatorId: body.operatorId || "" });
+async function uploadAdminContentAsset(data, body = {}, context = {}) {
+  const uploadContext = { ...context, operatorId: body.operatorId || "" };
+  const prepared = contentModule.prepareAssetUpload(body, uploadContext);
+  const storage = context.objectStorageAdapter;
+  if (!storage || typeof storage.putObject !== "function") {
+    throw createClientError("CONTENT_ASSET_STORAGE_UNAVAILABLE", "图片存储服务暂不可用", 503);
+  }
+  const uploaded = await storage.putObject({
+    objectKey: prepared.objectKey,
+    body: prepared.buffer,
+    contentType: prepared.record.mime_type,
+    metadata: {
+      assetId: prepared.assetId,
+      scope: prepared.record.scope,
+    },
+  });
+  const result = contentModule.recordUploadedAsset(data, prepared, uploaded);
   const audit = contentOperationAudit(data, "CONTENT_ASSET_UPLOAD", "CONTENT_ASSET", result.asset.assetId, body, {
     assetId: result.asset.assetId,
     mimeType: result.asset.mimeType,

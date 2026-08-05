@@ -54,6 +54,23 @@ test("CloudBase object storage adapter uploads and removes export objects", asyn
   assert.deepEqual(calls[1].fileList, [uploaded.externalRef]);
 });
 
+test("CloudBase object storage adapter preserves binary image bodies", async () => {
+  const expected = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff]);
+  let observed;
+  const adapter = createCloudbaseObjectStorageAdapter({ provider: "CLOUDBASE", envId: "myroot-prod" }, {
+    cloudbaseAppFactory: () => ({
+      async uploadFile({ fileContent }) {
+        observed = fileContent;
+        return { fileID: "cloud://myroot-prod.bucket/content-assets/test.png" };
+      },
+      async deleteFile() { return { fileList: [] }; },
+    }),
+  });
+
+  await adapter.putObject({ objectKey: "content-assets/test.png", body: expected, contentType: "image/png" });
+  assert.deepEqual(observed, expected);
+});
+
 test("CloudBase object storage adapter fails closed on SDK errors", async () => {
   const adapter = createCloudbaseObjectStorageAdapter({ provider: "TCB", envId: "myroot-prod" }, {
     cloudbaseAppFactory: () => ({

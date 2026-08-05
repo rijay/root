@@ -40,6 +40,10 @@ function withUploadReference(error, fileId, objectKey) {
   return error;
 }
 
+function objectBody(value) {
+  return Buffer.isBuffer(value) ? value : Buffer.from(String(value || ""), "utf8");
+}
+
 function timeoutValue(value, fallback = 15000) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return fallback;
@@ -80,7 +84,7 @@ function createNodeSdkAdapter(envId, env, context) {
     async putObject({ objectKey, body }) {
       const result = await cloudbaseApp().uploadFile({
         cloudPath: objectKey,
-        fileContent: Buffer.from(String(body || ""), "utf8"),
+        fileContent: objectBody(body),
       });
       const error = resultError(result, "CloudBase object upload failed");
       if (error) throw error;
@@ -173,7 +177,7 @@ function createHttpAdapter(envId, env, target, context) {
             "X-Cos-Meta-Fileid": cloudObjectMeta,
             ...(contentType ? { "Content-Type": contentType } : {}),
           },
-          body: Buffer.from(String(body || ""), "utf8"),
+          body: objectBody(body),
         }, timeoutMs);
       } catch (error) {
         throw withUploadReference(error, fileId, objectKey);

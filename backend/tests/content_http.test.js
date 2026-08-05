@@ -9,6 +9,15 @@ const { createJsonFileStore } = require("../src/store");
 
 const PNG_1X1 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
+function testObjectStorageAdapter() {
+  return {
+    async putObject({ objectKey, body }) {
+      assert.equal(Buffer.isBuffer(body), true);
+      return { provider: "TEST", externalRef: `https://assets.root.test/${objectKey}` };
+    },
+  };
+}
+
 function listen(server) {
   return new Promise((resolve, reject) => {
     server.once("error", reject);
@@ -38,6 +47,7 @@ async function command(baseUrl, path, token, requestId, body) {
 
 test("Content HTTP Interface saves, previews and publishes without exposing drafts publicly", async (t) => {
   const server = createApp({
+    objectStorageAdapter: testObjectStorageAdapter(),
     env: {
       ROOT_ADMIN_TOKENS: JSON.stringify({
         operator: { token: "content-operator-secret", role: "operator" },
@@ -100,10 +110,8 @@ test("Content HTTP Interface saves, previews and publishes without exposing draf
   assert.equal(welcome.body.data.screens.length, 2);
   assert.equal(server.store.auditLogs.some((entry) => entry.action === "CONTENT_RELEASE_PUBLISH"), true);
 
-  const assetResponse = await fetch(`${baseUrl}${home.body.data.items[0].coverAssetUrl}`);
-  assert.equal(assetResponse.status, 200);
-  assert.equal(assetResponse.headers.get("content-type"), "image/png");
-  assert.equal((await assetResponse.arrayBuffer()).byteLength > 0, true);
+  assert.match(home.body.data.items[0].coverAssetUrl, /^https:\/\/assets\.root\.test\/content-assets\//);
+  assert.equal(server.store.contentAssets.every((asset) => !asset.data_base64), true);
 });
 
 test("content drafts and authorized assets survive a persistent Store Adapter reload", async () => {
@@ -113,6 +121,7 @@ test("content drafts and authorized assets survive a persistent Store Adapter re
     const firstStore = createJsonFileStore(storePath, { seedSampleData: false });
     const server = createApp({
       storeAdapter: firstStore,
+      objectStorageAdapter: testObjectStorageAdapter(),
       env: { ROOT_ADMIN_TOKENS: JSON.stringify({ operator: { token: "persistent-content-secret", role: "operator" } }) },
     });
     const baseUrl = await listen(server);
@@ -133,6 +142,8 @@ test("content drafts and authorized assets survive a persistent Store Adapter re
 
     const reloaded = createJsonFileStore(storePath, { seedSampleData: false });
     assert.equal(reloaded.data.contentAssets.length, 1);
+    assert.equal(reloaded.data.contentAssets[0].data_base64, undefined);
+    assert.match(reloaded.data.contentAssets[0].storage_external_ref, /^https:\/\/assets\.root\.test\//);
     assert.equal(reloaded.data.contentVersions.length, 1);
     assert.equal(reloaded.data.contentVersions[0].content.copy, "欢迎加入 Root Member Club");
     assert.equal(reloaded.validateSnapshot().valid, true);

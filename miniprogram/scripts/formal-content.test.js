@@ -15,6 +15,8 @@ const detailWxml = read("subpkg/content/pages/detail/index.wxml");
 const detailWxss = read("subpkg/content/pages/detail/index.wxss");
 
 assert.match(homeScript, /\/api\/v1\/public\/content\/home/);
+assert.match(homeScript, /readPublicPageCache/);
+assert.match(homeScript, /requestWithDeadline/);
 assert.match(homeScript, /contentId/);
 assert.doesNotMatch(homeScript, /user\/state|health|tasks|member-center/i);
 assert.match(homeWxml, /<swiper/);

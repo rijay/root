@@ -423,6 +423,37 @@ function request(options = {}) {
   return createScheduledRequest(options, token, requestId, idempotencyKey);
 }
 
+function requestWithDeadline(options = {}, deadlineMs = 4500) {
+  const deadline = Math.max(500, Math.min(Number(deadlineMs) || 4500, requestTimeout(options)));
+  const pending = request({ ...options, timeout: deadline });
+  let settled = false;
+  let timer;
+  const bounded = new Promise((resolve, reject) => {
+    timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      if (typeof pending.cancel === "function") pending.cancel();
+      reject(createRequestError({ code: "READ_TIMEOUT", message: "服务响应较慢，请稍后重试" }));
+    }, deadline);
+    pending.then((value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    }, (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(error);
+    });
+  });
+  bounded.cancel = () => {
+    clearTimeout(timer);
+    return typeof pending.cancel === "function" ? pending.cancel() : false;
+  };
+  return bounded;
+}
+
 function resetRequestStateForTests() {
   const entries = [...activeRequests, ...queuedRequests];
   queuedRequests = [];
@@ -451,6 +482,7 @@ module.exports = {
   getToken,
   parseResponse,
   request,
+  requestWithDeadline,
   resetRequestStateForTests,
   safeErrorSummary,
   setToken,

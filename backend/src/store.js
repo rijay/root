@@ -544,6 +544,71 @@ function parseMysqlPayload(value) {
   return JSON.parse(String(value));
 }
 
+function deepFreeze(value, seen = new Set()) {
+  if (!value || typeof value !== "object" || seen.has(value)) return value;
+  seen.add(value);
+  for (const child of Object.values(value)) deepFreeze(child, seen);
+  return Object.freeze(value);
+}
+
+function createRevisionSnapshotCache({
+  initialSnapshot,
+  initialRevision = 0,
+  probeRevision,
+  loadSnapshot,
+  normalize = (value) => value,
+  onRead = () => {},
+  onError = () => {},
+} = {}) {
+  if (typeof probeRevision !== "function" || typeof loadSnapshot !== "function") {
+    throw new Error("Revision snapshot cache requires probeRevision and loadSnapshot");
+  }
+  let cachedRevision = Number(initialRevision || 0);
+  let cachedSnapshot = deepFreeze(normalize(clone(initialSnapshot)));
+  let refreshPromise = null;
+
+  async function refresh(expectedRevision) {
+    const loaded = await loadSnapshot();
+    const loadedRevision = Number(loaded && loaded.revision || 0);
+    if (loadedRevision >= cachedRevision && loadedRevision >= Number(expectedRevision || 0)) {
+      cachedSnapshot = deepFreeze(normalize(parseMysqlPayload(loaded.payload_json)));
+      cachedRevision = loadedRevision;
+    }
+    return cachedSnapshot;
+  }
+
+  return {
+    async read() {
+      try {
+        const probed = await probeRevision();
+        const probedRevision = Number(probed && probed.revision || 0);
+        if (probedRevision !== cachedRevision) {
+          if (!refreshPromise) {
+            refreshPromise = refresh(probedRevision).finally(() => {
+              refreshPromise = null;
+            });
+          }
+          await refreshPromise;
+        }
+        onRead({ revision: cachedRevision, updatedAt: probed && probed.updated_at });
+        return cachedSnapshot;
+      } catch (error) {
+        onError(error);
+        throw error;
+      }
+    },
+    update(snapshot, nextRevision) {
+      const normalizedRevision = Number(nextRevision || 0);
+      if (normalizedRevision < cachedRevision) return;
+      cachedSnapshot = deepFreeze(normalize(clone(snapshot)));
+      cachedRevision = normalizedRevision;
+    },
+    get revision() {
+      return cachedRevision;
+    },
+  };
+}
+
 async function createMysqlStore(config = {}, options = {}) {
   const dependencies = options.dependencies || {};
   const mysql = dependencies.mysql || require("mysql2/promise");
@@ -670,6 +735,41 @@ async function createMysqlStore(config = {}, options = {}) {
     return snapshotRows[0];
   }
 
+  async function selectSnapshotRevision() {
+    const [snapshotRows] = await pool.execute(
+      "SELECT revision, updated_at FROM root_store_snapshot WHERE store_key = ?",
+      [MYSQL_STORE_KEY]
+    );
+    if (!snapshotRows[0]) throw new Error("MySQL root_store_snapshot row is missing");
+    return snapshotRows[0];
+  }
+
+  async function loadSnapshotForRead() {
+    const [snapshotRows] = await pool.execute(
+      "SELECT payload_json, updated_at, revision FROM root_store_snapshot WHERE store_key = ?",
+      [MYSQL_STORE_KEY]
+    );
+    if (!snapshotRows[0]) throw new Error("MySQL root_store_snapshot row is missing");
+    return snapshotRows[0];
+  }
+
+  const readSnapshotCache = createRevisionSnapshotCache({
+    initialSnapshot: data,
+    initialRevision: revision,
+    probeRevision: selectSnapshotRevision,
+    loadSnapshot: loadSnapshotForRead,
+    normalize: (snapshot) => normalizeStoreData(snapshot, options),
+    onRead({ revision: readRevision, updatedAt }) {
+      revision = Math.max(revision, readRevision);
+      lastReadAt = new Date().toISOString();
+      if (updatedAt) lastSavedAt = String(updatedAt);
+      lastError = "";
+    },
+    onError(error) {
+      lastError = error.message;
+    },
+  });
+
   async function writeSnapshot(connection, snapshot, nextRevision) {
     await connection.execute(
       `
@@ -704,6 +804,7 @@ async function createMysqlStore(config = {}, options = {}) {
       await connection.commit();
       replaceStoreData(data, normalized, options);
       revision = nextRevision;
+      readSnapshotCache.update(normalized, nextRevision);
       lastReadAt = new Date().toISOString();
       if (changedKeys.size) lastSavedAt = lastReadAt;
       lastError = "";
@@ -732,6 +833,7 @@ async function createMysqlStore(config = {}, options = {}) {
       await connection.commit();
       replaceStoreData(data, latest, options);
       revision = nextRevision;
+      readSnapshotCache.update(latest, nextRevision);
       lastReadAt = new Date().toISOString();
       lastSavedAt = normalizedKeys.size ? lastReadAt : String(row.updated_at || lastSavedAt || "");
       lastError = "";
@@ -797,6 +899,10 @@ async function createMysqlStore(config = {}, options = {}) {
       };
     },
     runRequest(requestOptions = {}, work) {
+      if (requestOptions.write === false) {
+        if (closing) return Promise.reject(new Error("MySQL Store is closing"));
+        return readSnapshotCache.read().then((snapshot) => work(snapshot, Object.freeze({})));
+      }
       return enqueue(async () => {
         const connection = await pool.getConnection();
         let before = null;
@@ -848,6 +954,7 @@ async function createMysqlStore(config = {}, options = {}) {
           transactionCommandIdempotency = null;
           revision = nextRevision;
           replaceStoreData(data, afterPersisted, options);
+          readSnapshotCache.update(afterPersisted, nextRevision);
           before = normalizeStoreData(clone(afterPersisted), options);
           beforePersisted = normalizeStoreData(clone(afterPersisted), options);
           if (changedKeys.size) lastSavedAt = new Date().toISOString();
@@ -978,7 +1085,7 @@ async function createMysqlStore(config = {}, options = {}) {
         const [migrationRows] = await connection.query(
           "SELECT COUNT(*) AS migration_count, MAX(version) AS latest_version FROM schema_migrations"
         );
-        const row = await selectSnapshot(connection, false);
+        const row = await selectSnapshotRevision();
         revision = Number(row.revision || 0);
         lastReadAt = new Date().toISOString();
         lastError = "";
@@ -1013,6 +1120,7 @@ async function createMysqlStore(config = {}, options = {}) {
 }
 
 module.exports = {
+  createRevisionSnapshotCache,
   createJsonFileStore,
   createEmptyData,
   createMemoryStore,

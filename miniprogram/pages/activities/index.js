@@ -1,7 +1,12 @@
 const { syncTabBar } = require("../../utils/tab-bar");
-const { request } = require("../../utils/request");
+const { cancelRequestScope, requestWithDeadline } = require("../../utils/request");
+const { readPublicPageCache, writePublicPageCache } = require("../../utils/page-cache");
 const { presentActivityList } = require("../../utils/activity-presenter");
 const router = require("../../utils/router");
+
+const CACHE_KEY = "activities";
+const REQUEST_SCOPE = "formal-activity-list";
+const CACHE_OPTIONS = Object.freeze({ freshForMs: 2 * 60 * 1000, maxStaleMs: 24 * 60 * 60 * 1000 });
 
 const FILTERS = Object.freeze([
   { key: "all", label: "全部" },
@@ -35,41 +40,69 @@ Page({
     errorText: "",
   },
 
+  onLoad() {
+    const cached = readPublicPageCache(CACHE_KEY, CACHE_OPTIONS);
+    this._cacheFresh = Boolean(cached && cached.fresh);
+    if (cached) this.applyActivities(cached.value);
+  },
+
   onShow() {
     syncTabBar(this, 2);
-    this.loadActivities();
+    if (!this._loadPromise && (!this._cacheFresh || !this.data.activities.length)) {
+      this.loadActivities({ background: this.data.activities.length > 0 });
+    }
+  },
+
+  onHide() {
+    this._loadSequence = (this._loadSequence || 0) + 1;
+    cancelRequestScope(REQUEST_SCOPE);
+    this._loadPromise = null;
   },
 
   onUnload() {
     this._loadSequence = (this._loadSequence || 0) + 1;
+    cancelRequestScope(REQUEST_SCOPE);
   },
 
-  async loadActivities() {
+  applyActivities(payload) {
+    const activities = presentActivityList(payload);
+    const visibleActivities = decorateActivities(activities, this.data.filterKey);
+    this.setData({
+      activities,
+      visibleActivities,
+      state: activities.length ? "ready" : "empty",
+      errorText: "",
+    });
+  },
+
+  async loadActivities(options = {}) {
+    if (this._loadPromise) return this._loadPromise;
     const sequence = (this._loadSequence || 0) + 1;
     this._loadSequence = sequence;
-    this.setData({ state: "loading", errorText: "" });
+    if (!options.background && !this.data.activities.length) this.setData({ state: "loading", errorText: "" });
+    const pending = requestWithDeadline({
+      url: "/api/v1/activities?pageSize=20",
+      method: "GET",
+      scope: REQUEST_SCOPE,
+    }, 4000);
+    this._loadPromise = pending;
     try {
-      const payload = await request({
-        url: "/api/v1/activities?pageSize=20",
-        method: "GET",
-        scope: "formal-activity-list",
-      });
+      const payload = await pending;
       if (sequence !== this._loadSequence) return;
-      const activities = presentActivityList(payload);
-      const visibleActivities = decorateActivities(activities, this.data.filterKey);
-      this.setData({
-        activities,
-        visibleActivities,
-        state: activities.length ? "ready" : "empty",
-      });
+      this._cacheFresh = true;
+      writePublicPageCache(CACHE_KEY, payload);
+      this.applyActivities(payload);
     } catch (_) {
       if (sequence !== this._loadSequence) return;
+      if (this.data.activities.length) return;
       this.setData({
         state: "error",
         activities: [],
         visibleActivities: [],
         errorText: "活动暂时没有读到，请稍后再试。",
       });
+    } finally {
+      if (this._loadPromise === pending) this._loadPromise = null;
     }
   },
 
