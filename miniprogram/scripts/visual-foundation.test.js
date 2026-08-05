@@ -17,6 +17,8 @@ function assertFiles(relativePaths) {
 
 assertFiles([
   "styles/tokens.wxss",
+  "static/welcome/welcome-01.jpg",
+  "static/welcome/welcome-02.jpg",
   "components/root-wordmark/index.js",
   "components/root-wordmark/index.json",
   "components/root-wordmark/index.wxml",
@@ -59,6 +61,10 @@ const welcomeScript = read("pages/welcome/index.js");
 const welcomeSource = `${welcomeWxml}\n${welcomeScript}`;
 assert.match(welcomeWxml, /<immersive-header tone="light"/);
 assert.match(welcomeWxml, /data-release-asset="\{\{screens\[0\]\.assetState\}\}"/);
+assert.match(welcomeScript, /\/static\/welcome\/welcome-01\.jpg/);
+assert.match(welcomeScript, /\/static\/welcome\/welcome-02\.jpg/);
+assert.match(welcomeScript, /BUILTIN_HIGH_FIDELITY/);
+assert.doesNotMatch(welcomeScript, /DEVELOPMENT_PLACEHOLDER/);
 assert.match(welcomeSource, /欢迎加入/);
 assert.match(welcomeSource, /Root Member Club/);
 assert.match(welcomeSource, /Sustained Foundation Balance/);

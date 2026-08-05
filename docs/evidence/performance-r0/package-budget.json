@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-04T16:42:26.635Z",
+  "generatedAt": "2026-08-05T00:56:23.946Z",
   "evidenceClass": "LOCAL_FORMAL_SOURCE_ESTIMATE",
   "releaseGateEligible": false,
   "packageState": "LOCAL_SOURCE_ESTIMATE",
@@ -29,11 +29,11 @@
   },
   "packages": {
     "main": {
-      "bytes": 225791,
-      "fileCount": 95,
+      "bytes": 456016,
+      "fileCount": 97,
       "budget": {
         "status": "PASS",
-        "value": 225791,
+        "value": 456016,
         "target": 1363148.8,
         "hardLimit": 1572864
       }
@@ -85,21 +85,21 @@
       }
     ],
     "total": {
-      "bytes": 329806,
-      "fileCount": 132,
+      "bytes": 560031,
+      "fileCount": 134,
       "budget": {
         "status": "PASS",
-        "value": 329806,
+        "value": 560031,
         "target": 6291456,
         "hardLimit": 8388608
       }
     },
     "mainLocalMedia": {
-      "bytes": 30443,
-      "fileCount": 10,
+      "bytes": 260629,
+      "fileCount": 12,
       "budget": {
-        "status": "PASS",
-        "value": 30443,
+        "status": "WARN",
+        "value": 260629,
         "target": 204800,
         "hardLimit": 307200
       }
@@ -216,6 +216,28 @@
       "budget": {
         "status": "PASS",
         "value": 335,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/welcome/welcome-01.jpg",
+      "bytes": 103613,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 103613,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/welcome/welcome-02.jpg",
+      "bytes": 126573,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 126573,
         "target": 409600,
         "hardLimit": 614400
       }

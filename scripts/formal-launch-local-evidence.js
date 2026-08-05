@@ -216,8 +216,9 @@ function beforeRefsFor(screen, review) {
 const CONTROLLED_REVIEWS = Object.freeze({
   welcome: {
     screenshotRefs: miniCapture(["01-welcome-01.png", "01-welcome-02.png"]),
-    captureClass: "LOCAL_SIMULATOR_DEVELOPMENT_PLACEHOLDER",
-    differences: ["正式摄影背景尚未进入代码库，本次只验收安全区、文案、轮播指示与跳过按钮。"],
+    captureClass: "LOCAL_SIMULATOR_HIGH_FIDELITY_ASSET",
+    capturedAt: "2026-08-05T00:58:00.000Z",
+    differences: ["已接入 Ardot 高保真欢迎页背景；正式上线前仍需用微信真机确认不同屏幕比例下的裁切与文字可读性。"],
   },
   "home-and-shared-detail": {
     screenshotRefs: miniCapture(["02-home.png", "02-content-detail.png"]),
@@ -412,8 +413,8 @@ function visualReview(generatedAt) {
         boardNodes: screen.boardNodes,
         status: directlyCompared ? "REVIEWED_WITH_OPEN_DIFFERENCES" : "CAPTURED_REFERENCE_EXPORT_BLOCKED",
         ownerRole: "ENGINEERING_AND_QA",
-        capturedAt: CONTROLLED_CAPTURED_AT,
-        reviewedAt: directlyCompared ? CONTROLLED_CAPTURED_AT : null,
+        capturedAt: review.capturedAt || CONTROLLED_CAPTURED_AT,
+        reviewedAt: directlyCompared ? (review.capturedAt || CONTROLLED_CAPTURED_AT) : null,
         viewport: screen.viewport,
         captureClass: review.captureClass,
         referenceStatus: directlyCompared ? "ARDOT_REFERENCE_EXPORTED" : "ARDOT_LIVE_READBACK_CONFIRMED_EXPORT_TIMEOUT",
