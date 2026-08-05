@@ -23,6 +23,7 @@ const ACTION_TYPES = new Set(["MINIPROGRAM_PAGE", "ROOT_MEMBER_CENTER", "BUSINES
 const ADMIN_TARGET_TYPES = new Set(["MINIPROGRAM_PAGE", "ROOT_MEMBER_CENTER", "WEBVIEW_ALLOWLIST"]);
 const ASSET_SCOPES = new Set(["welcome-1", "welcome-2", "home-carousel", "shared-detail", "activity-hero", "content"]);
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png"]);
+const ROOT_MEMBER_CENTER_SHORT_LINK = /^#小程序:\/\/ROOT会员中心\/[A-Za-z0-9_-]{4,80}$/;
 
 function contentError(code, message, status = 400, details = undefined) {
   const error = createClientError(code, message, status);
@@ -135,6 +136,10 @@ function normalizeAction(value, env = {}) {
     return FORMAL_INTERNAL_PATHS.has(pathOnly) ? { type: value.type, path } : undefined;
   }
   if (value.type === "ROOT_MEMBER_CENTER") {
+    const shortLink = String(value.shortLink || value.short_link || value.path || "").trim();
+    if (ROOT_MEMBER_CENTER_SHORT_LINK.test(shortLink)) {
+      return { type: value.type, shortLink };
+    }
     const configuredAppId = String(env.ROOT_MEMBER_CENTER_APPID || "").trim();
     const appId = String(value.appId || "").trim();
     const path = String(value.path || "").trim();
@@ -166,8 +171,9 @@ function validateTarget(input = {}, context = {}) {
       type: "ROOT_MEMBER_CENTER",
       appId: String((context.env || {}).ROOT_MEMBER_CENTER_APPID || "").trim(),
       path: target,
+      shortLink: target,
     }, context.env || {});
-    message = "Root 会员中心固定路径检查通过";
+    message = action && action.shortLink ? "Root 会员中心短链接检查通过" : "Root 会员中心固定路径检查通过";
   } else {
     action = normalizeAction({ type: "BUSINESS_WEBVIEW", url: target }, context.env || {});
     message = "白名单网页检查通过";
