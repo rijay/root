@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-04T16:42:26.635Z",
+  "generatedAt": "2026-08-05T00:56:23.946Z",
   "evidenceClass": "LOCAL_IMPLEMENTATION_MAPPING",
   "releaseGateEligible": false,
   "designSource": {
@@ -33,7 +33,7 @@
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
-      "captureClass": "LOCAL_SIMULATOR_DEVELOPMENT_PLACEHOLDER",
+      "captureClass": "LOCAL_SIMULATOR_HIGH_FIDELITY_ASSET",
       "screenshotRefs": [
         "screenshots/implementation/miniprogram/01-welcome-01.png",
         "screenshots/implementation/miniprogram/01-welcome-02.png"

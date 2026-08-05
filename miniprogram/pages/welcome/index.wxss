@@ -33,7 +33,7 @@ page {
   background: var(--root-ink);
 }
 
-/* 开发占位视觉：正式候选必须由不可变已发布 CDN 素材替换。 */
+/* 内置高保真背景加载失败时的低成本视觉回退。 */
 .welcome__media--first {
   background:
     radial-gradient(circle at 78% 24%, rgba(166, 183, 122, 0.26), transparent 31%),

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-04T16:42:26.635Z",
+  "generatedAt": "2026-08-05T00:56:23.946Z",
   "evidenceClass": "LOCAL_CONTROLLED_VISUAL_REVIEW_COMPLETE",
   "status": "BLOCK",
   "releaseGateEligible": false,
@@ -26,10 +26,10 @@
       ],
       "status": "REVIEWED_WITH_OPEN_DIFFERENCES",
       "ownerRole": "ENGINEERING_AND_QA",
-      "capturedAt": "2026-08-04T09:08:00.000Z",
-      "reviewedAt": "2026-08-04T09:08:00.000Z",
+      "capturedAt": "2026-08-05T00:58:00.000Z",
+      "reviewedAt": "2026-08-05T00:58:00.000Z",
       "viewport": "390x844",
-      "captureClass": "LOCAL_SIMULATOR_DEVELOPMENT_PLACEHOLDER",
+      "captureClass": "LOCAL_SIMULATOR_HIGH_FIDELITY_ASSET",
       "referenceStatus": "ARDOT_REFERENCE_EXPORTED",
       "screenshotRefs": [
         "screenshots/implementation/miniprogram/01-welcome-01.png",
@@ -41,7 +41,7 @@
         "screenshots/reference/design-368_12.png"
       ],
       "differences": [
-        "正式摄影背景尚未进入代码库，本次只验收安全区、文案、轮播指示与跳过按钮。"
+        "已接入 Ardot 高保真欢迎页背景；正式上线前仍需用微信真机确认不同屏幕比例下的裁切与文字可读性。"
       ]
     },
     {
