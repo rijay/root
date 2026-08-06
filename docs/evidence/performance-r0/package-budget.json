@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-06T02:32:48.228Z",
+  "generatedAt": "2026-08-06T04:08:14.658Z",
   "evidenceClass": "LOCAL_FORMAL_SOURCE_ESTIMATE",
   "releaseGateEligible": false,
   "packageState": "LOCAL_SOURCE_ESTIMATE",
@@ -29,11 +29,11 @@
   },
   "packages": {
     "main": {
-      "bytes": 469143,
+      "bytes": 469287,
       "fileCount": 99,
       "budget": {
         "status": "PASS",
-        "value": 469143,
+        "value": 469287,
         "target": 1363148.8,
         "hardLimit": 1572864
       }
@@ -74,22 +74,22 @@
       },
       {
         "root": "subpkg/profile",
-        "bytes": 19034,
+        "bytes": 20930,
         "fileCount": 12,
         "budget": {
           "status": "PASS",
-          "value": 19034,
+          "value": 20930,
           "target": 819200,
           "hardLimit": 1258291.2
         }
       }
     ],
     "total": {
-      "bytes": 573274,
+      "bytes": 575314,
       "fileCount": 136,
       "budget": {
         "status": "PASS",
-        "value": 573274,
+        "value": 575314,
         "target": 6291456,
         "hardLimit": 8388608
       }
