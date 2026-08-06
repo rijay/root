@@ -2,6 +2,7 @@ const router = require("../../utils/router");
 const { cancelRequestScope, getToken, requestWithDeadline } = require("../../utils/request");
 const { clearSessionPageCache, readSessionPageCache, writeSessionPageCache } = require("../../utils/page-cache");
 const { ensureHealthConsent } = require("../../utils/health-consent");
+const { FORMAL_ACCESS_STATE, inspectFormalAccess, loginRoute } = require("../../utils/formal-access");
 const { syncTabBar } = require("../../utils/tab-bar");
 
 const START_PENDING_KEY = "ROOT4U_START_PENDING_V1";
@@ -96,7 +97,22 @@ Page({
     const bootstrap = this.data.bootstrap;
     if (!bootstrap) return this.load();
     if (bootstrap.eligibility === "PROFILE_REQUIRED") {
-      router.open("/pages/register/index");
+      try {
+        const access = await inspectFormalAccess("root4u-start-access");
+        if (access.state === FORMAL_ACCESS_STATE.PHONE_REQUIRED) {
+          router.open(loginRoute("/pages/health/index"));
+          return;
+        }
+        if (access.state === FORMAL_ACCESS_STATE.PROFILE_REQUIRED) {
+          router.open("/pages/register/index");
+          return;
+        }
+        clearSessionPageCache();
+        await this.load();
+      } catch (error) {
+        // 无法证明手机号已验证时，回到唯一的微信手机号授权入口。
+        router.open(loginRoute("/pages/health/index"));
+      }
       return;
     }
     if (bootstrap.eligibility === "AGE_RESTRICTED") {

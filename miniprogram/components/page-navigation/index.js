@@ -28,6 +28,11 @@ function resolveNavigationTop() {
 }
 
 Component({
+  options: {
+    // 真机中自定义组件宿主节点会参与布局。虚拟化宿主后，固定定位始终
+    // 以视口为参照，避免不同基础库把按钮组放进未知宽度的宿主盒子。
+    virtualHost: true,
+  },
   properties: {
     tone: { type: String, value: "dark" },
     showHome: { type: Boolean, value: true },

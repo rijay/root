@@ -1,20 +1,22 @@
-:host {
+.page-navigation {
   position: fixed;
   z-index: 10;
-  top: 0;
-  left: 0;
-  display: block;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
-.page-navigation {
-  position: absolute;
+  right: auto;
   left: 16px;
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  height: 40px;
+  box-sizing: border-box;
   pointer-events: auto;
+}
+
+.page-navigation--single {
+  width: 40px;
+}
+
+.page-navigation--double {
+  width: 88px;
 }
 
 .page-navigation__button {
@@ -27,11 +29,17 @@
   height: 40px;
   min-height: 40px;
   margin: 0;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
   padding: 0;
   box-sizing: border-box;
   background: rgba(255, 255, 255, 0.76);
   border: 1px solid var(--root-line);
   border-radius: 50%;
+}
+
+.page-navigation__button + .page-navigation__button {
+  margin-left: 8px !important;
 }
 
 .page-navigation__button::after {

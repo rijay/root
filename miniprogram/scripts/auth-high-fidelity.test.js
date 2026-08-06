@@ -47,6 +47,8 @@ assert.match(registerWxml, /register-page__avatar-wordmark/);
 assert.match(registerWxml, /register-page__avatar" style="width: 72px;"/);
 assert.match(registerWxml, /register-gender__option[^>]+style="width: 142px;"/);
 assert.match(registerWxml, /register-page__submit" style="width: 350px;"/);
+assert.match(registerWxml, /!phone \|\| !birthDate \|\| !gender/);
+assert.match(registerWxml, /正在核验会员状态/);
 assert.match(registerWxss, /register-page__avatar-row[\s\S]*margin:\s*26px 4px 0/);
 assert.match(registerWxss, /register-page__submit[\s\S]*width:\s*100% !important/);
 assert.match(registerWxss, /register-page__submit[\s\S]*margin:\s*40px 0 0/);

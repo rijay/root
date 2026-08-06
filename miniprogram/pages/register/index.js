@@ -1,6 +1,7 @@
 const { request, stringifyError } = require("../../utils/request");
 const { consume: consumeAuthIntent } = require("../../utils/auth-intent");
 const { isPersistedAvatar, uploadCloudAvatar } = require("../../utils/avatar-upload");
+const { FORMAL_ACCESS_STATE, inspectFormalAccess, loginRoute } = require("../../utils/formal-access");
 const router = require("../../utils/router");
 
 const REGISTRATION_CONTEXT_STORAGE_KEY = "ROOT_REGISTRATION_CONTEXT_V1";
@@ -32,6 +33,7 @@ Page({
     userId: "",
     maxBirthDate: today(),
     loading: false,
+    profileChecking: true,
     avatarUploading: false,
     newUser: true,
     editing: false,
@@ -49,22 +51,35 @@ Page({
       phone: context.phone || "",
       userId: context.userId || "",
     });
+    this._phoneVerifiedByLogin = Boolean(context.phone);
     this.refresh();
   },
 
   async refresh() {
     try {
-      const data = await request({ url: "/api/v1/user/formal-profile", method: "GET", scope: "formal-profile" });
-      const profile = data.profile || {};
+      const access = await inspectFormalAccess("formal-profile");
+      const profile = access.profile || {};
+      if (access.state === FORMAL_ACCESS_STATE.PHONE_REQUIRED && !this._phoneVerifiedByLogin) {
+        wx.showToast({ title: "请先完成手机号验证", icon: "none" });
+        router.go(loginRoute(this.data.editing ? "/pages/profile/index" : ""));
+        return;
+      }
       this.setData({
         nickname: profile.nickname || "Root用户",
         avatarUrl: profile.avatarUrl || "",
         phone: profile.phone || this.data.phone,
         birthDate: profile.birthDate || "",
         gender: profile.gender || "",
+        profileChecking: false,
       });
     } catch (error) {
-      // 登录返回的脱敏手机号足以先呈现表单；读失败不清空用户已输入内容。
+      if (this._phoneVerifiedByLogin) {
+        // 登录返回的脱敏手机号足以先呈现表单；读失败不清空用户已输入内容。
+        this.setData({ profileChecking: false });
+        return;
+      }
+      wx.showToast({ title: "请先完成手机号验证", icon: "none" });
+      router.go(loginRoute(this.data.editing ? "/pages/profile/index" : ""));
     }
   },
 
@@ -95,7 +110,7 @@ Page({
   },
 
   async submitProfile() {
-    if (this.data.loading) return;
+    if (this.data.loading || this.data.profileChecking) return;
     if (this.data.avatarUploading) {
       wx.showToast({ title: "头像处理中，请稍候", icon: "none" });
       return;

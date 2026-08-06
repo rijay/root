@@ -42,8 +42,10 @@ const tokens = read("styles/tokens.wxss");
 
 assert.match(read("app.wxss"), /@import "\.\/styles\/tokens\.wxss";/);
 const navigationWxss = read("components/page-navigation/index.wxss");
-assert.match(navigationWxss, /:host\s*\{[^}]*position:\s*fixed[^}]*top:\s*0[^}]*left:\s*0[^}]*width:\s*0[^}]*height:\s*0[^}]*pointer-events:\s*none/s);
-assert.match(navigationWxss, /\.page-navigation\s*\{[^}]*position:\s*absolute[^}]*left:\s*16px[^}]*pointer-events:\s*auto/s);
+assert.doesNotMatch(navigationWxss, /:host/);
+assert.match(navigationWxss, /\.page-navigation\s*\{[^}]*position:\s*fixed[^}]*right:\s*auto[^}]*left:\s*16px[^}]*pointer-events:\s*auto/s);
+assert.match(navigationWxss, /\.page-navigation--single\s*\{[^}]*width:\s*40px/s);
+assert.match(navigationWxss, /\.page-navigation--double\s*\{[^}]*width:\s*88px/s);
 assert.match(navigationWxss, /flex:\s*0\s+0\s+40px/);
 assert.match(read("components/page-navigation/index.wxml"), /wx:if="\{\{showHome\}\}"/);
 
@@ -113,6 +115,7 @@ assert.match(tabWxss, /height:\s*84px/);
 
 const navigationWxml = read("components/page-navigation/index.wxml");
 const navigationScript = read("components/page-navigation/index.js");
+assert.match(navigationScript, /virtualHost:\s*true/);
 assert.match(navigationWxml, /style="top: \{\{top\}\}px;"/);
 assert.match(navigationScript, /statusBarHeight/);
 assert.match(navigationScript, /getMenuButtonBoundingClientRect/);
