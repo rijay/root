@@ -1,9 +1,10 @@
 const env = require("../../config/env");
 const { appVersion } = require("../../config/version");
 const router = require("../../utils/router");
-const { clearToken, getToken, request } = require("../../utils/request");
+const { clearToken, getToken } = require("../../utils/request");
 const { syncTabBar } = require("../../utils/tab-bar");
 const { clearLegacyTransientHealthStorage, clearTransientHealthData } = require("../../utils/transient-health-state");
+const { FORMAL_ACCESS_STATE, inspectFormalAccess } = require("../../utils/formal-access");
 
 const PROFILE_ROUTE = "/pages/profile/index";
 const PENDING_MEMBER_TARGET_KEY = "ROOT_PROFILE_MEMBER_TARGET_V1";
@@ -30,6 +31,7 @@ function runtimeVersion() {
 Page({
   data: {
     loggedIn: false,
+    sessionChecking: false,
     profile: { nickname: "未登录", avatarUrl: "" },
     version: appVersion,
     memberLinkFailure: false,
@@ -42,31 +44,39 @@ Page({
 
   onShow() {
     syncTabBar(this, 3);
-    const loggedIn = Boolean(getToken());
-    this.setData(loggedIn
-      ? { loggedIn }
-      : { loggedIn, memberLinkFailure: false, failedMemberKey: "" });
-    if (loggedIn) {
+    const hasSession = Boolean(getToken());
+    this.setData(hasSession
+      ? { loggedIn: false, sessionChecking: true }
+      : { loggedIn: false, sessionChecking: false, memberLinkFailure: false, failedMemberKey: "" });
+    if (hasSession) {
       this.loadProfile();
-      const pendingTarget = wx.getStorageSync(PENDING_MEMBER_TARGET_KEY);
-      if (pendingTarget && !this._resumingMemberTarget) {
-        this._resumingMemberTarget = true;
-        wx.removeStorageSync(PENDING_MEMBER_TARGET_KEY);
-        setTimeout(() => {
-          this.openMemberPath(pendingTarget);
-          this._resumingMemberTarget = false;
-        }, 0);
-      }
     }
   },
 
   async loadProfile() {
     try {
-      const data = await request({ url: "/api/v1/user/formal-profile", method: "GET", scope: "profile-home" });
-      this.setData({ profile: data.profile || { nickname: "Root用户", avatarUrl: "" } });
+      const access = await inspectFormalAccess("profile-home");
+      const loggedIn = access.state !== FORMAL_ACCESS_STATE.PHONE_REQUIRED;
+      this.setData({
+        loggedIn,
+        sessionChecking: false,
+        profile: access.profile || { nickname: loggedIn ? "Root用户" : "未登录", avatarUrl: "" },
+      });
+      if (loggedIn) this.resumeMemberTarget();
     } catch (error) {
-      this.setData({ profile: { nickname: "Root用户", avatarUrl: "" } });
+      this.setData({ loggedIn: false, sessionChecking: false, profile: { nickname: "未登录", avatarUrl: "" } });
     }
+  },
+
+  resumeMemberTarget() {
+    const pendingTarget = wx.getStorageSync(PENDING_MEMBER_TARGET_KEY);
+    if (!pendingTarget || this._resumingMemberTarget) return;
+    this._resumingMemberTarget = true;
+    wx.removeStorageSync(PENDING_MEMBER_TARGET_KEY);
+    setTimeout(() => {
+      this.openMemberPath(pendingTarget);
+      this._resumingMemberTarget = false;
+    }, 0);
   },
 
   openLogin() {
@@ -74,11 +84,13 @@ Page({
   },
 
   handleIdentityTap() {
+    if (this.data.sessionChecking) return;
     if (this.data.loggedIn) this.openProfileEditor();
     else this.openLogin();
   },
 
   openMemberEntry(event) {
+    if (this.data.sessionChecking) return;
     const key = event.currentTarget.dataset.key;
     if (!this.data.loggedIn) {
       wx.setStorageSync(PENDING_MEMBER_TARGET_KEY, key);
@@ -128,6 +140,7 @@ Page({
     clearLegacyTransientHealthStorage(wx);
     this.setData({
       loggedIn: false,
+      sessionChecking: false,
       profile: { nickname: "未登录", avatarUrl: "" },
       memberLinkFailure: false,
       failedMemberKey: "",

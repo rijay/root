@@ -4,7 +4,8 @@ const { request, getToken } = require("./request");
 
 const stateRoutes = Object.freeze({
   GUEST: "/pages/home/index",
-  UNREGISTERED: "/pages/register/index",
+  // 未完成手机号验证的旧会话必须重新进入唯一的微信授权入口。
+  UNREGISTERED: "/pages/login/index",
   REGISTERED_IDLE: "/pages/home/index",
   CHECKIN_ACTIVE: "/pages/home/index",
   CHECKIN_COMPLETED: "/pages/home/index",

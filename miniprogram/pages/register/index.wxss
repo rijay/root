@@ -18,6 +18,13 @@ page {
   padding: 130px 20px calc(64px + env(safe-area-inset-bottom));
 }
 
+.register-page__checking {
+  padding-top: 280px;
+  color: var(--root-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
 .register-page__title,
 .register-page__subtitle,
 .register-page__avatar-copy,
@@ -216,7 +223,8 @@ page {
 }
 
 .register-page__submit[disabled] {
-  opacity: 0.72;
+  color: rgba(255, 255, 255, 0.78);
+  opacity: 0.46;
 }
 
 @media (max-width: 359px) {
