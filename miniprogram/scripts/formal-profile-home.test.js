@@ -18,6 +18,8 @@ assert.match(script, /shortLink/);
 assert.doesNotMatch(script, /rootMemberCenterOrdersPath|rootMemberCenterCouponsPath/);
 assert.match(envScript, /rootMemberCenterOrdersShortLink:\s*"#小程序:\/\/ROOT会员中心\/vTORPdF67tiEwCb"/);
 assert.match(envScript, /rootMemberCenterCouponsShortLink:\s*"#小程序:\/\/ROOT会员中心\/vTORPdF67tiEwCb"/);
+assert.match(envScript, /corpId:\s*"ww4c7f2598188d97db"/);
+assert.match(envScript, /url:\s*"https:\/\/work\.weixin\.qq\.com\/kfid\/kfc9a886fb6a493c66b"/);
 assert.match(script, /clearToken/);
 assert.match(wxml, /我的订单/);
 assert.match(wxml, /优惠券/);
@@ -30,5 +32,7 @@ assert.doesNotMatch(wxml, /会员等级|积分|余额/);
 assert.doesNotMatch(wxml, /›|＞|&gt;/);
 assert.match(wxss, /profile-row__arrow/);
 assert.match(supportScript, /faq|feedback|contact/);
+assert.match(supportScript, /wx\.openCustomerServiceChat\(\{/);
+assert.match(supportScript, /showNativeContactFallback:\s*true/);
 
 console.log("formal profile home tests ok");

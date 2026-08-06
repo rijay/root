@@ -53,7 +53,8 @@ matches(aboutWxss, /about-page__wordmark\s*\{[^}]*top:\s*210px[^}]*width:\s*126p
 matches(aboutWxml, /人如草木，根定而生。/, "品牌核心文案");
 matches(aboutWxss, /about-page__links\s*\{[^}]*top:\s*530px[^}]*height:\s*200px/s, "关于页链接区坐标");
 matches(aboutWxss, /about-page__links\s*\{[^}]*width:\s*calc\(100% - 40px\)/s, "关于页保持双侧 20px 边距");
-matches(supportWxml, /support-page__contact[^>]*style="width:\s*100%;\s*margin:\s*64rpx 0 0;"/s, "微信原生客服按钮显式占满内容区");
+matches(supportWxml, /support-page__contact[^>]*style="width:\s*100%;\s*margin:\s*64rpx 0 0;"[\s\S]*bindtap="openWeComCustomerService"/s, "企微客服按钮显式占满内容区");
+matches(supportWxml, /open-type="contact"[\s\S]*bindcontact="onNativeContact"/s, "企微客服失败后保留微信客服降级入口");
 matches(supportWxss, /support-page__contact\s*\{[^}]*width:\s*100%[^}]*margin:\s*64rpx 0 0[^}]*box-sizing:\s*border-box/s, "客服与反馈按钮占满内容区且不受原生按钮外边距影响");
 
 matches(privacyWxml, /个人信息收集清单/, "隐私清单入口");

@@ -30,4 +30,8 @@ module.exports = {
   rootMemberCenterAppId: "wxfb75c0b432670215",
   rootMemberCenterOrdersShortLink: "#小程序://ROOT会员中心/vTORPdF67tiEwCb",
   rootMemberCenterCouponsShortLink: "#小程序://ROOT会员中心/vTORPdF67tiEwCb",
+  wecomCustomerService: Object.freeze({
+    corpId: "ww4c7f2598188d97db",
+    url: "https://work.weixin.qq.com/kfid/kfc9a886fb6a493c66b",
+  }),
 };
