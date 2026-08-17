@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-08-17T19:35:00+08:00",
+  "releaseVersion": "0.6.0",
+  "status": "PARTIALLY_READY",
+  "items": [
+    {
+      "key": "PRODUCT_CATALOG",
+      "status": "READY_IN_CANDIDATE_ARTIFACT",
+      "source": "User-provided Root member-center product IDs and paths",
+      "productIds": [
+        "4749049439",
+        "4875324599"
+      ],
+      "memberCenterAppId": "wxfb75c0b432670215",
+      "verification": "The v0.6.0 catalog now returns exactly the two official products even when the production snapshot still contains the retired ROOT_PREBIOTIC_7D_RESET item. Dynamic image and price fields remain overridable; appId and product paths remain authoritative."
+    },
+    {
+      "key": "LOGIN_SESSION_POPUP",
+      "status": "READY_IN_CANDIDATE_ARTIFACT",
+      "campaignId": "ROOT_PRODUCTS_V060",
+      "popupId": "root-products-v060",
+      "frequency": "once per login session",
+      "primaryAction": {
+        "type": "OPEN_PRODUCT",
+        "productId": "4749049439",
+        "label": "立即探索"
+      },
+      "overridePolicy": "An explicit persisted sessionPopup configuration, including PENDING or disabled content, takes precedence and prevents the code fallback from bypassing an operator decision."
+    },
+    {
+      "key": "INITIAL_ASSESSMENT_DEFINITION",
+      "status": "BLOCKED_MISSING_APPROVED_DEFINITION",
+      "productionDefinitionCount": 0,
+      "reason": "The exact approved questionnaire, generic scoring rules, dimensions and result-copy mapping for the new v0.6.0 assessment Interface are not available in the repository or accessible source material. Existing tests use fixtures explicitly labeled as non-formal.",
+      "safetyBehavior": "The runtime remains fail-closed and does not expose an assessment whose content, professional and compliance review statuses are not all APPROVED."
+    },
+    {
+      "key": "GUT_REGULARITY_ASSESSMENT_DEFINITION",
+      "status": "BLOCKED_MISSING_APPROVED_DEFINITION",
+      "productionDefinitionCount": 0,
+      "reason": "Ardot provides flow and example copy but is not the authoritative professional/compliance publication record. No approval metadata is invented.",
+      "releaseBlockerClaim": "NOT_ASSERTED",
+      "note": "The product decision that this review item is not a release blocker is preserved; this file only records that the runtime definition cannot be fabricated."
+    },
+    {
+      "key": "CHANNEL_QR_DEFINITIONS",
+      "status": "BLOCKED_MISSING_BUSINESS_INPUT",
+      "productionDefinitionCount": 0,
+      "requiredInputs": [
+        "channelId list",
+        "campaignId mapping",
+        "allowed target page for each channel",
+        "validity window",
+        "signature keyId and secret custody owner"
+      ],
+      "implementedBehavior": "Signed first-touch attribution is complete and tested; a later valid QR never overwrites the first accepted channel.",
+      "safetyBehavior": "Unknown, expired, incorrectly signed or unconfigured channels are rejected and recorded without storing the signing secret."
+    }
+  ]
+}
