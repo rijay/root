@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "0.6.0",
+  "capturedAt": "2026-08-17T19:05:27+08:00",
+  "evidenceClass": "LOCAL_CONTROLLED_UED_IMPLEMENTATION_REVIEW",
+  "releaseGateEligible": false,
+  "runtimeAcceptance": "NOT_CANDIDATE",
+  "dataMode": "SYNTHETIC_LOCAL_ONLY",
+  "clinicalContentApproval": "NOT_ASSERTED",
+  "designSource": {
+    "file": "myRoot",
+    "uri": "cocraft://localhost/file/684679021092544",
+    "pageNode": "527:1",
+    "pageTitle": "myRoot V2 UED · 0.6.0 · 产品与自测 · 2026-08-16"
+  },
+  "implementationSource": {
+    "branch": "codex/v0.6.0-integration-20260817",
+    "commit": "7cca2f31cb3a19ebcbde8e20a429637666b75ffe",
+    "appid": "wx7727a02565aed1c2",
+    "tool": "WeChat DevTools simulator",
+    "viewport": "610x1318"
+  },
+  "screens": [
+    {
+      "key": "health-entry",
+      "designNode": "527:159",
+      "reference": "screenshots/reference/health-entry.png",
+      "implementation": "screenshots/implementation/miniprogram/health-entry.png",
+      "implementationPaths": [
+        "miniprogram/pages/health/index.wxml",
+        "miniprogram/pages/health/index.wxss"
+      ],
+      "status": "REVIEWED"
+    },
+    {
+      "key": "gut-safety-question",
+      "designNode": "527:236",
+      "reference": "screenshots/reference/assessment-gut-safety.png",
+      "implementation": "screenshots/implementation/miniprogram/assessment-gut-safety.png",
+      "implementationPaths": [
+        "miniprogram/subpkg/health/pages/assessment/index.wxml",
+        "miniprogram/subpkg/health/pages/assessment/index.wxss"
+      ],
+      "status": "REVIEWED"
+    },
+    {
+      "key": "initial-result-and-retest",
+      "designNode": "527:185",
+      "reference": "screenshots/reference/assessment-result-initial.png",
+      "implementation": "screenshots/implementation/miniprogram/assessment-result-initial.png",
+      "implementationPaths": [
+        "miniprogram/subpkg/health/pages/result/index.wxml",
+        "miniprogram/subpkg/health/pages/result/index.wxss"
+      ],
+      "status": "REVIEWED"
+    },
+    {
+      "key": "assessment-history",
+      "designNode": "527:754",
+      "reference": "screenshots/reference/assessment-history-detail.png",
+      "implementation": "screenshots/implementation/miniprogram/assessment-history.png",
+      "implementationPaths": [
+        "miniprogram/subpkg/health/pages/history/index.wxml",
+        "miniprogram/subpkg/health/pages/history/index.wxss"
+      ],
+      "status": "REVIEWED_WITH_STATE_DIFFERENCE",
+      "difference": "Ardot reference is a history-detail state; the captured implementation is the history list used to enter that state."
+    },
+    {
+      "key": "assessment-same-version-compare",
+      "designNode": "527:1397",
+      "reference": "screenshots/reference/assessment-compare.png",
+      "implementation": "screenshots/implementation/miniprogram/assessment-compare.png",
+      "implementationPaths": [
+        "miniprogram/subpkg/health/pages/compare/index.wxml",
+        "miniprogram/subpkg/health/pages/compare/index.wxss"
+      ],
+      "status": "REVIEWED"
+    }
+  ]
+}

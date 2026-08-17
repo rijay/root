@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-06T04:08:14.658Z",
+  "generatedAt": "2026-08-17T11:07:14.677Z",
   "evidenceClass": "LOCAL_FORMAL_SOURCE_ESTIMATE",
   "releaseGateEligible": false,
   "packageState": "LOCAL_SOURCE_ESTIMATE",
@@ -29,11 +29,11 @@
   },
   "packages": {
     "main": {
-      "bytes": 469287,
-      "fileCount": 99,
+      "bytes": 554122,
+      "fileCount": 137,
       "budget": {
         "status": "PASS",
-        "value": 469287,
+        "value": 554122,
         "target": 1363148.8,
         "hardLimit": 1572864
       }
@@ -52,22 +52,22 @@
       },
       {
         "root": "subpkg/health",
-        "bytes": 23240,
-        "fileCount": 8,
+        "bytes": 50257,
+        "fileCount": 16,
         "budget": {
           "status": "PASS",
-          "value": 23240,
+          "value": 50257,
           "target": 819200,
           "hardLimit": 1258291.2
         }
       },
       {
         "root": "subpkg/activity",
-        "bytes": 54156,
+        "bytes": 56133,
         "fileCount": 9,
         "budget": {
           "status": "PASS",
-          "value": 54156,
+          "value": 56133,
           "target": 819200,
           "hardLimit": 1258291.2
         }
@@ -85,21 +85,21 @@
       }
     ],
     "total": {
-      "bytes": 575314,
-      "fileCount": 136,
+      "bytes": 689143,
+      "fileCount": 182,
       "budget": {
         "status": "PASS",
-        "value": 575314,
+        "value": 689143,
         "target": 6291456,
         "hardLimit": 8388608
       }
     },
     "mainLocalMedia": {
-      "bytes": 260629,
-      "fileCount": 12,
+      "bytes": 268778,
+      "fileCount": 20,
       "budget": {
         "status": "WARN",
-        "value": 260629,
+        "value": 268778,
         "target": 204800,
         "hardLimit": 307200
       }
@@ -199,6 +199,28 @@
       }
     },
     {
+      "path": "static/icons/tab-product-active.svg",
+      "bytes": 308,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 308,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/icons/tab-product.svg",
+      "bytes": 308,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 308,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
       "path": "static/icons/tab-profile-active.svg",
       "bytes": 335,
       "category": "GENERAL_LOCAL_MEDIA",
@@ -218,6 +240,72 @@
         "value": 335,
         "target": 409600,
         "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/tabbar/activity_active.png",
+      "bytes": 915,
+      "category": "LOGO_OR_TAB_ICON",
+      "budget": {
+        "status": "PASS",
+        "value": 915,
+        "target": 20480,
+        "hardLimit": 40960
+      }
+    },
+    {
+      "path": "static/tabbar/activity.png",
+      "bytes": 904,
+      "category": "LOGO_OR_TAB_ICON",
+      "budget": {
+        "status": "PASS",
+        "value": 904,
+        "target": 20480,
+        "hardLimit": 40960
+      }
+    },
+    {
+      "path": "static/tabbar/health_active.png",
+      "bytes": 1784,
+      "category": "LOGO_OR_TAB_ICON",
+      "budget": {
+        "status": "PASS",
+        "value": 1784,
+        "target": 20480,
+        "hardLimit": 40960
+      }
+    },
+    {
+      "path": "static/tabbar/health.png",
+      "bytes": 1745,
+      "category": "LOGO_OR_TAB_ICON",
+      "budget": {
+        "status": "PASS",
+        "value": 1745,
+        "target": 20480,
+        "hardLimit": 40960
+      }
+    },
+    {
+      "path": "static/tabbar/product_active.png",
+      "bytes": 1104,
+      "category": "LOGO_OR_TAB_ICON",
+      "budget": {
+        "status": "PASS",
+        "value": 1104,
+        "target": 20480,
+        "hardLimit": 40960
+      }
+    },
+    {
+      "path": "static/tabbar/product.png",
+      "bytes": 1081,
+      "category": "LOGO_OR_TAB_ICON",
+      "budget": {
+        "status": "PASS",
+        "value": 1081,
+        "target": 20480,
+        "hardLimit": 40960
       }
     },
     {
