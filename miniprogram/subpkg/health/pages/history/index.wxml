@@ -1,0 +1,85 @@
+<view class="root-page history-page">
+  <view class="history-header">
+    <view class="history-kicker">ASSESSMENT HISTORY</view>
+    <view class="history-title">每一次结果，独立保存</view>
+    <view class="history-copy">仅相同问卷 ID 与版本支持数值对比。选择两次记录后，可查看相同维度的前后差异。</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="root-card history-state">
+    <view class="root-section-title">正在读取历史结果</view>
+  </view>
+
+  <view wx:elif="{{errorText && !assessments.length}}" class="root-card history-state">
+    <view class="root-section-title">历史结果暂时无法加载</view>
+    <view class="root-helper-text">{{errorText}}</view>
+    <button class="root-button state-action" bindtap="load">重新加载</button>
+  </view>
+
+  <view wx:elif="{{!assessments.length}}" class="root-card history-state">
+    <view class="root-section-title">还没有已完成的评测</view>
+    <view class="root-helper-text">完成首次评测后，结果会显示在这里。</view>
+  </view>
+
+  <block wx:else>
+    <view wx:if="{{refreshErrorText}}" class="history-refresh-error">
+      <view>
+        <view class="history-refresh-error__title">刷新失败，仍显示原有记录</view>
+        <view class="history-refresh-error__copy">{{refreshErrorText}}</view>
+      </view>
+      <button bindtap="load">重试</button>
+    </view>
+
+    <view class="history-filters" role="tablist">
+      <button
+        wx:for="{{filters}}"
+        wx:key="key"
+        class="history-filter {{activeFilter === item.key ? 'is-active' : ''}}"
+        data-filter="{{item.key}}"
+        bindtap="setFilter"
+      >{{item.label}}</button>
+    </view>
+
+    <view
+      wx:if="{{assessments.length >= 2}}"
+      class="recent-compare {{recentPairIds.length === 2 ? '' : 'is-disabled'}}"
+      aria-role="button"
+      aria-disabled="{{recentPairIds.length !== 2}}"
+      bindtap="compareRecent"
+    >
+      <text>对比最近一组可比记录</text>
+      <text class="recent-compare__meta">{{recentPairText}}</text>
+    </view>
+
+    <view class="selection-guide">
+      <text>自选两次对比</text>
+      <text>{{selectedIds.length}} / 2</text>
+    </view>
+
+    <view wx:if="{{!visibleAssessments.length}}" class="root-card filtered-empty">
+      <view class="root-section-title">此分类暂无记录</view>
+      <view class="root-helper-text">可切换到“全部”查看其他评测结果。</view>
+    </view>
+
+    <view wx:else class="history-list">
+      <view wx:for="{{visibleAssessments}}" wx:key="assessmentId" class="history-card {{item.selected ? 'is-selected' : ''}}">
+        <view class="history-card__select" data-assessment-id="{{item.assessmentId}}" bindtap="toggleSelection">
+          <view class="select-mark">{{item.selected ? '✓' : ''}}</view>
+          <view class="history-card__main">
+            <view class="history-card__meta"><text>{{item.typeLabel}}</text><text>{{item.versionText}}</text></view>
+            <view class="history-card__title">{{item.resultTitle}}</view>
+            <view class="history-card__time">{{item.completedAtText}}{{item.safetyStopped ? ' · 安全分支' : ''}}</view>
+          </view>
+        </view>
+        <button class="history-card__view" data-assessment-id="{{item.assessmentId}}" bindtap="openResult">查看结果 ›</button>
+      </view>
+    </view>
+
+    <view
+      class="root-button selected-compare {{selectedIds.length === 2 ? '' : 'is-disabled'}}"
+      aria-role="button"
+      aria-disabled="{{selectedIds.length !== 2}}"
+      bindtap="compareSelected"
+    >对比所选结果</view>
+    <view wx:if="{{refreshing}}" class="history-refreshing">正在刷新记录…</view>
+  </block>
+</view>

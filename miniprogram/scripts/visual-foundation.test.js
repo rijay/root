@@ -31,10 +31,12 @@ assertFiles([
 
 const tokens = read("styles/tokens.wxss");
 [
-  "--root-ink: #080806",
-  "--root-bg: #f7f4ec",
-  "--root-moss: #586b3f",
-  "--root-sprout: #a6b77a",
+  "--color-brand-black: #000000",
+  "--color-brand-white: #ffffff",
+  "--color-brand-olive: #242a0b",
+  "--color-olive-mid: #6b7c3a",
+  "--color-ui-grouped: #f5f5f7",
+  "--color-neutral-grey: #7b7a7e",
   "--root-canvas-width: 390px",
   "--root-canvas-height: 844px",
   "--root-page-padding: 32rpx",
@@ -95,16 +97,20 @@ assert.match(homeWxml, /data-release-asset="\{\{item\.assetState\}\}"/);
 assert.doesNotMatch(homeWxml, /home-slide__placeholder/);
 assert.match(homeWxss, /\.home-slide__copy\s*\{[^}]*bottom:\s*212rpx/s);
 assert.match(homeWxss, /\.home-slide__kicker\s*\{[^}]*translateY\(-5px\)/s);
-assert.match(homeWxss, /\.home-indicator\s*\{[^}]*bottom:\s*132px/s);
+assert.match(homeWxml, /home-product-banner/);
+assert.match(homeWxml, /立即探索/);
+assert.match(homeWxss, /\.home-indicator\s*\{[^}]*bottom:\s*calc\(188px \+ env\(safe-area-inset-bottom\)\)/s);
 
 const tabWxml = read("custom-tab-bar/index.wxml");
 const tabWxss = read("custom-tab-bar/index.wxss");
 assert.match(tabWxml, /root-tab-bar__icon-image/);
 assert.match(tabWxml, /selected === index \? item\.activeIcon : item\.icon/);
-assert.match(tabWxss, /height:\s*84px/);
+assert.match(tabWxss, /height:\s*calc\(60px \+ env\(safe-area-inset-bottom\)\)/);
 [
   "static/icons/tab-home.svg",
   "static/icons/tab-home-active.svg",
+  "static/icons/tab-product.svg",
+  "static/icons/tab-product-active.svg",
   "static/icons/tab-health.svg",
   "static/icons/tab-health-active.svg",
   "static/icons/tab-activity.svg",

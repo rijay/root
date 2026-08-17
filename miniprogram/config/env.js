@@ -25,7 +25,7 @@ const configs = {
 module.exports = {
   envVersion,
   ...(configs[envVersion] || configs.develop),
-  youzanAppId: "",
+  youzanAppId: "wxfb75c0b432670215",
   youzanProductPath: "",
   rootMemberCenterAppId: "wxfb75c0b432670215",
   rootMemberCenterOrdersShortLink: "#小程序://ROOT会员中心/vTORPdF67tiEwCb",

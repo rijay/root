@@ -20,6 +20,7 @@ const { isAtomicWriteError } = require("./atomicWriteError");
 const { clientErrorResponse, createClientError } = require("./clientError");
 const sessionModule = require("./sessionModule");
 const adminFormalUserQuery = require("./adminFormalUserQuery");
+const v060Api = require("./v060Api");
 
 const {
   ADMIN_CAPABILITIES,
@@ -145,6 +146,10 @@ function send(res, status, payload, headers = {}) {
 
 function ok(res, payload) {
   send(res, 200, payload);
+}
+
+function apiOk(res, data) {
+  return ok(res, { code: 0, message: "ok", data });
 }
 
 function sendBinary(res, status, body, contentType, headers = {}) {
@@ -694,6 +699,91 @@ function createApp(options = {}) {
         });
       }
       if (route === "GET /api/v1/user/state") return ok(res, getUserState(data, token, runtimeContext));
+      if (route === "GET /api/v1/products") {
+        return apiOk(res, v060Api.listProducts(data, Object.fromEntries(url.searchParams), runtimeContext));
+      }
+      if (route === "POST /api/v1/products/jump") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => v060Api.recordProductJump(data, token, body, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      const productDetailMatch = url.pathname.match(/^\/api\/v1\/products\/([A-Za-z0-9_-]{1,64})$/);
+      if (method === "GET" && productDetailMatch) {
+        return apiOk(res, v060Api.getProduct(data, productDetailMatch[1], runtimeContext));
+      }
+      if (route === "GET /api/v1/health/assessments/catalog") {
+        return apiOk(res, v060Api.assessmentCatalog(data, token));
+      }
+      if (route === "GET /api/v1/health/assessments/history") {
+        return apiOk(res, v060Api.assessmentHistory(data, token, Object.fromEntries(url.searchParams)));
+      }
+      if (route === "POST /api/v1/health/assessments/start") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => v060Api.startAssessment(data, token, body, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      if (route === "POST /api/v1/health/assessments/compare") {
+        return apiOk(res, v060Api.compareAssessments(data, token, body));
+      }
+      const assessmentDraftMatch = url.pathname.match(/^\/api\/v1\/health\/assessments\/([A-Za-z0-9_-]{1,64})\/draft$/);
+      if (method === "POST" && assessmentDraftMatch) {
+        return apiOk(res, v060Api.saveAssessmentDraft(
+          data,
+          token,
+          assessmentDraftMatch[1],
+          body,
+          runtimeContext
+        ));
+      }
+      const assessmentCompleteMatch = url.pathname.match(/^\/api\/v1\/health\/assessments\/([A-Za-z0-9_-]{1,64})\/complete$/);
+      if (method === "POST" && assessmentCompleteMatch) {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => v060Api.completeAssessment(data, token, assessmentCompleteMatch[1], body, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      const assessmentDetailMatch = url.pathname.match(/^\/api\/v1\/health\/assessments\/([A-Za-z0-9_-]{1,64})$/);
+      if (method === "GET" && assessmentDetailMatch) {
+        return apiOk(res, v060Api.getAssessment(data, token, assessmentDetailMatch[1]));
+      }
+      if (route === "POST /api/v1/operations/popup/claim") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => v060Api.claimPopup(data, token, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      if (route === "POST /api/v1/operations/popup/action") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => v060Api.recordPopupAction(data, token, body, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      if (route === "GET /api/v1/channels/attribution") {
+        return apiOk(res, v060Api.firstAttribution(data, token));
+      }
+      if (route === "POST /api/v1/channels/attribution") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => v060Api.attributeChannel(data, token, body, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      if (route === "POST /api/v1/event/track") {
+        return apiOk(res, v060Api.recordAnalytics(data, token, body, runtimeContext));
+      }
       if (route === "GET /api/v1/privacy/health-consent") return ok(res, getHealthConsentStatus(data, token, runtimeContext));
       if (route === "POST /api/v1/privacy/health-consent") return ok(res, withIdempotency(data, req, () => recordHealthConsentDecision(data, token, body, runtimeContext)));
       if (route === "GET /api/v1/user/formal-profile") return ok(res, getFormalProfile(data, token));

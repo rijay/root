@@ -7,6 +7,10 @@ const ACTIVE_SNAPSHOT_KEYS = Object.freeze([
   "activitySessionEvents",
   "activitySessions",
   "auditLogs",
+  "analyticsEvents",
+  "campaignDefinitions",
+  "campaignProductRelations",
+  "channelDefinitions",
   "commandIdempotencyRecords",
   "contentAssets",
   "contentPreviewRecords",
@@ -14,15 +18,23 @@ const ACTIVE_SNAPSHOT_KEYS = Object.freeze([
   "contentVersions",
   "formalContentItems",
   "healthContentVersions",
+  "healthAssessmentDefinitions",
   "questionnaireDefinitions",
+  "youzanProducts",
+  "youzanSkus",
 ]);
 
 const PROTECTED_SNAPSHOT_KEYS = Object.freeze([
   "formalProfiles",
+  "campaignPopupReceipts",
+  "channelAttributionAttempts",
+  "channelAttributions",
   "healthScaleResponses",
+  "healthAssessmentAttempts",
   "identityLinks",
   "leadProfiles",
   "privacyConsentRecords",
+  "productJumpLogs",
   "profiles",
   "questionnaireAnswers",
   "questionnaireResponses",
@@ -54,7 +66,6 @@ const AUTOMATICALLY_PRUNABLE_SNAPSHOT_KEYS = Object.freeze([
 ]);
 
 const CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS = Object.freeze([
-  "campaignDefinitions",
   "campaignParticipants",
   "campaignRuleVersions",
   "notificationDeliveries",
@@ -79,7 +90,6 @@ const ARCHIVE_BEFORE_PRUNE_SNAPSHOT_KEYS = Object.freeze([
 ]);
 
 const CONFIRMATION_REQUIRED_SNAPSHOT_KEYS = Object.freeze([
-  "campaignProductRelations",
   "checkinRecords",
   "checkinSessions",
   "consultationAdvisorAssignments",
@@ -91,7 +101,6 @@ const CONFIRMATION_REQUIRED_SNAPSHOT_KEYS = Object.freeze([
   "operationTasks",
   "orderAfterSalesRecords",
   "orderFulfillments",
-  "productJumpLogs",
   "refundWorkItems",
   "refunds",
   "rewardDeliveryJobs",
@@ -105,8 +114,6 @@ const CONFIRMATION_REQUIRED_SNAPSHOT_KEYS = Object.freeze([
   "youzanCustomers",
   "youzanIdentityReconciliations",
   "youzanOrders",
-  "youzanProducts",
-  "youzanSkus",
 ]);
 
 const ACTIVE_RELATIONAL_TABLES = Object.freeze([
@@ -116,6 +123,13 @@ const ACTIVE_RELATIONAL_TABLES = Object.freeze([
   "activity_session",
   "activity_session_event",
   "command_idempotency",
+  "health_assessment_definition",
+  "health_assessment_attempt",
+  "channel_definition",
+  "channel_attribution",
+  "channel_attribution_attempt",
+  "campaign_popup_receipt",
+  "analytics_event",
   "privacy_consent_record",
   "questionnaire_answer",
   "root_user",

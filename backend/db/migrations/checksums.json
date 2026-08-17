@@ -69,6 +69,9 @@
     "065_v1_runtime_alert_registration_return_row.sql": "263a4edb996596d9c8868471006ddc636e904dc17e7ce39813495fd3db20f39e",
     "066_v1_runtime_alert_delivery_severity_slo_authority.sql": "411f29a8ac26eb8ee3261555bdbd33c20f46dde315fa7d642b308d4b832e64ac",
     "067_formal_launch_retired_runtime_cleanup.sql": "ffb01a40da73c2b73794b2df72cb8d5f019c43c84fd161ccbda7b226f900e3a2",
-    "068_formal_launch_confirmed_prelaunch_cleanup.sql": "d2d867474c0fbc93cc5aec91b9ee18a03e8100331d66cc071bfb1f51b1189d31"
+    "068_formal_launch_confirmed_prelaunch_cleanup.sql": "d2d867474c0fbc93cc5aec91b9ee18a03e8100331d66cc071bfb1f51b1189d31",
+    "069_health_assessment.sql": "2d04281d7af291c349c4fbce7b1dba8a9c80c2c49a4677f2db5475dc4a503a1c",
+    "070_growth_engagement.sql": "db4f76619459c058b0a7bb8be44d3986131bb363affa472eee5600e4e8315e0c",
+    "071_product_analytics.sql": "646f786fde31acbf3f2009a2dfb27f01e80fa35dc12d3e7e15138cd8722d1f35"
   }
 }

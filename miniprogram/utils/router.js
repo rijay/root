@@ -14,9 +14,14 @@ const stateRoutes = Object.freeze({
 });
 
 const publicRoutes = new Set([
+  "/pages/welcome/index",
+  "/pages/launching/index",
   "/pages/home/index",
+  "/pages/products/index",
+  "/pages/product-detail/index",
   "/pages/health/index",
   "/pages/activities/index",
+  "/pages/channel-error/index",
   "/pages/login/index",
   "/pages/legal/index",
   "/pages/profile/index",
@@ -30,6 +35,10 @@ const protectedRoutes = new Set([
   "/pages/register/index",
   "/pages/health-consent/index",
   "/subpkg/activity/pages/enrollments/index",
+  "/subpkg/health/pages/assessment/index",
+  "/subpkg/health/pages/result/index",
+  "/subpkg/health/pages/history/index",
+  "/subpkg/health/pages/compare/index",
 ]);
 const registeredRoutes = new Set(REGISTERED_FORMAL_ROUTES.map((route) => `/${route}`));
 const tabRoutes = Object.freeze(FORMAL_TABS.map((tab) => `/${tab.pagePath}`));

@@ -1,0 +1,79 @@
+<view class="root-page compare-page">
+  <view class="compare-header">
+    <view class="compare-kicker">SAME VERSION COMPARISON</view>
+    <view class="compare-title">看看两次记录的差异</view>
+    <view class="compare-copy">仅展示同一问卷 ID、同一版本、相同维度的数值变化，不对变化原因或干预效果作判断。</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="root-card compare-state">
+    <view class="root-section-title">正在读取对比结果</view>
+  </view>
+
+  <view wx:elif="{{errorText && !comparison}}" class="root-card compare-state">
+    <view class="root-section-title">对比暂时无法加载</view>
+    <view class="root-helper-text">{{errorText}}</view>
+    <button class="root-button state-action" bindtap="load">重新加载</button>
+  </view>
+
+  <block wx:elif="{{comparison}}">
+    <view wx:if="{{errorText}}" class="compare-refresh-error">
+      <view>
+        <view class="compare-refresh-error__title">刷新失败，仍显示原对比结果</view>
+        <view class="compare-refresh-error__copy">{{errorText}}</view>
+      </view>
+      <button bindtap="load">重试</button>
+    </view>
+
+    <view class="compare-period">
+      <view>
+        <view class="period-label">较早记录</view>
+        <view class="period-time">{{comparison.left.completedAtText}}</view>
+        <view class="period-version">{{comparison.left.versionText}}</view>
+      </view>
+      <view class="period-arrow">→</view>
+      <view class="period-latest">
+        <view class="period-label">较新记录</view>
+        <view class="period-time">{{comparison.right.completedAtText}}</view>
+        <view class="period-version">{{comparison.right.versionText}}</view>
+      </view>
+    </view>
+
+    <view class="result-compare-card">
+      <view class="result-compare-card__label">两次总结果</view>
+      <view class="result-compare-card__grid">
+        <view class="result-summary">
+          <view class="result-summary__period">较早记录</view>
+          <view class="result-summary__title">{{comparison.left.resultTitle}}</view>
+          <view class="result-summary__meta">结果文案 v{{comparison.left.resultCopyVersion || 0}}</view>
+        </view>
+        <view class="result-summary result-summary--latest">
+          <view class="result-summary__period">较新记录</view>
+          <view class="result-summary__title">{{comparison.right.resultTitle}}</view>
+          <view class="result-summary__meta">结果文案 v{{comparison.right.resultCopyVersion || 0}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{comparison.comparable}}" class="dimension-compare-list">
+      <view wx:for="{{comparison.dimensions}}" wx:key="key" class="dimension-compare-card">
+        <view class="dimension-label">{{item.label}}</view>
+        <view class="dimension-values">
+          <view><text class="dimension-number">{{item.beforeScore}}</text><text>{{item.unit}}</text></view>
+          <view class="dimension-delta">{{item.deltaText}}</view>
+          <view><text class="dimension-number">{{item.afterScore}}</text><text>{{item.unit}}</text></view>
+        </view>
+      </view>
+      <view class="compare-notice">{{comparison.notice}}</view>
+    </view>
+
+    <view wx:else class="root-card mismatch-card">
+      <view class="mismatch-label">暂不支持直接对比</view>
+      <view class="mismatch-title">{{reasonText}}</view>
+      <view class="mismatch-actions">
+        <button data-assessment-id="{{comparison.left.assessmentId}}" bindtap="openResult">查看较早结果</button>
+        <button data-assessment-id="{{comparison.right.assessmentId}}" bindtap="openResult">查看较新结果</button>
+      </view>
+    </view>
+    <view wx:if="{{refreshing}}" class="compare-refreshing">正在刷新对比结果…</view>
+  </block>
+</view>

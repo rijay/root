@@ -1,10 +1,14 @@
 {
   "pages": [
     "pages/welcome/index",
+    "pages/launching/index",
     "pages/home/index",
+    "pages/products/index",
     "pages/health/index",
     "pages/activities/index",
     "pages/profile/index",
+    "pages/product-detail/index",
+    "pages/channel-error/index",
     "pages/login/index",
     "pages/register/index",
     "pages/legal/index",
@@ -21,8 +25,10 @@
     {
       "root": "subpkg/health",
       "pages": [
-        "pages/initial-assessment/index",
-        "pages/scale-assessment/index"
+        "pages/assessment/index",
+        "pages/result/index",
+        "pages/history/index",
+        "pages/compare/index"
       ]
     },
     {
@@ -43,21 +49,25 @@
   ],
   "window": {
     "navigationBarTitleText": "myRoot",
-    "navigationBarBackgroundColor": "#FDFBF6",
+    "navigationBarBackgroundColor": "#FFFFFF",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#F7F4EC"
+    "backgroundColor": "#F5F5F7"
   },
   "usingComponents": {},
   "tabBar": {
     "custom": true,
-    "color": "#8A8172",
-    "selectedColor": "#586B3F",
-    "backgroundColor": "#FDFBF6",
+    "color": "#7B7A7E",
+    "selectedColor": "#6B7C3A",
+    "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/home/index",
         "text": "首页"
+      },
+      {
+        "pagePath": "pages/products/index",
+        "text": "产品"
       },
       {
         "pagePath": "pages/health/index",
@@ -75,6 +85,10 @@
   },
   "preloadRule": {
     "pages/home/index": {
+      "network": "all",
+      "packages": ["subpkg/content"]
+    },
+    "pages/products/index": {
       "network": "all",
       "packages": ["subpkg/content"]
     },

@@ -1,0 +1,54 @@
+.channel-error-page {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-top: 120rpx;
+}
+
+.channel-symbol {
+  display: flex;
+  width: 88rpx;
+  height: 88rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-olive-soft);
+  color: var(--color-brand-olive);
+  font-size: 48rpx;
+  font-weight: 700;
+}
+
+.channel-eyebrow {
+  margin-top: 48rpx;
+  color: var(--color-olive-mid);
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+}
+
+.channel-title {
+  max-width: 620rpx;
+  margin-top: 20rpx;
+  color: var(--color-brand-black);
+  font-size: 48rpx;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.channel-copy {
+  max-width: 620rpx;
+  margin-top: 24rpx;
+  color: var(--color-graphite);
+  font-size: 28rpx;
+  line-height: 1.75;
+}
+
+.channel-primary {
+  width: 100%;
+  margin-top: 64rpx;
+}
+
+.channel-secondary {
+  width: 100%;
+  margin-top: 20rpx;
+}

@@ -1,0 +1,7 @@
+page { min-height: 100%; background: #000000; }
+.launching-page { position: relative; display: flex; min-height: 100vh; align-items: center; justify-content: center; overflow: hidden; background: #000000; color: #ffffff; }
+.launching-center { display: flex; flex-direction: column; align-items: center; transform: translateY(-3vh); }
+.launching-logo { width: 278rpx; height: 92rpx; }
+.launching-line { width: 32rpx; height: 2rpx; margin-top: 42rpx; background: rgba(255, 255, 255, 0.56); }
+.launching-title { margin-top: 30rpx; color: rgba(255, 255, 255, 0.88); font-size: 28rpx; font-weight: 400; letter-spacing: 10rpx; transform: translateX(5rpx); }
+.launching-foot { position: absolute; bottom: calc(48rpx + env(safe-area-inset-bottom)); color: rgba(255, 255, 255, 0.36); font-size: 18rpx; letter-spacing: 8rpx; transform: translateX(4rpx); }

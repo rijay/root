@@ -1,0 +1,57 @@
+<view class="result-page">
+  <view wx:if="{{loading}}" class="root-page result-state">
+    <view class="root-section-title">正在生成结果</view>
+    <view class="root-helper-text">结果只使用当前问卷版本已配置的判断规则。</view>
+  </view>
+
+  <view wx:elif="{{errorText}}" class="root-page result-state">
+    <view class="root-section-title">结果暂时无法查看</view>
+    <view class="root-helper-text">{{errorText}}</view>
+    <button class="root-button state-action" bindtap="load">重新加载</button>
+  </view>
+
+  <view wx:elif="{{assessment}}" class="result-content">
+    <view class="result-hero {{assessment.safetyStopped ? 'result-hero--safety' : ''}}">
+      <view class="result-eyebrow">{{assessment.typeLabel}} · {{assessment.versionText}}</view>
+      <view class="result-title">{{assessment.result.title}}</view>
+      <view class="result-summary">{{assessment.result.summary}}</view>
+      <view class="result-time">完成于 {{assessment.completedAtText}}</view>
+    </view>
+
+    <view class="root-page result-body">
+      <view wx:if="{{assessment.result.priorityAction}}" class="result-card result-card--priority">
+        <view class="result-card__label">优先行动</view>
+        <view class="result-card__copy">{{assessment.result.priorityAction}}</view>
+      </view>
+
+      <view wx:if="{{assessment.dimensions.length}}" class="result-section">
+        <view class="result-section__head">
+          <view class="root-section-title">本次记录</view>
+          <view class="result-section__hint">同版本复测后可对比</view>
+        </view>
+        <view class="dimension-list">
+          <view wx:for="{{assessment.dimensions}}" wx:key="key" class="dimension-row">
+            <text>{{item.label}}</text>
+            <view><text class="dimension-score">{{item.score}}</text><text>{{item.unit}}</text></view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{assessment.result.riskNotice}}" class="result-card result-card--notice">
+        <view class="result-card__label">风险提醒</view>
+        <view class="result-card__copy">{{assessment.result.riskNotice}}</view>
+      </view>
+
+      <view wx:if="{{assessment.result.retestAdvice}}" class="result-card">
+        <view class="result-card__label">复测建议</view>
+        <view class="result-card__copy">{{assessment.result.retestAdvice}}</view>
+      </view>
+
+      <view class="result-disclaimer">本结果仅用于近期健康状态观察参考，不构成疾病诊断、治疗、用药建议或干预疗效判断。</view>
+
+      <button class="root-button result-action" loading="{{restarting}}" disabled="{{restarting}}" bindtap="restart">重新评测</button>
+      <button class="root-button root-button--secondary result-action" bindtap="openHistory">查看历史结果</button>
+      <button class="result-text-action" bindtap="backToHealth">返回健康首页</button>
+    </view>
+  </view>
+</view>

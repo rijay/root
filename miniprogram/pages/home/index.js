@@ -3,6 +3,9 @@ const { cancelRequestScope, requestWithDeadline } = require("../../utils/request
 const { readPublicPageCache, writePublicPageCache } = require("../../utils/page-cache");
 const router = require("../../utils/router");
 const { presentHome } = require("../../utils/content-presenter");
+const { getToken } = require("../../utils/request");
+const { openProducts } = require("../../utils/product-navigation");
+const { track } = require("../../utils/analytics");
 
 const CACHE_KEY = "home";
 const REQUEST_SCOPE = "formal-home-content";
@@ -72,5 +75,15 @@ Page({
   openCurrent(event) {
     const item = this.data.items[Number(event.currentTarget.dataset.index)];
     if (item && item.contentId) router.open(item.detailPath);
+  },
+
+  openFeaturedProduct() {
+    const productId = "4749049439";
+    track("home_product_banner_click", {
+      productId,
+      bannerPosition: "HOME_PRIMARY",
+      loggedIn: Boolean(getToken()),
+    });
+    openProducts(productId, "home_product_banner");
   },
 });

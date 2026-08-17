@@ -46,7 +46,7 @@ function build(outputDirectory) {
     copy(path.join(MIGRATIONS_ROOT, fileName), path.join(output, "db", "migrations", fileName));
   }
   const migrationCount = fs.readdirSync(path.join(output, "db", "migrations")).length;
-  if (migrationCount !== 68) throw fail("MYSQL_MIGRATION_CHANNEL_MIGRATION_SET_INVALID");
+  if (migrationCount !== 71) throw fail("MYSQL_MIGRATION_CHANNEL_MIGRATION_SET_INVALID");
   return Object.freeze({ output, migrationCount });
 }
 

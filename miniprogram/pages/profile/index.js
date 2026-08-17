@@ -43,7 +43,7 @@ Page({
   },
 
   onShow() {
-    syncTabBar(this, 3);
+    syncTabBar(this, 4);
     const hasSession = Boolean(getToken());
     this.setData(hasSession
       ? { loggedIn: false, sessionChecking: true }
@@ -131,6 +131,14 @@ Page({
 
   openAbout() {
     router.open("/subpkg/profile/pages/about/index");
+  },
+
+  openAssessmentHistory() {
+    if (!this.data.loggedIn) {
+      router.open(`/pages/login/index?intent=${encodeURIComponent("/subpkg/health/pages/history/index")}`);
+      return;
+    }
+    router.open("/subpkg/health/pages/history/index");
   },
 
   logout() {

@@ -89,7 +89,7 @@ assert.equal(presentEnrollmentList({
     enrollment: { enrollmentId: "enrollment_001", status: "CONFIRMED" },
     activity,
   }],
-})[0].enrollmentStatusLabel, "已确认");
+})[0].enrollmentStatusLabel, "已报名");
 assert.equal(presentEnrollmentList({
   enrollments: [{
     enrollment: { enrollmentId: "enrollment_002", status: "CONFIRMED" },

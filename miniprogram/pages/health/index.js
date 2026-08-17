@@ -1,152 +1,125 @@
-const router = require("../../utils/router");
-const { cancelRequestScope, getToken, requestWithDeadline } = require("../../utils/request");
-const { clearSessionPageCache, readSessionPageCache, writeSessionPageCache } = require("../../utils/page-cache");
-const { ensureHealthConsent } = require("../../utils/health-consent");
-const { FORMAL_ACCESS_STATE, inspectFormalAccess, loginRoute } = require("../../utils/formal-access");
+const { getToken } = require("../../utils/request");
+const { getHealthConsentStatus } = require("../../utils/health-consent");
+const { getCatalog, startAssessment } = require("../../utils/health-assessment");
 const { syncTabBar } = require("../../utils/tab-bar");
-
-const START_PENDING_KEY = "ROOT4U_START_PENDING_V1";
-const REQUEST_SCOPE = "root4u-home";
-const SESSION_CACHE_OPTIONS = Object.freeze({ freshForMs: 30 * 1000, maxStaleMs: 30 * 60 * 1000 });
+const router = require("../../utils/router");
 
 Page({
   data: {
-    loading: true,
-    error: "",
-    bootstrap: null,
-    result: null,
+    viewState: "loading",
+    errorText: "",
+    assessments: [],
+    startingType: "",
+    historyCount: 0,
   },
 
   onShow() {
-    const safety = Boolean(this.data.result && this.data.result.safetyStatus !== "STANDARD_GUIDANCE");
-    syncTabBar(this, 1, { hidden: safety });
-    this.load();
+    syncTabBar(this, 2);
+    this.loadShell();
   },
 
-  onHide() {
-    this._loadSequence = (this._loadSequence || 0) + 1;
-    cancelRequestScope(REQUEST_SCOPE);
-  },
-
-  onUnload() {
-    this._loadSequence = (this._loadSequence || 0) + 1;
-    cancelRequestScope(REQUEST_SCOPE);
-  },
-
-  applyBootstrap(bootstrap) {
-    const recommendations = bootstrap && bootstrap.result && Array.isArray(bootstrap.result.recommendations)
-      ? bootstrap.result.recommendations.map((item, index) => ({
-        ...item,
-        viewKey: item.scaleVersionId || `${item.title || "assessment"}-${index}`,
-        detail: item.latestResult
-          ? `${item.latestResult.levelTitle} · ${item.latestResult.score}/${item.latestResult.maximumScore} 分`
-          : item.availability === "PUBLISHED"
-          ? `${item.questionCount} 题 · 约 ${item.estimatedMinutes} 分钟`
-          : "继续了解自己的日常状态",
-        statusLabel: item.latestResult
-          ? "已完成 · 查看结果"
-          : item.availability === "PUBLISHED" ? "已为你匹配" : "即将开放",
-      }))
-      : [];
-    const result = bootstrap && bootstrap.result ? {
-      ...bootstrap.result,
-      tags: Array.isArray(bootstrap.result.tags) ? bootstrap.result.tags : [],
-      tips: Array.isArray(bootstrap.result.tips) ? bootstrap.result.tips : [],
-      recommendations,
-    } : null;
-    const safety = Boolean(result && result.safetyStatus !== "STANDARD_GUIDANCE");
-    this.setData({ bootstrap, result });
-    syncTabBar(this, 1, { hidden: safety });
-  },
-
-  async load() {
-    const token = getToken();
-    if (!token) {
-      clearSessionPageCache();
-      this.setData({ loading: false, bootstrap: null, result: null });
-      return;
-    }
-    const cacheKey = `root4u:${token}`;
-    const cached = readSessionPageCache(cacheKey, SESSION_CACHE_OPTIONS);
-    if (cached && !this.data.bootstrap) this.applyBootstrap(cached.value);
-    const sequence = (this._loadSequence || 0) + 1;
-    this._loadSequence = sequence;
-    this.setData({ loading: !cached && !this.data.bootstrap, error: "" });
-    try {
-      const bootstrap = await requestWithDeadline({ url: "/api/v1/health/root4u", scope: REQUEST_SCOPE }, 4500);
-      if (sequence !== this._loadSequence) return;
-      writeSessionPageCache(cacheKey, bootstrap);
-      this.applyBootstrap(bootstrap);
-      if (wx.getStorageSync(START_PENDING_KEY) && !bootstrap.consentRequired && bootstrap.eligibility === "ELIGIBLE") {
-        wx.removeStorageSync(START_PENDING_KEY);
-        this.openAssessment();
-      }
-    } catch (error) {
-      if (sequence !== this._loadSequence) return;
-      if (!this.data.bootstrap) this.setData({ error: error.message || "健康信息加载失败" });
-    } finally {
-      if (sequence === this._loadSequence) this.setData({ loading: false });
-    }
-  },
-
-  async startAssessment() {
+  async loadShell() {
+    this.setData({ viewState: "loading", errorText: "" });
     if (!getToken()) {
-      router.open(`/pages/login/index?intent=${encodeURIComponent("/pages/health/index")}`);
+      this.setData({ viewState: "guest", assessments: [], historyCount: 0 });
       return;
     }
-    const bootstrap = this.data.bootstrap;
-    if (!bootstrap) return this.load();
-    if (bootstrap.eligibility === "PROFILE_REQUIRED") {
-      try {
-        const access = await inspectFormalAccess("root4u-start-access");
-        if (access.state === FORMAL_ACCESS_STATE.PHONE_REQUIRED) {
-          router.open(loginRoute("/pages/health/index"));
-          return;
-        }
-        if (access.state === FORMAL_ACCESS_STATE.PROFILE_REQUIRED) {
-          router.open("/pages/register/index");
-          return;
-        }
-        clearSessionPageCache();
-        await this.load();
-      } catch (error) {
-        // 无法证明手机号已验证时，回到唯一的微信手机号授权入口。
-        router.open(loginRoute("/pages/health/index"));
+    try {
+      const state = await router.fetchState();
+      if (!state || !state.user || state.user.state === "GUEST") {
+        this.setData({ viewState: "guest" });
+        return;
       }
+      if (state.user.state === "UNREGISTERED") {
+        this.setData({ viewState: "accountRequired" });
+        return;
+      }
+      const consent = await getHealthConsentStatus();
+      if (consent.required && !consent.active) {
+        this.setData({ viewState: "consentRequired" });
+        return;
+      }
+      const catalog = await getCatalog();
+      const assessments = catalog.assessments || [];
+      const historyCount = assessments.reduce((sum, item) => sum + Number(item.historyCount || 0), 0);
+      this.setData({
+        assessments,
+        historyCount,
+        viewState: assessments.some((item) => item.available) ? "ready" : "contentGated",
+      });
+    } catch (error) {
+      this.setData({
+        viewState: getToken() ? "error" : "guest",
+        errorText: error.message || "健康页暂时无法加载，请稍后重试。",
+      });
+    }
+  },
+
+  goLogin() {
+    router.open(`/pages/login/index?intent=${encodeURIComponent("/pages/health/index")}`);
+  },
+
+  goRegister() {
+    router.open("/pages/register/index");
+  },
+
+  openConsent() {
+    router.open("/pages/health-consent/index?source=health");
+  },
+
+  confirmRetest() {
+    return new Promise((resolve) => {
+      wx.showModal({
+        title: "开始一次新的复测？",
+        content: "已有评测结果会继续保留。同一问卷 ID 与版本的结果可用于前后对比。",
+        confirmText: "开始复测",
+        cancelText: "暂不",
+        success: (result) => resolve(result.confirm === true),
+        fail: () => resolve(false),
+      });
+    });
+  },
+
+  async beginAssessment(event) {
+    const assessmentType = event.currentTarget.dataset.assessmentType;
+    if (!assessmentType || this.data.startingType) return;
+    const item = this.data.assessments.find((candidate) => candidate.assessmentType === assessmentType);
+    if (!item || !item.available) {
+      wx.showToast({ title: (item && item.unavailableText) || "暂未开放", icon: "none" });
       return;
     }
-    if (bootstrap.eligibility === "AGE_RESTRICTED") {
-      wx.showModal({ title: "暂不支持建档", content: "首发仅面向 18 岁及以上用户。", showCancel: false });
-      return;
+    if (item.canRetest && !item.canResume && !(await this.confirmRetest())) return;
+    this.setData({ startingType: assessmentType });
+    try {
+      const result = await startAssessment(assessmentType);
+      const assessmentId = result.assessment && result.assessment.assessmentId;
+      if (!assessmentId) throw new Error("评测创建失败");
+      router.open(`/subpkg/health/pages/assessment/index?assessmentId=${assessmentId}`);
+    } catch (error) {
+      wx.showToast({ title: error.message || "暂时无法开始评测", icon: "none" });
+    } finally {
+      this.setData({ startingType: "" });
     }
-    if (bootstrap.assessmentState === "COMPLETED") return;
-    if (bootstrap.consentRequired) {
-      wx.setStorageSync(START_PENDING_KEY, true);
-      await ensureHealthConsent();
-      return;
-    }
-    this.openAssessment();
   },
 
-  openAssessment() {
-    wx.navigateTo({ url: "/subpkg/health/pages/initial-assessment/index" });
+  openLatest(event) {
+    const assessmentId = event.currentTarget.dataset.assessmentId;
+    if (assessmentId) router.open(`/subpkg/health/pages/result/index?assessmentId=${assessmentId}`);
   },
 
-  openRecommendedScale(event) {
-    const versionId = String(event.currentTarget.dataset.versionId || "").trim();
-    if (!versionId) return;
-    wx.navigateTo({ url: `/subpkg/health/pages/scale-assessment/index?versionId=${encodeURIComponent(versionId)}` });
+  openHistory() {
+    router.open("/subpkg/health/pages/history/index");
   },
 
-  manageConsent() {
-    wx.navigateTo({ url: "/pages/health-consent/index?mode=manage" });
+  openPrivacy() {
+    router.open("/pages/legal/index?type=privacy&source=health");
   },
 
-  acknowledgeSafety() {
-    wx.switchTab({ url: "/pages/home/index" });
+  openSupport() {
+    router.open("/subpkg/profile/pages/support/index?topic=health&source=health");
   },
 
-  retry() {
-    this.load();
+  onShareAppMessage() {
+    return { title: "ROOT｜从了解当下开始", path: "/pages/health/index" };
   },
 });

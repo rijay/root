@@ -25,6 +25,7 @@ function setToken(token) {
 
 function clearToken() {
   wx.removeStorageSync("ROOT_TOKEN");
+  wx.removeStorageSync("ROOT_LOGIN_SESSION_CONTEXT_V1");
 }
 
 function stringifyError(value) {

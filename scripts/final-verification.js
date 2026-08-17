@@ -87,7 +87,6 @@ const RETIRED_USER_ROUTES = Object.freeze([
   "/api/v1/user/display-profile",
   "/api/v1/user/consultations",
   "/api/v1/campaigns/",
-  "/api/v1/products",
   "/api/v1/order/match",
   "/api/v1/checkin/",
   "/api/v1/questionnaire",
@@ -95,7 +94,6 @@ const RETIRED_USER_ROUTES = Object.freeze([
   "/api/v1/coupon/",
   "/api/v1/user/continue-daily",
   "/api/v1/daily/",
-  "/api/v1/event/track",
   "/api/v1/upload/image",
 ]);
 
@@ -123,7 +121,6 @@ const RETIRED_SOURCE_FILES = Object.freeze([
   "miniprogram/utils/date-display.js",
   "miniprogram/utils/questionnaire-branching.js",
   "miniprogram/utils/task-presenter.js",
-  "miniprogram/utils/youzan-jump.js",
 ]);
 
 function runCommand(label, command, args, cwd = projectRoot) {
@@ -149,6 +146,16 @@ function verifyFormalRouteSurface() {
   const backendPackage = JSON.parse(fs.readFileSync(path.join(projectRoot, "backend", "package.json"), "utf8"));
   const missingRequiredRoutes = [
     "/api/v1/jobs/health-data-retention-cleanup",
+    "/api/v1/products",
+    "/api/v1/products/jump",
+    "/api/v1/health/assessments/catalog",
+    "/api/v1/health/assessments/history",
+    "/api/v1/health/assessments/start",
+    "/api/v1/health/assessments/compare",
+    "/api/v1/operations/popup/claim",
+    "/api/v1/operations/popup/action",
+    "/api/v1/channels/attribution",
+    "/api/v1/event/track",
   ].filter((route) => !appSource.includes(route));
   const remainingRetiredRoutes = [...RETIRED_JOB_ROUTES, ...RETIRED_ADMIN_ROUTES, ...RETIRED_USER_ROUTES, ...RETIRED_STATIC_ROUTES]
     .filter((route) => appSource.includes(route));

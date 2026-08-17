@@ -47,7 +47,7 @@ Page({
   },
 
   onShow() {
-    syncTabBar(this, 2);
+    syncTabBar(this, 3);
     if (!this._loadPromise && (!this._cacheFresh || !this.data.activities.length)) {
       this.loadActivities({ background: this.data.activities.length > 0 });
     }

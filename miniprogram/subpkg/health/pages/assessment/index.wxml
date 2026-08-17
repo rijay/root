@@ -1,0 +1,69 @@
+<view class="assessment-page">
+  <view wx:if="{{loading}}" class="root-page assessment-state">
+    <view class="root-section-title">正在加载评测</view>
+    <view class="root-helper-text">不会重复创建已在进行中的评测。</view>
+  </view>
+
+  <view wx:elif="{{errorText}}" class="root-page assessment-state">
+    <view class="root-section-title">评测暂时无法打开</view>
+    <view class="root-helper-text">{{errorText}}</view>
+    <button class="root-button state-action" bindtap="initialize">重新加载</button>
+  </view>
+
+  <view wx:elif="{{currentQuestion}}" class="assessment-content">
+    <view class="assessment-progress">
+      <view class="assessment-progress__meta">
+        <text>{{assessment.definition.title}}</text>
+        <text>{{progressText}}</text>
+      </view>
+      <view class="assessment-progress__track">
+        <view class="assessment-progress__fill" style="width: {{progressPercent}}%;"></view>
+      </view>
+      <view class="assessment-version">问卷 v{{assessment.questionnaireVersion}}{{assessment.isRetest ? ' · 本次为复测' : ''}}</view>
+    </view>
+
+    <view class="question-card">
+      <view class="question-index">QUESTION {{currentIndex + 1}}</view>
+      <view class="question-title">{{currentQuestion.title}}</view>
+      <view wx:if="{{currentQuestion.description}}" class="question-copy">{{currentQuestion.description}}</view>
+
+      <view wx:if="{{currentQuestion.type === 'single'}}" class="option-list">
+        <button wx:for="{{options}}" wx:key="value" class="answer-option {{item.selected ? 'is-selected' : ''}}" data-value="{{item.value}}" bindtap="selectOption">
+          <text>{{item.label}}</text><text class="option-mark">{{item.selected ? '✓' : ''}}</text>
+        </button>
+      </view>
+
+      <view wx:elif="{{currentQuestion.type === 'multi'}}" class="option-list">
+        <button wx:for="{{options}}" wx:key="value" class="answer-option {{item.selected ? 'is-selected' : ''}}" data-value="{{item.value}}" bindtap="toggleMulti">
+          <text>{{item.label}}</text><text class="option-mark">{{item.selected ? '✓' : ''}}</text>
+        </button>
+      </view>
+
+      <view wx:elif="{{currentQuestion.type === 'boolean'}}" class="option-list">
+        <button class="answer-option {{currentValue === true ? 'is-selected' : ''}}" data-value="true" bindtap="selectBoolean"><text>是</text><text class="option-mark">{{currentValue === true ? '✓' : ''}}</text></button>
+        <button class="answer-option {{currentValue === false ? 'is-selected' : ''}}" data-value="false" bindtap="selectBoolean"><text>否</text><text class="option-mark">{{currentValue === false ? '✓' : ''}}</text></button>
+      </view>
+
+      <view wx:elif="{{currentQuestion.type === 'scale'}}" class="scale-block">
+        <view class="scale-options">
+          <button wx:for="{{scaleOptions}}" wx:key="*this" class="scale-option {{currentValue === item ? 'is-selected' : ''}}" data-value="{{item}}" bindtap="selectScale">{{item}}</button>
+        </view>
+        <view class="scale-labels"><text>{{currentQuestion.minLabel}}</text><text>{{currentQuestion.maxLabel}}</text></view>
+      </view>
+
+      <textarea wx:elif="{{currentQuestion.type === 'text'}}" class="answer-text" value="{{currentValue}}" maxlength="500" placeholder="请输入" bindinput="inputText" />
+    </view>
+
+    <view class="assessment-save assessment-save--{{saveStatusTone}}">
+      <text>{{saveStatusText}}</text>
+      <button wx:if="{{saveFailed}}" class="assessment-save__retry" bindtap="retryDraft" disabled="{{saving}}">重试保存</button>
+    </view>
+
+    <view class="assessment-note">评测结果仅用于近期健康状态观察参考，不构成诊断、治疗或用药建议。</view>
+
+    <view class="assessment-actions">
+      <button class="previous-action" bindtap="previous" disabled="{{currentIndex === 0 || saving}}">上一步</button>
+      <button class="next-action" bindtap="next" loading="{{saving}}" disabled="{{saving}}">{{currentIndex >= visibleQuestions.length - 1 ? '提交评测' : '下一步'}}</button>
+    </view>
+  </view>
+</view>

@@ -38,6 +38,7 @@
     </view>
 
     <view class="profile-card profile-card--support">
+      <view class="profile-row" bindtap="openAssessmentHistory"><text class="profile-row__label">评测历史</text><view class="profile-row__arrow"></view></view>
       <view class="profile-row" data-type="faq" bindtap="openSupport"><text class="profile-row__label">常见问题</text><view class="profile-row__arrow"></view></view>
       <view class="profile-row" data-type="contact" bindtap="openSupport"><text class="profile-row__label">联系客服</text><view class="profile-row__arrow"></view></view>
       <view class="profile-row" data-type="feedback" bindtap="openSupport"><text class="profile-row__label">建议与反馈</text><view class="profile-row__arrow"></view></view>

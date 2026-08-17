@@ -15,7 +15,15 @@
   <view wx:elif="{{state === 'loading'}}" class="home-state"><text>正在读取此刻内容…</text></view>
   <view wx:elif="{{state === 'empty'}}" class="home-state"><text>此刻内容正在准备中</text></view>
   <view wx:else class="home-state"><text>内容暂时没有读到</text><button bindtap="loadContent">重新加载</button></view>
+  <view wx:if="{{state === 'ready'}}" class="home-product-banner">
+    <view class="home-product-banner__copy">
+      <text class="home-product-banner__eyebrow">ROOT PRODUCTS</text>
+      <text class="home-product-banner__title">温和清畅，敏肠之选</text>
+    </view>
+    <button class="home-product-banner__action" bindtap="openFeaturedProduct">立即探索</button>
+  </view>
   <view wx:if="{{state === 'ready' && items.length > 1}}" class="home-indicator">
     <view wx:for="{{items}}" wx:key="contentId" class="home-indicator__dot {{current === index ? 'is-active' : ''}}"></view>
   </view>
+  <campaign-popup id="campaign-popup" />
 </view>

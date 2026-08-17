@@ -10,6 +10,7 @@ const {
 } = require("../../../../utils/activity-actions");
 const router = require("../../../../utils/router");
 const { createActivityPendingCommandRegistry } = require("../../../../utils/activity-command-recovery");
+const { failureReason, track } = require("../../../../utils/analytics");
 
 const pendingCommands = createActivityPendingCommandRegistry({
   storage: {
@@ -41,6 +42,7 @@ Page({
     errorText: "",
     confirmSheetVisible: false,
     submitting: false,
+    operationState: "",
     result: null,
     voidSheetVisible: false,
   },
@@ -172,7 +174,16 @@ Page({
   async submitCommand(command) {
     this._pendingCommand = command;
     this._unresolvedCommand = command;
-    this.setData({ submitting: true });
+    this.setData({
+      submitting: true,
+      operationState: command.kind === "CANCEL" ? "CANCELING" : "ENROLLING",
+    });
+    track("activity_signup", {
+      activityId: this.data.activity && this.data.activity.activityId || "",
+      action: command.kind,
+      result: "STARTED",
+      failureReason: "",
+    });
     let writeError = null;
     try {
       await request({
@@ -253,7 +264,14 @@ Page({
       ...(activity ? this.authorityData(activity) : {}),
       confirmSheetVisible: false,
       submitting: false,
+      operationState: "",
       result,
+    });
+    track("activity_signup", {
+      activityId: (activity || this.data.activity || {}).activityId || "",
+      action: command.kind,
+      result: result.kind === "SUCCESS" ? "SUCCESS" : result.kind === "UNKNOWN" ? "UNKNOWN" : "FAILED",
+      failureReason: result.kind === "SUCCESS" ? "" : failureReason(writeError || { code: result.kind }),
     });
   },
 

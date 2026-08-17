@@ -3,6 +3,8 @@ const { consume: consumeAuthIntent, remember: rememberAuthIntent } = require("..
 const router = require("../../utils/router");
 const { openLegalPage } = require("../../utils/legal");
 const { authenticateWechat, showLoginFailure } = require("../../utils/wechat-login-flow");
+const { rememberLoginSession } = require("../../utils/campaign-popup");
+const { confirmPendingAttribution } = require("../../utils/channel-attribution");
 
 const REGISTRATION_CONTEXT_STORAGE_KEY = "ROOT_REGISTRATION_CONTEXT_V1";
 
@@ -70,6 +72,8 @@ Page({
       }
       if (!data.token) throw new Error("手机号验证未完成");
       setToken(data.token);
+      rememberLoginSession(data.session);
+      await confirmPendingAttribution();
       const outcome = data.sessionOutcome || (data.nextRoute === "/pages/register/index" ? "NEW_USER" : "REGISTERED");
       if (["NEW_USER", "PROFILE_REQUIRED"].includes(outcome)) {
         wx.setStorageSync(REGISTRATION_CONTEXT_STORAGE_KEY, {

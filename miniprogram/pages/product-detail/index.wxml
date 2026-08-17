@@ -1,0 +1,61 @@
+<view class="product-detail-page product-detail-page--{{product.visualTone || 'sprout'}}">
+  <view wx:if="{{loading}}" class="root-page detail-state">
+    <view class="detail-skeleton"></view>
+    <view class="root-helper-text">正在加载商品...</view>
+  </view>
+
+  <view wx:elif="{{errorText}}" class="root-page detail-state">
+    <view class="root-section-title">商品暂不可见</view>
+    <view class="root-helper-text">{{errorText}}</view>
+  </view>
+
+  <view wx:elif="{{product}}" class="detail-content">
+    <view class="detail-stage">
+      <view class="detail-stage__meta">
+        <text>{{product.badge || 'ROOT'}}</text>
+        <text>{{product.productCode}}</text>
+      </view>
+      <view wx:if="{{product.imageUrl}}" class="detail-product-visual">
+        <image class="detail-image" src="{{product.imageUrl}}" mode="aspectFit" />
+      </view>
+      <view wx:else class="detail-product-visual">
+        <view class="detail-packshot-shadow"></view>
+        <view class="detail-packshot">
+          <view class="detail-packshot__brand">ROOT</view>
+          <view class="detail-packshot__rule"></view>
+          <view class="detail-packshot__code">{{product.productCode}}</view>
+          <view class="detail-packshot__caption">PREBIOTIC DRINK</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="root-page detail-copy-block">
+      <view class="detail-subtitle">{{product.subtitle}}</view>
+      <view class="detail-title">{{product.title}}</view>
+      <view class="detail-summary">{{product.summary}}</view>
+      <view class="detail-price">{{product.priceText || '会员中心实时价格'}}</view>
+
+      <view class="detail-divider"></view>
+      <view class="detail-section-label">产品说明</view>
+      <view class="detail-description">{{product.description || product.summary}}</view>
+
+      <view class="detail-divider"></view>
+      <view class="detail-section-label">规格与购买</view>
+      <view wx:if="{{product.skus && product.skus.length}}" class="sku-list">
+        <view wx:for="{{product.skus}}" wx:key="skuId" class="sku-row">
+          <text>{{item.skuName}}</text>
+          <text>{{item.priceText}}</text>
+        </view>
+      </view>
+      <view wx:else class="detail-description">规格、价格、库存与优惠以 Root 会员中心实时页面为准。</view>
+    </view>
+
+    <view class="detail-action-shell">
+      <view>
+        <view class="detail-action-price">{{product.priceText || '实时价格'}}</view>
+        <view class="detail-action-note">将前往 Root 会员中心</view>
+      </view>
+      <button class="detail-buy" loading="{{jumpLoading}}" disabled="{{jumpLoading}}" bindtap="buyProduct">购买</button>
+    </view>
+  </view>
+</view>

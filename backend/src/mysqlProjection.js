@@ -22,11 +22,13 @@ function assertSnapshotProjectionRegistrySafe(projections) {
 }
 
 const JSON_COLUMNS = new Set([
+  "allowed_target_pages_json",
   "answers_json",
   "conditions_json",
   "config_json",
   "data_json",
   "data_schema_json",
+  "dimensions_json",
   "evidence",
   "external_result_json",
   "external_status_json",
@@ -34,12 +36,16 @@ const JSON_COLUMNS = new Set([
   "metadata_json",
   "payload_json",
   "purposes_json",
+  "questions_json",
   "raw_result_json",
   "request_json",
   "response_json",
   "result_json",
+  "result_copies_json",
+  "result_rules_json",
   "rewards_json",
   "setting_json",
+  "safety_rules_json",
   "snapshot_json",
   "data_categories_json",
 ]);
@@ -47,14 +53,19 @@ const JSON_COLUMNS = new Set([
 const BOOLEAN_COLUMNS = new Set([
   "allow_reapply",
   "inventory_released",
+  "is_retest",
   "occurred_at_client_supplied",
   "required",
   "subscribed",
   "verified",
 ]);
 const DATE_COLUMNS = new Set([
+  "acted_at",
+  "attributed_at",
   "authorization_verified_at",
   "cancel_close_at",
+  "claimed_at",
+  "completed_at",
   "computed_at",
   "consumed_at",
   "created_at",
@@ -64,6 +75,7 @@ const DATE_COLUMNS = new Set([
   "expired_at",
   "external_status_checked_at",
   "granted_at",
+  "health_data_redacted_at",
   "invalidated_at",
   "joined_at",
   "last_seen_at",
@@ -84,10 +96,12 @@ const DATE_COLUMNS = new Set([
   "session_start_at",
   "skipped_at",
   "start_at",
+  "started_at",
   "status_checked_at",
   "submitted_at",
   "updated_at",
   "used_at",
+  "viewed_at",
   "unionid_verified_at",
 ]);
 
@@ -130,6 +144,18 @@ function rootUserRows(data) {
   return Array.from(byId.values());
 }
 
+function healthAssessmentDefinitionRows(data) {
+  const rows = Array.isArray(data.healthAssessmentDefinitions) ? data.healthAssessmentDefinitions : [];
+  return rows.map((row) => ({
+    ...row,
+    questions_json: row.questions_json || row.questions || [],
+    dimensions_json: row.dimensions_json || row.dimensions || [],
+    safety_rules_json: row.safety_rules_json || row.safety_rules || [],
+    result_rules_json: row.result_rules_json || row.result_rules || [],
+    result_copies_json: row.result_copies_json || row.result_copies || [],
+  }));
+}
+
 const PROJECTIONS = [
   {
     table: "root_user",
@@ -162,6 +188,74 @@ const PROJECTIONS = [
     source: "userLifecycleEvents",
     id: "lifecycle_event_id",
     columns: ["lifecycle_event_id", "root_user_id", "event_type", "source_channel", "app_code", "metadata", "occurred_at"],
+  },
+  {
+    table: "health_assessment_definition",
+    source: "healthAssessmentDefinitions",
+    id: "assessment_definition_id",
+    rows: healthAssessmentDefinitionRows,
+    columns: [
+      "assessment_definition_id", "assessment_type", "questionnaire_id", "questionnaire_version",
+      "title", "description", "estimated_minutes", "status", "content_review_status",
+      "professional_review_status", "compliance_review_status", "result_copy_version",
+      "questions_json", "dimensions_json", "safety_rules_json", "result_rules_json",
+      "result_copies_json", "default_result_code", "created_at", "updated_at",
+    ],
+  },
+  {
+    table: "health_assessment_attempt",
+    source: "healthAssessmentAttempts",
+    id: "assessment_id",
+    columns: [
+      "assessment_id", "root_user_id", "assessment_definition_id", "assessment_type",
+      "questionnaire_id", "questionnaire_version", "status", "safety_state", "is_retest",
+      "answers_json", "dimensions_json", "result_json", "result_copy_version", "source_channel",
+      "started_at", "completed_at", "health_data_redacted_at", "created_at", "updated_at",
+    ],
+  },
+  {
+    table: "channel_definition",
+    source: "channelDefinitions",
+    id: "channel_definition_id",
+    columns: [
+      "channel_definition_id", "channel_id", "campaign_id", "status", "signature_key_id",
+      "allowed_target_pages_json", "start_at", "end_at", "created_at", "updated_at",
+    ],
+  },
+  {
+    table: "channel_attribution",
+    source: "channelAttributions",
+    id: "channel_attribution_id",
+    columns: [
+      "channel_attribution_id", "root_user_id", "channel_definition_id", "channel_id",
+      "campaign_id", "target_page", "signature_key_id", "signature_scheme", "attributed_at", "created_at",
+    ],
+  },
+  {
+    table: "channel_attribution_attempt",
+    source: "channelAttributionAttempts",
+    id: "channel_attribution_attempt_id",
+    columns: [
+      "channel_attribution_attempt_id", "root_user_id", "requested_channel_id", "requested_campaign_id",
+      "requested_target_page", "result", "reason", "occurred_at", "created_at",
+    ],
+  },
+  {
+    table: "campaign_popup_receipt",
+    source: "campaignPopupReceipts",
+    id: "campaign_popup_receipt_id",
+    columns: [
+      "campaign_popup_receipt_id", "root_user_id", "login_session_id", "campaign_id", "popup_id",
+      "popup_version", "status", "action_type", "claimed_at", "viewed_at", "acted_at", "created_at", "updated_at",
+    ],
+  },
+  {
+    table: "analytics_event",
+    source: "analyticsEvents",
+    id: "analytics_event_id",
+    columns: [
+      "analytics_event_id", "root_user_id", "event_name", "payload_json", "source", "occurred_at", "created_at",
+    ],
   },
   {
     table: "activity_definition_version",

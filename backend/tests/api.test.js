@@ -216,9 +216,6 @@ test("retired task, settlement, reward, order, check-in and legacy operations HT
     ["GET", "/api/v1/user/consultations"],
     ["GET", "/api/v1/campaigns/active"],
     ["POST", "/api/v1/campaigns/join"],
-    ["GET", "/api/v1/products"],
-    ["GET", "/api/v1/products/retired-product"],
-    ["POST", "/api/v1/products/jump"],
     ["POST", "/api/v1/order/match"],
     ["POST", "/api/v1/checkin/start"],
     ["GET", "/api/v1/checkin/session"],
@@ -240,7 +237,6 @@ test("retired task, settlement, reward, order, check-in and legacy operations HT
     ["POST", "/api/v1/daily/submit"],
     ["GET", "/api/v1/daily/history"],
     ["GET", "/api/v1/daily/trend"],
-    ["POST", "/api/v1/event/track"],
     ["POST", "/api/v1/upload/image"],
     ["GET", "/api/v1/admin/tasks"],
     ["POST", "/api/v1/admin/tasks/retired-task/complete"],
@@ -459,6 +455,9 @@ test("MySQL migrations and core relational projection cover production Store fac
     "066_v1_runtime_alert_delivery_severity_slo_authority.sql",
     "067_formal_launch_retired_runtime_cleanup.sql",
     "068_formal_launch_confirmed_prelaunch_cleanup.sql",
+    "069_health_assessment.sql",
+    "070_growth_engagement.sql",
+    "071_product_analytics.sql",
   ]);
   migrationFiles.forEach((fileName) => {
     const sql = fs.readFileSync(path.join(__dirname, "..", "db", "migrations", fileName), "utf8");
@@ -916,8 +915,8 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.equal(notice.data.contact, "privacy@example.com");
   assert.equal(notice.data.retentionDays, 180);
   assert.match(notice.data.retentionText, /180 天/);
-  assert.equal(notice.data.version, "0.5.13");
-  assert.equal(notice.data.releaseId, "0.5.13");
+  assert.equal(notice.data.version, "0.6.0");
+  assert.equal(notice.data.releaseId, "0.6.0");
 });
 
 test("formal home content HTTP Interface is public and detail uses the same published item", async (t) => {

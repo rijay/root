@@ -1,0 +1,8 @@
+<view class="page channel-error-page">
+  <view class="channel-symbol">!</view>
+  <view class="channel-eyebrow">渠道入口提示</view>
+  <view class="channel-title">暂时无法通过这个二维码进入</view>
+  <view class="channel-copy">{{message}}</view>
+  <button class="root-button channel-primary" bindtap="rescan" loading="{{scanning}}" disabled="{{scanning}}">重新扫码</button>
+  <button class="root-button root-button--secondary channel-secondary" bindtap="goHome">返回首页</button>
+</view>

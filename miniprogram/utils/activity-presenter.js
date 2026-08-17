@@ -9,8 +9,8 @@ const LISTING_STATUS = Object.freeze({
 });
 
 const ENROLLMENT_STATUS = Object.freeze({
-  PENDING: { label: "审核中", tone: "pending" },
-  CONFIRMED: { label: "已确认", tone: "available" },
+  PENDING: { label: "报名审核中", tone: "pending" },
+  CONFIRMED: { label: "已报名", tone: "available" },
   REJECTED: { label: "未通过", tone: "closed" },
   CANCELED: { label: "已取消", tone: "closed" },
 });
