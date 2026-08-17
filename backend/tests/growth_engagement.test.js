@@ -96,6 +96,18 @@ test("campaign popup is claimed once per login session and records safe actions"
   assert.equal(nextSession.popup.popupId, "root-v060-popup");
 });
 
+test("official v0.6 product popup is available when the retired snapshot has no campaign config", () => {
+  const data = createEmptyData();
+  const result = claimSessionPopup(data, "root_user_official", "login_session_official", "REGISTERED_IDLE", {
+    now: NOW,
+  });
+  assert.equal(result.popup.campaignId, "ROOT_PRODUCTS_V060");
+  assert.equal(result.popup.popupId, "root-products-v060");
+  assert.equal(result.popup.action.type, "OPEN_PRODUCT");
+  assert.equal(result.popup.action.target, "4749049439");
+  assert.equal(result.popup.action.label, "立即探索");
+});
+
 test("unapproved popup content remains unavailable", () => {
   const data = dataWithGrowthConfig();
   data.campaignDefinitions[0].config_json.sessionPopup.approvalStatus = "PENDING";

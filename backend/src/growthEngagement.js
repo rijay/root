@@ -24,6 +24,31 @@ const SAFE_TARGET_QUERY_KEYS = Object.freeze({
   "/pages/product-detail/index": new Set(["productId"]),
   "/subpkg/activity/pages/detail/index": new Set(["sessionId"]),
 });
+const OFFICIAL_PRODUCT_CAMPAIGN = Object.freeze({
+  campaign_id: "ROOT_PRODUCTS_V060",
+  title: "ROOT 产品探索",
+  status: "ACTIVE",
+  start_at: "2026-08-01T00:00:00+08:00",
+  end_at: "2099-01-01T00:00:00+08:00",
+  config_json: Object.freeze({
+    sessionPopup: Object.freeze({
+      popupId: "root-products-v060",
+      version: 1,
+      status: "ACTIVE",
+      approvalStatus: "APPROVED",
+      priority: 10,
+      eyebrow: "ROOT 日常补给",
+      title: "探索适合你的日常补给",
+      body: "登录后每个会话仅展示一次，可随时关闭。",
+      secondaryLabel: "暂时关闭",
+      action: Object.freeze({
+        type: "OPEN_PRODUCT",
+        target: "4749049439",
+        label: "立即探索",
+      }),
+    }),
+  }),
+});
 
 function clone(value) {
   return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
@@ -52,8 +77,21 @@ function activeDuring(row, now) {
   return (!start || start <= current) && (!end || end >= current);
 }
 
+function campaignDefinitions(data) {
+  const persisted = ensureList(data, "campaignDefinitions");
+  const hasConfiguredPopup = persisted.some((item) => {
+    const config = item && (item.config_json || item.config) || {};
+    return Boolean(config.sessionPopup || config.session_popup);
+  });
+  if (hasConfiguredPopup
+    || persisted.some((item) => item && item.campaign_id === OFFICIAL_PRODUCT_CAMPAIGN.campaign_id)) {
+    return persisted;
+  }
+  return [...persisted, OFFICIAL_PRODUCT_CAMPAIGN];
+}
+
 function activeCampaign(data, campaignId, now) {
-  return ensureList(data, "campaignDefinitions").find((item) => (
+  return campaignDefinitions(data).find((item) => (
     item.campaign_id === campaignId
     && text(item.status).toUpperCase() === "ACTIVE"
     && activeDuring(item, now)
@@ -103,7 +141,7 @@ function publicPopup(campaign, popup) {
 }
 
 function popupCandidate(data, userState, now = nowISO()) {
-  return ensureList(data, "campaignDefinitions")
+  return campaignDefinitions(data)
     .filter((campaign) => text(campaign.status).toUpperCase() === "ACTIVE" && activeDuring(campaign, now))
     .map((campaign) => ({ campaign, popup: campaignPopupConfig(campaign) }))
     .filter(({ popup }) => {
@@ -392,6 +430,7 @@ function getFirstChannelAttribution(data, rootUserId) {
 
 module.exports = {
   CHANNEL_SIGNATURE_SCHEME,
+  OFFICIAL_PRODUCT_CAMPAIGN,
   SAFE_CHANNEL_TARGET_PAGES,
   attributeFirstChannel,
   campaignPopupConfig,
