@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-25T07:41:30.484Z",
+  "generatedAt": "2026-08-25T09:07:41.141Z",
   "evidenceClass": "LOCAL_FORMAL_SOURCE_ESTIMATE",
   "releaseGateEligible": false,
   "packageState": "LOCAL_SOURCE_ESTIMATE",
@@ -29,11 +29,11 @@
   },
   "packages": {
     "main": {
-      "bytes": 937233,
+      "bytes": 937827,
       "fileCount": 149,
       "budget": {
         "status": "PASS",
-        "value": 937233,
+        "value": 937827,
         "target": 1363148.8,
         "hardLimit": 1572864
       }
@@ -52,22 +52,22 @@
       },
       {
         "root": "subpkg/campaign",
-        "bytes": 300652,
+        "bytes": 300633,
         "fileCount": 5,
         "budget": {
           "status": "PASS",
-          "value": 300652,
+          "value": 300633,
           "target": 819200,
           "hardLimit": 1258291.2
         }
       },
       {
         "root": "subpkg/health",
-        "bytes": 134002,
+        "bytes": 133927,
         "fileCount": 25,
         "budget": {
           "status": "PASS",
-          "value": 134002,
+          "value": 133927,
           "target": 819200,
           "hardLimit": 1258291.2
         }
@@ -96,11 +96,11 @@
       }
     ],
     "total": {
-      "bytes": 2232207,
+      "bytes": 2232707,
       "fileCount": 217,
       "budget": {
         "status": "PASS",
-        "value": 2232207,
+        "value": 2232707,
         "target": 6291456,
         "hardLimit": 8388608
       }

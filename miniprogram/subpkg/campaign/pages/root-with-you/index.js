@@ -2,8 +2,8 @@ const router = require("../../../../utils/router");
 const { showFriendShareMenu } = require("../../../../utils/page-share");
 const { failureReason, track } = require("../../../../utils/analytics");
 const {
+  GUT_ASSESSMENT_CONTINUE_PATH,
   FIXED_GUT_ASSESSMENT_PATH,
-  rememberContinuation,
 } = require("../../../../utils/gut-assessment-entry");
 
 const ROOT_WITH_YOU_IMAGE_URL = "/subpkg/campaign/assets/root-with-you-intro.jpg";
@@ -31,8 +31,7 @@ Page({
     if (this.data.opening) return;
     this.setData({ opening: true });
     try {
-      const target = FIXED_GUT_ASSESSMENT_PATH;
-      rememberContinuation();
+      const target = GUT_ASSESSMENT_CONTINUE_PATH;
       const allowed = await router.routeGuard(target);
       track("campaign_assessment_start", {
         campaignId: "ROOT_WITH_YOU_V060",

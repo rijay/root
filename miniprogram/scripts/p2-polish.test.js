@@ -79,8 +79,8 @@ assert.match(campaign, /fade-show="\{\{false\}\}"/);
 assert.match(campaignScript, /\/subpkg\/campaign\/assets\/root-with-you-intro\.jpg/);
 assert.doesNotMatch(campaignScript, /cloud:\/\//);
 assert.match(campaignScript, /FIXED_GUT_ASSESSMENT_PATH/);
-assert.match(campaignScript, /rememberContinuation/);
-assert.doesNotMatch(campaignScript, /assessmentType=GUT_REGULARITY&source=/);
+assert.match(campaignScript, /GUT_ASSESSMENT_CONTINUE_PATH/);
+assert.doesNotMatch(campaignScript, /rememberContinuation/);
 assert.doesNotMatch(
   JSON.stringify(appConfig.preloadRule?.["pages/home/index"]?.packages || []),
   /subpkg\/campaign/,

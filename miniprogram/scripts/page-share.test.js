@@ -27,6 +27,7 @@ const {
 assert.equal(showFriendShareMenu(), true);
 assert.equal(shown, 1);
 assert.equal(lastShareMenuOptions.withShareTicket, false);
+assert.deepEqual(lastShareMenuOptions.menus, ["shareAppMessage"]);
 assert.equal(typeof lastShareMenuOptions.success, "function");
 assert.equal(typeof lastShareMenuOptions.fail, "function");
 
@@ -77,6 +78,7 @@ assert.equal(sensitive.path, GENERIC_PATH);
 assert.equal(JSON.stringify(sensitive).includes("personal"), false);
 
 let registered = null;
+let originalShows = 0;
 const runtime = {
   Page(definition) {
     registered = definition;
@@ -88,6 +90,9 @@ runtime.Page({
   onLoad(options) {
     this.loadedProductId = options.productId;
   },
+  onShow() {
+    originalShows += 1;
+  },
   onShareAppMessage() {
     return { title: "产品分享", path: "/wrong" };
   },
@@ -96,6 +101,9 @@ const page = { route: "pages/product-detail/index" };
 registered.onLoad.call(page, { productId: "4875324599", signature: "a".repeat(64) });
 assert.equal(shown, 2);
 assert.equal(page.loadedProductId, "4875324599");
+registered.onShow.call(page);
+assert.equal(originalShows, 1);
+assert.equal(shown, 3);
 assert.deepEqual(registered.onShareAppMessage.call(page), {
   title: "产品分享",
   path: "/pages/product-detail/index?productId=4875324599",
@@ -103,8 +111,11 @@ assert.deepEqual(registered.onShareAppMessage.call(page), {
 assert.equal(installGlobalSharePolicy(runtime), false);
 
 runtime.Page({});
-registered.onLoad.call({ route: "pages/welcome/index" }, {});
+const welcomePage = { route: "pages/welcome/index" };
+registered.onLoad.call(welcomePage, {});
 assert.equal(hidden, 1);
+registered.onShow.call(welcomePage);
+assert.equal(hidden, 2);
 
 const root = path.resolve(__dirname, "..");
 const appConfig = JSON.parse(fs.readFileSync(path.join(root, "app.json"), "utf8"));

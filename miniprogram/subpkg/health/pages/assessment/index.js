@@ -15,8 +15,9 @@ const {
 const router = require("../../../../utils/router");
 const { defaultOnShareAppMessage } = require("../../../../utils/page-share");
 const {
+  GUT_INTRO_SOURCE,
   GUT_INTRO_PATH,
-  clearContinuation,
+  assessmentGuardPath,
   shouldRedirectToIntro,
 } = require("../../../../utils/gut-assessment-entry");
 
@@ -71,10 +72,11 @@ Page({
     try {
       const requestedType = routeOptions.assessmentType || routeOptions.assessment_type || "INITIAL";
       const requestedId = routeOptions.assessmentId || routeOptions.assessment_id || "";
-      const routeQuery = requestedId
-        ? `?assessmentId=${encodeURIComponent(requestedId)}`
-        : `?assessmentType=${encodeURIComponent(requestedType)}`;
-      const allowed = await router.routeGuard(`/subpkg/health/pages/assessment/index${routeQuery}`);
+      const allowed = await router.routeGuard(assessmentGuardPath({
+        assessmentType: requestedType,
+        assessmentId: requestedId,
+        source: routeOptions.source === GUT_INTRO_SOURCE ? GUT_INTRO_SOURCE : "",
+      }));
       if (!allowed) {
         this.pendingInitialize = false;
         return;
@@ -90,7 +92,6 @@ Page({
         assessmentId = started.assessment && started.assessment.assessmentId;
       }
       if (!assessmentId) throw new Error("评测记录未创建");
-      if (requestedType === "GUT_REGULARITY") clearContinuation();
       this.pendingInitialize = false;
       this.setData({ assessmentId });
       const data = await getAssessment(assessmentId);

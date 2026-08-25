@@ -95,6 +95,7 @@ function showFriendShareMenu() {
   const pageType = normalizeRoute(page && page.route) || "UNKNOWN";
   wx.showShareMenu({
     withShareTicket: false,
+    menus: ["shareAppMessage"],
     success() {
       track("share_menu_setup", { pageType, result: "SUCCESS", failureReason: "" });
     },
@@ -132,19 +133,28 @@ function installGlobalSharePolicy(runtime = globalThis) {
   if (typeof originalPage !== "function" || originalPage.__rootSharePolicyInstalled) return false;
   function RootPage(definition = {}) {
     const originalOnLoad = definition.onLoad;
+    const originalOnShow = definition.onShow;
     const originalShare = definition.onShareAppMessage;
+    function syncShareMenu(page) {
+      const route = normalizeRoute(page && page.route);
+      if (route !== "/pages/welcome/index") {
+        showFriendShareMenu();
+      } else if (wx.hideShareMenu) {
+        wx.hideShareMenu();
+      }
+    }
     const wrapped = {
       ...definition,
       onLoad(options = {}) {
         this.__rootShareOptions = { ...options };
-        const route = normalizeRoute(this.route);
-        if (route !== "/pages/welcome/index") {
-          showFriendShareMenu();
-        } else if (route === "/pages/welcome/index" && wx.hideShareMenu) {
-          wx.hideShareMenu();
-        }
-        if (typeof originalOnLoad === "function") return originalOnLoad.call(this, options);
-        return undefined;
+        const result = typeof originalOnLoad === "function" ? originalOnLoad.call(this, options) : undefined;
+        syncShareMenu(this);
+        return result;
+      },
+      onShow(...args) {
+        const result = typeof originalOnShow === "function" ? originalOnShow.apply(this, args) : undefined;
+        syncShareMenu(this);
+        return result;
       },
       onShareAppMessage(event) {
         const candidate = typeof originalShare === "function" && originalShare !== defaultOnShareAppMessage
