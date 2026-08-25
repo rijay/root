@@ -18,7 +18,7 @@ assert.equal(release.localV060CompatMode, false, "正式版不得启用本地兼
   assert.deepEqual(trial[key], release[key], `体验版与正式版配置不一致：${key}`);
 });
 
-assert.equal(trial.healthAssessmentStorageMode, "LOCAL_DEVICE");
+assert.equal(trial.healthAssessmentStorageMode, "SERVER");
 assert.equal(trial.healthAssessmentRetentionDays, 180);
 
 delete global.__wxConfig;

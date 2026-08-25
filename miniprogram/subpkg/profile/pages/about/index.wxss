@@ -1,7 +1,7 @@
 page,
 .about-page {
   min-height: 100vh;
-  background: #fdfbf6;
+  background: var(--color-brand-white);
 }
 
 .about-page {
@@ -16,7 +16,7 @@ page,
   left: 20px;
   width: calc(100% - 40px);
   height: 38px;
-  color: #080806;
+  color: var(--color-brand-black);
   font-size: 30px;
   font-weight: 600;
   line-height: 38px;
@@ -42,7 +42,7 @@ page,
   left: 20px;
   width: calc(100% - 40px);
   height: 82px;
-  color: #433e34;
+  color: var(--color-graphite);
   font-size: 14px;
   line-height: 27px;
   white-space: pre-line;
@@ -58,8 +58,8 @@ page,
   height: 112px;
   box-sizing: border-box;
   padding: 0 20px;
-  color: #fff;
-  background: #080806;
+  color: var(--color-brand-white);
+  background: var(--color-brand-black);
   border-radius: 14px;
   font-size: 17px;
   font-weight: 500;
@@ -76,7 +76,7 @@ page,
   overflow: hidden;
   box-sizing: border-box;
   padding: 0 16px;
-  background: #fff;
+  background: var(--color-brand-white);
   border-radius: 14px;
 }
 
@@ -87,8 +87,8 @@ page,
   width: 100%;
   height: 50px;
   box-sizing: border-box;
-  color: #433e34;
-  border-bottom: 1px solid #e8e0d0;
+  color: var(--color-graphite);
+  border-bottom: 1px solid var(--color-ui-line-solid);
   font-size: 14px;
 }
 
@@ -100,8 +100,8 @@ page,
   width: 4px;
   height: 8px;
   margin-right: 1px;
-  border-top: 1px solid #8a8172;
-  border-right: 1px solid #8a8172;
+  border-top: 1px solid var(--color-neutral-grey);
+  border-right: 1px solid var(--color-neutral-grey);
   transform: rotate(45deg);
 }
 
@@ -111,7 +111,7 @@ page,
   left: 20px;
   width: calc(100% - 40px);
   height: 18px;
-  color: #8a8172;
+  color: var(--color-neutral-grey);
   font-size: 11px;
   line-height: 18px;
   text-align: center;

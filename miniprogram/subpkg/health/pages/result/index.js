@@ -1,4 +1,5 @@
 const {
+  deleteAssessment,
   getAssessment,
   startAssessment,
 } = require("../../../../utils/health-assessment");
@@ -16,6 +17,7 @@ Page({
     restarting: false,
     trialEligible: false,
     trialOpening: false,
+    deleting: false,
   },
 
   onLoad(options = {}) {
@@ -75,6 +77,31 @@ Page({
 
   backToHealth() {
     wx.switchTab({ url: "/pages/health/index" });
+  },
+
+  async confirmDelete() {
+    if (this.data.deleting || !this.data.assessmentId) return;
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: "删除这条评测记录？",
+        content: "这条记录的问卷答案和评测结果将从账号中删除；若已用于综合建议，对应建议也会删除。删除后无法恢复。",
+        confirmText: "删除",
+        confirmColor: "#d23f31",
+        success: (result) => resolve(result.confirm === true),
+        fail: () => resolve(false),
+      });
+    });
+    if (!confirmed) return;
+    this.setData({ deleting: true });
+    try {
+      const result = await deleteAssessment(this.data.assessmentId);
+      wx.showToast({ title: result.deleted ? "记录已删除" : "记录已不存在", icon: "success" });
+      wx.redirectTo({ url: "/subpkg/health/pages/history/index" });
+    } catch (error) {
+      wx.showToast({ title: error.message || "删除失败，请重试", icon: "none" });
+    } finally {
+      this.setData({ deleting: false });
+    }
   },
 
   async claimTrialPack() {

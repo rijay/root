@@ -4,12 +4,13 @@ const { createId } = require("./seed");
 const { createClientError } = require("./clientError");
 
 const HEALTH_CONSENT_TYPE = "HEALTH_SENSITIVE_INFO";
-const HEALTH_CONSENT_POLICY_VERSION = "root4u-health-sensitive-2026-08-03-v1";
+const HEALTH_CONSENT_POLICY_VERSION = "root4u-health-sensitive-2026-08-25-v2";
 const DECISIONS = new Set(["GRANTED", "WITHDRAWN"]);
 
 const PURPOSES = [
   "完成 Root4U 健康起点评测与生活方式分类",
   "生成日常生活方式建议和后续评测推荐",
+  "在账号中保存问卷答案、评测结果和回测记录，支持跨设备查看与主动删除",
   "在出现需要进一步确认的信息时提供必要人工协助",
 ];
 
@@ -75,13 +76,13 @@ function noticePayload(config) {
     title: "身体反馈与健康记录单独同意",
     purposes: PURPOSES.slice(),
     dataCategories: DATA_CATEGORIES.slice(),
-    necessity: "这些信息仅用于你主动参加的 Root4U 评测、生活方式建议和必要人工协助，不用于医疗诊断。",
+    necessity: "这些信息会安全保存到你的 myRoot 账号，仅用于你主动参加的 Root4U 评测、生活方式建议、历史回测和必要人工协助，不用于医疗诊断。",
     refusalImpact: "不同意不会影响首页、活动和会员支持，但无法提交 Root4U 健康评测或查看基于评测生成的建议。",
     controllerName: config.controllerName,
     contact: config.contact,
     retentionDays: config.retentionDays,
     retentionText: config.retentionDays
-      ? `原始健康评测答案原则上保存不超过 ${config.retentionDays} 天；到期后自动脱敏，评测版本、完成时间和同意审计事实按必要期限保留。法律法规另有要求的除外。`
+      ? `原始健康评测答案原则上保存不超过 ${config.retentionDays} 天；你可在评测历史中随时删除单条记录。到期后自动脱敏，评测版本、完成时间和同意审计事实按必要期限保留。法律法规另有要求的除外。`
       : "保存期限待运营负责人确认。",
   };
 }

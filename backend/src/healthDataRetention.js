@@ -199,6 +199,17 @@ function candidateSpecs() {
       },
     },
     {
+      kind: "HEALTH_ASSESSMENT_ATTEMPT",
+      collection: "healthAssessmentAttempts",
+      id: (item) => item.assessment_id,
+      time: (item) => item.completed_at || item.updated_at || item.created_at,
+      media: () => [],
+      redact(item, redactedAt) {
+        item.answers_json = {};
+        markRedaction(item, redactedAt);
+      },
+    },
+    {
       kind: "CHECKIN_RECORD",
       collection: "checkinRecords",
       id: (item) => item.record_id,

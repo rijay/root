@@ -34,6 +34,49 @@
     </view>
 
     <button class="health-history-entry" bindtap="openHistory">评测历史与回测对比</button>
-    <text wx:if="{{storageMode === 'LOCAL_DEVICE'}}" class="health-local-note">当前版本的问卷答案、评测结果和回测记录仅保存在此设备，不上传到 myRoot 服务器；自最后保存起最长保留 180 天。更换设备或清理小程序数据后无法恢复。</text>
+    <text wx:if="{{storageMode === 'SERVER'}}" class="health-local-note">问卷答案、评测结果和回测记录会安全保存到你的 myRoot 账号，可跨设备查看，也可在评测历史中删除。</text>
+
+    <view class="health-overview-card">
+      <view class="health-overview-card__head">
+        <text class="health-overview-card__eyebrow">YOUR CURRENT STATE</text>
+        <text wx:if="{{overview && overview.advice}}" class="health-overview-card__source">{{overview.advice.sourceLabel}}</text>
+      </view>
+      <text class="health-overview-card__title">当前状态与健康建议</text>
+
+      <view wx:if="{{overview && overview.states.length}}" class="health-overview-states">
+        <view wx:for="{{overview.states}}" wx:key="assessmentId" class="health-overview-state">
+          <view>
+            <text class="health-overview-state__type">{{item.typeLabel}}</text>
+            <text class="health-overview-state__time">{{item.completedAtText}}</text>
+          </view>
+          <text class="health-overview-state__value">{{item.title}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{overview && !overview.ready}}" class="health-overview-pending">
+        还需完成：{{overview.missingText}}。完成两项评测后生成综合建议。
+      </view>
+
+      <view wx:if="{{adviceLoading}}" class="health-overview-pending" role="status" aria-live="polite">正在生成安全、可执行的健康建议…</view>
+
+      <view wx:if="{{overview && overview.advice}}" class="health-advice">
+        <text class="health-advice__summary">{{overview.advice.summary}}</text>
+        <view class="health-advice__actions">
+          <view wx:for="{{overview.advice.actions}}" wx:key="*this" class="health-advice__action">
+            <text class="health-advice__number">0{{index + 1}}</text>
+            <text>{{item}}</text>
+          </view>
+        </view>
+        <text wx:if="{{overview.advice.followUp}}" class="health-advice__follow-up">{{overview.advice.followUp}}</text>
+        <text wx:for="{{overview.advice.cautions}}" wx:key="*this" class="health-advice__caution">{{item}}</text>
+      </view>
+
+      <view wx:if="{{overviewErrorText}}" class="health-overview-error">
+        <text>{{overviewErrorText}}</text>
+        <button wx:if="{{overview && overview.ready}}" bindtap="generateAdvice">重试生成</button>
+        <button wx:else bindtap="reloadOverview">重新加载</button>
+      </view>
+      <text class="health-overview-card__disclaimer">当前状态由已审核评测规则确定；建议仅用于日常健康管理参考，不构成诊断、治疗或用药建议。</text>
+    </view>
   </view>
 </scroll-view>

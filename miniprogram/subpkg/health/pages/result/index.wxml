@@ -61,10 +61,11 @@
       </view>
 
       <view class="result-disclaimer">本结果仅用于近期健康状态观察参考，不构成疾病诊断、治疗、用药建议或干预疗效判断。</view>
-      <view class="result-disclaimer">问卷答案、评测结果和回测记录仅保存在当前设备，不上传到 myRoot 服务器；自最后保存起最长保留 180 天，换设备或清除小程序数据后不可恢复。</view>
+      <view class="result-disclaimer">问卷答案、评测结果和回测记录已安全保存到你的 myRoot 账号，你可以在本页或评测历史中删除。</view>
 
       <button class="root-button result-action" loading="{{restarting}}" disabled="{{restarting}}" bindtap="restart">重新评测</button>
       <button class="root-button root-button--secondary result-action" bindtap="openHistory">查看历史结果</button>
+      <button class="result-delete-action" loading="{{deleting}}" disabled="{{deleting || restarting}}" bindtap="confirmDelete">删除本条记录</button>
       <button class="result-text-action" bindtap="backToHealth">返回健康首页</button>
     </view>
   </view>

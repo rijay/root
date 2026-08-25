@@ -1,4 +1,4 @@
-const { getLocalProduct } = require("../../utils/local-product-catalog");
+const { getProduct } = require("../../utils/product-api");
 const { setPendingProductFocus } = require("../../utils/product-navigation");
 const { jumpToYouzanProduct, mergeJumpTarget } = require("../../utils/youzan-jump");
 const { failureReason, track } = require("../../utils/analytics");
@@ -23,6 +23,7 @@ Page({
     product: null,
     errorText: "",
     sourcePage: "direct",
+    catalogNotice: "",
   },
 
   onLoad(options = {}) {
@@ -41,13 +42,19 @@ Page({
     showFriendShareMenu();
   },
 
-  loadProduct() {
+  async loadProduct() {
     if (!this.data.productId) {
       this.setData({ loading: false, errorText: "商品不存在" });
       return;
     }
-    const product = decorateProduct(getLocalProduct(this.data.productId));
-    this.setData({ loading: false, product, errorText: product ? "" : "商品不存在" });
+    const data = await getProduct(this.data.productId);
+    const product = decorateProduct(data.product);
+    this.setData({
+      loading: false,
+      product,
+      errorText: product ? "" : "商品不存在",
+      catalogNotice: data.degradedText || "",
+    });
     if (product) {
       track("product_detail_view", {
         productId: product.productId,

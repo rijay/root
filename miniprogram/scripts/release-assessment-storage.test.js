@@ -1,23 +1,38 @@
 const assert = require("node:assert/strict");
 
-const storage = new Map([
-  ["ROOT_TOKEN", "release-storage-test-token"],
-  ["ROOT_LOCAL_USER_SCOPE_V060", "release-storage-test-user"],
-]);
-
 global.__wxConfig = { envVersion: "release" };
-global.wx = {
-  getStorageSync(key) { return storage.get(key); },
-  setStorageSync(key, value) { storage.set(key, value); },
-  removeStorageSync(key) { storage.delete(key); },
+global.wx = {};
+
+const calls = [];
+const completedAssessment = {
+  assessmentId: "has-release-server-1",
+  assessmentType: "INITIAL",
+  questionnaireId: "ROOT_INITIAL_BASELINE",
+  questionnaireVersion: 1,
+  status: "COMPLETED",
+  completedAt: "2026-08-25T10:00:00.000Z",
+  result: { resultCode: "STEADY", title: "状态较平稳", priorityAction: "保持节奏" },
+  dimensions: [],
 };
 
-let remoteCalls = 0;
 require.cache[require.resolve("../utils/request")] = {
   exports: {
-    async request() {
-      remoteCalls += 1;
-      throw new Error("release assessment must not call the unfinished server API");
+    async request(options) {
+      calls.push({ url: options.url, method: options.method || "GET" });
+      if (options.url.endsWith("/catalog")) return { assessments: [], storageMode: "SERVER" };
+      if (options.url.endsWith("/start")) {
+        return { created: true, assessment: { ...completedAssessment, status: "IN_PROGRESS", result: null } };
+      }
+      if (options.url.endsWith("/draft")) {
+        return { assessment: { ...completedAssessment, status: "IN_PROGRESS", result: null } };
+      }
+      if (options.url.endsWith("/complete")) return { created: true, assessment: completedAssessment };
+      if (options.url.includes("/history")) return { assessments: [completedAssessment], total: 1 };
+      if (options.url.endsWith("/compare")) {
+        return { comparable: false, reason: "SAME_ASSESSMENT", left: completedAssessment, right: completedAssessment, dimensions: [] };
+      }
+      if (options.method === "DELETE") return { assessmentId: completedAssessment.assessmentId, deleted: true };
+      return { assessment: completedAssessment };
     },
   },
 };
@@ -27,54 +42,40 @@ require.cache[require.resolve("../utils/analytics")] = {
 
 const env = require("../config/env");
 const assessment = require("../utils/health-assessment");
-const local = require("../utils/local-health-assessment");
-
-function firstAnswers(definition) {
-  return definition.questions.reduce((answers, question) => {
-    const first = question.options[0];
-    answers[question.field] = question.type === "multi" ? [first.value] : first.value;
-    return answers;
-  }, {});
-}
 
 async function main() {
   assert.equal(env.envVersion, "release");
   assert.equal(env.localV060CompatMode, false, "正式环境的其他能力不得退回全局兼容模式");
-  assert.equal(env.healthAssessmentStorageMode, "LOCAL_DEVICE");
-  assert.equal(env.healthAssessmentRetentionDays, 180);
+  assert.equal(env.healthAssessmentStorageMode, "SERVER");
 
   const catalog = await assessment.getCatalog();
-  assert.equal(catalog.storageMode, "LOCAL_DEVICE");
-  assert.equal(catalog.assessments.length, 2);
+  assert.equal(catalog.storageMode, "SERVER");
+  await assessment.startAssessment("INITIAL");
+  await assessment.saveDraft(completedAssessment.assessmentId, { stateScore: 4 });
+  await assessment.completeAssessment(completedAssessment.assessmentId, { stateScore: 4 });
+  await assessment.getAssessment(completedAssessment.assessmentId);
+  await assessment.getHistory("INITIAL");
+  await assessment.compareAssessments(completedAssessment.assessmentId, completedAssessment.assessmentId);
+  const deleted = await assessment.deleteAssessment(completedAssessment.assessmentId);
+  assert.equal(deleted.deleted, true);
 
-  const answers = firstAnswers(local.DEFINITIONS.INITIAL);
-  const first = await assessment.startAssessment("INITIAL");
-  await assessment.saveDraft(first.assessment.assessmentId, answers);
-  const completed = await assessment.completeAssessment(first.assessment.assessmentId, answers);
-  const loaded = await assessment.getAssessment(completed.assessment.assessmentId);
-  const history = await assessment.getHistory("INITIAL");
-
-  assert.equal(loaded.assessment.status, "COMPLETED");
-  assert.equal(history.total, 1);
-
-  assert.equal(local.bindUserScope("member-a").bound, true);
-  storage.set("ROOT_TOKEN", "rotated-release-storage-test-token");
-  assert.equal((await assessment.getHistory("INITIAL")).total, 1, "token 更新后同一会员仍应看到本机历史");
-  local.unbindUserScope();
-  assert.equal((await assessment.getHistory("INITIAL")).total, 0, "退出后游客不得看到会员评测记录");
-  local.bindUserScope("member-a");
-  assert.equal((await assessment.getHistory("INITIAL")).total, 1, "同一会员再次登录后应恢复本机历史");
-  local.unbindUserScope();
-  local.bindUserScope("member-b");
-  assert.equal((await assessment.getHistory("INITIAL")).total, 0, "不同会员不得共享本机评测记录");
-  assert.equal(remoteCalls, 0, "release 评测链路不得调用未部署的服务端 Interface");
+  assert.deepEqual(calls, [
+    { url: "/api/v1/health/assessments/catalog", method: "GET" },
+    { url: "/api/v1/health/assessments/start", method: "POST" },
+    { url: `/api/v1/health/assessments/${completedAssessment.assessmentId}/draft`, method: "POST" },
+    { url: `/api/v1/health/assessments/${completedAssessment.assessmentId}/complete`, method: "POST" },
+    { url: `/api/v1/health/assessments/${completedAssessment.assessmentId}`, method: "GET" },
+    { url: "/api/v1/health/assessments/history?assessmentType=INITIAL", method: "GET" },
+    { url: "/api/v1/health/assessments/compare", method: "POST" },
+    { url: `/api/v1/health/assessments/${completedAssessment.assessmentId}`, method: "DELETE" },
+  ]);
 }
 
 main()
   .then(() => {
     delete global.__wxConfig;
     delete global.wx;
-    console.log("release assessment local-storage tests passed");
+    console.log("release assessment server-storage tests passed");
   })
   .catch((error) => {
     delete global.__wxConfig;

@@ -72,6 +72,7 @@
     "068_formal_launch_confirmed_prelaunch_cleanup.sql": "d2d867474c0fbc93cc5aec91b9ee18a03e8100331d66cc071bfb1f51b1189d31",
     "069_health_assessment.sql": "2d04281d7af291c349c4fbce7b1dba8a9c80c2c49a4677f2db5475dc4a503a1c",
     "070_growth_engagement.sql": "db4f76619459c058b0a7bb8be44d3986131bb363affa472eee5600e4e8315e0c",
-    "071_product_analytics.sql": "646f786fde31acbf3f2009a2dfb27f01e80fa35dc12d3e7e15138cd8722d1f35"
+    "071_product_analytics.sql": "646f786fde31acbf3f2009a2dfb27f01e80fa35dc12d3e7e15138cd8722d1f35",
+    "072_health_advice_snapshot.sql": "7af77293b5d63f31c54fd33a8817f85bbc895b66c569e7e8bf76e642f9132fb8"
   }
 }

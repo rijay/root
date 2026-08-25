@@ -82,7 +82,8 @@
 }
 
 .recent-compare::after,
-.history-card__view::after {
+.history-card__view::after,
+.history-card__delete::after {
   border: 0;
 }
 
@@ -244,18 +245,33 @@
   font-size: var(--font-size-xs);
 }
 
-.history-card__view {
-  width: 100%;
+.history-card__actions {
+  display: flex;
+  align-items: center;
+  border-top: 1rpx solid var(--color-root-line);
+}
+
+.history-card__view,
+.history-card__delete {
   min-height: 88rpx;
   margin: var(--spacing-sm) 0 0;
   padding: 0;
-  color: var(--color-root-moss);
   background: transparent;
-  border-top: 1rpx solid var(--color-root-line);
   border-radius: 0;
   font-size: var(--font-size-sm);
   line-height: 88rpx;
+}
+
+.history-card__view {
+  flex: 1;
+  color: var(--color-root-moss);
   text-align: right;
+}
+
+.history-card__delete {
+  flex: 0 0 112rpx;
+  color: var(--color-danger);
+  text-align: left;
 }
 
 .selected-compare {

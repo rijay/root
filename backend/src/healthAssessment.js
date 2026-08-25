@@ -513,6 +513,24 @@ function history(data, rootUserId, query = {}) {
   return { assessments: rows, total: rows.length };
 }
 
+function remove(data, rootUserId, assessmentId) {
+  const normalizedId = text(assessmentId);
+  const allAttempts = attempts(data);
+  const index = allAttempts.findIndex((item) => (
+    item.assessment_id === normalizedId && item.root_user_id === rootUserId
+  ));
+  if (index < 0) {
+    return { assessmentId: normalizedId, deleted: false };
+  }
+  allAttempts.splice(index, 1);
+  if (Array.isArray(data.healthAdviceSnapshots)) {
+    data.healthAdviceSnapshots = data.healthAdviceSnapshots.filter((item) => (
+      item.initial_assessment_id !== normalizedId && item.gut_assessment_id !== normalizedId
+    ));
+  }
+  return { assessmentId: normalizedId, deleted: true, deletedAt: nowISO() };
+}
+
 function compare(data, rootUserId, input = {}) {
   const requestedLeft = ownedAttempt(data, rootUserId, input.leftAssessmentId || input.left_assessment_id);
   const requestedRight = ownedAttempt(data, rootUserId, input.rightAssessmentId || input.right_assessment_id);
@@ -577,6 +595,7 @@ module.exports = {
   definitionPayload,
   get,
   history,
+  remove,
   pruneHiddenAnswers,
   reviewState,
   saveDraft,

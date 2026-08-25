@@ -36,6 +36,30 @@ const CUTOVER_ITEMS = [
     action: "用 Root 会员中心真实导出或小批量拉取校准订单、客户、商品和 unionid/手机号字段。",
   },
   {
+    id: "youzan_credentials_rotated",
+    group: "commerce",
+    label: "有赞密钥轮换与只读探针",
+    ownerRole: "研发/运营",
+    proofEnv: "ROOT_CUTOVER_YOUZAN_CREDENTIALS_ROTATED",
+    supportingEnv: ["YOUZAN_CLIENT_ID", "YOUZAN_CLIENT_SECRET"],
+    action: "轮换已暴露密钥，使用受控密钥完成商品、订单、客户和优惠券只读探针；验证分页、去重、隐私字段形态及已知样本回读。",
+  },
+  {
+    id: "health_advice_model_provider",
+    group: "health",
+    label: "健康建议模型受托处理与降级验收",
+    ownerRole: "产品/研发/合规",
+    proofEnv: "ROOT_CUTOVER_HEALTH_ADVICE_MODEL_VERIFIED",
+    supportingEnv: [
+      "ROOT_HEALTH_ADVICE_MODEL_ENABLED",
+      "ROOT_HEALTH_ADVICE_MODEL_ENDPOINT",
+      "ROOT_HEALTH_ADVICE_MODEL_API_KEY",
+      "ROOT_HEALTH_ADVICE_MODEL_NAME",
+      "ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME",
+    ],
+    action: "确认境内模型服务、数据不用于训练和必要留存约定；完成最小输入、固定 JSON、超时降级、高风险不调用模型及隐私影响评估。",
+  },
+  {
     id: "wework_live_fields",
     group: "operations",
     label: "企微客户联系字段校准",
@@ -124,6 +148,7 @@ const CUTOVER_ITEMS = [
 const GROUP_LABELS = {
   identity: "账号身份",
   commerce: "有赞商城",
+  health: "健康建议",
   operations: "运营触达",
   data: "数据导出",
   release: "发布回滚",

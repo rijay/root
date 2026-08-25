@@ -43,7 +43,7 @@ Page({
     saving: false,
     dirty: false,
     saveFailed: false,
-    saveStatusText: "完成当前题目后，答案会保存到当前设备。",
+    saveStatusText: "完成当前题目后，进度会安全保存到账号。",
     saveStatusTone: "muted",
   },
 
@@ -128,7 +128,7 @@ Page({
       currentIndex,
       dirty: false,
       saveFailed: false,
-      saveStatusText: Object.keys(answers).length ? "已从当前设备恢复上次进度。" : "完成当前题目后，答案会保存到当前设备。",
+      saveStatusText: Object.keys(answers).length ? "已从账号恢复上次进度。" : "完成当前题目后，进度会安全保存到账号。",
       saveStatusTone: "muted",
     }, () => this.refreshQuestion());
   },
@@ -186,7 +186,7 @@ Page({
       currentIndex,
       dirty: true,
       saveFailed: false,
-      saveStatusText: "本题修改尚未保存到当前设备。",
+      saveStatusText: "本题修改尚未保存到账号。",
       saveStatusTone: "pending",
     }, () => this.refreshQuestion());
   },
@@ -242,7 +242,7 @@ Page({
     this.setData({
       saving: true,
       saveFailed: false,
-      saveStatusText: "正在将当前进度保存到本机…",
+      saveStatusText: "正在将当前进度保存到账号…",
       saveStatusTone: "pending",
     });
     try {
@@ -251,7 +251,7 @@ Page({
       this.setData({
         dirty: !unchanged,
         saveFailed: false,
-        saveStatusText: unchanged ? "当前进度已保存到本机。" : "保存期间有新修改，进入下一步前会再次保存。",
+        saveStatusText: unchanged ? "当前进度已保存到账号。" : "保存期间有新修改，进入下一步前会再次保存。",
         saveStatusTone: unchanged ? "saved" : "pending",
       });
       return result;

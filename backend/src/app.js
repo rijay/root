@@ -21,6 +21,7 @@ const { clientErrorResponse, createClientError } = require("./clientError");
 const sessionModule = require("./sessionModule");
 const adminFormalUserQuery = require("./adminFormalUserQuery");
 const v060Api = require("./v060Api");
+const { createEnvironmentHealthAdviceModelAdapter } = require("./healthAdviceModelAdapter");
 
 const {
   ADMIN_CAPABILITIES,
@@ -532,6 +533,8 @@ function createApp(options = {}) {
   const performanceMetricsModule = options.performanceMetricsModule || createPerformanceMetricsModule({
     logger: options.performanceLogger || console,
   });
+  const healthAdviceModelAdapter = options.healthAdviceModelAdapter
+    || createEnvironmentHealthAdviceModelAdapter(runtimeEnv, { fetchImpl: options.fetchImpl });
   const elementAdminDir = resolveElementAdminDir(options.adminDistDir, runtimeEnv);
   const runtimeContext = {
     storeAdapter,
@@ -543,6 +546,8 @@ function createApp(options = {}) {
     trustedWechatIdentityAdapter: options.trustedWechatIdentityAdapter,
     activityPublicationAuthorizationAdapter: options.activityPublicationAuthorizationAdapter,
     activityAssetAdapter: options.activityAssetAdapter,
+    healthAdviceModelAdapter,
+    memberCommerceAdapter: options.memberCommerceAdapter || null,
     runtimeMetadata,
   };
   const initialPersistPromise = Promise.resolve();
@@ -702,6 +707,9 @@ function createApp(options = {}) {
       if (route === "GET /api/v1/products") {
         return apiOk(res, v060Api.listProducts(data, Object.fromEntries(url.searchParams), runtimeContext));
       }
+      if (route === "GET /api/v1/member-commerce/summary") {
+        return apiOk(res, await v060Api.memberCommerceSummary(data, token, runtimeContext));
+      }
       if (route === "POST /api/v1/products/jump") {
         return apiOk(res, await withIdempotency(
           data,
@@ -719,6 +727,17 @@ function createApp(options = {}) {
       }
       if (route === "GET /api/v1/health/assessments/history") {
         return apiOk(res, v060Api.assessmentHistory(data, token, Object.fromEntries(url.searchParams)));
+      }
+      if (route === "GET /api/v1/health/overview") {
+        return apiOk(res, v060Api.healthOverview(data, token));
+      }
+      if (route === "POST /api/v1/health/advice/generate") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => v060Api.generateHealthAdvice(data, token, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
       }
       if (route === "POST /api/v1/health/assessments/start") {
         return apiOk(res, await withIdempotency(
@@ -753,6 +772,9 @@ function createApp(options = {}) {
       const assessmentDetailMatch = url.pathname.match(/^\/api\/v1\/health\/assessments\/([A-Za-z0-9_-]{1,64})$/);
       if (method === "GET" && assessmentDetailMatch) {
         return apiOk(res, v060Api.getAssessment(data, token, assessmentDetailMatch[1]));
+      }
+      if (method === "DELETE" && assessmentDetailMatch) {
+        return apiOk(res, v060Api.deleteAssessment(data, token, assessmentDetailMatch[1]));
       }
       if (route === "POST /api/v1/operations/popup/claim") {
         return apiOk(res, await withIdempotency(

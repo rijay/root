@@ -1,18 +1,21 @@
 page {
-  --root-ink: #080806;
-  --root-bg: #f7f4ec;
-  --root-nav: #fdfbf6;
+  /* v0.7.0：黑白、品牌橄榄绿和中性灰为唯一界面色源。 */
+  --root-ink: #000000;
+  --root-bg: #f5f5f7;
+  --root-nav: #ffffff;
   --root-surface: #ffffff;
-  --root-moss: #586b3f;
-  --root-sprout: #a6b77a;
-  --root-clay: #b67855;
-  --root-line: #e8e0d0;
-  --root-muted: #8a8172;
-  --root-copy: #433e34;
-  --root-soft: #dde8c4;
-  --root-primary-tint: #f1f5e6;
-  --root-warning: #c49a4a;
+  --root-moss: #242a0b;
+  --root-sprout: #a1b371;
+  --root-line: #d1d1d6;
+  --root-muted: #7b7a7e;
+  --root-copy: #3a3a3c;
+  --root-soft: #e1e8d3;
+  --root-primary-tint: #eef2e7;
+  --root-warning: #b7791f;
   --root-danger: #b5523c;
+
+  /* 旧名称仅为保留页面兼容，不再代表暖棕或米色。 */
+  --root-clay: #6b7c3a;
 
   --root-font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
   --root-type-xs: 22rpx;
@@ -57,9 +60,9 @@ page {
   --color-root-soft: var(--root-soft);
   --color-primary: var(--root-moss);
   --color-primary-light: var(--root-sprout);
-  --color-primary-dark: #3f4f2b;
+  --color-primary-dark: #242a0b;
   --color-primary-tint: var(--root-primary-tint);
-  --color-glass: rgba(253, 251, 246, 0.94);
+  --color-glass: rgba(255, 255, 255, 0.94);
   --color-white-strong: rgba(255, 255, 255, 0.72);
   --color-white-soft: rgba(255, 255, 255, 0.78);
   --color-accent: var(--root-clay);
@@ -67,16 +70,19 @@ page {
   --color-warning: var(--root-warning);
   --color-danger: var(--root-danger);
 
-  /* v0.6.0 新增产品与评测页面使用的品牌语义色；不改变既有页面变量。 */
+  /* 品牌语义色；页面只通过这些 token 表达界面语义。 */
   --color-brand-black: #000000;
   --color-brand-white: #ffffff;
   --color-brand-olive: #242a0b;
   --color-olive-mid: #6b7c3a;
+  --color-olive-dark: #344126;
   --color-accent-on-dark: #a1b371;
   --color-olive-soft: #e1e8d3;
   --color-olive-tint: #eef2e7;
   --color-ui-grouped: #f5f5f7;
   --color-ui-surface: #ffffff;
+  --color-ui-line-solid: #d1d1d6;
+  --color-system-line: #e5e5ea;
   --color-ui-line: rgba(123, 122, 126, 0.22);
   --color-graphite: #3a3a3c;
   --color-neutral-grey: #7b7a7e;
@@ -111,9 +117,9 @@ page {
   --radius-card: var(--root-radius-xl);
   --radius-control: var(--root-radius-lg);
   --radius-full: var(--root-radius-full);
-  --shadow-sm: 0 2rpx 10rpx rgba(8, 8, 6, 0.04);
-  --shadow-md: 0 8rpx 24rpx rgba(8, 8, 6, 0.08);
-  --shadow-lg: 0 16rpx 48rpx rgba(8, 8, 6, 0.1);
-  --shadow-primary-cta: 0 8rpx 24rpx rgba(8, 8, 6, 0.18);
-  --shadow-accent-cta: 0 8rpx 24rpx rgba(182, 120, 85, 0.22);
+  --shadow-sm: 0 2rpx 10rpx rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 16rpx 48rpx rgba(0, 0, 0, 0.1);
+  --shadow-primary-cta: 0 8rpx 24rpx rgba(0, 0, 0, 0.18);
+  --shadow-accent-cta: 0 8rpx 24rpx rgba(36, 42, 11, 0.2);
 }

@@ -2,7 +2,7 @@
   <view class="history-header">
     <view class="history-kicker">ASSESSMENT HISTORY</view>
     <view class="history-title">每一次结果，独立保存</view>
-    <view class="history-copy">记录仅保存在当前设备，最长保留 180 天。仅相同问卷 ID 与版本支持数值对比。</view>
+    <view class="history-copy">记录已安全保存到你的 myRoot 账号。你可以删除单条记录；仅相同问卷 ID 与版本支持数值对比。</view>
   </view>
 
   <view wx:if="{{loading}}" class="root-card history-state" role="status" aria-live="polite">
@@ -72,7 +72,10 @@
             <view class="history-card__time">{{item.completedAtText}}{{item.safetyStopped ? ' · 安全分支' : ''}}</view>
           </view>
         </view>
-        <button class="history-card__view" data-assessment-id="{{item.assessmentId}}" bindtap="openResult">查看结果 ›</button>
+        <view class="history-card__actions">
+          <button class="history-card__delete" data-assessment-id="{{item.assessmentId}}" loading="{{deletingAssessmentId === item.assessmentId}}" disabled="{{!!deletingAssessmentId}}" bindtap="confirmDelete">删除</button>
+          <button class="history-card__view" data-assessment-id="{{item.assessmentId}}" disabled="{{!!deletingAssessmentId}}" bindtap="openResult">查看结果 ›</button>
+        </view>
       </view>
     </view>
 

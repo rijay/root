@@ -59,7 +59,7 @@ test("canary verifier attributes candidate health and executes the candidate-onl
       return jsonResponse(200, { code: 0, data: { service: "root-checkin", version: "0.5.5", releaseId: candidateReleaseId, store: {
         kind: "mysql",
         connected: true,
-        migrationVersion: "071_product_analytics.sql",
+        migrationVersion: "072_health_advice_snapshot.sql",
         leastPrivilegeReady: true,
         privilegeScope: "SCHEMA",
         privilegePolicyEnforced: true,
@@ -171,7 +171,7 @@ test("canary verifier fails when default traffic reaches the candidate release",
       ...(path === "/ready" ? { store: {
         kind: "mysql",
         connected: true,
-        migrationVersion: "071_product_analytics.sql",
+        migrationVersion: "072_health_advice_snapshot.sql",
         leastPrivilegeReady: true,
         privilegeScope: "SCHEMA",
         privilegePolicyEnforced: true,
@@ -223,7 +223,7 @@ test("canary verifier is read-only unless the object probe flag is explicit", as
       ...(path === "/ready" ? { store: {
         kind: "mysql",
         connected: true,
-        migrationVersion: "071_product_analytics.sql",
+        migrationVersion: "072_health_advice_snapshot.sql",
         leastPrivilegeReady: true,
         privilegeScope: "SCHEMA",
         privilegePolicyEnforced: true,
@@ -265,7 +265,7 @@ test("canary verifier blocks a candidate that has not applied the latest migrati
 
   assert.equal(report.status, "FAIL");
   assert.equal(report.ready.status, "FAIL");
-  assert.match(report.ready.reason, /071_product_analytics\.sql/);
+  assert.match(report.ready.reason, /072_health_advice_snapshot\.sql/);
   assert.equal(determineExitCode(report), 3);
 });
 
@@ -285,7 +285,7 @@ test("canary verifier blocks a MySQL candidate without enforced schema-scoped pr
       ...(isReady ? { store: {
         kind: "mysql",
         connected: true,
-        migrationVersion: "071_product_analytics.sql",
+        migrationVersion: "072_health_advice_snapshot.sql",
         leastPrivilegeReady: false,
         privilegeScope: "GLOBAL",
         privilegePolicyEnforced: false,
@@ -320,7 +320,7 @@ test("canary verifier blocks an incomplete public privacy notice", async () => {
       ...(path === "/ready" ? { store: {
         kind: "mysql",
         connected: true,
-        migrationVersion: "071_product_analytics.sql",
+        migrationVersion: "072_health_advice_snapshot.sql",
         leastPrivilegeReady: true,
         privilegeScope: "SCHEMA",
         privilegePolicyEnforced: true,

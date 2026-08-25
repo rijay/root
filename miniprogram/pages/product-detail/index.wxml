@@ -36,6 +36,7 @@
       <view class="detail-title">{{product.title}}</view>
       <view class="detail-summary">{{product.summary}}</view>
       <view class="detail-price">{{product.priceText || '会员中心实时价格'}}</view>
+      <view wx:if="{{catalogNotice}}" class="detail-catalog-notice">{{catalogNotice}}</view>
 
       <view class="detail-divider"></view>
       <view class="detail-section-label">产品说明</view>
@@ -50,7 +51,7 @@
         </view>
       </view>
       <view wx:else class="detail-description">规格、价格、库存与优惠以 Root 会员中心实时页面为准。</view>
-      <view wx:if="{{product.youzan.updatedAt}}" class="detail-config-date">本地跳转配置更新于 {{product.youzan.updatedAt}}</view>
+      <view wx:if="{{product.syncedAt}}" class="detail-config-date">商品信息同步于 {{product.syncedAt}}</view>
     </view>
 
     <view class="detail-action-shell">

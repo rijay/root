@@ -64,7 +64,7 @@
 .detail-product-visual--photo {
   inset: 84rpx 32rpx 24rpx;
   overflow: hidden;
-  background: #fff;
+  background: var(--color-brand-white);
   border-radius: 38rpx;
   box-shadow: 0 24rpx 56rpx rgba(36, 42, 11, 0.14);
 }
@@ -165,6 +165,16 @@
   color: var(--color-brand-black);
   font-size: 28rpx;
   font-weight: 600;
+}
+
+.detail-catalog-notice {
+  margin-top: 18rpx;
+  padding: 18rpx 20rpx;
+  color: var(--color-neutral-grey);
+  background: var(--color-olive-tint);
+  border-radius: 16rpx;
+  font-size: 22rpx;
+  line-height: 1.55;
 }
 
 .detail-divider {

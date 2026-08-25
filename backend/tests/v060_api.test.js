@@ -191,6 +191,25 @@ test("v0.6 public product and authenticated assessment Interfaces work end to en
   });
   assert.equal(history.payload.data.total, 1);
   assert.equal(history.payload.data.assessments[0].answers, undefined);
+
+  const deleted = await request(baseUrl, `/api/v1/health/assessments/${assessmentId}`, {
+    method: "DELETE",
+    headers: authenticatedHeaders(),
+  });
+  assert.equal(deleted.status, 200);
+  assert.equal(deleted.payload.data.deleted, true);
+
+  const emptyHistory = await request(baseUrl, "/api/v1/health/assessments/history?assessmentType=INITIAL", {
+    headers: authenticatedHeaders(),
+  });
+  assert.equal(emptyHistory.payload.data.total, 0);
+
+  const repeatedDelete = await request(baseUrl, `/api/v1/health/assessments/${assessmentId}`, {
+    method: "DELETE",
+    headers: authenticatedHeaders(),
+  });
+  assert.equal(repeatedDelete.status, 200);
+  assert.equal(repeatedDelete.payload.data.deleted, false);
 });
 
 test("v0.6 popup, first-touch channel and safe analytics Interfaces work end to end", async (t) => {

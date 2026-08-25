@@ -27,7 +27,7 @@
     <view class="login-page__privacy">
       <checkbox-group bindchange="changeAgreement">
         <label class="login-page__agreement-option">
-          <checkbox value="accepted" checked="{{agreementAccepted}}" color="#586B3F" />
+          <checkbox value="accepted" checked="{{agreementAccepted}}" color="#242a0b" />
           <text>我已阅读并同意</text>
         </label>
       </checkbox-group>

@@ -3,7 +3,7 @@ const envVersion = ["develop", "trial", "release"].includes(detectedEnvVersion) 
 
 const productionCloudServiceName = "myroot-api";
 const internalTestCloudServiceName = "myroot-api";
-const LOCAL_DEVICE_ASSESSMENT_STORAGE = "LOCAL_DEVICE";
+const SERVER_ASSESSMENT_STORAGE = "SERVER";
 const LOCAL_DEVICE_ASSESSMENT_RETENTION_DAYS = 180;
 
 const developmentCloudContainerConfig = {
@@ -11,7 +11,7 @@ const developmentCloudContainerConfig = {
   cloudEnvId: "myroot-prod-d5gl3gzg7115f149a",
   cloudServiceName: internalTestCloudServiceName,
   localV060CompatMode: true,
-  healthAssessmentStorageMode: LOCAL_DEVICE_ASSESSMENT_STORAGE,
+  healthAssessmentStorageMode: SERVER_ASSESSMENT_STORAGE,
 };
 
 const productionLikeCloudContainerConfig = {
@@ -19,7 +19,7 @@ const productionLikeCloudContainerConfig = {
   cloudEnvId: "myroot-prod-d5gl3gzg7115f149a",
   cloudServiceName: productionCloudServiceName,
   localV060CompatMode: false,
-  healthAssessmentStorageMode: LOCAL_DEVICE_ASSESSMENT_STORAGE,
+  healthAssessmentStorageMode: SERVER_ASSESSMENT_STORAGE,
 };
 
 const configs = {

@@ -12,7 +12,7 @@ page {
 .welcome {
   position: relative;
   overflow: hidden;
-  color: #fff;
+  color: var(--color-brand-white);
   background: var(--root-ink);
 }
 
@@ -36,24 +36,24 @@ page {
 /* 内置高保真背景加载失败时的低成本视觉回退。 */
 .welcome__media--first {
   background:
-    radial-gradient(circle at 78% 24%, rgba(166, 183, 122, 0.26), transparent 31%),
-    linear-gradient(156deg, #35452b 0%, #11150e 52%, #3a3022 100%);
+    radial-gradient(circle at 78% 24%, rgba(161, 179, 113, 0.26), transparent 31%),
+    linear-gradient(156deg, var(--color-olive-dark) 0%, var(--color-brand-black) 52%, var(--color-graphite) 100%);
 }
 
 .welcome__media--second {
   background:
-    radial-gradient(circle at 12% 18%, rgba(182, 120, 85, 0.2), transparent 30%),
-    linear-gradient(168deg, #293623 0%, #0b0c09 43%, #3a2e23 100%);
+    radial-gradient(circle at 12% 18%, rgba(107, 124, 58, 0.2), transparent 30%),
+    linear-gradient(168deg, var(--color-olive-dark) 0%, var(--color-brand-black) 43%, var(--color-graphite) 100%);
 }
 
 .welcome__shade--first {
   top: 58%;
-  background: linear-gradient(180deg, transparent 0%, rgba(8, 8, 6, 0.9) 42%, var(--root-ink) 100%);
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.9) 42%, var(--root-ink) 100%);
 }
 
 .welcome__shade--second {
   top: 20%;
-  background: linear-gradient(180deg, rgba(8, 8, 6, 0.08) 0%, rgba(8, 8, 6, 0.9) 19%, var(--root-ink) 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.9) 19%, var(--root-ink) 100%);
 }
 
 .welcome__copy {
@@ -152,7 +152,7 @@ page {
 
 .welcome__dot.is-active {
   width: 16px;
-  background: #fff;
+  background: var(--color-brand-white);
 }
 
 .welcome__skip {
@@ -165,7 +165,7 @@ page {
   min-height: 44px;
   margin: 0;
   padding: 0;
-  color: #fff;
+  color: var(--color-brand-white);
   background: transparent;
   border: 0;
   font-size: 14px;

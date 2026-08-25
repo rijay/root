@@ -52,7 +52,7 @@ page {
   margin-right: 0 !important;
   margin-left: 0 !important;
   padding: 0;
-  color: #fff;
+  color: var(--color-brand-white);
   background: var(--root-moss);
   border: 0;
   border-radius: 12px;

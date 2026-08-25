@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const {
   decorateAssessment,
   decorateCatalogItem,
+  decorateOverview,
   formatDate,
 } = require("../utils/health-assessment");
 
@@ -59,5 +60,19 @@ assert.equal(available.estimatedText, "约 4 分钟");
 assert.equal(available.latest.resultTitle, "近期状态结果");
 assert.equal(available.canResume, true);
 assert.equal(available.inProgress.assessmentId, "has_draft");
+
+const overview = decorateOverview({
+  ready: false,
+  missingAssessmentTypes: ["GUT_REGULARITY"],
+  states: [{
+    assessmentId: "has_initial",
+    assessmentType: "INITIAL",
+    title: "状态较平稳",
+    completedAt: "2026-08-25T10:00:00.000Z",
+  }],
+});
+assert.equal(overview.missingText, "肠道规律自测");
+assert.equal(overview.states[0].typeLabel, "初始评测");
+assert.match(overview.states[0].completedAtText, /^2026\.08\.25/);
 
 console.log("health assessment tests ok");

@@ -4,7 +4,7 @@
   z-index: 9999;
   display: flex;
   align-items: flex-end;
-  background: rgba(8, 8, 6, 0.72);
+  background: rgba(0, 0, 0, 0.72);
 }
 
 .privacy-dialog {
@@ -86,7 +86,7 @@
 }
 
 .privacy-button--primary {
-  color: #fff;
+  color: var(--color-brand-white);
   background: var(--root-moss);
   font-weight: 600;
 }

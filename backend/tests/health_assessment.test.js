@@ -173,6 +173,30 @@ test("health assessment comparison rejects different questionnaire versions", ()
   assert.equal(compared.reason, "QUESTIONNAIRE_VERSION_MISMATCH");
 });
 
+test("health assessment deletion is owned, idempotent and does not expose another user's record", () => {
+  const data = createSeedData();
+  data.healthAssessmentDefinitions.push(approvedInitialDefinition());
+  const started = assessment.start(data, "root-delete-owner", { assessmentType: "INITIAL" });
+  assessment.complete(data, "root-delete-owner", started.assessment.assessmentId, {
+    answers: { stateScore: 4, frequency: "regular" },
+  });
+
+  assert.deepEqual(
+    assessment.remove(data, "root-other-user", started.assessment.assessmentId),
+    { assessmentId: started.assessment.assessmentId, deleted: false },
+  );
+  assert.equal(assessment.history(data, "root-delete-owner").total, 1);
+
+  const removed = assessment.remove(data, "root-delete-owner", started.assessment.assessmentId);
+  assert.equal(removed.deleted, true);
+  assert.equal(typeof removed.deletedAt, "string");
+  assert.equal(assessment.history(data, "root-delete-owner").total, 0);
+  assert.deepEqual(
+    assessment.remove(data, "root-delete-owner", started.assessment.assessmentId),
+    { assessmentId: started.assessment.assessmentId, deleted: false },
+  );
+});
+
 test("health assessment safety branch can stop before ordinary required questions", () => {
   const data = createSeedData();
   data.healthAssessmentDefinitions.push(approvedGutDefinition());

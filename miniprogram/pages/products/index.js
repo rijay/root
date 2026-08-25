@@ -8,7 +8,7 @@ const {
   scrollLeftForProduct,
   setPendingProductFocus,
 } = require("../../utils/product-navigation");
-const { listLocalProducts } = require("../../utils/local-product-catalog");
+const { listProducts } = require("../../utils/product-api");
 const { jumpToYouzanProduct, mergeJumpTarget } = require("../../utils/youzan-jump");
 const { failureReason, track } = require("../../utils/analytics");
 const { showFriendShareMenu } = require("../../utils/page-share");
@@ -34,6 +34,8 @@ Page({
     carouselScrollLeft: 0,
     carouselVisible: true,
     focusNotice: "",
+    failedProductImages: {},
+    catalogNotice: "",
   },
 
   onLoad(options = {}) {
@@ -75,15 +77,15 @@ Page({
     if (Number.isFinite(scrollTop) && scrollTop >= 0) this.pageScrollTop = scrollTop;
   },
 
-  onPullDownRefresh() {
-    this.loadProducts(this.data.activeProductId);
+  async onPullDownRefresh() {
+    await this.loadProducts(this.data.activeProductId);
     wx.stopPullDownRefresh();
   },
 
-  loadProducts(focusProductId = "") {
+  async loadProducts(focusProductId = "") {
     this.setData({ loading: true, errorText: "" });
     try {
-      const data = listLocalProducts();
+      const data = await listProducts();
       const products = decorateProducts(data.products || []);
       const savedProductId = this.viewState.productId;
       const focus = resolveProductFocus(products, focusProductId, savedProductId);
@@ -95,6 +97,7 @@ Page({
         focusNotice: focus.requestedUnavailable
           ? "指定商品暂不可见，已为你展示当前可用产品。"
           : "",
+        catalogNotice: data.degradedText || "",
         loading: false,
       }, () => {
         if (!focus.requestedUnavailable && focusProductId && focusProductId !== savedProductId) {
@@ -162,6 +165,11 @@ Page({
     if (!productId || this.impressedProductIds.has(productId)) return;
     this.impressedProductIds.add(productId);
     track("product_impression", { productId, skuId: "", sourcePage: "products" });
+  },
+
+  productImageFailed(event) {
+    const productId = String(event.currentTarget.dataset.productId || "");
+    if (productId) this.setData({ [`failedProductImages.${productId}`]: true });
   },
 
   onProductScroll(event = {}) {

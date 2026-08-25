@@ -7,6 +7,8 @@ const { clearLegacyTransientHealthStorage, clearTransientHealthData } = require(
 const { FORMAL_ACCESS_STATE, inspectFormalAccess } = require("../../utils/formal-access");
 const { unbindUserScope } = require("../../utils/local-health-assessment");
 const { defaultOnShareAppMessage } = require("../../utils/page-share");
+const { readProfileCache, writeProfileCache } = require("../../utils/profile-cache");
+const { getMemberCommerceSummary } = require("../../utils/member-commerce");
 
 const PROFILE_ROUTE = "/pages/profile/index";
 const PENDING_MEMBER_TARGET_KEY = "ROOT_PROFILE_MEMBER_TARGET_V1";
@@ -38,6 +40,8 @@ Page({
     version: appVersion,
     memberLinkFailure: false,
     failedMemberKey: "",
+    profileRefreshFailed: false,
+    memberCommerce: { ready: false, orderHint: "会员中心", couponHint: "会员中心" },
   },
 
   onLoad() {
@@ -47,27 +51,71 @@ Page({
   onShow() {
     syncTabBar(this, 4);
     const hasSession = Boolean(getToken());
+    const cached = hasSession ? readProfileCache() : null;
     this.setData(hasSession
-      ? { loggedIn: false, sessionChecking: true }
-      : { loggedIn: false, sessionChecking: false, memberLinkFailure: false, failedMemberKey: "" });
+      ? cached
+        ? { loggedIn: true, sessionChecking: false, profile: cached.profile, profileRefreshFailed: false }
+        : { loggedIn: false, sessionChecking: true, profileRefreshFailed: false }
+      : {
+        loggedIn: false,
+        sessionChecking: false,
+        profile: { nickname: "未登录", avatarUrl: "" },
+        memberLinkFailure: false,
+        failedMemberKey: "",
+        profileRefreshFailed: false,
+      });
     if (hasSession) {
-      this.loadProfile();
+      this.loadProfile({ preserveCached: Boolean(cached) });
+      this.loadMemberCommerce();
     }
   },
 
-  async loadProfile() {
-    try {
-      const access = await inspectFormalAccess("profile-home");
-      const loggedIn = access.state !== FORMAL_ACCESS_STATE.PHONE_REQUIRED;
-      this.setData({
-        loggedIn,
-        sessionChecking: false,
-        profile: access.profile || { nickname: loggedIn ? "Root用户" : "未登录", avatarUrl: "" },
-      });
-      if (loggedIn) this.resumeMemberTarget();
-    } catch (error) {
-      this.setData({ loggedIn: false, sessionChecking: false, profile: { nickname: "未登录", avatarUrl: "" } });
-    }
+  loadProfile(options = {}) {
+    if (this._profileLoadPromise) return this._profileLoadPromise;
+    const pending = (async () => {
+      try {
+        const access = await inspectFormalAccess("profile-home");
+        const loggedIn = access.state !== FORMAL_ACCESS_STATE.PHONE_REQUIRED;
+        const profile = access.profile || { nickname: loggedIn ? "Root用户" : "未登录", avatarUrl: "" };
+        if (loggedIn) writeProfileCache(profile);
+        this.setData({
+          loggedIn,
+          sessionChecking: false,
+          profile,
+          profileRefreshFailed: false,
+        });
+        if (loggedIn) this.resumeMemberTarget();
+        if (loggedIn) this.loadMemberCommerce();
+      } catch (error) {
+        if (options.preserveCached && getToken()) {
+          this.setData({ sessionChecking: false, profileRefreshFailed: true });
+          return;
+        }
+        this.setData({
+          loggedIn: false,
+          sessionChecking: false,
+          profile: { nickname: "未登录", avatarUrl: "" },
+          profileRefreshFailed: false,
+        });
+      }
+    })();
+    this._profileLoadPromise = pending;
+    return pending.finally(() => {
+      if (this._profileLoadPromise === pending) this._profileLoadPromise = null;
+    });
+  },
+
+  loadMemberCommerce() {
+    if (this._memberCommercePromise || !getToken()) return this._memberCommercePromise;
+    const pending = getMemberCommerceSummary()
+      .then((memberCommerce) => this.setData({ memberCommerce }))
+      .catch(() => this.setData({
+        memberCommerce: { ready: false, orderHint: "会员中心", couponHint: "会员中心" },
+      }));
+    this._memberCommercePromise = pending;
+    return pending.finally(() => {
+      if (this._memberCommercePromise === pending) this._memberCommercePromise = null;
+    });
   },
 
   resumeMemberTarget() {
@@ -147,6 +195,8 @@ Page({
       profile: { nickname: "未登录", avatarUrl: "" },
       memberLinkFailure: false,
       failedMemberKey: "",
+      profileRefreshFailed: false,
+      memberCommerce: { ready: false, orderHint: "会员中心", couponHint: "会员中心" },
     });
     wx.showToast({ title: "已退出登录", icon: "success" });
   },

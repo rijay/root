@@ -56,12 +56,12 @@
 }
 
 .page-navigation--light .page-navigation__back-icon {
-  border-color: #fff;
+  border-color: var(--color-brand-white);
 }
 
 .page-navigation--light .page-navigation__home-icon,
 .page-navigation--light .page-navigation__home-roof {
-  border-color: #fff;
+  border-color: var(--color-brand-white);
 }
 
 .page-navigation__back-icon {

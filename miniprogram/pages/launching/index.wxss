@@ -1,5 +1,5 @@
-page { min-height: 100%; background: #000000; }
-.launching-page { position: relative; display: flex; min-height: 100vh; align-items: center; justify-content: center; overflow: hidden; background: #000000; color: #ffffff; }
+page { min-height: 100%; background: var(--color-brand-black); }
+.launching-page { position: relative; display: flex; min-height: 100vh; align-items: center; justify-content: center; overflow: hidden; background: var(--color-brand-black); color: var(--color-brand-white); }
 .launching-center { display: flex; flex-direction: column; align-items: center; transform: translateY(-3vh); }
 .launching-logo { width: 278rpx; height: 92rpx; }
 .launching-line { width: 32rpx; height: 2rpx; margin-top: 42rpx; background: rgba(255, 255, 255, 0.56); }

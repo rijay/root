@@ -70,6 +70,7 @@ async function getCatalog() {
     : await request({ url: "/api/v1/health/assessments/catalog" });
   return {
     ...data,
+    storageMode: useLocalAssessmentStorage ? data.storageMode : "SERVER",
     assessments: (data.assessments || []).map(decorateCatalogItem),
   };
 }
@@ -140,6 +141,46 @@ async function getHistory(assessmentType = "") {
   };
 }
 
+async function deleteAssessment(assessmentId) {
+  if (useLocalAssessmentStorage) {
+    throw new Error("当前本地兼容模式不支持单条删除");
+  }
+  const result = await request({
+    url: `/api/v1/health/assessments/${assessmentId}`,
+    method: "DELETE",
+  });
+  track("assessment_delete", { deleted: result.deleted === true });
+  return result;
+}
+
+function decorateOverview(data = {}) {
+  const missingLabels = (data.missingAssessmentTypes || []).map((type) => TYPE_LABELS[type] || "健康评测");
+  return {
+    ...data,
+    missingLabels,
+    missingText: missingLabels.join("、"),
+    states: (data.states || []).map((item) => ({
+      ...item,
+      typeLabel: TYPE_LABELS[item.assessmentType] || "健康评测",
+      completedAtText: formatDate(item.completedAt),
+    })),
+  };
+}
+
+async function getHealthOverview() {
+  return decorateOverview(await request({ url: "/api/v1/health/overview" }));
+}
+
+async function generateHealthAdvice(currentOverview = {}) {
+  const inputKey = (currentOverview.states || []).map((item) => item.assessmentId).filter(Boolean).sort().join(":");
+  const data = await request({
+    url: "/api/v1/health/advice/generate",
+    method: "POST",
+    idempotencyKey: `health-advice:${inputKey || "current"}`,
+  });
+  return decorateOverview(data);
+}
+
 async function compareAssessments(leftAssessmentId, rightAssessmentId) {
   const data = useLocalAssessmentStorage
     ? localAssessment.compare(leftAssessmentId, rightAssessmentId)
@@ -168,12 +209,16 @@ async function compareAssessments(leftAssessmentId, rightAssessmentId) {
 module.exports = {
   TYPE_LABELS,
   compareAssessments,
+  deleteAssessment,
   decorateAssessment,
   decorateCatalogItem,
+  decorateOverview,
   formatDate,
   getAssessment,
   getCatalog,
   getHistory,
+  getHealthOverview,
+  generateHealthAdvice,
   saveDraft,
   startAssessment,
   completeAssessment,

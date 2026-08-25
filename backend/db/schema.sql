@@ -4,9 +4,9 @@
 -- This inspection snapshot is not proof that migrations ran in any candidate or production environment.
 -- snapshot_format: myroot-mysql-schema-snapshot:v1
 -- mysql_engine_family: 8.0
--- migration_set_sha256: c47739a755c743e4f6fd63f902f491e9075cedd04f6d00a7b296d467e5f9cc35
--- schema_body_sha256: f6da65533162dce704171cf8009815843932977912e2181bc1adf1784cce345e
--- table_count: 21
+-- migration_set_sha256: 189cdd96ba4ebd97ccc461e745491d4ae2888ad8f6924ef551c217201bb83c29
+-- schema_body_sha256: 0a3a46746801a65fc9f4be3021bffe398ff6272fafe3d261f03a80db31a3a532
+-- table_count: 22
 -- migration: 001_store_snapshot.sql sha256:57f0c3032dea218ad010f41ee4e9af6667ea4ae8f13c76096bc67f56763792e0
 -- migration: 002_core_relational.sql sha256:62362767da1748f1aa7e2ec974677b410f123b1c002f2f1519102f19ff905821
 -- migration: 003_privacy_consent.sql sha256:5758b1040533ef411361c8a2aad251497dfad7fb353348d6c887d3856bd68631
@@ -78,6 +78,7 @@
 -- migration: 069_health_assessment.sql sha256:2d04281d7af291c349c4fbce7b1dba8a9c80c2c49a4677f2db5475dc4a503a1c
 -- migration: 070_growth_engagement.sql sha256:db4f76619459c058b0a7bb8be44d3986131bb363affa472eee5600e4e8315e0c
 -- migration: 071_product_analytics.sql sha256:646f786fde31acbf3f2009a2dfb27f01e80fa35dc12d3e7e15138cd8722d1f35
+-- migration: 072_health_advice_snapshot.sql sha256:7af77293b5d63f31c54fd33a8817f85bbc895b66c569e7e8bf76e642f9132fb8
 
 SET NAMES utf8mb4;
 SET time_zone = '+08:00';
@@ -389,6 +390,32 @@ CREATE TABLE `command_idempotency` (
   KEY `idx_command_idempotency_result_crypto` (`result_codec_version`,`result_key_id`,`command_idempotency_id`),
   KEY `idx_command_idempotency_retention_policy` (`retention_policy_version`,`retain_until`,`tombstoned_at`),
   KEY `idx_command_idempotency_tombstone` (`tombstoned_at`,`tombstone_reason`,`command_idempotency_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- table: health_advice_snapshot
+CREATE TABLE `health_advice_snapshot` (
+  `health_advice_snapshot_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `root_user_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `initial_assessment_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `gut_assessment_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `states_json` json NOT NULL,
+  `advice_json` json NOT NULL,
+  `advice_source` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `adapter_id` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `model_name` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `prompt_version` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `content_version` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `rule_version` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `generated_at` datetime(3) NOT NULL,
+  `created_at` datetime(3) NOT NULL,
+  `updated_at` datetime(3) NOT NULL,
+  PRIMARY KEY (`health_advice_snapshot_id`),
+  UNIQUE KEY `uk_health_advice_snapshot_inputs` (`root_user_id`,`initial_assessment_id`,`gut_assessment_id`,`prompt_version`),
+  KEY `idx_health_advice_snapshot_user_time` (`root_user_id`,`generated_at`),
+  KEY `fk_health_advice_snapshot_initial` (`initial_assessment_id`),
+  KEY `fk_health_advice_snapshot_gut` (`gut_assessment_id`),
+  CONSTRAINT `fk_health_advice_snapshot_gut` FOREIGN KEY (`gut_assessment_id`) REFERENCES `health_assessment_attempt` (`assessment_id`),
+  CONSTRAINT `fk_health_advice_snapshot_initial` FOREIGN KEY (`initial_assessment_id`) REFERENCES `health_assessment_attempt` (`assessment_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- table: health_assessment_attempt

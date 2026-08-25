@@ -3,7 +3,7 @@
   <swiper wx:if="{{state === 'ready'}}" class="home-carousel" current="{{current}}" duration="420" circular="{{items.length > 1}}" bindchange="changeSlide">
     <swiper-item wx:for="{{items}}" wx:key="contentId">
       <view class="home-slide home-slide--{{index % 2}}" data-index="{{index}}" data-release-asset="{{item.assetState}}" bindtap="openCurrent">
-        <image wx:if="{{item.coverAssetUrl && !failedImages[index]}}" class="home-slide__image" src="{{item.coverAssetUrl}}" mode="aspectFill" data-index="{{index}}" binderror="imageFailed" />
+        <image wx:if="{{item.coverAssetUrl && !failedImages[index]}}" class="home-slide__image" src="{{item.coverAssetUrl}}" mode="aspectFill" lazy-load="{{index > 0}}" data-index="{{index}}" binderror="imageFailed" />
         <view wx:if="{{failedImages[index]}}" class="home-slide__fallback"><text>ROOT</text></view>
         <view class="home-slide__shade {{item.copyMode === 'asset' ? 'home-slide__shade--asset' : ''}}"></view>
         <view wx:if="{{item.copyMode !== 'asset'}}" class="home-slide__copy home-slide__copy--{{item.copyVariant ? item.copyVariant : 'default'}} {{current === index ? 'is-current' : ''}}">

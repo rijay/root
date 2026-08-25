@@ -2,6 +2,8 @@ const { sessionTokenDigest } = require("./credentialProtection");
 const { createClientError } = require("./clientError");
 const growthEngagement = require("./growthEngagement");
 const healthAssessment = require("./healthAssessment");
+const healthStatusAdvice = require("./healthStatusAdvice");
+const memberCommerce = require("./memberCommerce");
 const privacyConsent = require("./privacyConsent");
 const productAnalytics = require("./productAnalytics");
 const productCatalog = require("./productCatalog");
@@ -77,9 +79,30 @@ function assessmentHistory(data, token, query = {}) {
   return healthAssessment.history(data, actor.rootUserId, query);
 }
 
+function deleteAssessment(data, token, assessmentId) {
+  const actor = principal(data, token);
+  return healthAssessment.remove(data, actor.rootUserId, assessmentId);
+}
+
 function compareAssessments(data, token, body = {}) {
   const actor = principal(data, token);
   return healthAssessment.compare(data, actor.rootUserId, body);
+}
+
+function healthOverview(data, token) {
+  const actor = principal(data, token);
+  return healthStatusAdvice.overview(data, actor.rootUserId);
+}
+
+async function generateHealthAdvice(data, token, context = {}) {
+  const actor = principal(data, token);
+  privacyConsent.requireHealthConsent(data, actor.rootUserId, context);
+  return healthStatusAdvice.generate(data, actor.rootUserId, context);
+}
+
+async function memberCommerceSummary(data, token, context = {}) {
+  const actor = principal(data, token);
+  return memberCommerce.summary(data, actor.rootUserId, context);
 }
 
 function claimPopup(data, token, context = {}) {
@@ -134,10 +157,14 @@ module.exports = Object.freeze({
   claimPopup,
   compareAssessments,
   completeAssessment,
+  deleteAssessment,
   firstAttribution,
   getAssessment,
+  generateHealthAdvice,
   getProduct,
   listProducts,
+  healthOverview,
+  memberCommerceSummary,
   recordAnalytics,
   recordPopupAction,
   recordProductJump,

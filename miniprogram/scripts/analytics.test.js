@@ -46,12 +46,12 @@ async function main() {
     assessmentType: "GUT_REGULARITY",
     questionnaireVersion: 2,
     isRetest: false,
-  }), { sent: false, reason: "LOCAL_HEALTH_STORAGE" });
+  }), { sent: false, reason: "LOCAL_V060_COMPAT" });
   assert.deepEqual(await analytics.track("assessment_result_view", {
     assessmentType: "GUT_REGULARITY",
     questionnaireVersion: 2,
     resultCode: "HEALTHY",
-  }), { sent: false, reason: "LOCAL_HEALTH_STORAGE" });
+  }), { sent: false, reason: "LOCAL_V060_COMPAT" });
   console.log("analytics tests passed");
 }
 

@@ -1,12 +1,12 @@
 page {
-  background: #fdfbf6;
+  background: var(--color-brand-white);
 }
 
 .activity-page {
   min-height: 100vh;
   padding: 78px 20px 160px;
   box-sizing: border-box;
-  background: #fdfbf6;
+  background: var(--color-brand-white);
 }
 
 .activity-head__title,
@@ -18,7 +18,7 @@ page {
 }
 
 .activity-head__title {
-  color: #080806;
+  color: var(--color-brand-black);
   font-size: 30px;
   font-weight: 600;
   line-height: 38px;
@@ -26,7 +26,7 @@ page {
 
 .activity-head__subtitle {
   margin-top: 6px;
-  color: #433e34;
+  color: var(--color-graphite);
   font-size: 13px;
   line-height: 20px;
 }
@@ -46,8 +46,8 @@ page {
   margin-left: 0 !important;
   padding: 0;
   box-sizing: border-box;
-  color: #433e34;
-  background: #fff;
+  color: var(--color-graphite);
+  background: var(--color-brand-white);
   border: 0;
   border-radius: 17px;
   font-size: 12px;
@@ -71,8 +71,8 @@ page {
 }
 
 .activity-filter--active {
-  color: #fff;
-  background: #080806;
+  color: var(--color-brand-white);
+  background: var(--color-brand-black);
   font-weight: 500;
 }
 
@@ -88,7 +88,7 @@ page {
   position: relative;
   width: 100%;
   overflow: hidden;
-  background: #fff;
+  background: var(--color-brand-white);
   border-radius: 16px;
   transition: transform 120ms ease, opacity 120ms ease;
 }
@@ -114,7 +114,7 @@ page {
 .activity-card__visual {
   position: relative;
   overflow: hidden;
-  background: #1d2618;
+  background: var(--color-olive-dark);
 }
 
 .activity-card--featured .activity-card__visual {
@@ -136,7 +136,7 @@ page {
   align-items: flex-end;
   padding: 14px;
   box-sizing: border-box;
-  background: radial-gradient(circle at 75% 20%, #d79652 0%, #615235 38%, #172419 100%);
+  background: radial-gradient(circle at 75% 20%, var(--color-olive-mid) 0%, var(--color-olive-dark) 38%, var(--color-olive-dark) 100%);
 }
 
 .activity-card--compact .activity-card__visual--placeholder {
@@ -163,8 +163,8 @@ page {
   height: 28px;
   padding: 0 12px;
   box-sizing: border-box;
-  color: #586b3f;
-  background: #f1f5e6;
+  color: var(--color-brand-olive);
+  background: var(--color-olive-tint);
   border-radius: 14px;
   font-size: 11px;
   font-weight: 500;
@@ -174,8 +174,8 @@ page {
 
 .activity-card__status--closed,
 .activity-card__status--muted {
-  color: #6f685d;
-  background: rgba(253, 251, 246, 0.92);
+  color: var(--color-neutral-grey);
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .activity-card__body {
@@ -193,7 +193,7 @@ page {
   width: calc(100% - 32px);
   max-height: 52px;
   overflow: hidden;
-  color: #080806;
+  color: var(--color-brand-black);
   font-size: 20px;
   font-weight: 600;
   line-height: 26px;
@@ -224,7 +224,7 @@ page {
   display: -webkit-box;
   width: 150px;
   overflow: hidden;
-  color: #080806;
+  color: var(--color-brand-black);
   font-size: 14px;
   font-weight: 500;
   line-height: 21px;
@@ -239,7 +239,7 @@ page {
 }
 
 .activity-card__meta {
-  color: #433e34;
+  color: var(--color-graphite);
   font-size: 13px;
   line-height: 21px;
 }
@@ -258,7 +258,7 @@ page {
   display: block;
   width: 150px;
   overflow: hidden;
-  color: #8a8172;
+  color: var(--color-neutral-grey);
   font-size: 11px;
   line-height: 18px;
   white-space: nowrap;
@@ -267,7 +267,7 @@ page {
 
 .activity-card__arrow {
   margin-top: 12px;
-  color: #586b3f;
+  color: var(--color-brand-olive);
   font-size: 20px;
   line-height: 28px;
 }
@@ -282,7 +282,7 @@ page {
   right: 20px;
   width: 64px;
   overflow: hidden;
-  color: #8a8172;
+  color: var(--color-neutral-grey);
   font-size: 12px;
   font-weight: 500;
   line-height: 20px;
@@ -293,7 +293,7 @@ page {
 
 .activity-card__compact-status--available,
 .activity-card__compact-status--pending {
-  color: #586b3f;
+  color: var(--color-brand-olive);
 }
 
 .activity-state {
@@ -302,7 +302,7 @@ page {
   justify-content: center;
   flex-direction: column;
   min-height: 180px;
-  color: #8a8172;
+  color: var(--color-neutral-grey);
   font-size: 12px;
   line-height: 20px;
 }
@@ -311,13 +311,13 @@ page {
   min-height: 140px;
   padding: 20px;
   box-sizing: border-box;
-  background: #fff;
+  background: var(--color-brand-white);
   border-radius: 14px;
 }
 
 .activity-state__title {
   margin-bottom: 6px;
-  color: #080806;
+  color: var(--color-brand-black);
   font-size: 16px;
   font-weight: 600;
 }
@@ -326,7 +326,7 @@ page {
   width: 58%;
   height: 12px;
   margin-bottom: 11px;
-  background: #e8e0d1;
+  background: var(--color-ui-line-solid);
   border-radius: 10px;
 }
 
@@ -340,8 +340,8 @@ page {
   height: 36px;
   margin: 14px 0 0;
   padding: 0 15px;
-  color: #fff;
-  background: #080806;
+  color: var(--color-brand-white);
+  background: var(--color-brand-black);
   border: 0;
   border-radius: 9px;
   font-size: 12px;

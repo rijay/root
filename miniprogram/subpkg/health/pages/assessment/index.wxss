@@ -290,7 +290,7 @@
   box-sizing: border-box;
   background: var(--color-root-bg);
   border-top: 1rpx solid var(--color-root-line);
-  box-shadow: 0 -8rpx 24rpx rgba(8, 8, 6, 0.05);
+  box-shadow: 0 -8rpx 24rpx rgba(0, 0, 0, 0.05);
 }
 
 .previous-action,

@@ -25,8 +25,8 @@ assert.match(healthWxml, /初始评测与肠道规律自测/);
 assert.match(healthWxml, /重新评测/);
 assert.match(healthWxml, /评测历史与回测对比/);
 assert.match(healthWxml, /不构成医疗诊断/);
-assert.match(healthWxml, /不上传到 myRoot 服务器/);
-assert.match(healthWxml, /最长保留 180 天/);
+assert.match(healthWxml, /保存到你的 myRoot 账号/);
+assert.match(healthWxml, /评测历史中删除/);
 assert.doesNotMatch(healthWxml, /任务|奖励|打卡|订单/);
 
 const assessmentScript = read("subpkg/health/pages/assessment/index.js");
@@ -68,7 +68,9 @@ const resultScript = read("subpkg/health/pages/result/index.js");
 const compareScript = read("subpkg/health/pages/compare/index.js");
 assert.match(historyScript, /compareSelected/);
 assert.match(historyScript, /compareRecent/);
+assert.match(historyScript, /deleteAssessment/);
 assert.match(resultScript, /startAssessment/);
+assert.match(resultScript, /deleteAssessment/);
 assert.match(resultScript, /rootGutTrialShortLink/);
 assert.match(compareScript, /QUESTIONNAIRE_VERSION_MISMATCH/);
 
@@ -77,8 +79,7 @@ assert.match(consentWxml, /首页、活动和会员支持不以同意为前提/)
 assert.doesNotMatch(consentWxml, /任务|奖励|打卡/);
 
 const legalScript = read("pages/legal/index.js");
-assert.match(legalScript, /问卷答案、评测结果和回测记录仅在当前设备处理/);
-assert.match(legalScript, /不上传到 myRoot 服务器/);
-assert.match(legalScript, /最长保留 180 天/);
+assert.match(legalScript, /保存到你的 myRoot 账号/);
+assert.match(legalScript, /评测历史中随时删除/);
 
 console.log("v0.6.0 formal health tests ok");

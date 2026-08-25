@@ -1,15 +1,15 @@
 page {
   height: 100%;
   overflow: hidden;
-  background: #f8f7f1;
+  background: var(--color-ui-grouped);
 }
 
 .root-with-you {
   position: relative;
   height: 100vh;
   overflow: hidden;
-  color: #24300f;
-  background: #f8f7f1;
+  color: var(--color-olive-dark);
+  background: var(--color-ui-grouped);
 }
 
 .root-with-you__scroll {
@@ -31,7 +31,7 @@ page {
 .root-with-you__image-fallback {
   width: 100%;
   min-height: 1180rpx;
-  background: linear-gradient(110deg, #e7e8dc 22%, #f4f3ec 38%, #e7e8dc 54%);
+  background: linear-gradient(110deg, var(--color-olive-soft) 22%, var(--color-ui-grouped) 38%, var(--color-olive-soft) 54%);
   background-size: 220% 100%;
   animation: root-with-you-skeleton 1.4s ease-in-out infinite;
 }
@@ -44,8 +44,8 @@ page {
   gap: 20rpx;
   padding: 64rpx;
   box-sizing: border-box;
-  color: #516533;
-  background: #eef0e7;
+  color: var(--color-olive-mid);
+  background: var(--color-olive-tint);
   animation: none;
   font-size: 26rpx;
   text-align: center;
@@ -73,7 +73,7 @@ page {
 
 .root-with-you__terms {
   margin: 28rpx 40rpx 0;
-  color: #7e786b;
+  color: var(--color-neutral-grey);
   font-size: 22rpx;
   line-height: 1.65;
   text-align: center;
@@ -90,7 +90,7 @@ page {
   bottom: 0;
   left: 0;
   padding: 18rpx 32rpx calc(18rpx + env(safe-area-inset-bottom));
-  background: rgba(248, 247, 241, 0.94);
+  background: rgba(245, 245, 247, 0.94);
   border-top: 1rpx solid rgba(36, 48, 15, 0.12);
   backdrop-filter: blur(18rpx);
 }
@@ -99,8 +99,8 @@ page {
   width: 100%;
   min-height: 96rpx;
   margin: 0;
-  color: #fff;
-  background: #516533;
+  color: var(--color-brand-white);
+  background: var(--color-olive-mid);
   border-radius: 999rpx;
   font-size: 30rpx;
   font-weight: 700;

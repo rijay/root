@@ -31,10 +31,11 @@ assertFiles([
 
 const tokens = read("styles/tokens.wxss");
 [
-  "--root-ink: #080806",
-  "--root-bg: #f7f4ec",
-  "--root-moss: #586b3f",
-  "--root-sprout: #a6b77a",
+  "--root-ink: #000000",
+  "--root-bg: #f5f5f7",
+  "--root-nav: #ffffff",
+  "--root-moss: #242a0b",
+  "--root-sprout: #a1b371",
   "--root-canvas-width: 390px",
   "--root-canvas-height: 844px",
   "--root-page-padding: 32rpx",

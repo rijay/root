@@ -22,6 +22,7 @@
   </view>
 
   <view wx:else class="products-content">
+    <view wx:if="{{catalogNotice}}" class="product-focus-notice" role="status" aria-live="polite">{{catalogNotice}}</view>
     <view wx:if="{{focusNotice}}" class="product-focus-notice" role="status" aria-live="polite">{{focusNotice}}</view>
     <scroll-view
       wx:if="{{carouselVisible}}"
@@ -49,8 +50,8 @@
             <text>{{item.badge || 'ROOT'}}</text>
             <text>{{item.productCode}}</text>
           </view>
-          <view wx:if="{{item.imageUrl}}" class="product-visual product-visual--photo">
-            <image class="product-image" src="{{item.imageUrl}}" mode="aspectFit" aria-hidden="true" />
+          <view wx:if="{{item.imageUrl && !failedProductImages[item.productId]}}" class="product-visual product-visual--photo">
+            <image class="product-image" src="{{item.imageUrl}}" mode="aspectFit" lazy-load="{{index > 0}}" data-product-id="{{item.productId}}" binderror="productImageFailed" aria-hidden="true" />
           </view>
           <view wx:else class="product-visual product-visual--generated">
             <view class="packshot-shadow"></view>
@@ -66,6 +67,7 @@
             <view class="product-name">{{item.title}}</view>
             <view class="product-summary">{{item.summary}}</view>
             <view class="product-spec">{{item.specText}}</view>
+            <view class="product-price">{{item.priceText || '会员中心实时价格'}}</view>
           </view>
           <view class="product-actions">
             <button

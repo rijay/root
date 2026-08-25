@@ -55,16 +55,16 @@
   ],
   "window": {
     "navigationBarTitleText": "myRoot",
-    "navigationBarBackgroundColor": "#FDFBF6",
+    "navigationBarBackgroundColor": "#FFFFFF",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#F7F4EC"
+    "backgroundColor": "#F5F5F7"
   },
   "usingComponents": {},
   "tabBar": {
     "custom": true,
-    "color": "#8A8172",
-    "selectedColor": "#586B3F",
-    "backgroundColor": "#FDFBF6",
+    "color": "#7B7A7E",
+    "selectedColor": "#242A0B",
+    "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
       {

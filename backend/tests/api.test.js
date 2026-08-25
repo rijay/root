@@ -458,6 +458,7 @@ test("MySQL migrations and core relational projection cover production Store fac
     "069_health_assessment.sql",
     "070_growth_engagement.sql",
     "071_product_analytics.sql",
+    "072_health_advice_snapshot.sql",
   ]);
   migrationFiles.forEach((fileName) => {
     const sql = fs.readFileSync(path.join(__dirname, "..", "db", "migrations", fileName), "utf8");
@@ -678,6 +679,8 @@ test("production cutover readiness gates live external proof", () => {
     ROOT_CUTOVER_CLOUDBASE_UNIONID_VERIFIED: "verified",
     ROOT_CUTOVER_ROOT_MEMBER_CENTER_APPID_CONFIRMED: "yes",
     ROOT_CUTOVER_YOUZAN_FIELDS_CALIBRATED: "done",
+    ROOT_CUTOVER_YOUZAN_CREDENTIALS_ROTATED: "done",
+    ROOT_CUTOVER_HEALTH_ADVICE_MODEL_VERIFIED: "done",
     ROOT_CUTOVER_YOUZAN_REWARD_FIELDS_CALIBRATED: "done",
     ROOT_CUTOVER_WEWORK_FIELDS_CALIBRATED: "done",
     ROOT_CUTOVER_CLOUDBASE_JOBS_CREATED: "done",
@@ -695,8 +698,15 @@ test("production cutover readiness gates live external proof", () => {
     ROOT_MEMBER_CENTER_APPID: "wx-root-member",
     YOUZAN_ORDER_LIST_URL: "https://youzan.example.com/orders",
     YOUZAN_CUSTOMER_LIST_URL: "https://youzan.example.com/customers",
+    YOUZAN_CLIENT_ID: "youzan-client-id",
+    YOUZAN_CLIENT_SECRET: "youzan-client-secret",
     YOUZAN_COUPON_SEND_URL: "https://youzan.example.com/coupons/send",
     YOUZAN_COUPON_STATUS_URL: "https://youzan.example.com/coupons/status",
+    ROOT_HEALTH_ADVICE_MODEL_ENABLED: "true",
+    ROOT_HEALTH_ADVICE_MODEL_ENDPOINT: "https://model.example.com/v1/chat/completions",
+    ROOT_HEALTH_ADVICE_MODEL_API_KEY: "model-api-key",
+    ROOT_HEALTH_ADVICE_MODEL_NAME: "root-health-model",
+    ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME: "境内模型服务商",
     WEWORK_CONTACT_LIST_URL: "https://wework.example.com/contacts",
     WEWORK_TAG_APPLY_URL: "https://wework.example.com/tags",
     WEWORK_CONTACT_WRITEBACK_URL: "https://wework.example.com/writeback",
@@ -761,18 +771,18 @@ test("production cutover readiness gates live external proof", () => {
   });
 
   assert.equal(blocked.status, "BLOCKED");
-  assert.equal(blocked.summary.requiredProofCount, 13);
-  assert.equal(blocked.summary.blockerCount, 13);
+  assert.equal(blocked.summary.requiredProofCount, 15);
+  assert.equal(blocked.summary.blockerCount, 15);
   assert.ok(blocked.blockers.some((item) => item.includes("微信开放平台")));
   assert.equal(gray.status, "NEEDS_REVIEW");
-  assert.equal(gray.summary.warningCount, 13);
+  assert.equal(gray.summary.warningCount, 15);
   assert.equal(grayReady.status, "READY");
   assert.equal(grayReady.items[0].proofSource, "ENV");
   assert.equal(envOnlyProduction.status, "BLOCKED");
   assert.equal(envOnlyProduction.summary.readyProofCount, 0);
   assert.ok(envOnlyProduction.blockers.every((item) => item.includes("后台 VERIFIED 记录")));
   assert.equal(ready.status, "READY");
-  assert.equal(ready.summary.readyProofCount, 13);
+  assert.equal(ready.summary.readyProofCount, 15);
   assert.equal(ready.summary.releaseScopedProofCount, 4);
   assert.equal(ready.summary.releaseBoundReadyCount, 4);
   assert.ok(ready.items.every((item) => item.proofSource === "RECORD"));
@@ -787,16 +797,16 @@ test("production cutover readiness gates live external proof", () => {
   assert.equal(partial.status, "BLOCKED");
   assert.ok(partial.blockers.some((item) => item.includes("Root 会员中心 appId")));
   assert.equal(legacyProofWithoutEvidence.status, "BLOCKED");
-  assert.equal(legacyProofWithoutEvidence.summary.readyProofCount, 12);
+  assert.equal(legacyProofWithoutEvidence.summary.readyProofCount, 14);
   assert.ok(legacyProofWithoutEvidence.blockers.some((item) => item.includes("缺少 evidenceRef")));
   assert.equal(staleRelease.status, "BLOCKED");
-  assert.equal(staleRelease.summary.readyProofCount, 9);
+  assert.equal(staleRelease.summary.readyProofCount, 11);
   assert.equal(staleRelease.summary.releaseBoundReadyCount, 0);
   assert.equal(staleRelease.items.find((item) => item.id === "cloudbase_unionid").status, "READY");
   assert.equal(staleRelease.items.find((item) => item.id === "cloudrun_candidate_runtime").status, "BLOCKED");
   assert.ok(staleRelease.blockers.some((item) => item.includes("与当前候选 0.5.13/myroot-api-test-053 不一致")));
   assert.equal(fallbackReleaseId.status, "BLOCKED");
-  assert.equal(fallbackReleaseId.summary.readyProofCount, 9);
+  assert.equal(fallbackReleaseId.summary.readyProofCount, 11);
   assert.ok(fallbackReleaseId.blockers.some((item) => item.includes("显式 ROOT_RELEASE_ID")));
 });
 
@@ -915,8 +925,8 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.equal(notice.data.contact, "privacy@example.com");
   assert.equal(notice.data.retentionDays, 180);
   assert.match(notice.data.retentionText, /180 天/);
-  assert.equal(notice.data.version, "0.6.0");
-  assert.equal(notice.data.releaseId, "0.6.0");
+  assert.equal(notice.data.version, "0.7.0");
+  assert.equal(notice.data.releaseId, "0.7.0");
 });
 
 test("formal home content HTTP Interface is public and detail uses the same published item", async (t) => {

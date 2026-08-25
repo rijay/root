@@ -1531,7 +1531,7 @@ test("any RELEASE_LOCK failure retires the session instead of returning a possib
   const result = await applyMysqlMigrations({
     async getConnection() { return connection; },
   }, { migrationsDir: MIGRATIONS_DIR });
-  assert.equal(result.latestVersion, "071_product_analytics.sql");
+  assert.equal(result.latestVersion, "072_health_advice_snapshot.sql");
   assert.equal(releaseLockAttempts, 1);
   assert.equal(destroyedConnections, 1);
   assert.equal(releasedConnections, 0);
@@ -1575,7 +1575,7 @@ test("RELEASE_LOCK zero, NULL, and malformed acknowledgements all retire the ses
     const result = await applyMysqlMigrations({
       async getConnection() { return connection; },
     }, { migrationsDir: MIGRATIONS_DIR });
-    assert.equal(result.latestVersion, "071_product_analytics.sql");
+    assert.equal(result.latestVersion, "072_health_advice_snapshot.sql");
     assert.equal(destroyedConnections, 1, JSON.stringify(releaseRows));
     assert.equal(releasedConnections, 0, JSON.stringify(releaseRows));
   }

@@ -24,6 +24,7 @@ function assertSnapshotProjectionRegistrySafe(projections) {
 const JSON_COLUMNS = new Set([
   "allowed_target_pages_json",
   "answers_json",
+  "advice_json",
   "conditions_json",
   "config_json",
   "data_json",
@@ -47,6 +48,7 @@ const JSON_COLUMNS = new Set([
   "setting_json",
   "safety_rules_json",
   "snapshot_json",
+  "states_json",
   "data_categories_json",
 ]);
 
@@ -75,6 +77,7 @@ const DATE_COLUMNS = new Set([
   "expired_at",
   "external_status_checked_at",
   "granted_at",
+  "generated_at",
   "health_data_redacted_at",
   "invalidated_at",
   "joined_at",
@@ -211,6 +214,16 @@ const PROJECTIONS = [
       "questionnaire_id", "questionnaire_version", "status", "safety_state", "is_retest",
       "answers_json", "dimensions_json", "result_json", "result_copy_version", "source_channel",
       "started_at", "completed_at", "health_data_redacted_at", "created_at", "updated_at",
+    ],
+  },
+  {
+    table: "health_advice_snapshot",
+    source: "healthAdviceSnapshots",
+    id: "health_advice_snapshot_id",
+    columns: [
+      "health_advice_snapshot_id", "root_user_id", "initial_assessment_id", "gut_assessment_id",
+      "states_json", "advice_json", "advice_source", "adapter_id", "model_name",
+      "prompt_version", "content_version", "rule_version", "generated_at", "created_at", "updated_at",
     ],
   },
   {

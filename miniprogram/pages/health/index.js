@@ -1,4 +1,8 @@
-const { getCatalog } = require("../../utils/health-assessment");
+const {
+  generateHealthAdvice,
+  getCatalog,
+  getHealthOverview,
+} = require("../../utils/health-assessment");
 const { syncTabBar } = require("../../utils/tab-bar");
 
 Page({
@@ -7,6 +11,9 @@ Page({
     errorText: "",
     assessments: [],
     storageMode: "",
+    overview: null,
+    overviewErrorText: "",
+    adviceLoading: false,
   },
 
   onShow() {
@@ -15,14 +22,45 @@ Page({
   },
 
   async loadCatalog() {
-    this.setData({ loading: true, errorText: "" });
+    this.setData({ loading: true, errorText: "", overviewErrorText: "" });
     try {
       const data = await getCatalog();
       this.setData({ assessments: data.assessments || [], storageMode: data.storageMode || "" });
+      try {
+        const overview = await getHealthOverview();
+        this.setData({ overview });
+        if (overview.ready && !overview.advice) this.generateAdvice();
+      } catch (error) {
+        this.setData({ overviewErrorText: error.message || "当前状态暂时无法加载" });
+      }
     } catch (error) {
       this.setData({ errorText: error.message || "健康评测暂时无法加载" });
     } finally {
       this.setData({ loading: false });
+    }
+  },
+
+  async generateAdvice() {
+    if (this.data.adviceLoading || !this.data.overview || !this.data.overview.ready) return;
+    this.setData({ adviceLoading: true, overviewErrorText: "" });
+    try {
+      const overview = await generateHealthAdvice(this.data.overview);
+      this.setData({ overview });
+    } catch (error) {
+      this.setData({ overviewErrorText: error.message || "健康建议暂时无法生成" });
+    } finally {
+      this.setData({ adviceLoading: false });
+    }
+  },
+
+  async reloadOverview() {
+    try {
+      this.setData({ overviewErrorText: "" });
+      const overview = await getHealthOverview();
+      this.setData({ overview });
+      if (overview.ready && !overview.advice) this.generateAdvice();
+    } catch (error) {
+      this.setData({ overviewErrorText: error.message || "当前状态暂时无法加载" });
     }
   },
 
