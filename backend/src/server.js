@@ -7,8 +7,19 @@ const { assertProtectedJobRouteTokenPolicy } = require("./jobRouteToken");
 const { createCloudbaseObjectStorageAdapter } = require("./cloudbaseObjectStorageAdapter");
 const { createEnvironmentActivityPublicationAuthorizationAdapter } = require("./activityPublicationAuthorizationAdapter");
 const { createDataBackedActivityAssetAdapter } = require("./activityAssetAdapter");
+const { seedLocalMiniprogramDevData } = require("./localMiniprogramDevSeed");
 
 const port = Number(process.env.PORT || 8787);
+
+function listenHostFromEnv(env = process.env) {
+  const host = String(env.ROOT_LISTEN_HOST || "0.0.0.0").trim();
+  if (!["0.0.0.0", "127.0.0.1"].includes(host)) {
+    const error = new Error("ROOT_LISTEN_HOST must be 0.0.0.0 or 127.0.0.1");
+    error.code = "LISTEN_HOST_INVALID";
+    throw error;
+  }
+  return host;
+}
 
 function shouldUseMysql(env = process.env) {
   if (env.ROOT_STORE_ADAPTER === "mysql") return true;
@@ -33,6 +44,7 @@ async function createConfiguredStore(env = process.env, options = {}) {
 }
 
 async function main() {
+  const listenHost = listenHostFromEnv(process.env);
   assertProtectedJobRouteTokenPolicy(process.env);
   const commandRequestDigestCodec = createCommandRequestDigestCodec(process.env);
   const commandResultCodec = createCommandResultCodec(process.env);
@@ -42,6 +54,11 @@ async function main() {
     commandRequestDigestCodec,
     commandResultCodec,
   });
+  const localSeed = seedLocalMiniprogramDevData(storeAdapter.data, {
+    env: process.env,
+    storeAdapter,
+  });
+  if (localSeed.changed) await Promise.resolve(storeAdapter.save());
   const objectStorageAdapter = process.env.ROOT_CLOUDBASE_ENV_ID || process.env.CLOUDBASE_ENV_ID || process.env.TCB_ENV_ID
     ? createCloudbaseObjectStorageAdapter({ provider: "CLOUDBASE" }, { env: process.env })
     : null;
@@ -56,7 +73,7 @@ async function main() {
     activityAssetAdapter,
   });
   await server.readyPromise;
-  server.listen(port, "0.0.0.0", () => {
+  server.listen(port, listenHost, () => {
     const storeHealth = server.storeAdapter.getStoreHealth ? server.storeAdapter.getStoreHealth() : { kind: server.storeAdapter.kind };
     const storeTarget = server.storeAdapter.filePath
       ? ` (${server.storeAdapter.filePath})`
@@ -97,5 +114,6 @@ if (require.main === module) {
 
 module.exports = {
   createConfiguredStore,
+  listenHostFromEnv,
   shouldUseMysql,
 };

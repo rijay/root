@@ -5,11 +5,13 @@ const productionCloudServiceName = "myroot-api";
 const internalTestCloudServiceName = "myroot-api";
 const SERVER_ASSESSMENT_STORAGE = "SERVER";
 const LOCAL_DEVICE_ASSESSMENT_RETENTION_DAYS = 180;
+const LOCAL_DEVTOOLS_API_BASE_URL = "http://127.0.0.1:8787";
 
 const developmentCloudContainerConfig = {
   requestAdapter: "cloudContainer",
   cloudEnvId: "myroot-prod-d5gl3gzg7115f149a",
   cloudServiceName: internalTestCloudServiceName,
+  localDevtoolsApiBaseUrl: LOCAL_DEVTOOLS_API_BASE_URL,
   localV060CompatMode: true,
   healthAssessmentStorageMode: SERVER_ASSESSMENT_STORAGE,
 };
@@ -18,6 +20,7 @@ const productionLikeCloudContainerConfig = {
   requestAdapter: "cloudContainer",
   cloudEnvId: "myroot-prod-d5gl3gzg7115f149a",
   cloudServiceName: productionCloudServiceName,
+  localDevtoolsApiBaseUrl: "",
   localV060CompatMode: false,
   healthAssessmentStorageMode: SERVER_ASSESSMENT_STORAGE,
 };

@@ -4,6 +4,7 @@ const { appendCloudRoute } = require("./cloud-route");
 const { performanceMonitor } = require("./performance-monitor");
 const { clearLoginSession } = require("./login-session");
 const { clearProfileCache } = require("./profile-cache");
+const { resolveRuntimeRequestConfig } = require("./runtime-request-adapter");
 
 const MAX_CONCURRENT_REQUESTS = performanceBudgets.network.maxConcurrentRequests;
 const READ_TIMEOUT = performanceBudgets.network.readTimeoutMs;
@@ -153,9 +154,10 @@ function transportError(error, method, adapter) {
   return result;
 }
 
-function requestByWxRequest(options, token, requestId, idempotencyKey, setAbort) {
+function requestByWxRequest(options, token, requestId, idempotencyKey, setAbort, runtimeConfig) {
   return new Promise((resolve, reject) => {
-    if (!env.apiBaseUrl || /example\.com|\.sh\.run\.tcloudbase\.com/i.test(env.apiBaseUrl)) {
+    const apiBaseUrl = String(runtimeConfig && runtimeConfig.apiBaseUrl || "").trim().replace(/\/$/, "");
+    if (!apiBaseUrl || /example\.com|\.sh\.run\.tcloudbase\.com/i.test(apiBaseUrl)) {
       reject(createRequestError({
         code: "REQUEST_ENV_UNCONFIGURED",
         message: "请先在 config/env.js 配置已备案的正式环境接口域名",
@@ -163,7 +165,7 @@ function requestByWxRequest(options, token, requestId, idempotencyKey, setAbort)
       return;
     }
     const task = wx.request({
-      url: `${env.apiBaseUrl}${options.url}`,
+      url: `${apiBaseUrl}${options.url}`,
       method: options.method || "GET",
       timeout: requestTimeout(options),
       data: options.data || {},
@@ -360,9 +362,10 @@ function createScheduledRequest(options, token, requestId, idempotencyKey) {
   const startedAt = Date.now();
   const write = !isReadMethod(options.method);
   return scheduleRequest((setAbort) => {
-    const transport = env.requestAdapter === "cloudContainer"
+    const runtimeConfig = resolveRuntimeRequestConfig(env, wx);
+    const transport = runtimeConfig.adapter === "cloudContainer"
       ? requestByCloudContainer(options, token, requestId, idempotencyKey, setAbort)
-      : requestByWxRequest(options, token, requestId, idempotencyKey, setAbort);
+      : requestByWxRequest(options, token, requestId, idempotencyKey, setAbort, runtimeConfig);
     return transport.then((value) => {
       if (!options.skipPerformance) performanceMonitor.recordRequest({
         route: options.url,

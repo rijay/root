@@ -42,6 +42,9 @@ if (env.healthAssessmentStorageMode === "LOCAL_DEVICE" && env.healthAssessmentRe
 if (env.apiBaseUrl && /\.sh\.run\.tcloudbase\.com/i.test(env.apiBaseUrl)) {
   problems.push("正式包不得包含 CloudBase 默认公网域名");
 }
+if (env.localDevtoolsApiBaseUrl !== "http://127.0.0.1:8787") {
+  problems.push("开发者工具本地联调地址必须固定为 127.0.0.1:8787");
+}
 
 const requiredSettings = {
   ignoreUploadUnusedFiles: true,
@@ -56,7 +59,11 @@ Object.entries(requiredSettings).forEach(([key, expected]) => {
   if (!project.setting || project.setting[key] !== expected) {
     problems.push(`project.config.json setting.${key} 必须为 ${expected}`);
   }
-  if (privateProject.setting && privateProject.setting[key] !== undefined && privateProject.setting[key] !== expected) {
+  const localDevtoolsUrlCheckOverride = key === "urlCheck"
+    && privateProject.setting
+    && privateProject.setting.urlCheck === false
+    && env.localDevtoolsApiBaseUrl === "http://127.0.0.1:8787";
+  if (!localDevtoolsUrlCheckOverride && privateProject.setting && privateProject.setting[key] !== undefined && privateProject.setting[key] !== expected) {
     problems.push(`project.private.config.json 不得覆盖 setting.${key}`);
   }
 });

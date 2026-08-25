@@ -95,7 +95,11 @@ function availableDefinition(data, requestedType) {
 
 function publicOption(option) {
   if (option && typeof option === "object") {
-    return { value: option.value, label: text(option.label, String(option.value || "")) };
+    return {
+      value: option.value,
+      label: text(option.label, String(option.value || "")),
+      ...(option.exclusive === true ? { exclusive: true } : {}),
+    };
   }
   return { value: option, label: String(option || "") };
 }
@@ -195,6 +199,10 @@ function attemptPayload(attempt, definition, options = {}) {
 function answerMatches(value, rule = {}) {
   const operator = text(rule.operator, "EQ").toUpperCase();
   const expected = rule.value !== undefined ? rule.value : rule.equals;
+  if (operator === "CONTAINS") return Array.isArray(value) && value.includes(expected);
+  if (operator === "CONTAINS_ANY") {
+    return Array.isArray(value) && Array.isArray(rule.values) && rule.values.some((item) => value.includes(item));
+  }
   if (operator === "IN") return Array.isArray(rule.values) && rule.values.includes(value);
   if (operator === "NOT_IN") return Array.isArray(rule.values) && !rule.values.includes(value);
   if (operator === "TRUTHY") return Boolean(value) === (rule.value === undefined ? true : Boolean(rule.value));
@@ -247,6 +255,12 @@ function validateAnswer(question, value) {
   }
   if (type === "multi") {
     if (!Array.isArray(value) || value.some((item) => !options.includes(item))) {
+      throw businessError(6104, "评测选项无效");
+    }
+    const exclusiveValues = (Array.isArray(question.options) ? question.options : [])
+      .filter((item) => item && typeof item === "object" && item.exclusive === true)
+      .map((item) => item.value);
+    if (value.length > 1 && value.some((item) => exclusiveValues.includes(item))) {
       throw businessError(6104, "评测选项无效");
     }
   }
@@ -337,13 +351,26 @@ function dimensionRuleMatches(dimensions, rule = {}) {
   return dimension.score >= target;
 }
 
-function selectResultCode(definition, dimensions) {
+function answerConditionMatches(answers, condition = {}) {
+  if (Array.isArray(condition.all)) {
+    return condition.all.every((item) => answerConditionMatches(answers, item));
+  }
+  if (Array.isArray(condition.any)) {
+    return condition.any.some((item) => answerConditionMatches(answers, item));
+  }
+  if (condition.not) return !answerConditionMatches(answers, condition.not);
+  return answerMatches(answers[condition.field], condition);
+}
+
+function selectResultCode(definition, dimensions, answers = {}) {
   const rules = Array.isArray(definition.result_rules) ? definition.result_rules : [];
   const matched = rules.find((rule) => {
     const all = Array.isArray(rule.all) ? rule.all : [];
     const any = Array.isArray(rule.any) ? rule.any : [];
+    const answerCondition = rule.answer_condition || rule.answerCondition;
     return (!all.length || all.every((item) => dimensionRuleMatches(dimensions, item)))
-      && (!any.length || any.some((item) => dimensionRuleMatches(dimensions, item)));
+      && (!any.length || any.some((item) => dimensionRuleMatches(dimensions, item)))
+      && (!answerCondition || answerConditionMatches(answers, answerCondition));
   });
   return text(matched && matched.result_code, text(definition.default_result_code));
 }
@@ -493,7 +520,7 @@ function complete(data, rootUserId, assessmentId, input = {}) {
   } else {
     validateAnswers(definition, answers, true);
     dimensions = computeDimensions(definition, answers);
-    code = selectResultCode(definition, dimensions);
+    code = selectResultCode(definition, dimensions, answers);
     attempt.status = "COMPLETED";
     attempt.safety_state = "NONE";
   }

@@ -8,6 +8,7 @@ const { installGlobalSharePolicy } = require("./utils/page-share");
 const { navigateToLaunchingTarget, prepareLaunchingEntry } = require("./utils/launching-entry");
 const { captureFirstChannel, channelEntryOptions } = require("./utils/channel-attribution");
 const { cleanupExpiredLocalHealthData } = require("./utils/local-health-retention");
+const { resolveRuntimeRequestConfig } = require("./utils/runtime-request-adapter");
 
 installGlobalSharePolicy(globalThis);
 
@@ -53,7 +54,9 @@ App({
     const channelEntry = captureFirstChannel(options);
     if (channelEntry.result !== "NO_CHANNEL") this.globalData.pendingChannelEntry = channelEntry;
     initializePrivacyAuthorization();
-    if (env.requestAdapter === "cloudContainer" && wx.cloud) {
+    const runtimeRequestConfig = resolveRuntimeRequestConfig(env, wx);
+    this.globalData.requestRuntimeMode = runtimeRequestConfig.mode;
+    if (runtimeRequestConfig.adapter === "cloudContainer" && wx.cloud) {
       const cloudOptions = { traceUser: true };
       if (env.cloudEnvId) cloudOptions.env = env.cloudEnvId;
       wx.cloud.init(cloudOptions);

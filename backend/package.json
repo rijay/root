@@ -9,6 +9,7 @@
     "jobs:manifest": "node scripts/cloudbase-job-manifest.js",
     "production-env": "node scripts/production-env-matrix.js",
     "dev": "node src/server.js",
+    "dev:miniprogram": "NODE_ENV=development ROOT_LISTEN_HOST=127.0.0.1 ROOT_STORE_ADAPTER=sqlite ROOT_SQLITE_FILE=./data/myroot-v070-devtools.sqlite ROOT_ALLOW_OPENID_LOGIN=true ROOT_LOCAL_MINIPROGRAM_DEV_SEED=true node src/server.js",
     "dev:ued-review": "node scripts/ued-review-server.js",
     "store:migrate:mysql": "node scripts/store-migrate.js",
     "db:migrate": "node scripts/mysql-migrate.js",
