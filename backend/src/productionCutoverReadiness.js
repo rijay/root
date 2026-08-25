@@ -52,11 +52,11 @@ const CUTOVER_ITEMS = [
     proofEnv: "ROOT_CUTOVER_HEALTH_ADVICE_MODEL_VERIFIED",
     supportingEnv: [
       "ROOT_HEALTH_ADVICE_MODEL_ENABLED",
-      "ROOT_HEALTH_ADVICE_MODEL_ENDPOINT",
       "ROOT_HEALTH_ADVICE_MODEL_API_KEY",
       "ROOT_HEALTH_ADVICE_MODEL_NAME",
       "ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME",
     ],
+    supportingAnyOf: [["ROOT_HEALTH_ADVICE_MODEL_BASE_URL", "ROOT_HEALTH_ADVICE_MODEL_ENDPOINT"]],
     action: "确认境内模型服务、数据不用于训练和必要留存约定；完成最小输入、固定 JSON、超时降级、高风险不调用模型及隐私影响评估。",
   },
   {

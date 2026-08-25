@@ -14,6 +14,22 @@ function adapterError(code, message) {
   return error;
 }
 
+function normalizeChatCompletionsEndpoint(value) {
+  const source = text(value);
+  if (!source) return "";
+  try {
+    const url = new URL(source);
+    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) return "";
+    const pathname = url.pathname.replace(/\/+$/, "");
+    url.pathname = pathname.endsWith("/chat/completions")
+      ? pathname
+      : `${pathname}/chat/completions`;
+    return url.toString();
+  } catch (error) {
+    return "";
+  }
+}
+
 function parseJsonContent(value) {
   const source = text(value).replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
   try {
@@ -25,20 +41,25 @@ function parseJsonContent(value) {
 
 function createEnvironmentHealthAdviceModelAdapter(env = process.env, options = {}) {
   const requested = enabled(env.ROOT_HEALTH_ADVICE_MODEL_ENABLED);
-  const endpoint = text(env.ROOT_HEALTH_ADVICE_MODEL_ENDPOINT);
-  const apiKey = text(env.ROOT_HEALTH_ADVICE_MODEL_API_KEY);
+  const endpoint = normalizeChatCompletionsEndpoint(
+    env.ROOT_HEALTH_ADVICE_MODEL_BASE_URL || env.ROOT_HEALTH_ADVICE_MODEL_ENDPOINT
+  );
+  const apiKey = text(Object.hasOwn(options, "apiKey")
+    ? options.apiKey
+    : env.ROOT_HEALTH_ADVICE_MODEL_API_KEY);
   const modelName = text(env.ROOT_HEALTH_ADVICE_MODEL_NAME);
   const processorName = text(env.ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME);
   const fetchImpl = options.fetchImpl || globalThis.fetch;
   const configured = Boolean(
     requested
-    && /^https:\/\//i.test(endpoint)
+    && endpoint
     && apiKey
     && modelName
     && processorName
     && typeof fetchImpl === "function"
   );
-  const timeoutMs = Math.max(1000, Math.min(10000, Number(env.ROOT_HEALTH_ADVICE_MODEL_TIMEOUT_MS || 5000)));
+  const timeoutMs = Math.max(1000, Math.min(30000, Number(env.ROOT_HEALTH_ADVICE_MODEL_TIMEOUT_MS || 15000)));
+  const maxTokens = Math.max(400, Math.min(2000, Number(env.ROOT_HEALTH_ADVICE_MODEL_MAX_TOKENS || 1200)));
 
   return Object.freeze({
     adapterId: "OPENAI_COMPATIBLE_HEALTH_ADVICE_V1",
@@ -59,12 +80,13 @@ function createEnvironmentHealthAdviceModelAdapter(env = process.env, options = 
           },
           body: JSON.stringify({
             model: modelName,
+            stream: false,
             temperature: 0.2,
-            response_format: { type: "json_object" },
+            max_tokens: maxTokens,
             messages: [
               {
                 role: "system",
-                content: "你是 Root4U 的健康生活方式建议助手。只输出 JSON，不做诊断、治疗、用药、疾病判断或疗效承诺。输出字段必须为 summary、actions、cautions、followUp；actions 必须恰好三条，建议应低风险且可执行。",
+                content: "你是 Root4U 的健康生活方式建议助手。不要输出思考过程，直接输出 JSON。不做诊断、治疗、用药、疾病判断或疗效承诺。输出字段必须为 summary、actions、cautions、followUp；actions 必须恰好三条，建议应低风险且可执行。",
               },
               {
                 role: "user",
@@ -78,7 +100,9 @@ function createEnvironmentHealthAdviceModelAdapter(env = process.env, options = 
           ...(controller ? { signal: controller.signal } : {}),
         });
         if (!response || !response.ok) {
-          throw adapterError("HEALTH_ADVICE_MODEL_HTTP_ERROR", "健康建议模型暂时不可用");
+          const error = adapterError("HEALTH_ADVICE_MODEL_HTTP_ERROR", "健康建议模型暂时不可用");
+          error.status = Number(response && response.status) || 0;
+          throw error;
         }
         const payload = await response.json();
         const content = payload && payload.choices && payload.choices[0]
@@ -99,5 +123,6 @@ function createEnvironmentHealthAdviceModelAdapter(env = process.env, options = 
 module.exports = {
   MODEL_INPUT_VERSION,
   createEnvironmentHealthAdviceModelAdapter,
+  normalizeChatCompletionsEndpoint,
   parseJsonContent,
 };

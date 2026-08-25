@@ -43,7 +43,7 @@ async function createConfiguredStore(env = process.env, options = {}) {
   return storeAdapter;
 }
 
-async function main() {
+async function main(options = {}) {
   const listenHost = listenHostFromEnv(process.env);
   assertProtectedJobRouteTokenPolicy(process.env);
   const commandRequestDigestCodec = createCommandRequestDigestCodec(process.env);
@@ -71,6 +71,7 @@ async function main() {
     objectStorageAdapter,
     activityPublicationAuthorizationAdapter,
     activityAssetAdapter,
+    healthAdviceModelAdapter: options.healthAdviceModelAdapter,
   });
   await server.readyPromise;
   server.listen(port, listenHost, () => {
@@ -115,5 +116,6 @@ if (require.main === module) {
 module.exports = {
   createConfiguredStore,
   listenHostFromEnv,
+  main,
   shouldUseMysql,
 };
