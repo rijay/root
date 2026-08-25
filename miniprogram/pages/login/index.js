@@ -6,6 +6,7 @@ const { authenticateWechat, showLoginFailure } = require("../../utils/wechat-log
 const { bindUserScope } = require("../../utils/local-health-assessment");
 const { startLoginSession } = require("../../utils/login-session");
 const { defaultOnShareAppMessage } = require("../../utils/page-share");
+const { writeProfileCache } = require("../../utils/profile-cache");
 const {
   commitPendingFirstChannel,
   pendingSourceChannel,
@@ -79,6 +80,7 @@ Page({
       if (!data.token) throw new Error("手机号验证未完成");
       setToken(data.token);
       startLoginSession(data.session || {});
+      if (data.profile) writeProfileCache(data.profile);
       commitPendingFirstChannel();
       try {
         bindUserScope(data.user && data.user.userId);

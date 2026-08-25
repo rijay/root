@@ -4,6 +4,7 @@ const { isPersistedAvatar, uploadCloudAvatar } = require("../../utils/avatar-upl
 const { FORMAL_ACCESS_STATE, inspectFormalAccess, loginRoute } = require("../../utils/formal-access");
 const router = require("../../utils/router");
 const { defaultOnShareAppMessage } = require("../../utils/page-share");
+const { writeProfileCache } = require("../../utils/profile-cache");
 
 const REGISTRATION_CONTEXT_STORAGE_KEY = "ROOT_REGISTRATION_CONTEXT_V1";
 const PROFILE_SUBMIT_KEY_STORAGE = "ROOT_PROFILE_SUBMIT_KEY_V1";
@@ -122,7 +123,7 @@ Page({
     }
     this.setData({ loading: true });
     try {
-      await request({
+      const saved = await request({
         url: "/api/v1/user/formal-profile",
         method: "POST",
         idempotencyKey: submitKey(),
@@ -133,6 +134,7 @@ Page({
           gender: this.data.gender,
         },
       });
+      if (saved && saved.profile) writeProfileCache(saved.profile);
       wx.removeStorageSync(PROFILE_SUBMIT_KEY_STORAGE);
       wx.removeStorageSync(REGISTRATION_CONTEXT_STORAGE_KEY);
       wx.showToast({ title: this.data.editing ? "资料已更新" : (this.data.newUser ? "成功注册" : "资料已完善"), icon: "success" });

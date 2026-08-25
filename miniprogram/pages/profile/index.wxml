@@ -4,12 +4,12 @@
 
     <view class="profile-identity" bindtap="handleIdentityTap">
       <view class="profile-identity__avatar">
-        <image wx:if="{{loggedIn && profile.avatarUrl}}" src="{{profile.avatarUrl}}" mode="aspectFill" />
+        <image wx:if="{{loggedIn && profile.avatarUrl}}" src="{{profile.avatarUrl}}" mode="aspectFill" lazy-load="{{false}}" />
         <view wx:else class="profile-identity__default"><root-wordmark tone="light" /></view>
       </view>
       <view class="profile-identity__copy">
-        <text class="profile-identity__name">{{sessionChecking ? '正在核验' : (loggedIn ? (profile.nickname || 'Root用户') : '未登录')}}</text>
-        <text class="profile-identity__hint">{{sessionChecking ? '正在确认会员身份' : (profileRefreshFailed ? '资料刷新失败，显示上次资料' : (loggedIn ? '已登录' : '登录后管理个人资料'))}}</text>
+        <text class="profile-identity__name">{{loggedIn ? (profile.nickname || 'Root用户') : '未登录'}}</text>
+        <text class="profile-identity__hint">{{profileRefreshFailed ? '资料刷新失败，显示上次资料' : (loggedIn ? '已登录' : '登录后管理个人资料')}}</text>
       </view>
       <view wx:if="{{loggedIn}}" class="profile-identity__edit">
         <text>编辑资料</text><view class="profile-row__arrow"></view>

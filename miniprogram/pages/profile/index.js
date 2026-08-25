@@ -12,6 +12,8 @@ const { getMemberCommerceSummary } = require("../../utils/member-commerce");
 
 const PROFILE_ROUTE = "/pages/profile/index";
 const PENDING_MEMBER_TARGET_KEY = "ROOT_PROFILE_MEMBER_TARGET_V1";
+const DEFAULT_PROFILE = Object.freeze({ nickname: "Root用户", avatarUrl: "" });
+const GUEST_PROFILE = Object.freeze({ nickname: "未登录", avatarUrl: "" });
 const LOCAL_SESSION_KEYS = [
   "ROOT_AUTH_INTENT_V1",
   "ROOT_REGISTRATION_CONTEXT_V1",
@@ -32,11 +34,21 @@ function runtimeVersion() {
   }
 }
 
+function initialProfileState() {
+  if (!getToken()) {
+    return { loggedIn: false, sessionChecking: false, profile: GUEST_PROFILE, profileRefreshFailed: false };
+  }
+  const cached = readProfileCache();
+  return cached
+    ? { loggedIn: true, sessionChecking: false, profile: cached.profile, profileRefreshFailed: false }
+    : { loggedIn: true, sessionChecking: true, profile: DEFAULT_PROFILE, profileRefreshFailed: false };
+}
+
+const firstProfileState = initialProfileState();
+
 Page({
   data: {
-    loggedIn: false,
-    sessionChecking: false,
-    profile: { nickname: "未登录", avatarUrl: "" },
+    ...firstProfileState,
     version: appVersion,
     memberLinkFailure: false,
     failedMemberKey: "",
@@ -55,11 +67,11 @@ Page({
     this.setData(hasSession
       ? cached
         ? { loggedIn: true, sessionChecking: false, profile: cached.profile, profileRefreshFailed: false }
-        : { loggedIn: false, sessionChecking: true, profileRefreshFailed: false }
+        : { loggedIn: true, sessionChecking: true, profile: DEFAULT_PROFILE, profileRefreshFailed: false }
       : {
         loggedIn: false,
         sessionChecking: false,
-        profile: { nickname: "未登录", avatarUrl: "" },
+        profile: GUEST_PROFILE,
         memberLinkFailure: false,
         failedMemberKey: "",
         profileRefreshFailed: false,
@@ -85,7 +97,6 @@ Page({
           profileRefreshFailed: false,
         });
         if (loggedIn) this.resumeMemberTarget();
-        if (loggedIn) this.loadMemberCommerce();
       } catch (error) {
         if (options.preserveCached && getToken()) {
           this.setData({ sessionChecking: false, profileRefreshFailed: true });
@@ -94,7 +105,7 @@ Page({
         this.setData({
           loggedIn: false,
           sessionChecking: false,
-          profile: { nickname: "未登录", avatarUrl: "" },
+          profile: GUEST_PROFILE,
           profileRefreshFailed: false,
         });
       }
@@ -192,7 +203,7 @@ Page({
     this.setData({
       loggedIn: false,
       sessionChecking: false,
-      profile: { nickname: "未登录", avatarUrl: "" },
+      profile: GUEST_PROFILE,
       memberLinkFailure: false,
       failedMemberKey: "",
       profileRefreshFailed: false,

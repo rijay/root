@@ -7,12 +7,28 @@ const { initializePrivacyAuthorization } = require("./utils/privacy-authorizatio
 const { installGlobalSharePolicy } = require("./utils/page-share");
 const { navigateToLaunchingTarget, prepareLaunchingEntry } = require("./utils/launching-entry");
 const { captureFirstChannel, channelEntryOptions } = require("./utils/channel-attribution");
+const { FORMAL_ACCESS_STATE, inspectFormalAccess } = require("./utils/formal-access");
 const { cleanupExpiredLocalHealthData } = require("./utils/local-health-retention");
+const { readProfileCache, writeProfileCache } = require("./utils/profile-cache");
+const { getToken } = require("./utils/request");
 const { resolveRuntimeRequestConfig } = require("./utils/runtime-request-adapter");
 
 installGlobalSharePolicy(globalThis);
 
 const appModuleStartedAt = Date.now();
+
+function prewarmProfileCache() {
+  if (!getToken() || readProfileCache()) return;
+  inspectFormalAccess("profile-home")
+    .then((access) => {
+      if (access.state !== FORMAL_ACCESS_STATE.PHONE_REQUIRED && access.profile) {
+        writeProfileCache(access.profile);
+      }
+    })
+    .catch(() => {
+      // 预热失败不阻断启动；进入“我的”页时仍会按原流程刷新。
+    });
+}
 
 function performanceContext() {
   const appInfo = typeof wx.getAppBaseInfo === "function" ? wx.getAppBaseInfo() : {};
@@ -62,6 +78,7 @@ App({
       wx.cloud.init(cloudOptions);
     }
     this.globalData.bootstrapped = true;
+    prewarmProfileCache();
   },
 
   onShow(options = {}) {
