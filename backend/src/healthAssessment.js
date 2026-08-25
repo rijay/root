@@ -550,12 +550,22 @@ function remove(data, rootUserId, assessmentId) {
     return { assessmentId: normalizedId, deleted: false };
   }
   allAttempts.splice(index, 1);
+  let invalidatedAdviceCount = 0;
   if (Array.isArray(data.healthAdviceSnapshots)) {
-    data.healthAdviceSnapshots = data.healthAdviceSnapshots.filter((item) => (
-      item.initial_assessment_id !== normalizedId && item.gut_assessment_id !== normalizedId
-    ));
+    data.healthAdviceSnapshots = data.healthAdviceSnapshots.filter((item) => {
+      const invalidated = item.root_user_id === rootUserId && (
+        item.initial_assessment_id === normalizedId || item.gut_assessment_id === normalizedId
+      );
+      if (invalidated) invalidatedAdviceCount += 1;
+      return !invalidated;
+    });
   }
-  return { assessmentId: normalizedId, deleted: true, deletedAt: nowISO() };
+  return {
+    assessmentId: normalizedId,
+    deleted: true,
+    deletedAt: nowISO(),
+    invalidatedAdviceCount,
+  };
 }
 
 function compare(data, rootUserId, input = {}) {

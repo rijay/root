@@ -95,7 +95,10 @@ Page({
     this.setData({ deleting: true });
     try {
       const result = await deleteAssessment(this.data.assessmentId);
-      wx.showToast({ title: result.deleted ? "记录已删除" : "记录已不存在", icon: "success" });
+      wx.showToast({
+        title: result.invalidatedAdviceCount ? "记录及建议已删除" : result.deleted ? "记录已删除" : "记录已不存在",
+        icon: "success",
+      });
       wx.redirectTo({ url: "/subpkg/health/pages/history/index" });
     } catch (error) {
       wx.showToast({ title: error.message || "删除失败，请重试", icon: "none" });

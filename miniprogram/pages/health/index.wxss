@@ -702,8 +702,51 @@ page {
   border-radius: 10px;
 }
 
+.health-overview-pending--generating {
+  border-left: 3px solid var(--color-brand-olive);
+}
+
+.health-overview-pending__title,
+.health-overview-pending__detail,
+.health-advice__source-note {
+  display: block;
+}
+
+.health-overview-pending__title {
+  color: var(--color-graphite);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 19px;
+}
+
+.health-overview-pending__detail {
+  margin-top: 4px;
+  color: var(--color-neutral-grey);
+  font-size: 10px;
+  line-height: 16px;
+}
+
 .health-advice {
   margin-top: 16px;
+}
+
+.health-advice__source-note {
+  margin-bottom: 12px;
+  padding: 9px 10px;
+  color: var(--color-neutral-grey);
+  background: var(--color-brand-white);
+  border-radius: 9px;
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.health-advice__source-note--model {
+  color: var(--color-olive-dark);
+}
+
+.health-advice__source-note--safety {
+  color: var(--color-danger);
+  background: var(--color-danger-tint);
 }
 
 .health-advice__summary {

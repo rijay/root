@@ -3,7 +3,15 @@ const {
   getCatalog,
   getHealthOverview,
 } = require("../../utils/health-assessment");
+const {
+  ADVICE_CONFIRMATION_DELAYS_MS,
+  isAdviceResultUnknown,
+} = require("../../utils/health-advice-ui");
 const { syncTabBar } = require("../../utils/tab-bar");
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 Page({
   data: {
@@ -14,11 +22,36 @@ Page({
     overview: null,
     overviewErrorText: "",
     adviceLoading: false,
+    adviceConfirming: false,
+    adviceStatusText: "",
   },
 
   onShow() {
+    this.invalidateAdviceRun();
+    this._healthPageVisible = true;
+    this.setData({ adviceLoading: false, adviceConfirming: false, adviceStatusText: "" });
     syncTabBar(this, 2);
     this.loadCatalog();
+  },
+
+  onHide() {
+    this._healthPageVisible = false;
+    this.invalidateAdviceRun();
+  },
+
+  onUnload() {
+    this._healthPageVisible = false;
+    this.invalidateAdviceRun();
+  },
+
+  invalidateAdviceRun() {
+    this._adviceRunId = Number(this._adviceRunId || 0) + 1;
+    if (this._adviceSlowTimer) clearTimeout(this._adviceSlowTimer);
+    this._adviceSlowTimer = null;
+  },
+
+  adviceRunIsCurrent(runId) {
+    return this._healthPageVisible === true && this._adviceRunId === runId;
   },
 
   async loadCatalog() {
@@ -42,15 +75,62 @@ Page({
 
   async generateAdvice() {
     if (this.data.adviceLoading || !this.data.overview || !this.data.overview.ready) return;
-    this.setData({ adviceLoading: true, overviewErrorText: "" });
+    const runId = Number(this._adviceRunId || 0) + 1;
+    this._adviceRunId = runId;
+    this.setData({
+      adviceLoading: true,
+      adviceConfirming: false,
+      adviceStatusText: "正在结合两项评测生成建议…",
+      overviewErrorText: "",
+    });
+    this._adviceSlowTimer = setTimeout(() => {
+      if (this.adviceRunIsCurrent(runId)) {
+        this.setData({ adviceStatusText: "生成需要一点时间，请保持当前页面…" });
+      }
+    }, 8000);
     try {
       const overview = await generateHealthAdvice(this.data.overview);
-      this.setData({ overview });
+      if (this.adviceRunIsCurrent(runId)) this.setData({ overview });
     } catch (error) {
-      this.setData({ overviewErrorText: error.message || "健康建议暂时无法生成" });
+      if (!this.adviceRunIsCurrent(runId)) return;
+      if (isAdviceResultUnknown(error)) {
+        const confirmed = await this.confirmPendingAdvice(runId);
+        if (!confirmed && this.adviceRunIsCurrent(runId)) {
+          this.setData({
+            overviewErrorText: "建议生成时间较长，暂未确认保存结果。可以稍后重试，系统不会重复生成同一组建议。",
+          });
+        }
+      } else {
+        this.setData({ overviewErrorText: error.message || "健康建议暂时无法生成" });
+      }
     } finally {
-      this.setData({ adviceLoading: false });
+      if (this._adviceSlowTimer) clearTimeout(this._adviceSlowTimer);
+      this._adviceSlowTimer = null;
+      if (this.adviceRunIsCurrent(runId)) {
+        this.setData({ adviceLoading: false, adviceConfirming: false, adviceStatusText: "" });
+      }
     }
+  },
+
+  async confirmPendingAdvice(runId) {
+    this.setData({
+      adviceConfirming: true,
+      adviceStatusText: "建议已提交，正在确认保存结果…",
+    });
+    for (const delayMs of ADVICE_CONFIRMATION_DELAYS_MS) {
+      await wait(delayMs);
+      if (!this.adviceRunIsCurrent(runId)) return false;
+      try {
+        const overview = await getHealthOverview();
+        if (overview.advice) {
+          this.setData({ overview });
+          return true;
+        }
+      } catch (error) {
+        // The next bounded confirmation read can recover from a transient read failure.
+      }
+    }
+    return false;
   },
 
   async reloadOverview() {

@@ -2,7 +2,9 @@ const { request } = require("./request");
 const { track } = require("./analytics");
 const env = require("../config/env");
 const localAssessment = require("./local-health-assessment");
+const { decorateAdvice } = require("./health-advice-ui");
 const useLocalAssessmentStorage = env.healthAssessmentStorageMode === "LOCAL_DEVICE";
+const inflightAdviceRequests = new Map();
 
 const TYPE_LABELS = {
   INITIAL: "初始评测",
@@ -159,6 +161,7 @@ function decorateOverview(data = {}) {
     ...data,
     missingLabels,
     missingText: missingLabels.join("、"),
+    advice: decorateAdvice(data.advice),
     states: (data.states || []).map((item) => ({
       ...item,
       typeLabel: TYPE_LABELS[item.assessmentType] || "健康评测",
@@ -173,12 +176,18 @@ async function getHealthOverview() {
 
 async function generateHealthAdvice(currentOverview = {}) {
   const inputKey = (currentOverview.states || []).map((item) => item.assessmentId).filter(Boolean).sort().join(":");
-  const data = await request({
+  const requestKey = inputKey || "current";
+  if (inflightAdviceRequests.has(requestKey)) return inflightAdviceRequests.get(requestKey);
+  const pending = request({
     url: "/api/v1/health/advice/generate",
     method: "POST",
-    idempotencyKey: `health-advice:${inputKey || "current"}`,
-  });
-  return decorateOverview(data);
+    idempotencyKey: `health-advice:${requestKey}`,
+  }).then(decorateOverview);
+  inflightAdviceRequests.set(requestKey, pending);
+  pending.finally(() => {
+    if (inflightAdviceRequests.get(requestKey) === pending) inflightAdviceRequests.delete(requestKey);
+  }).catch(() => {});
+  return pending;
 }
 
 async function compareAssessments(leftAssessmentId, rightAssessmentId) {

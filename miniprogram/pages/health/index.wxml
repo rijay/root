@@ -57,9 +57,13 @@
         还需完成：{{overview.missingText}}。完成两项评测后生成综合建议。
       </view>
 
-      <view wx:if="{{adviceLoading}}" class="health-overview-pending" role="status" aria-live="polite">正在生成安全、可执行的健康建议…</view>
+      <view wx:if="{{adviceLoading}}" class="health-overview-pending health-overview-pending--generating" role="status" aria-live="polite">
+        <text class="health-overview-pending__title">{{adviceStatusText}}</text>
+        <text wx:if="{{adviceConfirming}}" class="health-overview-pending__detail">无需重复点击，结果保存后会自动显示。</text>
+      </view>
 
       <view wx:if="{{overview && overview.advice}}" class="health-advice">
+        <text class="health-advice__source-note health-advice__source-note--{{overview.advice.sourceTone}}">{{overview.advice.sourceHint}}</text>
         <text class="health-advice__summary">{{overview.advice.summary}}</text>
         <view class="health-advice__actions">
           <view wx:for="{{overview.advice.actions}}" wx:key="*this" class="health-advice__action">

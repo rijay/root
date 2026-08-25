@@ -93,7 +93,8 @@ test("safety result never calls the ordinary model and deleting an input removes
   assert.equal(generated.advice.source, "REVIEWED_SAFETY");
   assert.equal(data.healthAdviceSnapshots.length, 1);
 
-  healthAssessment.remove(data, "root-safety-advice", "has-gut");
+  const removed = healthAssessment.remove(data, "root-safety-advice", "has-gut");
+  assert.equal(removed.invalidatedAdviceCount, 1);
   assert.equal(data.healthAdviceSnapshots.length, 0);
 });
 
