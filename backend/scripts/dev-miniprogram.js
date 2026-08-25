@@ -1,5 +1,6 @@
 const { createEnvironmentHealthAdviceModelAdapter } = require("../src/healthAdviceModelAdapter");
 const { readLocalHealthAdviceApiKey } = require("../src/localHealthAdviceKeychain");
+const { readLocalYouzanAccessToken } = require("../src/localYouzanKeychain");
 const { main } = require("../src/server");
 
 const LOCAL_MINIPROGRAM_ENV = Object.freeze({
@@ -25,6 +26,7 @@ async function start(options = {}) {
   const runtimeEnv = buildLocalMiniprogramEnv(options.env || process.env);
   Object.assign(process.env, LOCAL_MINIPROGRAM_ENV);
   const apiKey = (options.readApiKey || readLocalHealthAdviceApiKey)();
+  const youzanAccessToken = (options.readYouzanToken || readLocalYouzanAccessToken)();
   const healthAdviceModelAdapter = createEnvironmentHealthAdviceModelAdapter(runtimeEnv, {
     apiKey,
     fetchImpl: options.fetchImpl,
@@ -33,7 +35,13 @@ async function start(options = {}) {
   logger.log(healthAdviceModelAdapter.configured
     ? "Health advice model: CloudBase hy3 (credential loaded from macOS Keychain)"
     : "Health advice model: reviewed fallback (macOS Keychain credential unavailable)");
-  return (options.main || main)({ healthAdviceModelAdapter });
+  logger.log(youzanAccessToken
+    ? "Youzan commerce: live read-only (credential loaded from macOS Keychain)"
+    : "Youzan commerce: local fallback (macOS Keychain credential unavailable)");
+  return (options.main || main)({
+    healthAdviceModelAdapter,
+    youzanAccessTokenProvider: youzanAccessToken ? async () => youzanAccessToken : undefined,
+  });
 }
 
 if (require.main === module) {

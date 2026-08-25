@@ -84,3 +84,11 @@ test("member commerce never calls the Adapter for an unverified legacy unionid",
   assert.equal(result.reason, "VERIFIED_UNIONID_REQUIRED");
   assert.equal(calls, 0);
 });
+
+test("member commerce preserves an unknown expiring-soon count instead of reporting a false zero", () => {
+  assert.equal(memberCommerce.normalizeSummary({
+    orders: { totalCount: 0, pendingCount: 0 },
+    coupons: { availableCount: 201, expiringSoonCount: null },
+    priceSync: { syncedAt: "2026-08-25T12:00:00.000Z" },
+  }).coupons.expiringSoonCount, null);
+});

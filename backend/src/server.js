@@ -72,6 +72,8 @@ async function main(options = {}) {
     activityPublicationAuthorizationAdapter,
     activityAssetAdapter,
     healthAdviceModelAdapter: options.healthAdviceModelAdapter,
+    youzanCommerceAdapter: options.youzanCommerceAdapter,
+    youzanAccessTokenProvider: options.youzanAccessTokenProvider,
   });
   await server.readyPromise;
   server.listen(port, listenHost, () => {

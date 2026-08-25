@@ -22,6 +22,7 @@ const sessionModule = require("./sessionModule");
 const adminFormalUserQuery = require("./adminFormalUserQuery");
 const v060Api = require("./v060Api");
 const { createEnvironmentHealthAdviceModelAdapter } = require("./healthAdviceModelAdapter");
+const { createEnvironmentYouzanCommerceAdapter } = require("./youzanCommerceAdapter");
 
 const {
   ADMIN_CAPABILITIES,
@@ -535,6 +536,11 @@ function createApp(options = {}) {
   });
   const healthAdviceModelAdapter = options.healthAdviceModelAdapter
     || createEnvironmentHealthAdviceModelAdapter(runtimeEnv, { fetchImpl: options.fetchImpl });
+  const youzanCommerceAdapter = options.youzanCommerceAdapter
+    || createEnvironmentYouzanCommerceAdapter(runtimeEnv, {
+      fetchImpl: options.fetchImpl,
+      accessTokenProvider: options.youzanAccessTokenProvider,
+    });
   const elementAdminDir = resolveElementAdminDir(options.adminDistDir, runtimeEnv);
   const runtimeContext = {
     storeAdapter,
@@ -547,7 +553,8 @@ function createApp(options = {}) {
     activityPublicationAuthorizationAdapter: options.activityPublicationAuthorizationAdapter,
     activityAssetAdapter: options.activityAssetAdapter,
     healthAdviceModelAdapter,
-    memberCommerceAdapter: options.memberCommerceAdapter || null,
+    memberCommerceAdapter: options.memberCommerceAdapter || youzanCommerceAdapter,
+    productCommerceAdapter: options.productCommerceAdapter || youzanCommerceAdapter,
     runtimeMetadata,
   };
   const initialPersistPromise = Promise.resolve();
@@ -705,7 +712,7 @@ function createApp(options = {}) {
       }
       if (route === "GET /api/v1/user/state") return ok(res, getUserState(data, token, runtimeContext));
       if (route === "GET /api/v1/products") {
-        return apiOk(res, v060Api.listProducts(data, Object.fromEntries(url.searchParams), runtimeContext));
+        return apiOk(res, await v060Api.listProducts(data, Object.fromEntries(url.searchParams), runtimeContext));
       }
       if (route === "GET /api/v1/member-commerce/summary") {
         return apiOk(res, await v060Api.memberCommerceSummary(data, token, runtimeContext));
@@ -720,7 +727,7 @@ function createApp(options = {}) {
       }
       const productDetailMatch = url.pathname.match(/^\/api\/v1\/products\/([A-Za-z0-9_-]{1,64})$/);
       if (method === "GET" && productDetailMatch) {
-        return apiOk(res, v060Api.getProduct(data, productDetailMatch[1], runtimeContext));
+        return apiOk(res, await v060Api.getProduct(data, productDetailMatch[1], runtimeContext));
       }
       if (route === "GET /api/v1/health/assessments/catalog") {
         return apiOk(res, v060Api.assessmentCatalog(data, token));

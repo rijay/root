@@ -24,6 +24,7 @@ test("local miniprogram runtime passes a Keychain-backed configured Adapter with
   await start({
     env: {},
     readApiKey: () => "keychain-secret",
+    readYouzanToken: () => "keychain-youzan-token",
     logger: { log: (message) => logs.push(message) },
     main: async (options) => { received = options; },
     fetchImpl: async () => ({ ok: true }),
@@ -31,6 +32,8 @@ test("local miniprogram runtime passes a Keychain-backed configured Adapter with
 
   assert.equal(received.healthAdviceModelAdapter.configured, true);
   assert.equal(logs.join("\n").includes("keychain-secret"), false);
+  assert.equal(await received.youzanAccessTokenProvider(), "keychain-youzan-token");
+  assert.equal(logs.join("\n").includes("keychain-youzan-token"), false);
 });
 
 test("local miniprogram runtime does not fall back to an environment credential when Keychain is unavailable", async () => {
@@ -38,9 +41,11 @@ test("local miniprogram runtime does not fall back to an environment credential 
   await start({
     env: { ROOT_HEALTH_ADVICE_MODEL_API_KEY: "environment-secret" },
     readApiKey: () => "",
+    readYouzanToken: () => "",
     logger: { log() {} },
     main: async (options) => { received = options; },
     fetchImpl: async () => ({ ok: true }),
   });
   assert.equal(received.healthAdviceModelAdapter.configured, false);
+  assert.equal(received.youzanAccessTokenProvider, undefined);
 });

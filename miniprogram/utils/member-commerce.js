@@ -11,7 +11,7 @@ function presentSummary(data = {}) {
     ...data,
     ready,
     orderHint: ready
-      ? pendingOrders > 0 ? `${pendingOrders} 个待处理` : totalOrders > 0 ? `${totalOrders} 个订单` : "暂无订单"
+      ? pendingOrders > 0 ? `${pendingOrders} 笔待处理` : totalOrders > 0 ? `${totalOrders} 笔订单` : "暂无订单"
       : "会员中心",
     couponHint: ready ? `${availableCoupons} 张可用` : "会员中心",
   };

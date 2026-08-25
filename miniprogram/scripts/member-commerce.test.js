@@ -14,7 +14,7 @@ const ready = presentSummary({
   coupons: { availableCount: 2 },
 });
 assert.equal(ready.ready, true);
-assert.equal(ready.orderHint, "1 个待处理");
+assert.equal(ready.orderHint, "1 笔待处理");
 assert.equal(ready.couponHint, "2 张可用");
 
 console.log("member commerce presentation tests passed");

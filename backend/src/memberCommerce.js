@@ -5,6 +5,11 @@ function nonNegativeInteger(value) {
   return Number.isInteger(number) && number >= 0 ? number : 0;
 }
 
+function nullableNonNegativeInteger(value) {
+  if (value === null || value === undefined || value === "") return null;
+  return nonNegativeInteger(value);
+}
+
 function verifiedIdentity(data, rootUserId, context = {}) {
   const identities = Array.isArray(data.wechatIdentities) ? data.wechatIdentities : [];
   return identities.find((item) => (
@@ -34,7 +39,7 @@ function normalizeSummary(value = {}) {
     },
     coupons: {
       availableCount: nonNegativeInteger(source.coupons && source.coupons.availableCount),
-      expiringSoonCount: nonNegativeInteger(source.coupons && source.coupons.expiringSoonCount),
+      expiringSoonCount: nullableNonNegativeInteger(source.coupons && source.coupons.expiringSoonCount),
     },
     priceSync: {
       syncedAt: String(source.priceSync && source.priceSync.syncedAt || "").trim(),

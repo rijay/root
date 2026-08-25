@@ -46,3 +46,25 @@ test("persisted dynamic price and image remain available while the official jump
   assert.equal(product.youzan.appId, "wxfb75c0b432670215");
   assert.equal(product.youzan.path, "packages/goods/detail/index?alias=36ep2dcgnia7nf0&shopAutoEnter=1");
 });
+
+test("live Youzan snapshots override only dynamic price, image and SKU fields", () => {
+  const data = createEmptyData();
+  const product = productCatalog.getProduct(data, "4749049439", {
+    liveProductSnapshots: [{
+      productId: "4749049439",
+      title: "远端标题不得使用",
+      priceText: "¥199",
+      imageUrl: "https://img01.yzcdn.cn/product.jpg",
+      syncedAt: "2026-08-25T12:00:00.000Z",
+      skus: [{ skuId: "101", skuName: "14袋", price: 19900, priceText: "¥199", stockStatus: "IN_STOCK" }],
+    }],
+  });
+  assert.equal(product.title, "ROOT 低敏畅享·每日衡养益生元饮料 RT-PrB-01");
+  assert.equal(product.priceText, "¥199");
+  assert.equal(product.imageUrl, "https://img01.yzcdn.cn/product.jpg");
+  assert.equal(product.syncedAt, "2026-08-25T12:00:00.000Z");
+  assert.deepEqual(product.skus, [
+    { skuId: "101", skuName: "14袋", price: 19900, priceText: "¥199", stockStatus: "IN_STOCK" },
+  ]);
+  assert.equal(product.youzan.path, "packages/goods/detail/index?alias=36ep2dcgnia7nf0&shopAutoEnter=1");
+});

@@ -116,9 +116,27 @@ function jumpTarget(product, context = {}) {
   };
 }
 
+function liveSku(item = {}) {
+  const amount = Number(item.price);
+  const status = String(item.stockStatus || "").trim();
+  return {
+    skuId: String(item.skuId || "").trim().slice(0, 80),
+    skuName: text(item.skuName, "默认规格").slice(0, 80),
+    price: Number.isFinite(amount) && amount >= 0 ? amount : null,
+    priceText: text(item.priceText, "会员中心实时价格").slice(0, 40),
+    stockStatus: ["IN_STOCK", "OUT_OF_STOCK", "UNKNOWN"].includes(status) ? status : "UNKNOWN",
+  };
+}
+
 function publicProduct(data, product, context = {}) {
   const relation = relationForProduct(data, product.youzan_product_id, context.campaignId);
-  const skus = ensureList(data, "youzanSkus")
+  const liveSnapshots = context.liveProductSnapshots instanceof Map
+    ? context.liveProductSnapshots
+    : new Map((Array.isArray(context.liveProductSnapshots) ? context.liveProductSnapshots : [])
+      .filter((item) => item && item.productId)
+      .map((item) => [String(item.productId), item]));
+  const live = liveSnapshots.get(product.youzan_product_id) || null;
+  const persistedSkus = ensureList(data, "youzanSkus")
     .filter((item) => item.youzan_product_id === product.youzan_product_id)
     .map((item) => ({
       skuId: item.youzan_sku_id,
@@ -127,6 +145,7 @@ function publicProduct(data, product, context = {}) {
       priceText: item.price_text || "会员中心实时价格",
       stockStatus: item.stock_status || "UNKNOWN",
     }));
+  const skus = live && Array.isArray(live.skus) ? live.skus.map(liveSku) : persistedSkus;
   return {
     productId: product.youzan_product_id,
     youzanProductId: product.youzan_product_id,
@@ -134,15 +153,15 @@ function publicProduct(data, product, context = {}) {
     subtitle: product.subtitle || "",
     summary: product.summary || "",
     description: product.description || "",
-    imageUrl: product.image_url || "",
+    imageUrl: (live && live.imageUrl) || product.image_url || "",
     status: product.status,
     badge: (relation && relation.badge) || product.badge || "",
-    priceText: product.price_text || "会员中心实时价格",
+    priceText: (live && live.priceText) || product.price_text || "会员中心实时价格",
     skuCount: skus.length,
     skus,
     campaignId: relation ? relation.campaign_id : "",
     displayOrder: relation ? Number(relation.display_order || 0) : 9999,
-    syncedAt: product.synced_at || product.updated_at || "",
+    syncedAt: (live && live.syncedAt) || product.synced_at || product.updated_at || "",
     updatedAt: product.updated_at || "",
     youzan: jumpTarget(product, context),
   };

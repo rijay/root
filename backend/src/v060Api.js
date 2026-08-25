@@ -30,15 +30,33 @@ function principal(data, token, required = true) {
   };
 }
 
-function listProducts(data, query = {}, context = {}) {
+async function liveProductSnapshots(context, productIds) {
+  const adapter = context.productCommerceAdapter;
+  if (!adapter || adapter.configured !== true || typeof adapter.readProductSnapshots !== "function") return [];
+  try {
+    const result = await adapter.readProductSnapshots({ productIds });
+    return Array.isArray(result && result.products) ? result.products : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+async function listProducts(data, query = {}, context = {}) {
+  const snapshots = await liveProductSnapshots(
+    context,
+    productCatalog.OFFICIAL_PRODUCTS.map((item) => item.youzan_product_id),
+  );
   return productCatalog.listProducts(data, {
     ...context,
     campaignId: query.campaignId || query.campaign_id || productCatalog.DEFAULT_CAMPAIGN_ID,
+    liveProductSnapshots: snapshots,
   });
 }
 
-function getProduct(data, productId, context = {}) {
-  return { product: productCatalog.getProduct(data, productId, context) };
+async function getProduct(data, productId, context = {}) {
+  productCatalog.getProduct(data, productId, context);
+  const snapshots = await liveProductSnapshots(context, [productId]);
+  return { product: productCatalog.getProduct(data, productId, { ...context, liveProductSnapshots: snapshots }) };
 }
 
 function recordProductJump(data, token, body = {}, context = {}) {

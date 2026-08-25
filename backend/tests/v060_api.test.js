@@ -135,7 +135,24 @@ function authenticatedHeaders(extra = {}) {
 
 test("v0.6 public product and authenticated assessment Interfaces work end to end", async (t) => {
   const storeAdapter = createMemoryStore(fixture(), { seedSampleData: false });
-  const server = createApp({ storeAdapter, env: {} });
+  const server = createApp({
+    storeAdapter,
+    env: {},
+    productCommerceAdapter: {
+      configured: true,
+      async readProductSnapshots({ productIds }) {
+        return {
+          products: productIds.map((productId) => ({
+            productId,
+            priceText: productId === "4749049439" ? "¥199" : "¥369",
+            imageUrl: `https://img01.yzcdn.cn/${productId}.jpg`,
+            skus: [],
+            syncedAt: "2026-08-25T12:00:00.000Z",
+          })),
+        };
+      },
+    },
+  });
   const baseUrl = await listen(server);
   t.after(() => server.close());
 
@@ -146,8 +163,11 @@ test("v0.6 public product and authenticated assessment Interfaces work end to en
     "4749049439",
     "4875324599",
   ]);
+  assert.equal(products.payload.data.products[0].priceText, "¥199");
+  assert.equal(products.payload.data.products[0].imageUrl, "https://img01.yzcdn.cn/4749049439.jpg");
 
   const product = await request(baseUrl, "/api/v1/products/4875324599");
+  assert.equal(product.payload.data.product.priceText, "¥369");
   assert.equal(product.payload.data.product.youzan.appId, "wxfb75c0b432670215");
   assert.equal(
     product.payload.data.product.youzan.path,
