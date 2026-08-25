@@ -9,9 +9,16 @@ const {
   firstIncompleteIndex,
   missingAnswer,
   pruneHiddenAnswers,
+  toggleMultiAnswer,
   visibleQuestions,
 } = require("../../../../utils/assessment-flow");
 const router = require("../../../../utils/router");
+const { defaultOnShareAppMessage } = require("../../../../utils/page-share");
+const {
+  GUT_INTRO_PATH,
+  clearContinuation,
+  shouldRedirectToIntro,
+} = require("../../../../utils/gut-assessment-entry");
 
 Page({
   data: {
@@ -25,6 +32,9 @@ Page({
     currentIndex: 0,
     currentQuestion: null,
     currentValue: null,
+    showBristol: false,
+    bristolLoading: true,
+    bristolFailed: false,
     options: [],
     scaleOptions: [],
     progressPercent: 0,
@@ -32,28 +42,56 @@ Page({
     saving: false,
     dirty: false,
     saveFailed: false,
-    saveStatusText: "完成当前题目后，答案会安全保存。",
+    saveStatusText: "完成当前题目后，答案会保存到当前设备。",
     saveStatusTone: "muted",
   },
 
   onLoad(options = {}) {
-    this.initialize(options);
+    this.routeOptions = { ...options };
+    if (shouldRedirectToIntro(this.routeOptions)) {
+      wx.redirectTo({ url: GUT_INTRO_PATH });
+      return;
+    }
+    this.pendingInitialize = true;
+    this.initialize(this.routeOptions);
   },
 
-  async initialize(options = {}) {
+  onShow() {
+    if (this.pendingInitialize && !this._initializing && !this.data.assessmentId && !this.data.errorText) {
+      this.initialize(this.routeOptions);
+    }
+  },
+
+  async initialize(options = this.routeOptions || {}) {
+    if (this._initializing) return;
+    const routeOptions = options && options.currentTarget ? (this.routeOptions || {}) : { ...options };
+    this.routeOptions = routeOptions;
+    this._initializing = true;
     this.setData({ loading: true, errorText: "" });
     try {
-      const allowed = await router.routeGuard("/subpkg/health/pages/assessment/index");
-      if (!allowed) return;
+      const requestedType = routeOptions.assessmentType || routeOptions.assessment_type || "INITIAL";
+      const requestedId = routeOptions.assessmentId || routeOptions.assessment_id || "";
+      const routeQuery = requestedId
+        ? `?assessmentId=${encodeURIComponent(requestedId)}`
+        : `?assessmentType=${encodeURIComponent(requestedType)}`;
+      const allowed = await router.routeGuard(`/subpkg/health/pages/assessment/index${routeQuery}`);
+      if (!allowed) {
+        this.pendingInitialize = false;
+        return;
+      }
       const consented = await ensureHealthConsent();
-      if (!consented) return;
-      let assessmentId = options.assessmentId || options.assessment_id || this.data.assessmentId || "";
+      if (!consented) {
+        this.pendingInitialize = true;
+        return;
+      }
+      let assessmentId = requestedId || this.data.assessmentId || "";
       if (!assessmentId) {
-        const type = options.assessmentType || options.assessment_type || "INITIAL";
-        const started = await startAssessment(type);
+        const started = await startAssessment(requestedType);
         assessmentId = started.assessment && started.assessment.assessmentId;
       }
       if (!assessmentId) throw new Error("评测记录未创建");
+      if (requestedType === "GUT_REGULARITY") clearContinuation();
+      this.pendingInitialize = false;
       this.setData({ assessmentId });
       const data = await getAssessment(assessmentId);
       if (data.assessment.status !== "IN_PROGRESS") {
@@ -62,10 +100,17 @@ Page({
       }
       this.hydrate(data.assessment);
     } catch (error) {
+      this.pendingInitialize = false;
       this.setData({ errorText: error.message || "评测暂时无法加载" });
     } finally {
+      this._initializing = false;
       this.setData({ loading: false });
     }
+  },
+
+  retryInitialize() {
+    this.pendingInitialize = true;
+    this.initialize(this.routeOptions);
   },
 
   hydrate(assessment) {
@@ -82,7 +127,7 @@ Page({
       currentIndex,
       dirty: false,
       saveFailed: false,
-      saveStatusText: Object.keys(answers).length ? "已恢复上次保存的进度。" : "完成当前题目后，答案会安全保存。",
+      saveStatusText: Object.keys(answers).length ? "已从当前设备恢复上次进度。" : "完成当前题目后，答案会保存到当前设备。",
       saveStatusTone: "muted",
     }, () => this.refreshQuestion());
   },
@@ -102,11 +147,26 @@ Page({
     this.setData({
       currentQuestion: question,
       currentValue,
+      showBristol: Boolean(question && question.field === "Q2" && this.data.assessment.assessmentType === "GUT_REGULARITY"),
       options,
       scaleOptions,
       progressPercent: Math.round(((this.data.currentIndex + 1) / total) * 100),
       progressText: `${Math.min(this.data.currentIndex + 1, total)} / ${total}`,
     });
+  },
+
+  previewBristol() {
+    if (this.data.bristolFailed || typeof wx.previewImage !== "function") return;
+    const url = "/subpkg/health/assets/bristol-stool-scale.jpg";
+    wx.previewImage({ current: url, urls: [url] });
+  },
+
+  bristolLoaded() {
+    this.setData({ bristolLoading: false, bristolFailed: false });
+  },
+
+  bristolFailed() {
+    this.setData({ bristolLoading: false, bristolFailed: true });
   },
 
   setAnswer(value) {
@@ -125,7 +185,7 @@ Page({
       currentIndex,
       dirty: true,
       saveFailed: false,
-      saveStatusText: "本题修改尚未保存。",
+      saveStatusText: "本题修改尚未保存到当前设备。",
       saveStatusTone: "pending",
     }, () => this.refreshQuestion());
   },
@@ -140,11 +200,7 @@ Page({
 
   toggleMulti(event) {
     const value = event.currentTarget.dataset.value;
-    const current = Array.isArray(this.data.currentValue) ? [...this.data.currentValue] : [];
-    const index = current.indexOf(value);
-    if (index >= 0) current.splice(index, 1);
-    else current.push(value);
-    this.setAnswer(current);
+    this.setAnswer(toggleMultiAnswer(this.data.currentQuestion, this.data.currentValue, value));
   },
 
   selectScale(event) {
@@ -185,7 +241,7 @@ Page({
     this.setData({
       saving: true,
       saveFailed: false,
-      saveStatusText: "正在保存当前进度…",
+      saveStatusText: "正在将当前进度保存到本机…",
       saveStatusTone: "pending",
     });
     try {
@@ -194,7 +250,7 @@ Page({
       this.setData({
         dirty: !unchanged,
         saveFailed: false,
-        saveStatusText: unchanged ? "当前进度已保存。" : "保存期间有新修改，进入下一步前会再次保存。",
+        saveStatusText: unchanged ? "当前进度已保存到本机。" : "保存期间有新修改，进入下一步前会再次保存。",
         saveStatusTone: unchanged ? "saved" : "pending",
       });
       return result;
@@ -258,4 +314,6 @@ Page({
         });
     }
   },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

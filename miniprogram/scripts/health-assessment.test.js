@@ -13,11 +13,12 @@ const completed = decorateAssessment({
   assessmentType: "INITIAL",
   questionnaireVersion: 3,
   status: "COMPLETED",
-  result: { title: "近期状态结果" },
+  result: { title: "近期状态结果", priorityAction: "先完成第一步。\n再观察第二步。" },
 });
 assert.equal(completed.typeLabel, "初始评测");
 assert.equal(completed.versionText, "问卷 v3");
 assert.equal(completed.resultTitle, "近期状态结果");
+assert.deepEqual(completed.result.priorityActionItems, ["先完成第一步。", "再观察第二步。"]);
 assert.equal(completed.safetyStopped, false);
 
 const safetyStopped = decorateAssessment({

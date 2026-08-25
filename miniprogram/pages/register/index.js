@@ -3,6 +3,7 @@ const { consume: consumeAuthIntent } = require("../../utils/auth-intent");
 const { isPersistedAvatar, uploadCloudAvatar } = require("../../utils/avatar-upload");
 const { FORMAL_ACCESS_STATE, inspectFormalAccess, loginRoute } = require("../../utils/formal-access");
 const router = require("../../utils/router");
+const { defaultOnShareAppMessage } = require("../../utils/page-share");
 
 const REGISTRATION_CONTEXT_STORAGE_KEY = "ROOT_REGISTRATION_CONTEXT_V1";
 const PROFILE_SUBMIT_KEY_STORAGE = "ROOT_PROFILE_SUBMIT_KEY_V1";
@@ -146,4 +147,6 @@ Page({
       this.setData({ loading: false });
     }
   },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

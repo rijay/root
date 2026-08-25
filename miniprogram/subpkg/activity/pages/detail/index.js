@@ -10,6 +10,7 @@ const {
 } = require("../../../../utils/activity-actions");
 const router = require("../../../../utils/router");
 const { createActivityPendingCommandRegistry } = require("../../../../utils/activity-command-recovery");
+const { defaultOnShareAppMessage } = require("../../../../utils/page-share");
 const { failureReason, track } = require("../../../../utils/analytics");
 
 const pendingCommands = createActivityPendingCommandRegistry({
@@ -42,7 +43,6 @@ Page({
     errorText: "",
     confirmSheetVisible: false,
     submitting: false,
-    operationState: "",
     result: null,
     voidSheetVisible: false,
   },
@@ -52,6 +52,10 @@ Page({
     const activityId = safeOpaqueId(options.activityId);
     this._resumeConfirmation = options.source === "login_recovery";
     this.setData({ sessionId, activityId });
+    track("activity_detail_view", {
+      activityId: activityId || sessionId,
+      sourcePage: options.source || "activity_list",
+    });
     if (!sessionId && !activityId) {
       this.setData({ viewState: "invalid", errorText: "活动信息无效，请返回活动列表重新选择。" });
       return;
@@ -72,7 +76,8 @@ Page({
 
   authorityData(activity) {
     const activityView = { ...activity, heroReady: Boolean(activity.heroAssetUrl) };
-    const action = deriveActivityAction(activityView, { authenticated: Boolean(getToken()) });
+    const derivedAction = deriveActivityAction(activityView, { authenticated: Boolean(getToken()) });
+    const action = derivedAction;
     const availabilityText = activityView.enrollment
       ? `我的报名：${activityView.enrollment.label}`
       : (activityView.remainingCapacity !== null && activityView.listingState === "AVAILABLE"
@@ -174,16 +179,7 @@ Page({
   async submitCommand(command) {
     this._pendingCommand = command;
     this._unresolvedCommand = command;
-    this.setData({
-      submitting: true,
-      operationState: command.kind === "CANCEL" ? "CANCELING" : "ENROLLING",
-    });
-    track("activity_signup", {
-      activityId: this.data.activity && this.data.activity.activityId || "",
-      action: command.kind,
-      result: "STARTED",
-      failureReason: "",
-    });
+    this.setData({ submitting: true });
     let writeError = null;
     try {
       await request({
@@ -235,11 +231,23 @@ Page({
       result = result || {
         kind: "SUCCESS",
         title: command.kind === "CANCEL" ? "报名已取消" : (pending ? "报名申请已提交" : "报名已确认"),
-        body: "状态已从运营后台重新读取，请以当前页面展示为准。",
+        body: "报名状态已更新，请以当前页面展示为准。",
         support: false,
       };
+      track("activity_signup", {
+        activityId: activity.activityId || command.sessionId,
+        action: command.kind,
+        result: pending ? "PENDING" : "SUCCESS",
+        failureReason: "",
+      });
     } else if (writeError) {
       result = presentActivityWriteError(writeError);
+      track("activity_signup", {
+        activityId: this.data.activityId || command.sessionId,
+        action: command.kind,
+        result: result.kind === "UNKNOWN" ? "UNKNOWN" : "FAILED",
+        failureReason: failureReason(writeError),
+      });
       if (result.kind !== "UNKNOWN") {
         try {
           pendingCommands.clear(command);
@@ -258,20 +266,19 @@ Page({
       }
     } else {
       result = unknownResult(command);
+      track("activity_signup", {
+        activityId: this.data.activityId || command.sessionId,
+        action: command.kind,
+        result: "UNKNOWN",
+        failureReason: "WRITE_RESULT_NOT_CONFIRMED",
+      });
     }
 
     this.setData({
       ...(activity ? this.authorityData(activity) : {}),
       confirmSheetVisible: false,
       submitting: false,
-      operationState: "",
       result,
-    });
-    track("activity_signup", {
-      activityId: (activity || this.data.activity || {}).activityId || "",
-      action: command.kind,
-      result: result.kind === "SUCCESS" ? "SUCCESS" : result.kind === "UNKNOWN" ? "UNKNOWN" : "FAILED",
-      failureReason: result.kind === "SUCCESS" ? "" : failureReason(writeError || { code: result.kind }),
     });
   },
 
@@ -323,4 +330,6 @@ Page({
   openSupport() {
     router.open("/subpkg/profile/pages/support/index?topic=activity&source=activity_detail");
   },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

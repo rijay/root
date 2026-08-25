@@ -52,10 +52,6 @@ assert.match(welcomeScript, /WELCOME_STORAGE_KEY/);
 assert.doesNotMatch(welcomeScript, /fetchUserState|decideHomeRoute|health|login/i);
 assert.match(welcomeScript, /\/api\/v1\/public\/content\/welcome/);
 
-const launchingScript = fs.readFileSync(path.join(root, "pages/launching/index.js"), "utf8");
-assert.match(launchingScript, /DISPLAY_MS = 1200/);
-assert.match(launchingScript, /HARD_LIMIT_MS = 2000/);
-
 const customTabScript = fs.readFileSync(path.join(root, "custom-tab-bar/index.js"), "utf8");
 assert.match(customTabScript, /wx\.switchTab/);
 assert.match(customTabScript, /setSelected/);

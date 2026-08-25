@@ -45,7 +45,7 @@ const SCREENS = Object.freeze([
     sectionNode: "372:2",
     boardNodes: ["372:7", "372:9"],
     viewport: "390x844",
-    implementationPaths: ["miniprogram/pages/health/index.wxml", "miniprogram/subpkg/health/pages/assessment/index.wxml"],
+    implementationPaths: ["miniprogram/pages/health/index.wxml", "miniprogram/subpkg/health/pages/initial-assessment/index.wxml"],
   },
   {
     key: "root4u-result-safety",
@@ -54,13 +54,7 @@ const SCREENS = Object.freeze([
     sectionNode: "372:14",
     boardNodes: ["372:19", "372:21"],
     viewport: "390x844",
-    implementationPaths: [
-      "miniprogram/pages/health/index.wxml",
-      "miniprogram/pages/health-consent/index.wxml",
-      "miniprogram/subpkg/health/pages/result/index.wxml",
-      "miniprogram/subpkg/health/pages/history/index.wxml",
-      "miniprogram/subpkg/health/pages/compare/index.wxml",
-    ],
+    implementationPaths: ["miniprogram/pages/health/index.wxml", "miniprogram/pages/health-consent/index.wxml", "miniprogram/subpkg/health/pages/scale-assessment/index.wxml"],
   },
   {
     key: "activity-discovery-enrollment",

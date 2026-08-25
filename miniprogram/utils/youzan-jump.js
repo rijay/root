@@ -10,12 +10,15 @@ function isMiniProgramShortLink(value) {
   return /^#小程序:\/\//.test(String(value || "").trim());
 }
 
-function isConfiguredProductPath(value) {
+function isConfiguredProductPath(value, allowedQueryKeys = ["alias", "shopAutoEnter"]) {
   const path = String(value || "").trim();
   if (!path || isMiniProgramShortLink(path)) return false;
   const [pathname, query = ""] = path.split("?");
   if (pathname !== "packages/goods/detail/index") return false;
-  return query.split("&").some((entry) => {
+  const allowed = new Set(allowedQueryKeys.map((key) => String(key || "").trim()).filter(Boolean));
+  const entries = query.split("&").filter(Boolean);
+  if (!entries.length || entries.some((entry) => !allowed.has(entry.split("=")[0]))) return false;
+  return entries.some((entry) => {
     const [key, rawValue = ""] = entry.split("=");
     if (key !== "alias") return false;
     try {
@@ -32,9 +35,12 @@ function mergeJumpTarget(product = {}, jumpResult = {}) {
   const rawPath = target.path || env.youzanProductPath || "";
   const shortLink = target.shortLink || target.short_link || (isMiniProgramShortLink(rawPath) ? rawPath : "");
   return {
+    enabled: target.enabled !== false,
     appId: target.appId || env.youzanAppId || "",
     path: shortLink ? "" : rawPath,
     shortLink,
+    allowedQueryKeys: target.allowedQueryKeys || ["alias", "shopAutoEnter"],
+    updatedAt: target.updatedAt || "",
     envVersion: target.envVersion || "release",
     extraData: {
       from: "myroot_product",
@@ -44,25 +50,35 @@ function mergeJumpTarget(product = {}, jumpResult = {}) {
   };
 }
 
+function jumpError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
 function jumpToYouzanProduct(target) {
   return new Promise((resolve, reject) => {
+    if (target.enabled === false) {
+      reject(jumpError("PRODUCT_DISABLED", "该商品暂不可购买"));
+      return;
+    }
     if (target.shortLink) {
       wx.navigateToMiniProgram({
         shortLink: target.shortLink,
         envVersion: target.envVersion || "release",
         success: resolve,
         fail() {
-          reject(new Error("跳转失败，请稍后重试"));
+          reject(jumpError("MINIPROGRAM_JUMP_FAILED", "跳转失败，请稍后重试"));
         },
       });
       return;
     }
     if (!isConfiguredAppId(target.appId)) {
-      reject(new Error("Root 会员中心暂未配置"));
+      reject(jumpError("MEMBER_APP_UNCONFIGURED", "Root 会员中心暂未配置"));
       return;
     }
-    if (!isConfiguredProductPath(target.path)) {
-      reject(new Error("Root 会员中心商品路径暂未配置"));
+    if (!isConfiguredProductPath(target.path, target.allowedQueryKeys)) {
+      reject(jumpError("PRODUCT_PATH_INVALID", "Root 会员中心商品路径暂未配置"));
       return;
     }
     wx.navigateToMiniProgram({
@@ -72,7 +88,7 @@ function jumpToYouzanProduct(target) {
       envVersion: target.envVersion || "release",
       success: resolve,
       fail() {
-        reject(new Error("跳转失败，请稍后重试"));
+        reject(jumpError("MINIPROGRAM_JUMP_FAILED", "跳转失败，请稍后重试"));
       },
     });
   });
@@ -83,5 +99,6 @@ module.exports = {
   isConfiguredProductPath,
   isMiniProgramShortLink,
   jumpToYouzanProduct,
+  jumpError,
   mergeJumpTarget,
 };

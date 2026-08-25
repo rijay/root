@@ -9,8 +9,7 @@
         <immersive-header tone="light" />
         <view class="welcome__copy welcome__copy--first">
           <text class="welcome__kicker">ROOT MEMBER CLUB</text>
-          <text class="welcome__title">{{screens[0].copy || '欢迎加入\nRoot Member Club'}}</text>
-          <text class="welcome__subtitle">Sustained Foundation Balance</text>
+          <text class="welcome__title">{{screens[0].copy || '欢迎加入\nROOT Member Club'}}</text>
         </view>
       </view>
     </swiper-item>

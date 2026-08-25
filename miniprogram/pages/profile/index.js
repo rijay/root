@@ -5,6 +5,8 @@ const { clearToken, getToken } = require("../../utils/request");
 const { syncTabBar } = require("../../utils/tab-bar");
 const { clearLegacyTransientHealthStorage, clearTransientHealthData } = require("../../utils/transient-health-state");
 const { FORMAL_ACCESS_STATE, inspectFormalAccess } = require("../../utils/formal-access");
+const { unbindUserScope } = require("../../utils/local-health-assessment");
+const { defaultOnShareAppMessage } = require("../../utils/page-share");
 
 const PROFILE_ROUTE = "/pages/profile/index";
 const PENDING_MEMBER_TARGET_KEY = "ROOT_PROFILE_MEMBER_TARGET_V1";
@@ -133,15 +135,8 @@ Page({
     router.open("/subpkg/profile/pages/about/index");
   },
 
-  openAssessmentHistory() {
-    if (!this.data.loggedIn) {
-      router.open(`/pages/login/index?intent=${encodeURIComponent("/subpkg/health/pages/history/index")}`);
-      return;
-    }
-    router.open("/subpkg/health/pages/history/index");
-  },
-
   logout() {
+    unbindUserScope();
     clearToken();
     LOCAL_SESSION_KEYS.forEach((key) => wx.removeStorageSync(key));
     clearTransientHealthData();
@@ -155,4 +150,6 @@ Page({
     });
     wx.showToast({ title: "已退出登录", icon: "success" });
   },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

@@ -1,6 +1,6 @@
 <view class="activity-page">
   <view class="activity-head">
-    <text class="activity-head__title">活动</text>
+    <text class="activity-head__title">线下活动</text>
     <text class="activity-head__subtitle">与 Root 一起，把理解带回真实生活</text>
   </view>
 

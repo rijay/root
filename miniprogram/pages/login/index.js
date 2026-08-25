@@ -3,8 +3,13 @@ const { consume: consumeAuthIntent, remember: rememberAuthIntent } = require("..
 const router = require("../../utils/router");
 const { openLegalPage } = require("../../utils/legal");
 const { authenticateWechat, showLoginFailure } = require("../../utils/wechat-login-flow");
-const { rememberLoginSession } = require("../../utils/campaign-popup");
-const { confirmPendingAttribution } = require("../../utils/channel-attribution");
+const { bindUserScope } = require("../../utils/local-health-assessment");
+const { startLoginSession } = require("../../utils/login-session");
+const { defaultOnShareAppMessage } = require("../../utils/page-share");
+const {
+  commitPendingFirstChannel,
+  pendingSourceChannel,
+} = require("../../utils/channel-attribution");
 
 const REGISTRATION_CONTEXT_STORAGE_KEY = "ROOT_REGISTRATION_CONTEXT_V1";
 
@@ -64,6 +69,7 @@ Page({
       const data = await authenticateWechat({
         request,
         phoneCode: detail.code,
+        sourceChannel: pendingSourceChannel(),
         onStage: (loginStatusText) => this.setData({ loginStatusText }),
       });
       if (data.sessionOutcome === "IDENTITY_CONFLICT") {
@@ -72,8 +78,13 @@ Page({
       }
       if (!data.token) throw new Error("手机号验证未完成");
       setToken(data.token);
-      rememberLoginSession(data.session);
-      await confirmPendingAttribution();
+      startLoginSession(data.session || {});
+      commitPendingFirstChannel();
+      try {
+        bindUserScope(data.user && data.user.userId);
+      } catch (_) {
+        // 本机评测迁移失败不应阻断已经完成的微信登录。
+      }
       const outcome = data.sessionOutcome || (data.nextRoute === "/pages/register/index" ? "NEW_USER" : "REGISTERED");
       if (["NEW_USER", "PROFILE_REQUIRED"].includes(outcome)) {
         wx.setStorageSync(REGISTRATION_CONTEXT_STORAGE_KEY, {
@@ -99,4 +110,6 @@ Page({
       this.setData({ loading: false });
     }
   },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

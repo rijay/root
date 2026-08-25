@@ -1,32 +1,16 @@
 page {
-  --color-brand-black: #000000;
-  --color-brand-white: #ffffff;
-  --color-brand-olive: #242a0b;
-  --color-olive-mid: #6b7c3a;
-  --color-accent-on-dark: #a1b371;
-  --color-olive-soft: #e1e8d3;
-  --color-olive-tint: #eef2e7;
-  --color-ui-grouped: #f5f5f7;
-  --color-ui-surface: #ffffff;
-  --color-ui-line: rgba(123, 122, 126, 0.22);
-  --color-graphite: #3a3a3c;
-  --color-neutral-grey: #7b7a7e;
-  --color-system-secondary: #8e8e93;
-  --color-danger-tint: #fff2ea;
-  --color-danger-line: rgba(181, 82, 60, 0.28);
-
-  --root-ink: var(--color-brand-black);
-  --root-bg: var(--color-ui-grouped);
-  --root-nav: var(--color-brand-white);
-  --root-surface: var(--color-ui-surface);
-  --root-moss: var(--color-brand-olive);
-  --root-sprout: var(--color-olive-mid);
-  --root-clay: var(--color-system-secondary);
-  --root-line: var(--color-ui-line);
-  --root-muted: var(--color-neutral-grey);
-  --root-copy: var(--color-graphite);
-  --root-soft: var(--color-olive-soft);
-  --root-primary-tint: var(--color-olive-tint);
+  --root-ink: #080806;
+  --root-bg: #f7f4ec;
+  --root-nav: #fdfbf6;
+  --root-surface: #ffffff;
+  --root-moss: #586b3f;
+  --root-sprout: #a6b77a;
+  --root-clay: #b67855;
+  --root-line: #e8e0d0;
+  --root-muted: #8a8172;
+  --root-copy: #433e34;
+  --root-soft: #dde8c4;
+  --root-primary-tint: #f1f5e6;
   --root-warning: #c49a4a;
   --root-danger: #b5523c;
 
@@ -55,7 +39,7 @@ page {
   --root-canvas-width: 390px;
   --root-canvas-height: 844px;
   --root-page-padding: 32rpx;
-  --root-tab-height: 168rpx;
+  --root-tab-height: calc(104rpx + env(safe-area-inset-bottom));
   --root-motion-fast: 200ms;
   --root-motion-standard: 280ms;
 
@@ -73,15 +57,32 @@ page {
   --color-root-soft: var(--root-soft);
   --color-primary: var(--root-moss);
   --color-primary-light: var(--root-sprout);
-  --color-primary-dark: var(--color-brand-olive);
+  --color-primary-dark: #3f4f2b;
   --color-primary-tint: var(--root-primary-tint);
-  --color-glass: rgba(255, 255, 255, 0.94);
+  --color-glass: rgba(253, 251, 246, 0.94);
   --color-white-strong: rgba(255, 255, 255, 0.72);
   --color-white-soft: rgba(255, 255, 255, 0.78);
   --color-accent: var(--root-clay);
   --color-success: var(--root-moss);
   --color-warning: var(--root-warning);
   --color-danger: var(--root-danger);
+
+  /* v0.6.0 新增产品与评测页面使用的品牌语义色；不改变既有页面变量。 */
+  --color-brand-black: #000000;
+  --color-brand-white: #ffffff;
+  --color-brand-olive: #242a0b;
+  --color-olive-mid: #6b7c3a;
+  --color-accent-on-dark: #a1b371;
+  --color-olive-soft: #e1e8d3;
+  --color-olive-tint: #eef2e7;
+  --color-ui-grouped: #f5f5f7;
+  --color-ui-surface: #ffffff;
+  --color-ui-line: rgba(123, 122, 126, 0.22);
+  --color-graphite: #3a3a3c;
+  --color-neutral-grey: #7b7a7e;
+  --color-system-secondary: #8e8e93;
+  --color-danger-tint: #fff2ea;
+  --color-danger-line: rgba(181, 82, 60, 0.28);
   --color-bg: var(--root-bg);
   --color-surface: var(--root-surface);
   --color-text-primary: var(--root-ink);
@@ -92,6 +93,7 @@ page {
   --font-family: var(--root-font-family);
   --font-size-xs: var(--root-type-xs);
   --font-size-sm: var(--root-type-sm);
+  --font-size-md: var(--root-type-body);
   --font-size-base: var(--root-type-body);
   --font-size-lg: var(--root-type-card-title);
   --font-size-xl: var(--root-type-page-title);

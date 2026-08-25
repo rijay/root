@@ -58,7 +58,6 @@
           <view class="enrollment-meta">{{item.startText}}</view>
           <view class="enrollment-meta">{{item.venueSummary}}</view>
           <view wx:if="{{item.canCancel}}" class="enrollment-meta enrollment-meta--cutoff">自助取消截止：{{item.cancelCloseText}}</view>
-          <view wx:if="{{cancelingId === item.enrollmentId}}" class="operation-state" role="status">取消处理中，请勿重复操作</view>
           <button
             wx:if="{{item.canCancel}}"
             class="cancel-action"

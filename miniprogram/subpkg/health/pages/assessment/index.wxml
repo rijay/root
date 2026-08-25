@@ -7,7 +7,7 @@
   <view wx:elif="{{errorText}}" class="root-page assessment-state">
     <view class="root-section-title">评测暂时无法打开</view>
     <view class="root-helper-text">{{errorText}}</view>
-    <button class="root-button state-action" bindtap="initialize">重新加载</button>
+    <button class="root-button state-action" bindtap="retryInitialize">重新加载</button>
   </view>
 
   <view wx:elif="{{currentQuestion}}" class="assessment-content">
@@ -26,6 +26,13 @@
       <view class="question-index">QUESTION {{currentIndex + 1}}</view>
       <view class="question-title">{{currentQuestion.title}}</view>
       <view wx:if="{{currentQuestion.description}}" class="question-copy">{{currentQuestion.description}}</view>
+
+      <view wx:if="{{showBristol}}" class="bristol-reference">
+        <view wx:if="{{bristolLoading}}" class="bristol-reference__skeleton"></view>
+        <view wx:if="{{bristolFailed}}" class="bristol-reference__fallback">参考图暂未加载，可根据下方文字选择最接近的形态</view>
+        <image wx:if="{{!bristolFailed}}" class="bristol-reference__image" src="/subpkg/health/assets/bristol-stool-scale.jpg" mode="widthFix" show-menu-by-longpress="{{false}}" aria-label="布里斯托大便分类法，第 1 型至第 7 型参考图，点击可放大" bindtap="previewBristol" bindload="bristolLoaded" binderror="bristolFailed" />
+        <view class="bristol-reference__hint">{{bristolFailed ? '请根据下方文字选择最接近的形态' : '点击图片可放大；在下方选项中选择最接近的形态'}}</view>
+      </view>
 
       <view wx:if="{{currentQuestion.type === 'single'}}" class="option-list">
         <button wx:for="{{options}}" wx:key="value" class="answer-option {{item.selected ? 'is-selected' : ''}}" data-value="{{item.value}}" bindtap="selectOption">

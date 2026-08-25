@@ -33,6 +33,12 @@ if (expectedVersion && appVersion !== expectedVersion) {
 }
 if (env.requestAdapter !== "cloudContainer") problems.push("默认请求 Adapter 必须为 cloudContainer");
 if (!env.cloudEnvId || !env.cloudServiceName) problems.push("CloudBase 环境和云托管名称必须配置");
+if (!["LOCAL_DEVICE", "SERVER"].includes(env.healthAssessmentStorageMode)) {
+  problems.push("健康评测存储模式必须显式配置为 LOCAL_DEVICE 或 SERVER");
+}
+if (env.healthAssessmentStorageMode === "LOCAL_DEVICE" && env.healthAssessmentRetentionDays !== 180) {
+  problems.push("本机健康评测保存期限必须与隐私口径一致为 180 天");
+}
 if (env.apiBaseUrl && /\.sh\.run\.tcloudbase\.com/i.test(env.apiBaseUrl)) {
   problems.push("正式包不得包含 CloudBase 默认公网域名");
 }

@@ -2,6 +2,7 @@ const env = require("../config/env");
 const performanceBudgets = require("../config/performance-runtime-budgets");
 const { appendCloudRoute } = require("./cloud-route");
 const { performanceMonitor } = require("./performance-monitor");
+const { clearLoginSession } = require("./login-session");
 
 const MAX_CONCURRENT_REQUESTS = performanceBudgets.network.maxConcurrentRequests;
 const READ_TIMEOUT = performanceBudgets.network.readTimeoutMs;
@@ -25,7 +26,7 @@ function setToken(token) {
 
 function clearToken() {
   wx.removeStorageSync("ROOT_TOKEN");
-  wx.removeStorageSync("ROOT_LOGIN_SESSION_CONTEXT_V1");
+  clearLoginSession();
 }
 
 function stringifyError(value) {

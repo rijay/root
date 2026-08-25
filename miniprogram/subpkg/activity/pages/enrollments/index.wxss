@@ -39,7 +39,6 @@
 
 .text-action {
   width: 100%;
-  min-height: 88rpx;
   margin-top: var(--spacing-sm);
   padding: var(--spacing-sm);
   color: var(--color-root-moss);
@@ -47,7 +46,6 @@
   border: 0;
   font-size: var(--font-size-sm);
   line-height: 1.5;
-  box-sizing: border-box;
 }
 
 .text-action::after {
@@ -129,22 +127,7 @@
 }
 
 .enrollment-meta--cutoff {
-  color: var(--color-warning);
-}
-
-.operation-state {
-  display: flex;
-  align-items: center;
-  min-height: 88rpx;
-  margin-top: var(--spacing-md);
-  padding: 0 var(--spacing-md);
-  color: var(--color-brand-olive);
-  background: var(--color-olive-tint);
-  border: 1rpx solid var(--color-ui-line);
-  border-radius: var(--radius-md);
-  box-sizing: border-box;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
+  color: var(--color-root-clay);
 }
 
 .enrollment-arrow {
@@ -160,11 +143,10 @@
 
 .cancel-action {
   width: 100%;
-  min-height: 88rpx;
   margin-top: var(--spacing-md);
-  color: var(--color-danger);
+  color: var(--color-root-clay);
   background: transparent;
-  border: 1rpx solid var(--color-danger-line);
+  border: 1rpx solid var(--color-root-clay);
   border-radius: var(--radius-full);
   font-size: var(--font-size-sm);
 }
@@ -180,14 +162,12 @@
 
 .load-more {
   min-width: 320rpx;
-  min-height: 88rpx;
   padding: var(--spacing-sm) var(--spacing-lg);
   color: var(--color-root-moss);
   background: transparent;
   border: 1rpx solid var(--color-root-line);
   border-radius: var(--radius-full);
   font-size: var(--font-size-sm);
-  box-sizing: border-box;
 }
 
 .load-more--retry {
@@ -204,7 +184,7 @@
   inset: 0;
   display: flex;
   align-items: flex-end;
-  background: rgba(0, 0, 0, 0.52);
+  background: rgba(18, 20, 16, 0.52);
 }
 
 .confirmation-sheet {
@@ -238,9 +218,8 @@
 .sheet-warning {
   margin-top: var(--spacing-md);
   padding: var(--spacing-md);
-  color: var(--color-danger);
-  background: var(--color-danger-tint);
-  border: 1rpx solid var(--color-danger-line);
+  color: var(--color-root-clay);
+  background: rgba(146, 96, 66, 0.1);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
   line-height: 1.6;

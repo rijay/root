@@ -4,6 +4,7 @@ const {
   firstIncompleteIndex,
   pruneHiddenAnswers,
   questionVisible,
+  toggleMultiAnswer,
   visibleQuestions,
 } = require("../utils/assessment-flow");
 
@@ -46,5 +47,16 @@ assert.deepEqual(
   { safety: true },
 );
 assert.equal(firstIncompleteIndex(visibleQuestions(questions, { safety: false }), { safety: false }), 1);
+
+const multiQuestion = {
+  options: [
+    { value: "none", exclusive: true },
+    { value: "bloating" },
+    { value: "pain" },
+  ],
+};
+assert.deepEqual(toggleMultiAnswer(multiQuestion, ["bloating"], "none"), ["none"]);
+assert.deepEqual(toggleMultiAnswer(multiQuestion, ["none"], "pain"), ["pain"]);
+assert.deepEqual(toggleMultiAnswer(multiQuestion, ["bloating"], "pain"), ["bloating", "pain"]);
 
 console.log("assessment flow tests passed");

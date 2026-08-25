@@ -8,6 +8,7 @@ const {
   presentActivityWriteError,
 } = require("../../../../utils/activity-actions");
 const { createActivityPendingCommandRegistry } = require("../../../../utils/activity-command-recovery");
+const { defaultOnShareAppMessage } = require("../../../../utils/page-share");
 const {
   PAGE_SIZE,
   buildEnrollmentsUrl,
@@ -19,7 +20,6 @@ const {
   rawSessionIndex,
 } = require("./model");
 const router = require("../../../../utils/router");
-const { failureReason, track } = require("../../../../utils/analytics");
 
 const pendingCommands = createActivityPendingCommandRegistry({
   storage: {
@@ -245,12 +245,6 @@ Page({
     this._pendingCommand = command;
     this._unresolvedCommand = command;
     this.setData({ cancelingId: item.enrollmentId, result: null });
-    track("activity_signup", {
-      activityId: item.activityId || "",
-      action: "CANCEL",
-      result: "STARTED",
-      failureReason: "",
-    });
     let writeError = null;
     try {
       await request({
@@ -300,12 +294,6 @@ Page({
       cancelSheetVisible: false,
       pendingCancel: null,
       result,
-    });
-    track("activity_signup", {
-      activityId: item.activityId || "",
-      action: "CANCEL",
-      result: result.kind === "SUCCESS" ? "SUCCESS" : result.kind === "UNKNOWN" ? "UNKNOWN" : "FAILED",
-      failureReason: result.kind === "SUCCESS" ? "" : failureReason(writeError || { code: result.kind }),
     });
     await this.loadEnrollments({ reset: true, preserveResult: true });
   },
@@ -359,4 +347,6 @@ Page({
   openSupport() {
     router.open("/subpkg/profile/pages/support/index?topic=activity&source=my_enrollments");
   },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

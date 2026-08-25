@@ -389,6 +389,7 @@ function saveHomeCarouselDraft(data, input = {}, context = {}) {
   const content = {
     order: Math.max(1, Math.min(999, Number(input.order || 1))),
     internalName: requiredText(input.internalName, "内部名称", 40),
+    kicker: requiredText(input.kicker || (source && source.content.kicker) || "ROOT FOUNDATION", "英文眉题", 40),
     copy: requiredText(input.copy, "展示文案", 72),
     lines: splitCopy(input.copy, lineCount),
     assetId: requiredText(input.assetId, "背景图", 80),
@@ -787,7 +788,7 @@ function listHome(data, context = {}) {
           detailVersionId: detail.versionId,
           version: version.version,
           assetState: "AUTHORIZED",
-          kicker: "ROOT FOUNDATION",
+          kicker: safeText(version.content.kicker, 40) || "ROOT FOUNDATION",
           lines: clone(version.content.lines),
           typography: { lineCount: version.content.lineCount, fontSize: version.content.fontSize, alignment: version.content.alignment },
           coverAssetUrl: presentAsset(asset).previewUrl,

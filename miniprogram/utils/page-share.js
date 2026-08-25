@@ -9,6 +9,10 @@ const PUBLIC_ROUTES = new Set([
   "/pages/health/index",
   "/pages/activities/index",
   "/subpkg/activity/pages/detail/index",
+  "/subpkg/content/pages/brand-foundation/index",
+  "/subpkg/content/pages/detail/index",
+  "/subpkg/campaign/pages/root-with-you/index",
+  "/subpkg/health/pages/assessment/index",
   "/subpkg/profile/pages/about/index",
   "/subpkg/profile/pages/support/index",
   "/pages/legal/index",
@@ -16,8 +20,16 @@ const PUBLIC_ROUTES = new Set([
 const ROUTE_QUERY_KEYS = Object.freeze({
   "/pages/product-detail/index": new Set(["productId"]),
   "/pages/products/index": new Set(["productId"]),
+  "/subpkg/content/pages/detail/index": new Set(["contentId"]),
   "/subpkg/activity/pages/detail/index": new Set(["sessionId"]),
+  "/subpkg/health/pages/assessment/index": new Set(["assessmentType"]),
   "/pages/legal/index": new Set(["type"]),
+});
+const ROUTE_SHARE_TARGETS = Object.freeze({
+  "/subpkg/campaign/pages/root-with-you/index": Object.freeze({
+    route: "/subpkg/health/pages/assessment/index",
+    options: Object.freeze({ assessmentType: "GUT_REGULARITY" }),
+  }),
 });
 
 function normalizeRoute(value) {
@@ -29,6 +41,7 @@ function normalizeRoute(value) {
 function safeQueryValue(key, value) {
   const text = String(value || "").trim();
   if (key === "type") return ["agreement", "privacy"].includes(text) ? text : "";
+  if (key === "assessmentType") return text === "GUT_REGULARITY" ? text : "";
   return /^[A-Za-z0-9_-]{1,64}$/.test(text) ? text : "";
 }
 
@@ -50,6 +63,7 @@ function safeTitle(candidate) {
 function safeImageUrl(candidate) {
   const imageUrl = String(candidate || "").trim();
   if (/^\/static\/[A-Za-z0-9_./-]{1,180}$/.test(imageUrl)) return imageUrl;
+  if (/^\/subpkg\/[A-Za-z0-9_./-]{1,220}\.(?:jpe?g|png|webp)$/.test(imageUrl)) return imageUrl;
   if (/^https:\/\/[A-Za-z0-9.-]+\/[A-Za-z0-9_?&=./%-]{1,300}$/.test(imageUrl)) return imageUrl;
   return "";
 }
@@ -75,6 +89,44 @@ function trackShare(route, mappingType) {
   });
 }
 
+function showFriendShareMenu() {
+  if (typeof wx === "undefined" || typeof wx.showShareMenu !== "function") return false;
+  const page = typeof getCurrentPages === "function" ? getCurrentPages().slice(-1)[0] : null;
+  const pageType = normalizeRoute(page && page.route) || "UNKNOWN";
+  wx.showShareMenu({
+    withShareTicket: false,
+    success() {
+      track("share_menu_setup", { pageType, result: "SUCCESS", failureReason: "" });
+    },
+    fail(error) {
+      const errorText = String(error && error.errMsg || "");
+      track("share_menu_setup", {
+        pageType,
+        result: "FAILED",
+        failureReason: errorText.includes("auth deny") ? "AUTH_DENIED" : "SHOW_SHARE_MENU_FAILED",
+      });
+    },
+  });
+  return true;
+}
+
+function pageShareResponse(page, candidate = {}) {
+  const route = normalizeRoute(page && page.route);
+  const configuredTarget = ROUTE_SHARE_TARGETS[route];
+  const targetRoute = configuredTarget ? configuredTarget.route : route;
+  const options = configuredTarget
+    ? configuredTarget.options
+    : page && (page.__rootShareOptions || page.options) || {};
+  const card = buildShareCard(targetRoute, options, candidate);
+  trackShare(route, card.mappingType);
+  const { mappingType, ...publicCard } = card;
+  return publicCard;
+}
+
+function defaultOnShareAppMessage() {
+  return pageShareResponse(this);
+}
+
 function installGlobalSharePolicy(runtime = globalThis) {
   const originalPage = runtime && runtime.Page;
   if (typeof originalPage !== "function" || originalPage.__rootSharePolicyInstalled) return false;
@@ -86,23 +138,19 @@ function installGlobalSharePolicy(runtime = globalThis) {
       onLoad(options = {}) {
         this.__rootShareOptions = { ...options };
         const route = normalizeRoute(this.route);
-        if (route !== "/pages/launching/index" && wx.showShareMenu) {
-          wx.showShareMenu({ menus: ["shareAppMessage"] });
-        } else if (route === "/pages/launching/index" && wx.hideShareMenu) {
+        if (route !== "/pages/welcome/index") {
+          showFriendShareMenu();
+        } else if (route === "/pages/welcome/index" && wx.hideShareMenu) {
           wx.hideShareMenu();
         }
         if (typeof originalOnLoad === "function") return originalOnLoad.call(this, options);
         return undefined;
       },
       onShareAppMessage(event) {
-        const route = normalizeRoute(this.route);
-        const candidate = typeof originalShare === "function"
+        const candidate = typeof originalShare === "function" && originalShare !== defaultOnShareAppMessage
           ? originalShare.call(this, event) || {}
           : {};
-        const card = buildShareCard(route, this.__rootShareOptions || this.options || {}, candidate);
-        trackShare(route, card.mappingType);
-        const { mappingType, ...publicCard } = card;
-        return publicCard;
+        return pageShareResponse(this, candidate);
       },
     };
     return originalPage(wrapped);
@@ -117,8 +165,11 @@ module.exports = {
   GENERIC_PATH,
   GENERIC_TITLE,
   PUBLIC_ROUTES,
+  ROUTE_SHARE_TARGETS,
   buildShareCard,
+  defaultOnShareAppMessage,
   installGlobalSharePolicy,
   normalizeRoute,
   publicPath,
+  showFriendShareMenu,
 };

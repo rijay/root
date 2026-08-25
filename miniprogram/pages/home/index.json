@@ -2,7 +2,6 @@
   "navigationStyle": "custom",
   "disableScroll": true,
   "usingComponents": {
-    "immersive-header": "/components/immersive-header/index",
-    "campaign-popup": "/components/campaign-popup/index"
+    "immersive-header": "/components/immersive-header/index"
   }
 }

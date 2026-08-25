@@ -1,5 +1,8 @@
 const { request } = require("./request");
 const { track } = require("./analytics");
+const env = require("../config/env");
+const localAssessment = require("./local-health-assessment");
+const useLocalAssessmentStorage = env.healthAssessmentStorageMode === "LOCAL_DEVICE";
 
 const TYPE_LABELS = {
   INITIAL: "初始评测",
@@ -27,8 +30,15 @@ function formatDate(value) {
 }
 
 function decorateAssessment(item = {}) {
+  const priorityAction = item.result && item.result.priorityAction
+    ? String(item.result.priorityAction)
+    : "";
   return {
     ...item,
+    result: item.result ? {
+      ...item.result,
+      priorityActionItems: priorityAction.split(/\n+/).map((value) => value.trim()).filter(Boolean),
+    } : item.result,
     typeLabel: TYPE_LABELS[item.assessmentType] || "健康评测",
     completedAtText: formatDate(item.completedAt),
     versionText: item.questionnaireVersion ? `问卷 v${item.questionnaireVersion}` : "",
@@ -55,7 +65,9 @@ function decorateCatalogItem(item = {}) {
 }
 
 async function getCatalog() {
-  const data = await request({ url: "/api/v1/health/assessments/catalog" });
+  const data = useLocalAssessmentStorage
+    ? localAssessment.catalog()
+    : await request({ url: "/api/v1/health/assessments/catalog" });
   return {
     ...data,
     assessments: (data.assessments || []).map(decorateCatalogItem),
@@ -63,15 +75,17 @@ async function getCatalog() {
 }
 
 async function startAssessment(assessmentType) {
-  const result = await request({
-    url: "/api/v1/health/assessments/start",
-    method: "POST",
-    idempotencyKey: requestId("assessment-start"),
-    data: {
-      assessmentType,
-      sourceChannel: "MINIPROGRAM_HEALTH_HOME",
-    },
-  });
+  const result = useLocalAssessmentStorage
+    ? localAssessment.start(assessmentType)
+    : await request({
+      url: "/api/v1/health/assessments/start",
+      method: "POST",
+      idempotencyKey: requestId("assessment-start"),
+      data: {
+        assessmentType,
+        sourceChannel: "MINIPROGRAM_HEALTH_HOME",
+      },
+    });
   const assessment = result.assessment || {};
   track("assessment_start", {
     assessmentType: assessment.assessmentType || assessmentType,
@@ -82,11 +96,14 @@ async function startAssessment(assessmentType) {
 }
 
 async function getAssessment(assessmentId) {
-  const data = await request({ url: `/api/v1/health/assessments/${assessmentId}` });
+  const data = useLocalAssessmentStorage
+    ? localAssessment.get(assessmentId)
+    : await request({ url: `/api/v1/health/assessments/${assessmentId}` });
   return { ...data, assessment: decorateAssessment(data.assessment) };
 }
 
 async function saveDraft(assessmentId, answers) {
+  if (useLocalAssessmentStorage) return localAssessment.saveDraft(assessmentId, answers);
   return request({
     url: `/api/v1/health/assessments/${assessmentId}/draft`,
     method: "POST",
@@ -95,12 +112,14 @@ async function saveDraft(assessmentId, answers) {
 }
 
 async function completeAssessment(assessmentId, answers) {
-  const result = await request({
-    url: `/api/v1/health/assessments/${assessmentId}/complete`,
-    method: "POST",
-    idempotencyKey: `assessment-complete:${assessmentId}`,
-    data: { answers, sourceChannel: "MINIPROGRAM_HEALTH_ASSESSMENT" },
-  });
+  const result = useLocalAssessmentStorage
+    ? localAssessment.complete(assessmentId, answers)
+    : await request({
+      url: `/api/v1/health/assessments/${assessmentId}/complete`,
+      method: "POST",
+      idempotencyKey: `assessment-complete:${assessmentId}`,
+      data: { answers, sourceChannel: "MINIPROGRAM_HEALTH_ASSESSMENT" },
+    });
   const assessment = result.assessment || {};
   track("assessment_complete", {
     assessmentType: assessment.assessmentType || "",
@@ -112,7 +131,9 @@ async function completeAssessment(assessmentId, answers) {
 
 async function getHistory(assessmentType = "") {
   const query = assessmentType ? `?assessmentType=${encodeURIComponent(assessmentType)}` : "";
-  const data = await request({ url: `/api/v1/health/assessments/history${query}` });
+  const data = useLocalAssessmentStorage
+    ? localAssessment.history(assessmentType)
+    : await request({ url: `/api/v1/health/assessments/history${query}` });
   return {
     ...data,
     assessments: (data.assessments || []).map(decorateAssessment),
@@ -120,11 +141,13 @@ async function getHistory(assessmentType = "") {
 }
 
 async function compareAssessments(leftAssessmentId, rightAssessmentId) {
-  const data = await request({
-    url: "/api/v1/health/assessments/compare",
-    method: "POST",
-    data: { leftAssessmentId, rightAssessmentId },
-  });
+  const data = useLocalAssessmentStorage
+    ? localAssessment.compare(leftAssessmentId, rightAssessmentId)
+    : await request({
+      url: "/api/v1/health/assessments/compare",
+      method: "POST",
+      data: { leftAssessmentId, rightAssessmentId },
+    });
   track("assessment_compare_view", {
     leftVersion: data.left && data.left.questionnaireVersion || 0,
     rightVersion: data.right && data.right.questionnaireVersion || 0,

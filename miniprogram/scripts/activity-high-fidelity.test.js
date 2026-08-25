@@ -8,6 +8,7 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "u
 const listWxml = read("pages/activities/index.wxml");
 const listWxss = read("pages/activities/index.wxss");
 
+assert.match(listWxml, /activity-head__title">线下活动</);
 assert.match(listWxml, /activity-card__compact-status/);
 assert.match(listWxml, /activity-card__status--hero/);
 assert.match(listWxss, /activity-head__title\s*\{[^}]*font-size:\s*30px/s);
@@ -30,6 +31,9 @@ const detailWxss = read("subpkg/activity/pages/detail/index.wxss");
 assert.match(detailWxml, /detail-first-screen/);
 assert.match(detailWxml, /detail-lower-shade/);
 assert.match(detailWxml, /detail-scroll-spacer/);
+assert.match(detailWxml, /action\.kind === 'NONE' \? 'detail-action-bar--status-only'/);
+assert.match(detailWxml, /wx:if="\{\{action\.kind === 'NONE'\}\}" class="detail-action-state__hint">\{\{action\.explanation\}\}/);
+assert.match(detailWxml, /wx:if="\{\{action\.kind !== 'NONE'\}\}"\s+class="detail-action-button"/s);
 assert.match(detailWxml, /action\.kind === 'ENROLL' \? '暂不报名' : '暂不操作'/);
 assert.match(detailWxss, /detail-first-screen\s*\{[^}]*min-height:\s*844px/s);
 assert.match(detailWxss, /detail-hero\s*\{[^}]*height:\s*844px/s);
@@ -40,6 +44,7 @@ assert.match(detailWxss, /detail-summary\s*\{[^}]*top:\s*532px/s);
 assert.match(detailWxss, /detail-meta\s*\{[^}]*top:\s*602px/s);
 assert.match(detailWxss, /detail-meta\s*\{[^}]*width:\s*calc\(100% - 48px\)/s);
 assert.match(detailWxss, /detail-action-bar\s*\{[^}]*height:\s*100px/s);
+assert.match(detailWxss, /detail-action-bar--status-only\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
 assert.match(detailWxss, /detail-action-button\s*\{[^}]*width:\s*198px/s);
 assert.match(detailWxss, /confirmation-sheet\s*\{[^}]*height:\s*500px/s);
 assert.match(detailWxss, /sheet-tag\s*\{[^}]*top:\s*46px/s);

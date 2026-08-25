@@ -3,6 +3,7 @@ const { cancelRequestScope, requestWithDeadline } = require("../../utils/request
 const { readPublicPageCache, writePublicPageCache } = require("../../utils/page-cache");
 const { presentActivityList } = require("../../utils/activity-presenter");
 const router = require("../../utils/router");
+const { defaultOnShareAppMessage } = require("../../utils/page-share");
 
 const CACHE_KEY = "activities";
 const REQUEST_SCOPE = "formal-activity-list";
@@ -137,4 +138,6 @@ Page({
       visibleActivities: decorateActivities(activities, this.data.filterKey),
     });
   },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

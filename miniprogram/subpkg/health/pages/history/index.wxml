@@ -2,14 +2,14 @@
   <view class="history-header">
     <view class="history-kicker">ASSESSMENT HISTORY</view>
     <view class="history-title">每一次结果，独立保存</view>
-    <view class="history-copy">仅相同问卷 ID 与版本支持数值对比。选择两次记录后，可查看相同维度的前后差异。</view>
+    <view class="history-copy">记录仅保存在当前设备，最长保留 180 天。仅相同问卷 ID 与版本支持数值对比。</view>
   </view>
 
-  <view wx:if="{{loading}}" class="root-card history-state">
+  <view wx:if="{{loading}}" class="root-card history-state" role="status" aria-live="polite">
     <view class="root-section-title">正在读取历史结果</view>
   </view>
 
-  <view wx:elif="{{errorText && !assessments.length}}" class="root-card history-state">
+  <view wx:elif="{{errorText && !assessments.length}}" class="root-card history-state" role="alert">
     <view class="root-section-title">历史结果暂时无法加载</view>
     <view class="root-helper-text">{{errorText}}</view>
     <button class="root-button state-action" bindtap="load">重新加载</button>
@@ -21,7 +21,7 @@
   </view>
 
   <block wx:else>
-    <view wx:if="{{refreshErrorText}}" class="history-refresh-error">
+    <view wx:if="{{refreshErrorText}}" class="history-refresh-error" role="alert">
       <view>
         <view class="history-refresh-error__title">刷新失败，仍显示原有记录</view>
         <view class="history-refresh-error__copy">{{refreshErrorText}}</view>
@@ -36,6 +36,8 @@
         class="history-filter {{activeFilter === item.key ? 'is-active' : ''}}"
         data-filter="{{item.key}}"
         bindtap="setFilter"
+        role="tab"
+        aria-selected="{{activeFilter === item.key}}"
       >{{item.label}}</button>
     </view>
 
@@ -62,7 +64,7 @@
 
     <view wx:else class="history-list">
       <view wx:for="{{visibleAssessments}}" wx:key="assessmentId" class="history-card {{item.selected ? 'is-selected' : ''}}">
-        <view class="history-card__select" data-assessment-id="{{item.assessmentId}}" bindtap="toggleSelection">
+        <view class="history-card__select" data-assessment-id="{{item.assessmentId}}" bindtap="toggleSelection" role="checkbox" aria-checked="{{item.selected}}" aria-label="选择 {{item.typeLabel}}，完成于 {{item.completedAtText}}">
           <view class="select-mark">{{item.selected ? '✓' : ''}}</view>
           <view class="history-card__main">
             <view class="history-card__meta"><text>{{item.typeLabel}}</text><text>{{item.versionText}}</text></view>
@@ -80,6 +82,6 @@
       aria-disabled="{{selectedIds.length !== 2}}"
       bindtap="compareSelected"
     >对比所选结果</view>
-    <view wx:if="{{refreshing}}" class="history-refreshing">正在刷新记录…</view>
+    <view wx:if="{{refreshing}}" class="history-refreshing" role="status" aria-live="polite">正在刷新记录…</view>
   </block>
 </view>

@@ -70,11 +70,27 @@ function firstIncompleteIndex(questions = [], answers = {}) {
   return index < 0 ? Math.max(0, questions.length - 1) : index;
 }
 
+function toggleMultiAnswer(question = {}, current = [], value = "") {
+  const options = Array.isArray(question.options) ? question.options : [];
+  const selected = Array.isArray(current) ? current.filter((item) => options.some((option) => option.value === item)) : [];
+  const target = options.find((option) => option.value === value);
+  if (!target) return selected;
+  if (target.exclusive) return selected.includes(value) ? [] : [value];
+  const withoutExclusive = selected.filter((item) => {
+    const option = options.find((candidate) => candidate.value === item);
+    return !(option && option.exclusive);
+  });
+  return withoutExclusive.includes(value)
+    ? withoutExclusive.filter((item) => item !== value)
+    : withoutExclusive.concat(value);
+}
+
 module.exports = Object.freeze({
   answerMatches,
   firstIncompleteIndex,
   missingAnswer,
   pruneHiddenAnswers,
   questionVisible,
+  toggleMultiAnswer,
   visibleQuestions,
 });

@@ -2,6 +2,7 @@ const { getHealthConsentStatus } = require("../../utils/health-consent");
 const { openLegalPage } = require("../../utils/legal");
 const { request } = require("../../utils/request");
 const router = require("../../utils/router");
+const { defaultOnShareAppMessage } = require("../../utils/page-share");
 
 Page({
   data: {
@@ -134,4 +135,6 @@ Page({
     }
     wx.switchTab({ url: "/pages/home/index" });
   },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

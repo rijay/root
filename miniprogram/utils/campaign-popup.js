@@ -1,64 +1,77 @@
-const { getToken, request } = require("./request");
+const marketing = require("../config/marketing");
+const { track } = require("./analytics");
+const { getToken } = require("./request");
+const { openProducts } = require("./product-navigation");
+const {
+  campaignShownInSession,
+  ensureLoginSession,
+  markCampaignShown,
+} = require("./login-session");
 
-const LOGIN_SESSION_STORAGE_KEY = "ROOT_LOGIN_SESSION_CONTEXT_V1";
+let presenting = false;
 
-function rememberLoginSession(session) {
-  const source = session && typeof session === "object" ? session : {};
-  const loginSessionId = String(source.loginSessionId || source.login_session_id || "").trim();
-  if (!/^[A-Za-z0-9_-]{1,64}$/.test(loginSessionId)) return "";
-  wx.setStorageSync(LOGIN_SESSION_STORAGE_KEY, {
-    loginSessionId,
-    expiresAt: String(source.expiresAt || source.expires_at || ""),
+function activeAt(campaign, now = Date.now()) {
+  const startsAt = campaign.startsAt ? Date.parse(campaign.startsAt) : 0;
+  const endsAt = campaign.endsAt ? Date.parse(campaign.endsAt) : 0;
+  return (!startsAt || now >= startsAt) && (!endsAt || now <= endsAt);
+}
+
+function validCampaign(campaign, now = Date.now()) {
+  return Boolean(
+    campaign
+    && campaign.enabled === true
+    && String(campaign.campaignId || "").trim()
+    && String(campaign.title || "").trim()
+    && String(campaign.content || "").trim()
+    && activeAt(campaign, now)
+  );
+}
+
+function runCampaignAction(action = {}) {
+  if (action.type === "PRODUCT") {
+    openProducts(action.productId || "", "campaign_popup");
+    return true;
+  }
+  return false;
+}
+
+function maybeShowCampaignPopup(now = Date.now()) {
+  const campaign = marketing.campaignPopup;
+  if (presenting || !validCampaign(campaign, now) || !getToken()) return false;
+  const session = ensureLoginSession();
+  if (campaignShownInSession(campaign.campaignId, session)) return false;
+  presenting = true;
+  markCampaignShown(campaign.campaignId, session);
+  track("campaign_popup_view", {
+    campaignId: campaign.campaignId,
+    loginSessionId: session.sessionId,
+    sourcePage: "main_tab",
   });
-  return loginSessionId;
-}
-
-function readLoginSessionId() {
-  const source = wx.getStorageSync(LOGIN_SESSION_STORAGE_KEY);
-  return source && typeof source === "object" ? String(source.loginSessionId || "") : "";
-}
-
-function clearLoginSession() {
-  wx.removeStorageSync(LOGIN_SESSION_STORAGE_KEY);
-}
-
-async function ensureLoginSessionId() {
-  const existing = readLoginSessionId();
-  if (existing) return existing;
-  if (!getToken()) return "";
-  const state = await request({ url: "/api/v1/user/state" });
-  return rememberLoginSession(state.session);
-}
-
-async function claimCampaignPopup() {
-  if (!getToken()) return { popup: null, reason: "SESSION_UNAVAILABLE" };
-  const loginSessionId = await ensureLoginSessionId();
-  if (!loginSessionId) return { popup: null, reason: "SESSION_UNAVAILABLE" };
-  return request({
-    url: "/api/v1/operations/popup/claim",
-    method: "POST",
-    idempotencyKey: `campaign-popup-claim:${loginSessionId}`,
-    data: {},
+  wx.showModal({
+    title: campaign.title,
+    content: campaign.content,
+    confirmText: campaign.confirmText || "去看看",
+    cancelText: campaign.cancelText || "稍后再说",
+    success(result) {
+      const action = result.confirm ? "CONFIRM" : "CANCEL";
+      track("campaign_popup_action", {
+        campaignId: campaign.campaignId,
+        loginSessionId: session.sessionId,
+        action,
+        sourcePage: "main_tab",
+      });
+      if (result.confirm) runCampaignAction(campaign.action);
+    },
+    complete() {
+      presenting = false;
+    },
   });
+  return true;
 }
 
-function recordCampaignPopupAction(popupId, actionType) {
-  const loginSessionId = readLoginSessionId();
-  if (!loginSessionId || !popupId) return Promise.resolve(null);
-  return request({
-    url: "/api/v1/operations/popup/action",
-    method: "POST",
-    idempotencyKey: `campaign-popup:${loginSessionId}:${popupId}:${String(actionType || "").toLowerCase()}`,
-    data: { popupId, actionType },
-  });
-}
-
-module.exports = {
-  LOGIN_SESSION_STORAGE_KEY,
-  claimCampaignPopup,
-  clearLoginSession,
-  ensureLoginSessionId,
-  readLoginSessionId,
-  recordCampaignPopupAction,
-  rememberLoginSession,
-};
+module.exports = Object.freeze({
+  activeAt,
+  maybeShowCampaignPopup,
+  runCampaignAction,
+  validCampaign,
+});

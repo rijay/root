@@ -1,6 +1,8 @@
 const { request } = require("../../utils/request");
+const { defaultOnShareAppMessage } = require("../../utils/page-share");
+const { presentHealthPrivacyNotice } = require("../../utils/health-consent");
 
-const UPDATED_AT = "2026年8月3日";
+const UPDATED_AT = "2026年8月25日";
 const docs = Object.freeze({
   agreement: {
     title: "用户协议",
@@ -48,13 +50,15 @@ const docs = Object.freeze({
       {
         title: "二、使用与保存",
         items: [
-          "我们仅在实现具体功能所必需的范围内使用信息，并按已发布规则保存。依法需要保留的记录将在到期前限制处理，不用于新的非必要目的。",
+          "当前版本的 Root4U 问卷答案、评测结果和回测记录仅在当前设备处理，不上传到 myRoot 服务器。",
+          "上述本机数据自最后保存起最长保留 180 天，到期自动删除；更换设备、清理微信小程序数据后也会提前丢失且无法恢复。",
+          "myRoot 服务器仅保存同意或撤回审计记录，以及登录、安全与稳定运行所必需的最少技术记录，不包含问卷答案和评测结果。依法需要保留的记录仅在必要期限内限制处理。",
         ],
       },
       {
         title: "三、你的选择与权利",
         items: [
-          "你可以拒绝非必要授权、管理微信平台授权，并通过小程序内客服申请查阅、更正、删除或注销 myRoot 账号。注销 myRoot 不会自动注销 Root 会员中心账号。",
+          "你可以拒绝非必要授权、管理微信平台授权，并通过小程序内客服申请查阅、更正、删除或注销 myRoot 账号。本机健康评测数据可通过微信清理小程序数据立即删除；注销 myRoot 不会自动注销 Root 会员中心账号。",
         ],
       },
       {
@@ -80,7 +84,8 @@ const docs = Object.freeze({
       {
         title: "Root4U 与活动",
         items: [
-          "Root4U 问卷答案与结果：仅在单独同意并主动作答后收集。",
+          "Root4U 问卷答案、结果与回测记录：仅在单独同意并主动作答后在当前设备处理，不上传到 myRoot 服务器。",
+          "健康敏感信息同意记录：保存同意或撤回决定、政策版本与发生时间，不包含问卷答案和评测结果。",
           "活动报名与取消记录：用于名额管理、状态查询、通知和安全保障。",
         ],
       },
@@ -105,7 +110,7 @@ const docs = Object.freeze({
       {
         title: "腾讯云 CloudBase",
         items: [
-          "用于 myRoot 后端运行、数据存储、媒体存储、安全控制与必要审计。仅处理完成对应功能所需的信息。",
+          "用于 myRoot 后端运行、必要业务数据与媒体存储、安全控制和审计。当前版本的 Root4U 问卷答案、评测结果和回测记录不会发送至腾讯云 CloudBase。",
         ],
       },
       {
@@ -136,9 +141,11 @@ Page({
   async loadPrivacyNotice() {
     try {
       const notice = await request({ url: "/api/v1/privacy/notice" });
-      if (notice && notice.configured) this.setData({ privacyNotice: notice });
+      if (notice && notice.configured) this.setData({ privacyNotice: presentHealthPrivacyNotice(notice) });
     } catch (_) {
       // 公共元数据读取失败时，仍可查看随包发布的最小隐私说明。
     }
   },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

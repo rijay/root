@@ -1,4 +1,5 @@
 const { request } = require("../../../../utils/request");
+const { defaultOnShareAppMessage } = require("../../../../utils/page-share");
 
 Page({
   data: { state: "loading", url: "" },
@@ -30,4 +31,6 @@ Page({
   goBack() {
     wx.navigateBack({ delta: 1 });
   },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

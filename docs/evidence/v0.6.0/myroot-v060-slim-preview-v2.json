@@ -1,0 +1,31 @@
+{
+  "size": {
+    "total": 618373,
+    "packages": [
+      {
+        "name": "TOTAL",
+        "size": 618373
+      },
+      {
+        "name": "main",
+        "size": 502661
+      },
+      {
+        "name": "/subpkg/activity/",
+        "size": 43746
+      },
+      {
+        "name": "/subpkg/content/",
+        "size": 7595
+      },
+      {
+        "name": "/subpkg/health/",
+        "size": 46125
+      },
+      {
+        "name": "/subpkg/profile/",
+        "size": 18246
+      }
+    ]
+  }
+}

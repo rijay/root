@@ -1,25 +1,31 @@
 {
   "pages": [
     "pages/welcome/index",
-    "pages/launching/index",
     "pages/home/index",
     "pages/products/index",
     "pages/health/index",
     "pages/activities/index",
     "pages/profile/index",
-    "pages/product-detail/index",
-    "pages/channel-error/index",
     "pages/login/index",
     "pages/register/index",
+    "pages/product-detail/index",
     "pages/legal/index",
-    "pages/health-consent/index"
+    "pages/health-consent/index",
+    "pages/channel-error/index"
   ],
   "subPackages": [
     {
       "root": "subpkg/content",
       "pages": [
+        "pages/brand-foundation/index",
         "pages/detail/index",
         "pages/webview/index"
+      ]
+    },
+    {
+      "root": "subpkg/campaign",
+      "pages": [
+        "pages/root-with-you/index"
       ]
     },
     {
@@ -49,16 +55,16 @@
   ],
   "window": {
     "navigationBarTitleText": "myRoot",
-    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarBackgroundColor": "#FDFBF6",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#F5F5F7"
+    "backgroundColor": "#F7F4EC"
   },
   "usingComponents": {},
   "tabBar": {
     "custom": true,
-    "color": "#7B7A7E",
-    "selectedColor": "#6B7C3A",
-    "backgroundColor": "#FFFFFF",
+    "color": "#8A8172",
+    "selectedColor": "#586B3F",
+    "backgroundColor": "#FDFBF6",
     "borderStyle": "white",
     "list": [
       {
@@ -90,7 +96,7 @@
     },
     "pages/products/index": {
       "network": "all",
-      "packages": ["subpkg/content"]
+      "packages": []
     },
     "pages/activities/index": {
       "network": "all",

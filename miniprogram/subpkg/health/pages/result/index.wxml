@@ -1,10 +1,10 @@
 <view class="result-page">
-  <view wx:if="{{loading}}" class="root-page result-state">
+  <view wx:if="{{loading}}" class="root-page result-state" role="status" aria-live="polite">
     <view class="root-section-title">正在生成结果</view>
     <view class="root-helper-text">结果只使用当前问卷版本已配置的判断规则。</view>
   </view>
 
-  <view wx:elif="{{errorText}}" class="root-page result-state">
+  <view wx:elif="{{errorText}}" class="root-page result-state" role="alert">
     <view class="root-section-title">结果暂时无法查看</view>
     <view class="root-helper-text">{{errorText}}</view>
     <button class="root-button state-action" bindtap="load">重新加载</button>
@@ -21,7 +21,12 @@
     <view class="root-page result-body">
       <view wx:if="{{assessment.result.priorityAction}}" class="result-card result-card--priority">
         <view class="result-card__label">优先行动</view>
-        <view class="result-card__copy">{{assessment.result.priorityAction}}</view>
+        <view class="result-action-list">
+          <view wx:for="{{assessment.result.priorityActionItems}}" wx:key="*this" class="result-action-item">
+            <view class="result-action-dot"></view>
+            <view class="result-action-copy">{{item}}</view>
+          </view>
+        </view>
       </view>
 
       <view wx:if="{{assessment.dimensions.length}}" class="result-section">
@@ -37,6 +42,14 @@
         </view>
       </view>
 
+      <view wx:if="{{trialEligible}}" class="result-card result-card--trial">
+        <view class="result-card__label">ROOT 陪伴计划</view>
+        <view class="result-card__trial-title">完成自测，领取 ROOT 体验装</view>
+        <view class="result-card__copy">你已完成本次 5 道题自测，可前往 ROOT 会员商城领取 5 支益生元体验装。</view>
+        <button class="result-trial-action" loading="{{trialOpening}}" disabled="{{trialOpening}}" bindtap="claimTrialPack">前往领取 5 支体验装</button>
+        <view class="result-trial-note">体验装已上架，库存有限，领完即止；最终领取结果以 ROOT 会员商城页面为准。</view>
+      </view>
+
       <view wx:if="{{assessment.result.riskNotice}}" class="result-card result-card--notice">
         <view class="result-card__label">风险提醒</view>
         <view class="result-card__copy">{{assessment.result.riskNotice}}</view>
@@ -48,6 +61,7 @@
       </view>
 
       <view class="result-disclaimer">本结果仅用于近期健康状态观察参考，不构成疾病诊断、治疗、用药建议或干预疗效判断。</view>
+      <view class="result-disclaimer">问卷答案、评测结果和回测记录仅保存在当前设备，不上传到 myRoot 服务器；自最后保存起最长保留 180 天，换设备或清除小程序数据后不可恢复。</view>
 
       <button class="root-button result-action" loading="{{restarting}}" disabled="{{restarting}}" bindtap="restart">重新评测</button>
       <button class="root-button root-button--secondary result-action" bindtap="openHistory">查看历史结果</button>

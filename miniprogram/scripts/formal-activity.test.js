@@ -30,6 +30,8 @@ assert.match(detailScript, /commandReachedAuthorityState/);
 assert.match(detailJson, /page-navigation/);
 assert.match(detailJson, /root-wordmark/);
 assert.match(detailWxml, /detail-action-bar/);
+assert.match(detailWxml, /action\.kind !== 'NONE'/);
+assert.match(detailWxml, /\{\{action\.explanation\}\}/);
 assert.match(detailWxml, /confirmSheetVisible/);
 assert.match(detailWxml, /重复点击不会产生重复报名/);
 assert.match(detailWxss, /position:\s*fixed/);

@@ -1,12 +1,14 @@
 <view class="product-detail-page product-detail-page--{{product.visualTone || 'sprout'}}">
-  <view wx:if="{{loading}}" class="root-page detail-state">
+  <view wx:if="{{loading}}" class="root-page detail-state" role="status" aria-live="polite">
     <view class="detail-skeleton"></view>
     <view class="root-helper-text">正在加载商品...</view>
   </view>
 
-  <view wx:elif="{{errorText}}" class="root-page detail-state">
+  <view wx:elif="{{errorText}}" class="root-page detail-state" role="alert">
     <view class="root-section-title">商品暂不可见</view>
     <view class="root-helper-text">{{errorText}}</view>
+    <button class="root-button" bindtap="openProducts">查看全部产品</button>
+    <button class="root-button root-button--secondary" bindtap="goHome">返回首页</button>
   </view>
 
   <view wx:elif="{{product}}" class="detail-content">
@@ -15,8 +17,8 @@
         <text>{{product.badge || 'ROOT'}}</text>
         <text>{{product.productCode}}</text>
       </view>
-      <view wx:if="{{product.imageUrl}}" class="detail-product-visual">
-        <image class="detail-image" src="{{product.imageUrl}}" mode="aspectFit" />
+      <view wx:if="{{product.imageUrl}}" class="detail-product-visual detail-product-visual--photo">
+        <image class="detail-image" src="{{product.imageUrl}}" mode="aspectFit" aria-hidden="true" />
       </view>
       <view wx:else class="detail-product-visual">
         <view class="detail-packshot-shadow"></view>
@@ -48,6 +50,7 @@
         </view>
       </view>
       <view wx:else class="detail-description">规格、价格、库存与优惠以 Root 会员中心实时页面为准。</view>
+      <view wx:if="{{product.youzan.updatedAt}}" class="detail-config-date">本地跳转配置更新于 {{product.youzan.updatedAt}}</view>
     </view>
 
     <view class="detail-action-shell">
@@ -55,7 +58,7 @@
         <view class="detail-action-price">{{product.priceText || '实时价格'}}</view>
         <view class="detail-action-note">将前往 Root 会员中心</view>
       </view>
-      <button class="detail-buy" loading="{{jumpLoading}}" disabled="{{jumpLoading}}" bindtap="buyProduct">购买</button>
+      <button class="detail-buy" loading="{{jumpLoading}}" disabled="{{jumpLoading}}" bindtap="buyProduct" aria-label="购买 {{product.title}}">购买</button>
     </view>
   </view>
 </view>

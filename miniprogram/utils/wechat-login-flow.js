@@ -19,7 +19,7 @@ function getWechatLoginCode(timeout = DEFAULT_WECHAT_LOGIN_TIMEOUT) {
   });
 }
 
-async function authenticateWechat({ request, phoneCode = "", onStage = () => {} } = {}) {
+async function authenticateWechat({ request, phoneCode = "", sourceChannel = "", onStage = () => {} } = {}) {
   if (typeof request !== "function") throw new Error("登录请求未配置");
   onStage("正在连接微信…");
   const wxCode = await getWechatLoginCode();
@@ -33,7 +33,7 @@ async function authenticateWechat({ request, phoneCode = "", onStage = () => {} 
       wxCode,
       phoneCode: String(phoneCode || ""),
       flowVersion: "FORMAL_LAUNCH_V1",
-      sourceChannel: "MYROOT_PHONE_LOGIN",
+      sourceChannel: String(sourceChannel || "MYROOT_PHONE_LOGIN"),
     },
   });
 }

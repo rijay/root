@@ -1,8 +1,5 @@
 {
-  "navigationBarTitleText": "产品",
-  "backgroundColor": "#F5F5F7",
-  "enablePullDownRefresh": true,
-  "usingComponents": {
-    "campaign-popup": "/components/campaign-popup/index"
-  }
+  "navigationStyle": "custom",
+  "backgroundColor": "#FDFBF6",
+  "enablePullDownRefresh": true
 }

@@ -1,35 +1,38 @@
 <view class="products-page">
   <view class="products-hero root-page">
+    <view class="products-tab-title">产品</view>
     <view class="products-kicker">ROOT PRODUCTS</view>
-    <view class="products-title">全部产品，<text>按你的节奏来选。</text></view>
     <view class="products-copy">浏览 ROOT 的日常补给方案，购买将在 Root 会员中心完成。</view>
-    <view wx:if="{{products.length > 1}}" class="products-swipe-hint">{{products.length}} 款产品 · 左右滑动查看</view>
   </view>
 
-  <view wx:if="{{loading}}" class="root-page products-state">
+  <view wx:if="{{loading}}" class="root-page products-state" role="status" aria-live="polite">
     <view class="product-skeleton"></view>
     <view class="root-helper-text">正在同步商品...</view>
   </view>
 
-  <view wx:elif="{{errorText}}" class="root-page products-state">
+  <view wx:elif="{{errorText}}" class="root-page products-state" role="alert">
     <view class="root-section-title">商品暂未加载</view>
     <view class="root-helper-text">{{errorText}}</view>
     <button class="root-button retry-btn" bindtap="loadProducts">重新加载</button>
   </view>
 
-  <view wx:elif="{{!products.length}}" class="root-page products-state">
+  <view wx:elif="{{!products.length}}" class="root-page products-state" role="status">
     <view class="root-section-title">商品即将开放</view>
     <view class="root-helper-text">当前暂未配置展示商品。</view>
   </view>
 
   <view wx:else class="products-content">
+    <view wx:if="{{focusNotice}}" class="product-focus-notice" role="status" aria-live="polite">{{focusNotice}}</view>
     <scroll-view
+      wx:if="{{carouselVisible}}"
       class="product-carousel"
       scroll-x
       enhanced
       show-scrollbar="{{false}}"
       scroll-with-animation
       scroll-into-view="{{scrollIntoView}}"
+      scroll-left="{{carouselScrollLeft}}"
+      bindscroll="onProductScroll"
     >
       <view class="product-track">
         <view
@@ -39,13 +42,15 @@
           class="product-card product-card--{{item.visualTone}}"
           data-product-id="{{item.productId}}"
           bindtap="selectProduct"
+          role="group"
+          aria-label="{{item.subtitle}}，{{item.title}}"
         >
           <view class="product-card__meta">
             <text>{{item.badge || 'ROOT'}}</text>
             <text>{{item.productCode}}</text>
           </view>
-          <view wx:if="{{item.imageUrl}}" class="product-visual">
-            <image class="product-image" src="{{item.imageUrl}}" mode="aspectFit" />
+          <view wx:if="{{item.imageUrl}}" class="product-visual product-visual--photo">
+            <image class="product-image" src="{{item.imageUrl}}" mode="aspectFit" aria-hidden="true" />
           </view>
           <view wx:else class="product-visual product-visual--generated">
             <view class="packshot-shadow"></view>
@@ -60,7 +65,7 @@
             <view class="product-subtitle">{{item.subtitle}}</view>
             <view class="product-name">{{item.title}}</view>
             <view class="product-summary">{{item.summary}}</view>
-            <view class="product-price">{{item.priceText || '会员中心实时价格'}}</view>
+            <view class="product-spec">{{item.specText}}</view>
           </view>
           <view class="product-actions">
             <button
@@ -69,8 +74,8 @@
               bindtap="buyProduct"
               loading="{{jumpLoadingProductId === item.productId}}"
               disabled="{{jumpLoadingProductId}}"
+              aria-label="购买 {{item.title}}"
             >购买</button>
-            <view class="product-learn" data-product-id="{{item.productId}}" catchtap="openDetail">进一步了解 <text>›</text></view>
           </view>
         </view>
         <view class="product-track__end"></view>
@@ -79,10 +84,9 @@
 
     <view class="root-page product-footnote">
       <view class="product-dots">
-        <view wx:for="{{products}}" wx:key="productId" class="product-dot {{activeProductId === item.productId ? 'is-active' : ''}}"></view>
+        <view wx:for="{{products}}" wx:key="productId" class="product-dot {{activeProductId === item.productId ? 'is-active' : ''}}" aria-hidden="true"></view>
       </view>
       <view>规格、价格、库存与优惠以 Root 会员中心实时页面为准。</view>
     </view>
   </view>
 </view>
-<campaign-popup id="campaign-popup" />

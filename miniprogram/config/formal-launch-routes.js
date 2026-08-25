@@ -11,19 +11,20 @@ const FORMAL_TABS = Object.freeze([
 
 const MAIN_ROUTES = Object.freeze([
   WELCOME_ROUTE,
-  "pages/launching/index",
   ...FORMAL_TABS.map((tab) => tab.pagePath),
-  "pages/product-detail/index",
-  "pages/channel-error/index",
   "pages/login/index",
   "pages/register/index",
+  "pages/product-detail/index",
   "pages/legal/index",
   "pages/health-consent/index",
+  "pages/channel-error/index",
 ]);
 
 const SUBPACKAGE_ROUTES = Object.freeze([
+  "subpkg/content/pages/brand-foundation/index",
   "subpkg/content/pages/detail/index",
   "subpkg/content/pages/webview/index",
+  "subpkg/campaign/pages/root-with-you/index",
   "subpkg/health/pages/assessment/index",
   "subpkg/health/pages/result/index",
   "subpkg/health/pages/history/index",
@@ -42,8 +43,6 @@ const FORBIDDEN_ROUTE_PREFIXES = Object.freeze([
   "pages/order",
   "pages/rewards",
   "pages/tasks",
-  "subpkg/health/pages/initial-assessment",
-  "subpkg/health/pages/scale-assessment",
   "subpkg/checkin",
   "subpkg/refund",
   "subpkg/task",

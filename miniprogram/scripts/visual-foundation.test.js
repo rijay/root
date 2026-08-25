@@ -31,12 +31,10 @@ assertFiles([
 
 const tokens = read("styles/tokens.wxss");
 [
-  "--color-brand-black: #000000",
-  "--color-brand-white: #ffffff",
-  "--color-brand-olive: #242a0b",
-  "--color-olive-mid: #6b7c3a",
-  "--color-ui-grouped: #f5f5f7",
-  "--color-neutral-grey: #7b7a7e",
+  "--root-ink: #080806",
+  "--root-bg: #f7f4ec",
+  "--root-moss: #586b3f",
+  "--root-sprout: #a6b77a",
   "--root-canvas-width: 390px",
   "--root-canvas-height: 844px",
   "--root-page-padding: 32rpx",
@@ -73,8 +71,8 @@ assert.match(welcomeScript, /\/static\/welcome\/welcome-02\.jpg/);
 assert.match(welcomeScript, /BUILTIN_HIGH_FIDELITY/);
 assert.doesNotMatch(welcomeScript, /DEVELOPMENT_PLACEHOLDER/);
 assert.match(welcomeSource, /欢迎加入/);
-assert.match(welcomeSource, /Root Member Club/);
-assert.match(welcomeSource, /Sustained Foundation Balance/);
+assert.match(welcomeSource, /ROOT Member Club/);
+assert.doesNotMatch(welcomeSource, /Sustained Foundation Balance/);
 assert.match(welcomeSource, /平衡不是控制，而是理解。/);
 assert.match(welcomeSource, /帮你把身体还给身体自己。/);
 assert.match(welcomeWxml, /welcome__dots--\{\{current\}\}/);
@@ -92,20 +90,21 @@ const homeJson = JSON.parse(read("pages/home/index.json"));
 const homeWxml = read("pages/home/index.wxml");
 const homeWxss = read("pages/home/index.wxss");
 assert.equal(homeJson.usingComponents["immersive-header"], "/components/immersive-header/index");
-assert.match(homeWxml, /<immersive-header tone="light"/);
+assert.match(homeWxml, /<immersive-header[^>]*tone="light"/);
+assert.match(homeWxml, /copyMode !== 'asset'/);
 assert.match(homeWxml, /data-release-asset="\{\{item\.assetState\}\}"/);
 assert.doesNotMatch(homeWxml, /home-slide__placeholder/);
 assert.match(homeWxss, /\.home-slide__copy\s*\{[^}]*bottom:\s*212rpx/s);
 assert.match(homeWxss, /\.home-slide__kicker\s*\{[^}]*translateY\(-5px\)/s);
-assert.match(homeWxml, /home-product-banner/);
-assert.match(homeWxml, /立即探索/);
-assert.match(homeWxss, /\.home-indicator\s*\{[^}]*bottom:\s*calc\(188px \+ env\(safe-area-inset-bottom\)\)/s);
+assert.match(homeWxss, /\.home-indicator\s*\{[^}]*bottom:\s*132px/s);
 
 const tabWxml = read("custom-tab-bar/index.wxml");
 const tabWxss = read("custom-tab-bar/index.wxss");
 assert.match(tabWxml, /root-tab-bar__icon-image/);
 assert.match(tabWxml, /selected === index \? item\.activeIcon : item\.icon/);
-assert.match(tabWxss, /height:\s*calc\(60px \+ env\(safe-area-inset-bottom\)\)/);
+assert.match(tabWxss, /height:\s*calc\(52px \+ env\(safe-area-inset-bottom\)\)/);
+assert.match(tabWxss, /padding-bottom:\s*env\(safe-area-inset-bottom\)/);
+assert.match(homeWxss, /height:\s*calc\(100vh - 52px - env\(safe-area-inset-bottom\)\)/);
 [
   "static/icons/tab-home.svg",
   "static/icons/tab-home-active.svg",

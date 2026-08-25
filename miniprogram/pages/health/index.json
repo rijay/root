@@ -1,6 +1,7 @@
 {
-  "navigationBarTitleText": "健康",
+  "navigationStyle": "custom",
   "usingComponents": {
-    "campaign-popup": "/components/campaign-popup/index"
+    "page-navigation": "/components/page-navigation/index",
+    "root-wordmark": "/components/root-wordmark/index"
   }
 }

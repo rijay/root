@@ -1,10 +1,9 @@
 const { syncTabBar } = require("../../utils/tab-bar");
 const { cancelRequestScope, requestWithDeadline } = require("../../utils/request");
 const { readPublicPageCache, writePublicPageCache } = require("../../utils/page-cache");
-const router = require("../../utils/router");
 const { presentHome } = require("../../utils/content-presenter");
-const { getToken } = require("../../utils/request");
-const { openProducts } = require("../../utils/product-navigation");
+const { executeContentAction } = require("../../utils/content-action");
+const { defaultOnShareAppMessage } = require("../../utils/page-share");
 const { track } = require("../../utils/analytics");
 
 const CACHE_KEY = "home";
@@ -12,7 +11,7 @@ const REQUEST_SCOPE = "formal-home-content";
 const CACHE_OPTIONS = Object.freeze({ freshForMs: 2 * 60 * 1000, maxStaleMs: 24 * 60 * 60 * 1000 });
 
 Page({
-  data: { state: "loading", items: [], current: 0 },
+  data: { state: "loading", items: [], current: 0, failedImages: {} },
 
   onLoad() {
     const cached = readPublicPageCache(CACHE_KEY, CACHE_OPTIONS);
@@ -41,7 +40,15 @@ Page({
 
   applyContent(payload) {
     const items = presentHome(payload);
-    this.setData({ state: items.length ? "ready" : "empty", items, current: 0 });
+    const selected = this.data.items[Number(this.data.current || 0)];
+    const selectedIndex = selected
+      ? items.findIndex((item) => item.contentId === selected.contentId)
+      : -1;
+    const current = selectedIndex >= 0
+      ? selectedIndex
+      : Math.min(Number(this.data.current || 0), Math.max(0, items.length - 1));
+    this.setData({ state: items.length ? "ready" : "empty", items, current });
+    this.trackImpression(items[current], current);
   },
 
   async loadContent(options = {}) {
@@ -62,28 +69,46 @@ Page({
       this.applyContent(data);
     } catch (error) {
       if (sequence !== this._loadSequence || this.data.items.length) return;
-      this.setData({ state: "error", items: [] });
+      this.applyContent({ items: [] });
     } finally {
       if (this._loadPromise === pending) this._loadPromise = null;
     }
   },
 
   changeSlide(event) {
-    this.setData({ current: Number(event.detail.current || 0) });
+    const current = Number(event.detail.current || 0);
+    this.setData({ current });
+    this.trackImpression(this.data.items[current], current);
   },
 
-  openCurrent(event) {
-    const item = this.data.items[Number(event.currentTarget.dataset.index)];
-    if (item && item.contentId) router.open(item.detailPath);
-  },
-
-  openFeaturedProduct() {
-    const productId = "4749049439";
-    track("home_product_banner_click", {
-      productId,
-      bannerPosition: "HOME_PRIMARY",
-      loggedIn: Boolean(getToken()),
+  trackImpression(item, index) {
+    if (!item || !item.contentId) return;
+    const key = `${item.contentId}:${index}`;
+    if (this._lastImpressionKey === key) return;
+    this._lastImpressionKey = key;
+    track("home_banner_impression", {
+      contentId: item.contentId,
+      bannerPosition: index + 1,
+      sourcePage: "home",
     });
-    openProducts(productId, "home_product_banner");
   },
+
+  imageFailed(event) {
+    const index = Number(event.currentTarget.dataset.index);
+    this.setData({ [`failedImages.${index}`]: true });
+  },
+
+  async openCurrent(event) {
+    const item = this.data.items[Number(event.currentTarget.dataset.index)];
+    if (item && item.contentId && item.action) {
+      track("home_banner_click", {
+        contentId: item.contentId,
+        bannerPosition: Number(event.currentTarget.dataset.index) + 1,
+        sourcePage: "home",
+      });
+      await executeContentAction(item.action);
+    }
+  },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

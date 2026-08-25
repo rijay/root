@@ -5,18 +5,18 @@
     <view class="compare-copy">仅展示同一问卷 ID、同一版本、相同维度的数值变化，不对变化原因或干预效果作判断。</view>
   </view>
 
-  <view wx:if="{{loading}}" class="root-card compare-state">
+  <view wx:if="{{loading}}" class="root-card compare-state" role="status" aria-live="polite">
     <view class="root-section-title">正在读取对比结果</view>
   </view>
 
-  <view wx:elif="{{errorText && !comparison}}" class="root-card compare-state">
+  <view wx:elif="{{errorText && !comparison}}" class="root-card compare-state" role="alert">
     <view class="root-section-title">对比暂时无法加载</view>
     <view class="root-helper-text">{{errorText}}</view>
     <button class="root-button state-action" bindtap="load">重新加载</button>
   </view>
 
   <block wx:elif="{{comparison}}">
-    <view wx:if="{{errorText}}" class="compare-refresh-error">
+    <view wx:if="{{errorText}}" class="compare-refresh-error" role="alert">
       <view>
         <view class="compare-refresh-error__title">刷新失败，仍显示原对比结果</view>
         <view class="compare-refresh-error__copy">{{errorText}}</view>
@@ -74,6 +74,6 @@
         <button data-assessment-id="{{comparison.right.assessmentId}}" bindtap="openResult">查看较新结果</button>
       </view>
     </view>
-    <view wx:if="{{refreshing}}" class="compare-refreshing">正在刷新对比结果…</view>
+    <view wx:if="{{refreshing}}" class="compare-refreshing" role="status" aria-live="polite">正在刷新对比结果…</view>
   </block>
 </view>

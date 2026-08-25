@@ -1,38 +1,39 @@
-<view class="root-page health-page">
-  <view class="health-intro">
-    <view class="health-kicker">MY HEALTH · ROOT</view>
-    <view class="health-title">从了解当下开始</view>
-    <view class="health-copy">通过经过审核的问卷记录近期状态，并在同一问卷版本下观察复测变化。结果仅供健康状态观察参考。</view>
+<scroll-view class="health-page" scroll-y enhanced show-scrollbar="{{false}}">
+  <view wx:if="{{loading}}" class="health-state" role="status" aria-live="polite">
+    <text>正在整理健康评测…</text>
   </view>
 
-  <view wx:if="{{viewState === 'loading'}}" class="root-card state-card">
-    <view class="state-eyebrow">正在确认</view><view class="root-section-title state-title">正在读取你的健康旅程</view><view class="root-helper-text state-copy">加载过程不会创建新的健康记录。</view>
-  </view>
-  <view wx:elif="{{viewState === 'guest'}}" class="root-card state-card">
-    <view class="state-eyebrow">需要登录</view><view class="root-section-title state-title">登录后查看健康旅程</view><view class="root-helper-text state-copy">未登录时仍可浏览首页、商品与公开活动；登录不会自动开启健康评测。</view><button class="root-button state-action" bindtap="goLogin">微信身份进入</button>
-  </view>
-  <view wx:elif="{{viewState === 'accountRequired'}}" class="root-card state-card">
-    <view class="state-eyebrow">需要完成账号资料</view><view class="root-section-title state-title">先完成账号资料</view><view class="root-helper-text state-copy">账号资料与健康信息分开处理。完成账号资料后，仍需单独确认健康信息处理说明。</view><button class="root-button state-action" bindtap="goRegister">继续完善账号</button>
-  </view>
-  <view wx:elif="{{viewState === 'consentRequired'}}" class="root-card state-card">
-    <view class="state-eyebrow">单独确认</view><view class="root-section-title state-title">确认健康信息处理方式后继续</view><view class="root-helper-text state-copy">评测答案属于健康相关敏感个人信息。你可以先查看处理目的、保存期限和退出方式，再自行决定。</view><button class="root-button state-action" bindtap="openConsent">查看并确认</button><button class="text-action" bindtap="openPrivacy">查看隐私说明</button>
+  <view wx:elif="{{errorText}}" class="health-state" role="alert">
+    <text>{{errorText}}</text>
+    <button class="health-state__retry" bindtap="loadCatalog">重新加载</button>
   </view>
 
-  <block wx:elif="{{viewState === 'ready' || viewState === 'contentGated'}}">
-    <view class="health-section-head"><view><view class="state-eyebrow">ASSESSMENTS</view><view class="root-section-title state-title">我的评测</view></view><button wx:if="{{historyCount}}" class="history-link" bindtap="openHistory">历史结果 {{historyCount}} ›</button></view>
-    <view class="assessment-list">
-      <view wx:for="{{assessments}}" wx:key="assessmentType" class="assessment-card assessment-card--{{item.assessmentType === 'INITIAL' ? 'primary' : 'secondary'}}">
-        <view class="assessment-card__top"><view class="assessment-card__type">{{item.assessmentType === 'INITIAL' ? 'INITIAL' : 'GUT'}}</view><view class="assessment-status {{item.available ? 'is-ready' : ''}}">{{item.available ? (item.canResume ? '可继续' : (item.canRetest ? '可复测' : '可开始')) : item.unavailableText}}</view></view>
-        <view class="assessment-title">{{item.title}}</view><view class="assessment-copy">{{item.description}}</view>
-        <view class="assessment-meta"><text wx:if="{{item.estimatedText}}">{{item.estimatedText}}</text><text wx:if="{{item.definition.questionnaireVersion}}">问卷 v{{item.definition.questionnaireVersion}}</text><text wx:if="{{item.historyCount}}">{{item.historyCount}} 次记录</text></view>
-        <view wx:if="{{item.latest}}" class="latest-result" data-assessment-id="{{item.latest.assessmentId}}" bindtap="openLatest"><view><view class="latest-label">最近一次 · {{item.latest.completedAtText}}</view><view class="latest-title">{{item.latest.resultTitle}}</view></view><text>查看 ›</text></view>
-        <button class="assessment-action {{item.available ? '' : 'is-disabled'}}" data-assessment-type="{{item.assessmentType}}" bindtap="beginAssessment" loading="{{startingType === item.assessmentType}}" disabled="{{!item.available || startingType}}">{{item.canResume ? '继续评测' : (item.canRetest ? '重新评测' : (item.available ? '开始评测' : item.unavailableText))}}</button>
+  <view wx:else class="health-entry health-entry--v060">
+    <view class="health-entry__tab-header">
+      <root-wordmark class="health-entry__wordmark" />
+    </view>
+    <text class="health-entry__eyebrow">ROOT4U</text>
+    <text class="health-entry__title">从此刻开始，\n理解自己的健康起点</text>
+    <text class="health-entry__description">保留现有健康起点体验，增加可回测的初始评测与肠道规律自测。结果用于日常状态观察，不构成医疗诊断。</text>
+
+    <view class="health-assessment-list">
+      <view wx:for="{{assessments}}" wx:key="assessmentType" class="health-assessment-card" role="group" aria-label="{{item.title}}">
+        <view class="health-assessment-card__top">
+          <view>
+            <text class="health-assessment-card__title">{{item.title}}</text>
+            <text class="health-assessment-card__meta">{{item.estimatedText}}</text>
+          </view>
+          <text class="health-assessment-card__status">{{item.canResume ? '继续' : item.latest ? '可回测' : '未开始'}}</text>
+        </view>
+        <text class="health-assessment-card__copy">{{item.description}}</text>
+        <view class="health-assessment-card__actions">
+          <button class="health-assessment-card__start" data-type="{{item.assessmentType}}" bindtap="startAssessment" disabled="{{item.available === false}}" aria-label="{{item.available === false ? item.unavailableText : item.canResume ? '继续' + item.title : item.latest ? '重新进行' + item.title : '开始' + item.title}}">{{item.available === false ? item.unavailableText : item.canResume ? '继续评测' : item.latest ? '重新评测' : '开始评测'}}</button>
+          <text wx:if="{{item.latest}}" class="health-assessment-card__latest" data-assessment-id="{{item.latest.assessmentId}}" bindtap="openLatest" role="button" aria-label="查看 {{item.title}} 最近结果">查看最近结果</text>
+        </view>
       </view>
     </view>
-    <view wx:if="{{viewState === 'contentGated'}}" class="root-card review-note"><view class="state-eyebrow">内容门禁</view><view class="root-section-title state-title">评测内容仍在审核或配置中</view><view class="root-helper-text state-copy">未完成来源、专业与合规审核的题目和结果文案不会向用户开放，也不会启动健康信息写入。</view><button class="root-button root-button--secondary state-action" bindtap="openPrivacy">查看隐私说明</button></view>
-  </block>
 
-  <view wx:else class="root-card state-card"><view class="state-eyebrow">读取失败</view><view class="root-section-title state-title">健康旅程暂时无法加载</view><view class="root-helper-text state-copy">{{errorText}}</view><button class="root-button root-button--secondary state-action" bindtap="loadShell">重新加载</button><button class="text-action" bindtap="openSupport">联系人工协助</button></view>
-  <view class="health-note"><view class="health-note-mark"></view><view>本页不提供疾病诊断、治疗方案或紧急医疗处置。如有明显或持续不适，请及时寻求专业帮助。</view></view>
-</view>
-<campaign-popup id="campaign-popup" />
+    <button class="health-history-entry" bindtap="openHistory">评测历史与回测对比</button>
+    <text wx:if="{{storageMode === 'LOCAL_DEVICE'}}" class="health-local-note">当前版本的问卷答案、评测结果和回测记录仅保存在此设备，不上传到 myRoot 服务器；自最后保存起最长保留 180 天。更换设备或清理小程序数据后无法恢复。</text>
+  </view>
+</scroll-view>
