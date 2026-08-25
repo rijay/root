@@ -79,6 +79,18 @@ npm test
 
 ## 4. 验证边界
 
+### 提审后本地调整复验
+
+在五类纤维建议和 Banner3 字号调整后再次执行：
+
+- `node scripts/local-v060-compat.test.js`：通过，五类结果均验证第一条对应建议；
+- `node scripts/formal-health.test.js`：通过，结果文案版本 v5 和五类文案均被锁定；
+- `node scripts/p2-polish.test.js`：通过，Banner3 两行副文案字号锁定为 `36rpx`；
+- 小程序 `npm run check`：全量通过；
+- 根目录 `npm run verify`：本地证据刷新后 `6/6 PASS`。
+
+以上调整尚未重新上传微信平台，因此不属于 12:05 已提交审核候选。
+
 完成上述单项验证后，在仓库根目录执行：
 
 ```bash

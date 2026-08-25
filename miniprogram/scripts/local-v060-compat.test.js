@@ -36,13 +36,22 @@ const catalog = local.catalog();
 assert.equal(catalog.storageMode, "LOCAL_DEVICE");
 assert.deepEqual(catalog.assessments.map((item) => item.assessmentType), ["INITIAL", "GUT_REGULARITY"]);
 assert.equal(local.DEFINITIONS.GUT_REGULARITY.questionnaireVersion, 2);
-assert.equal(local.DEFINITIONS.GUT_REGULARITY.resultCopyVersion, 4);
+assert.equal(local.DEFINITIONS.GUT_REGULARITY.resultCopyVersion, 5);
 assert.deepEqual(local.DEFINITIONS.GUT_REGULARITY.questions.map((item) => item.field), ["Q1", "Q2", "Q3", "Q4", "Q5"]);
+
+const REQUIRED_GUT_PRIORITY_ACTIONS = Object.freeze({
+  CONSTIPATION: "补充益生元纤维，帮助软化便便促蠕动",
+  LOOSE: "补充可溶性纤维，帮助吸水让便便成形",
+  ALTERNATING: "补充益生元纤维，双向调节排便节奏",
+  SENSITIVE: "补充低FODMAP益生元，温和滋养不胀气",
+  HEALTHY: "日常补充益生元，持续滋养肠道有益菌",
+});
 
 function assertRequiredGutPriorityAction(assessment) {
   const actions = assessment.result.priorityAction.split("\n").filter(Boolean);
-  assert.equal(actions[0], "推荐服用膳食纤维");
-  assert.equal(actions.filter((item) => item === "推荐服用膳食纤维").length, 1);
+  const expected = REQUIRED_GUT_PRIORITY_ACTIONS[assessment.result.resultCode];
+  assert.equal(actions[0], expected);
+  assert.equal(actions.filter((item) => item === expected).length, 1);
 }
 
 const healthyAnswers = { Q1: "A", Q2: "B", Q3: ["A"], Q4: ["A"], Q5: ["A"] };
@@ -51,7 +60,7 @@ assert.equal(local.saveDraft(gutHealthy.assessmentId, healthyAnswers).safetyTrig
 const completedHealthy = local.complete(gutHealthy.assessmentId, healthyAnswers).assessment;
 assert.equal(completedHealthy.status, "COMPLETED");
 assert.equal(completedHealthy.result.resultCode, "HEALTHY");
-assert.equal(completedHealthy.result.copyVersion, 4);
+assert.equal(completedHealthy.result.copyVersion, 5);
 assert.match(completedHealthy.result.summary, /排便频率和便便形态较为稳定/);
 assertRequiredGutPriorityAction(completedHealthy);
 

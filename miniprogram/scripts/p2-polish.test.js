@@ -92,6 +92,7 @@ assert.match(homeStyles, /prefers-reduced-motion/);
 assert.match(home, /home-slide__copy--\{\{item\.copyVariant/);
 assert.match(homeStyles, /home-slide__copy--foundation-single/);
 assert.match(homeStyles, /home-slide__copy--campaign-split/);
+assert.match(homeStyles, /home-slide__copy--campaign-split \.home-slide__line--secondary \{ font-size: 36rpx;/);
 assert.match(result, /result-action-list/);
 assert.match(activityScript, /track\("activity_signup"/);
 assert.doesNotMatch(result, /内测记录/);

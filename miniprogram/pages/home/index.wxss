@@ -12,7 +12,7 @@ page { background: #080806; }
 .home-slide__kicker { display: block; margin-bottom: 30rpx; color: #a6b77a; font-size: 22rpx; font-weight: 600; letter-spacing: 3rpx; transform: translateY(-5px); }
 .home-slide__line { display: block; font-size: 52rpx; line-height: 1.42; font-weight: 600; }
 .home-slide__copy--foundation-single .home-slide__line { white-space: nowrap; font-size: 50rpx; }
-.home-slide__copy--campaign-split .home-slide__line--secondary { font-size: 44rpx; line-height: 1.5; }
+.home-slide__copy--campaign-split .home-slide__line--secondary { font-size: 36rpx; line-height: 1.5; }
 .home-indicator { position: absolute; z-index: 6; bottom: 132px; left: 50%; display: flex; gap: 12rpx; transform: translateX(-50%); }
 .home-indicator__dot { width: 8rpx; height: 8rpx; border-radius: 8rpx; background: rgba(255,255,255,.46); transition: width 260ms ease; }
 .home-indicator__dot.is-active { width: 32rpx; background: #fff; }

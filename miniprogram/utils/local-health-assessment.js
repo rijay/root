@@ -285,7 +285,7 @@ const DEFINITIONS = Object.freeze({
     title: "肠道健康 5 道题自测",
     description: "用 5 个问题记录近期排便、肠胃感受与生活习惯。",
     estimatedMinutes: 2,
-    resultCopyVersion: 4,
+    resultCopyVersion: 5,
     available: true,
     questions: GUT_QUESTIONS,
   }),
@@ -329,7 +329,13 @@ const GUT_RESULTS = Object.freeze({
   },
 });
 
-const REQUIRED_GUT_PRIORITY_ACTION = "推荐服用膳食纤维";
+const REQUIRED_GUT_PRIORITY_ACTIONS = Object.freeze({
+  CONSTIPATION: "补充益生元纤维，帮助软化便便促蠕动",
+  LOOSE: "补充可溶性纤维，帮助吸水让便便成形",
+  ALTERNATING: "补充益生元纤维，双向调节排便节奏",
+  SENSITIVE: "补充低FODMAP益生元，温和滋养不胀气",
+  HEALTHY: "日常补充益生元，持续滋养肠道有益菌",
+});
 
 function clone(value) {
   return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
@@ -721,15 +727,16 @@ function gutPersonalizedAdvice(answers) {
 function gutResult(answers) {
   const code = gutResultCode(answers);
   const copy = GUT_RESULTS[code];
+  const requiredPriorityAction = REQUIRED_GUT_PRIORITY_ACTIONS[code];
   const personalized = gutPersonalizedAdvice(answers);
   return {
     result: {
       resultCode: code,
       ...copy,
-      priorityAction: [REQUIRED_GUT_PRIORITY_ACTION, copy.priorityAction, ...personalized].filter(Boolean).join("\n"),
+      priorityAction: [requiredPriorityAction, copy.priorityAction, ...personalized].filter(Boolean).join("\n"),
       retestAdvice: "如近期排便状态或生活习惯发生变化，可重新自测并保留本机历史。",
       riskNotice: "以上建议仅供日常健康管理参考，不能作为临床诊断依据。膳食纤维请结合自身耐受和产品说明使用；如正在服药或有持续腹泻、便血或黑便、非刻意体重明显下降、夜间腹痛腹泻痛醒等情况，建议优先咨询专业人士。",
-      copyVersion: 4,
+      copyVersion: 5,
     },
     dimensions: [],
     status: "COMPLETED",
