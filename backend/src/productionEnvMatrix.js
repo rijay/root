@@ -65,6 +65,7 @@ const ENV_GROUPS = [
     ],
     requiredValues: {
       ROOT_REQUIRE_HEALTH_CONSENT: ["true", "1"],
+      ROOT_HEALTH_DATA_RETENTION_DAYS: ["180"],
       ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED: ["true", "1"],
     },
     requiredRules: {
@@ -73,6 +74,43 @@ const ENV_GROUPS = [
     },
     optional: ["ROOT_HEALTH_DATA_RETENTION_CLEANUP_LIMIT"],
     action: "开启健康类敏感信息单独同意，配置处理者、联系方式和保存天数，并启用可审计的到期脱敏与 CloudBase 图片清理 Job。",
+  },
+  {
+    id: "health_ai_data_policy",
+    label: "健康建议模型数据规范",
+    ownerRole: "产品/研发/合规",
+    required: [
+      "ROOT_HEALTH_ADVICE_MODEL_ENABLED",
+      "ROOT_HEALTH_ADVICE_MODEL_API_KEY",
+      "ROOT_HEALTH_ADVICE_MODEL_NAME",
+      "ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME",
+      "ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE",
+      "ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION",
+      "ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS",
+      "ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS",
+      "ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS",
+      "ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED",
+    ],
+    anyOf: [["ROOT_HEALTH_ADVICE_MODEL_BASE_URL", "ROOT_HEALTH_ADVICE_MODEL_ENDPOINT"]],
+    anyOfRules: {
+      ROOT_HEALTH_ADVICE_MODEL_BASE_URL: "https_endpoint",
+      ROOT_HEALTH_ADVICE_MODEL_ENDPOINT: "https_endpoint",
+    },
+    requiredValues: {
+      ROOT_HEALTH_ADVICE_MODEL_ENABLED: ["true"],
+      ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE: ["none"],
+      ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION: ["cn_mainland"],
+      ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS: ["none"],
+      ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: ["0"],
+      ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS: ["0"],
+      ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED: ["true"],
+    },
+    requiredRules: {
+      ROOT_HEALTH_ADVICE_MODEL_API_KEY: "nonblank_value",
+      ROOT_HEALTH_ADVICE_MODEL_NAME: "opaque_ascii_128",
+      ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME: "nonblank_value",
+    },
+    action: "正式模型调用只允许中国大陆境内处理、无其他受托方和无训练等二次使用；先在 CloudBase 账户中关闭请求/响应日志与缓存，保存脱敏配置证据，再把数据规范核验标记为 true。",
   },
   {
     id: "store",
@@ -548,6 +586,7 @@ function anyOfRows(env, groups = [], rules = {}) {
       if (rule === "job_route_token_rotation") return isJobRouteTokenRotation(env[name]);
       if (rule === "job_token_rotation") return isJobTokenRotation(env[name]);
       if (rule === "admin_token_rotation") return isAdminTokenRotation(env[name]);
+      if (rule === "https_endpoint") return isHttpsEndpoint(env[name]);
       if (rule === "opaque_ascii_128") return isOpaqueAscii(env[name], 128);
       if (rule === "sha256_digest") return /^[0-9a-f]{64}$/.test(String(env[name] || ""));
       return true;

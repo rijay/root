@@ -1,10 +1,14 @@
 const { nowISO } = require("./dates");
+const {
+  HEALTH_AI_DATA_LIMITS,
+  HEALTH_AI_DATA_POLICY_VERSION,
+} = require("./healthAiDataPolicy");
 const { isValidPrivacyContact } = require("./privacyConfig");
 const { createId } = require("./seed");
 const { createClientError } = require("./clientError");
 
 const HEALTH_CONSENT_TYPE = "HEALTH_SENSITIVE_INFO";
-const HEALTH_CONSENT_POLICY_VERSION = "root4u-health-sensitive-2026-08-26-v4";
+const HEALTH_CONSENT_POLICY_VERSION = "root4u-health-sensitive-2026-08-26-v5";
 const DECISIONS = new Set(["GRANTED", "WITHDRAWN"]);
 
 const PURPOSES = [
@@ -45,7 +49,12 @@ function consentConfig(context = {}) {
   const cleanupEnabled = enabled(env.ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED);
   return {
     required,
-    configured: !required || Boolean(controllerName && isValidPrivacyContact(contact) && retentionDays && cleanupEnabled),
+    configured: !required || Boolean(
+      controllerName
+      && isValidPrivacyContact(contact)
+      && retentionDays === HEALTH_AI_DATA_LIMITS.healthContentRetentionDays
+      && cleanupEnabled
+    ),
     controllerName,
     contact,
     retentionDays,
@@ -80,13 +89,18 @@ function noticePayload(config) {
     dataCategories: DATA_CATEGORIES.slice(),
     necessity: "这些信息会安全保存到你的 myRoot 账号，仅用于你主动参加的 Root4U 评测、生活方式建议、历史回测和必要人工协助，不用于医疗诊断。",
     refusalImpact: "不同意不会影响首页、活动和会员支持，但无法提交 Root4U 健康评测或查看基于评测生成的建议。",
-    modelProcessingText: "仅在两项评测均完成且未进入安全提示分支时，才会将评测类型、问卷版本、结果代码和状态标题交由腾讯云 CloudBase AI 受托生成辅助建议；不发送姓名、手机号、微信身份标识、安全分流标记、原始问卷答案或自由文本。模型不可用或输出未通过安全校验时，自动改用经审核固定建议。",
+    modelProcessingText: "仅在两项评测均完成且未进入安全提示分支时，才会将评测类型、问卷版本、结果代码和状态标题交由腾讯云 CloudBase AI 受托生成辅助建议；不发送姓名、手机号、微信身份标识、安全分流标记、原始问卷答案或自由文本。输入、输出、日志和缓存不得用于训练、微调、标注、评测或产品改进，处理限定在中国大陆且不得增加其他受托方；正式模型调用仅在供应商日志和缓存均关闭并完成配置核验后启用。模型不可用或输出未通过安全校验时，自动改用经审核固定建议。",
     controllerName: config.controllerName,
     contact: config.contact,
     retentionDays: config.retentionDays,
     retentionText: config.retentionDays
-      ? `原始健康评测答案原则上保存不超过 ${config.retentionDays} 天；你可在评测历史中随时删除单条记录。到期后自动脱敏，评测版本、完成时间和同意审计事实按必要期限保留。法律法规另有要求的除外。`
+      ? `问卷答案、评测结果、回测记录和健康建议自最后保存起最长保留 ${config.retentionDays} 天；你可随时删除单条评测，在线主数据和关联建议最迟在 ${HEALTH_AI_DATA_LIMITS.primaryDeletionSlaHours} 小时内删除。供应商日志和缓存必须关闭；加密滚动备份最长保留 ${HEALTH_AI_DATA_LIMITS.backupRetentionDays} 天，恢复备份前会重新执行删除。到期后仅保留不含健康内容的必要版本、时间和同意审计事实。法律法规要求继续保存的，只作隔离存储和安全保护。`
       : "保存期限待运营负责人确认。",
+    dataManagement: {
+      policyVersion: HEALTH_AI_DATA_POLICY_VERSION,
+      ...HEALTH_AI_DATA_LIMITS,
+      healthContentRetentionDays: config.retentionDays || 0,
+    },
   };
 }
 
@@ -96,7 +110,7 @@ function getPublicPrivacyNotice(context = {}) {
     configured: Boolean(
       config.controllerName &&
       isValidPrivacyContact(config.contact) &&
-      config.retentionDays
+      config.retentionDays === HEALTH_AI_DATA_LIMITS.healthContentRetentionDays
     ),
     ...noticePayload(config),
   };

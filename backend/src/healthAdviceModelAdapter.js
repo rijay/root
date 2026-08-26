@@ -1,3 +1,5 @@
+const { resolveHealthAiDataPolicy } = require("./healthAiDataPolicy");
+
 const MODEL_INPUT_VERSION = "root4u-health-advice-input-v1";
 const REQUIRED_ASSESSMENT_TYPES = Object.freeze(["INITIAL", "GUT_REGULARITY"]);
 
@@ -77,6 +79,7 @@ function createEnvironmentHealthAdviceModelAdapter(env = process.env, options = 
     : env.ROOT_HEALTH_ADVICE_MODEL_API_KEY);
   const modelName = text(env.ROOT_HEALTH_ADVICE_MODEL_NAME);
   const processorName = text(env.ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME);
+  const dataPolicy = resolveHealthAiDataPolicy(env);
   const fetchImpl = options.fetchImpl || globalThis.fetch;
   const configured = Boolean(
     requested
@@ -84,6 +87,7 @@ function createEnvironmentHealthAdviceModelAdapter(env = process.env, options = 
     && apiKey
     && modelName
     && processorName
+    && dataPolicy.configured
     && typeof fetchImpl === "function"
   );
   const timeoutMs = Math.max(1000, Math.min(30000, Number(env.ROOT_HEALTH_ADVICE_MODEL_TIMEOUT_MS || 15000)));
@@ -94,6 +98,7 @@ function createEnvironmentHealthAdviceModelAdapter(env = process.env, options = 
     configured,
     modelName,
     processorName,
+    dataPolicy,
     inputVersion: MODEL_INPUT_VERSION,
     async generate(input = {}) {
       if (!configured) throw adapterError("HEALTH_ADVICE_MODEL_NOT_CONFIGURED", "健康建议模型尚未配置");

@@ -15,6 +15,12 @@ test("local miniprogram runtime pins loopback, SQLite and CloudBase hy3 without 
   assert.equal(env.ROOT_HEALTH_ADVICE_MODEL_MAX_TOKENS, "1200");
   assert.equal(env.ROOT_HEALTH_ADVICE_MODEL_TIMEOUT_MS, "20000");
   assert.equal(env.ROOT_HEALTH_ADVICE_MODEL_BASE_URL.endsWith("/v1/ai/cloudbase"), true);
+  assert.equal(env.ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE, "NONE");
+  assert.equal(env.ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION, "CN_MAINLAND");
+  assert.equal(env.ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS, "NONE");
+  assert.equal(env.ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS, "0");
+  assert.equal(env.ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS, "0");
+  assert.equal(Object.hasOwn(LOCAL_MINIPROGRAM_ENV, "ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED"), false);
   assert.equal(Object.hasOwn(LOCAL_MINIPROGRAM_ENV, "ROOT_HEALTH_ADVICE_MODEL_API_KEY"), false);
 });
 
@@ -22,7 +28,7 @@ test("local miniprogram runtime passes a Keychain-backed configured Adapter with
   const logs = [];
   let received;
   await start({
-    env: {},
+    env: { ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED: "true" },
     readApiKey: () => "keychain-secret",
     readYouzanToken: () => "keychain-youzan-token",
     logger: { log: (message) => logs.push(message) },

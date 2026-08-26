@@ -707,6 +707,12 @@ test("production cutover readiness gates live external proof", () => {
     ROOT_HEALTH_ADVICE_MODEL_API_KEY: "model-api-key",
     ROOT_HEALTH_ADVICE_MODEL_NAME: "root-health-model",
     ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME: "境内模型服务商",
+    ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE: "NONE",
+    ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION: "CN_MAINLAND",
+    ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS: "NONE",
+    ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "0",
+    ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS: "0",
+    ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED: "true",
     WEWORK_CONTACT_LIST_URL: "https://wework.example.com/contacts",
     WEWORK_TAG_APPLY_URL: "https://wework.example.com/tags",
     WEWORK_CONTACT_WRITEBACK_URL: "https://wework.example.com/writeback",
@@ -828,6 +834,17 @@ test("production environment matrix validates the formal launch runtime", () => 
     ROOT_PRIVACY_CONTACT: "privacy@example.com",
     ROOT_HEALTH_DATA_RETENTION_DAYS: "180",
     ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED: "true",
+    ROOT_HEALTH_ADVICE_MODEL_ENABLED: "true",
+    ROOT_HEALTH_ADVICE_MODEL_BASE_URL: "https://model.example.com/v1",
+    ROOT_HEALTH_ADVICE_MODEL_API_KEY: "model-api-key",
+    ROOT_HEALTH_ADVICE_MODEL_NAME: "root-health-model",
+    ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME: "境内模型服务商",
+    ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE: "NONE",
+    ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION: "CN_MAINLAND",
+    ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS: "NONE",
+    ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "0",
+    ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS: "0",
+    ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED: "true",
     ROOT_STORE_ADAPTER: "mysql",
     ROOT_MYSQL_MIGRATION_MODE: "verify_only",
     MYSQL_ADDRESS: "10.11.103.164:3306",
@@ -853,6 +870,13 @@ test("production environment matrix validates the formal launch runtime", () => 
   assert.equal(ready.groups.some((group) => group.id === "v1_runtime_control"), false);
   assert.equal(ready.groups.every((group) => ["PASS", "OPTIONAL"].includes(group.status)), true);
 
+  const endpointOnly = buildProductionEnvMatrix({
+    ...readyEnv,
+    ROOT_HEALTH_ADVICE_MODEL_BASE_URL: "",
+    ROOT_HEALTH_ADVICE_MODEL_ENDPOINT: "https://model.example.com/v1/chat/completions",
+  }, { target: "production" });
+  assert.equal(endpointOnly.status, "READY");
+
   const blocked = buildProductionEnvMatrix({}, { target: "production" });
   assert.equal(blocked.status, "BLOCKED");
   const gray = buildProductionEnvMatrix({}, { target: "gray" });
@@ -869,6 +893,20 @@ test("production environment matrix validates the formal launch runtime", () => 
     ROOT_HEALTH_DATA_RETENTION_DAYS: "0",
   }, { target: "production" });
   assert.equal(invalidRetention.status, "BLOCKED");
+
+  const modelLogsEnabled = buildProductionEnvMatrix({
+    ...readyEnv,
+    ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "7",
+  }, { target: "production" });
+  assert.equal(modelLogsEnabled.status, "BLOCKED");
+  assert.ok(modelLogsEnabled.groups.find((group) => group.id === "health_ai_data_policy")
+    .missingRequired.includes("ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS=0"));
+
+  const unsafeModelEndpoint = buildProductionEnvMatrix({
+    ...readyEnv,
+    ROOT_HEALTH_ADVICE_MODEL_BASE_URL: "http://model.example.com/v1",
+  }, { target: "production" });
+  assert.equal(unsafeModelEndpoint.status, "BLOCKED");
 
   const invalidPrivacyContact = buildProductionEnvMatrix({
     ...readyEnv,
@@ -925,8 +963,12 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.equal(notice.data.contact, "privacy@example.com");
   assert.equal(notice.data.retentionDays, 180);
   assert.match(notice.data.retentionText, /180 天/);
+  assert.match(notice.data.retentionText, /24 小时内删除/);
   assert.match(notice.data.modelProcessingText, /腾讯云 CloudBase AI/);
   assert.match(notice.data.modelProcessingText, /不发送姓名、手机号、微信身份标识、安全分流标记、原始问卷答案或自由文本/);
+  assert.equal(notice.data.dataManagement.providerLogRetentionDays, 0);
+  assert.equal(notice.data.dataManagement.providerCacheRetentionDays, 0);
+  assert.equal(notice.data.dataManagement.backupRetentionDays, 30);
   assert.equal(notice.data.version, "0.7.0");
   assert.equal(notice.data.releaseId, "0.7.0");
 });

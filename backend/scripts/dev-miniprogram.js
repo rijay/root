@@ -14,6 +14,11 @@ const LOCAL_MINIPROGRAM_ENV = Object.freeze({
   ROOT_HEALTH_ADVICE_MODEL_BASE_URL: "https://myroot-prod-d5gl3gzg7115f149a.api.tcloudbasegateway.com/v1/ai/cloudbase",
   ROOT_HEALTH_ADVICE_MODEL_NAME: "hy3",
   ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME: "腾讯云 CloudBase AI",
+  ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE: "NONE",
+  ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION: "CN_MAINLAND",
+  ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS: "NONE",
+  ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "0",
+  ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS: "0",
   ROOT_HEALTH_ADVICE_MODEL_TIMEOUT_MS: "20000",
   ROOT_HEALTH_ADVICE_MODEL_MAX_TOKENS: "1200",
 });
@@ -34,7 +39,9 @@ async function start(options = {}) {
   const logger = options.logger || console;
   logger.log(healthAdviceModelAdapter.configured
     ? "Health advice model: CloudBase hy3 (credential loaded from macOS Keychain)"
-    : "Health advice model: reviewed fallback (macOS Keychain credential unavailable)");
+    : apiKey
+      ? "Health advice model: reviewed fallback (data policy verification unavailable)"
+      : "Health advice model: reviewed fallback (macOS Keychain credential unavailable)");
   logger.log(youzanAccessToken
     ? "Youzan commerce: live read-only (credential loaded from macOS Keychain)"
     : "Youzan commerce: local fallback (macOS Keychain credential unavailable)");

@@ -1,6 +1,7 @@
 const auditLog = require("./auditLog");
 const { createCloudbaseObjectStorageAdapter } = require("./cloudbaseObjectStorageAdapter");
 const { addDays, nowISO } = require("./dates");
+const { HEALTH_AI_DATA_LIMITS } = require("./healthAiDataPolicy");
 const { consentConfig } = require("./privacyConsent");
 
 const DEFAULT_CLEANUP_LIMIT = 50;
@@ -206,6 +207,10 @@ function candidateSpecs() {
       media: () => [],
       redact(item, redactedAt) {
         item.answers_json = {};
+        item.dimensions_json = [];
+        item.result_json = {};
+        item.safety_state = "";
+        item.status = "EXPIRED";
         markRedaction(item, redactedAt);
       },
     },
@@ -332,7 +337,10 @@ function resolveHealthDataRetentionConfig(context = {}) {
     ...consent,
     cleanupEnabled: enabled(env.ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED),
     retentionConfigured: Boolean(
-      consent.required && consent.controllerName && consent.contact && consent.retentionDays
+      consent.required
+      && consent.controllerName
+      && consent.contact
+      && consent.retentionDays === HEALTH_AI_DATA_LIMITS.healthContentRetentionDays
     ),
     cleanupLimit: clampInteger(
       env.ROOT_HEALTH_DATA_RETENTION_CLEANUP_LIMIT,

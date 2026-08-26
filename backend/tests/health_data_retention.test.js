@@ -3,6 +3,7 @@ const test = require("node:test");
 
 const { createApp } = require("../src/app");
 const { cleanupExpiredHealthData } = require("../src/healthDataRetention");
+const { overview: healthAdviceOverview } = require("../src/healthStatusAdvice");
 const { createSeedData } = require("../src/seed");
 const {
   buildHealthDataRetentionCleanupReport,
@@ -179,6 +180,32 @@ test("health retention cleanup redacts expired content and deletes each unshared
     result_level_id: "adjust",
     submitted_at: OLD,
   }];
+  data.healthAssessmentAttempts = [
+    {
+      assessment_id: "assessment_initial_old",
+      root_user_id: "root_assessment_old",
+      assessment_type: "INITIAL",
+      questionnaire_version: 1,
+      status: "COMPLETED",
+      safety_state: "NONE",
+      answers_json: { private: "initial answer" },
+      dimensions_json: [{ key: "energy", score: 2 }],
+      result_json: { resultCode: "STEADY", title: "private initial result" },
+      completed_at: OLD,
+    },
+    {
+      assessment_id: "assessment_gut_old",
+      root_user_id: "root_assessment_old",
+      assessment_type: "GUT_REGULARITY",
+      questionnaire_version: 1,
+      status: "COMPLETED",
+      safety_state: "NONE",
+      answers_json: { private: "gut answer" },
+      dimensions_json: [{ key: "regularity", score: 1 }],
+      result_json: { resultCode: "SENSITIVE", title: "private gut result" },
+      completed_at: OLD,
+    },
+  ];
   data.checkinRecords = [
     {
       record_id: "checkin_old",
@@ -226,8 +253,8 @@ test("health retention cleanup redacts expired content and deletes each unshared
     },
   });
 
-  assert.equal(result.eligibleCount, 7);
-  assert.equal(result.redactedCount, 6);
+  assert.equal(result.eligibleCount, 9);
+  assert.equal(result.redactedCount, 8);
   assert.equal(result.partialRedactedCount, 0);
   assert.equal(result.removedCount, 1);
   assert.equal(result.failedCount, 0);
@@ -243,6 +270,14 @@ test("health retention cleanup redacts expired content and deletes each unshared
   assert.deepEqual(data.healthScaleResponses[0].result_json, {});
   assert.equal(data.healthScaleResponses[0].score, null);
   assert.equal(data.healthScaleResponses[0].result_level_id, "");
+  data.healthAssessmentAttempts.forEach((attempt) => {
+    assert.equal(attempt.status, "EXPIRED");
+    assert.equal(attempt.safety_state, "");
+    assert.deepEqual(attempt.answers_json, {});
+    assert.deepEqual(attempt.dimensions_json, []);
+    assert.deepEqual(attempt.result_json, {});
+  });
+  assert.equal(healthAdviceOverview(data, "root_assessment_old").ready, false);
   assert.equal(data.checkinRecords[0].took_product, true);
   assert.equal(data.checkinRecords[0].feedback, "");
   assert.deepEqual(data.checkinRecords[0].image_urls, []);

@@ -7,6 +7,15 @@ const {
   parseJsonContent,
 } = require("../src/healthAdviceModelAdapter");
 
+const DATA_POLICY_ENV = Object.freeze({
+  ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE: "NONE",
+  ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION: "CN_MAINLAND",
+  ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS: "NONE",
+  ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "0",
+  ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS: "0",
+  ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED: "true",
+});
+
 function validStates() {
   return [
     {
@@ -26,6 +35,7 @@ function validStates() {
 
 test("health advice model Adapter fails closed until every privacy and provider field is configured", () => {
   const adapter = createEnvironmentHealthAdviceModelAdapter({
+    ...DATA_POLICY_ENV,
     ROOT_HEALTH_ADVICE_MODEL_ENABLED: "true",
     ROOT_HEALTH_ADVICE_MODEL_ENDPOINT: "https://model.example.com/v1/chat/completions",
     ROOT_HEALTH_ADVICE_MODEL_API_KEY: "secret",
@@ -34,8 +44,23 @@ test("health advice model Adapter fails closed until every privacy and provider 
   assert.equal(adapter.configured, false, "受托处理者名称缺失时不得调用模型");
 });
 
+test("health advice model Adapter rejects an unverified or retaining provider policy", () => {
+  const adapter = createEnvironmentHealthAdviceModelAdapter({
+    ...DATA_POLICY_ENV,
+    ROOT_HEALTH_ADVICE_MODEL_ENABLED: "true",
+    ROOT_HEALTH_ADVICE_MODEL_ENDPOINT: "https://model.example.com/v1/chat/completions",
+    ROOT_HEALTH_ADVICE_MODEL_API_KEY: "secret",
+    ROOT_HEALTH_ADVICE_MODEL_NAME: "health-model",
+    ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME: "境内模型服务商",
+    ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "7",
+  }, { fetchImpl: async () => ({ ok: true }) });
+  assert.equal(adapter.configured, false);
+  assert.deepEqual(adapter.dataPolicy.issues, ["PROVIDER_LOG_RETENTION_MUST_BE_ZERO"]);
+});
+
 test("an explicitly empty injected credential cannot fall back to a process environment secret", () => {
   const adapter = createEnvironmentHealthAdviceModelAdapter({
+    ...DATA_POLICY_ENV,
     ROOT_HEALTH_ADVICE_MODEL_ENABLED: "true",
     ROOT_HEALTH_ADVICE_MODEL_ENDPOINT: "https://model.example.com/v1/chat/completions",
     ROOT_HEALTH_ADVICE_MODEL_API_KEY: "environment-secret",
@@ -51,6 +76,7 @@ test("an explicitly empty injected credential cannot fall back to a process envi
 test("health advice model Adapter sends the fixed minimum JSON Interface", async () => {
   let request;
   const adapter = createEnvironmentHealthAdviceModelAdapter({
+    ...DATA_POLICY_ENV,
     ROOT_HEALTH_ADVICE_MODEL_ENABLED: "true",
     ROOT_HEALTH_ADVICE_MODEL_ENDPOINT: "https://model.example.com/v1/chat/completions",
     ROOT_HEALTH_ADVICE_MODEL_API_KEY: "secret",
@@ -89,6 +115,7 @@ test("health advice model Adapter sends the fixed minimum JSON Interface", async
 test("health advice model Adapter rejects incomplete states before network access", async () => {
   let called = false;
   const adapter = createEnvironmentHealthAdviceModelAdapter({
+    ...DATA_POLICY_ENV,
     ROOT_HEALTH_ADVICE_MODEL_ENABLED: "true",
     ROOT_HEALTH_ADVICE_MODEL_ENDPOINT: "https://model.example.com/v1/chat/completions",
     ROOT_HEALTH_ADVICE_MODEL_API_KEY: "secret",
@@ -117,6 +144,7 @@ test("health advice model Adapter rejects incomplete states before network acces
 test("health advice model Adapter accepts a CloudBase Base URL and a non-env credential", async () => {
   let request;
   const adapter = createEnvironmentHealthAdviceModelAdapter({
+    ...DATA_POLICY_ENV,
     ROOT_HEALTH_ADVICE_MODEL_ENABLED: "true",
     ROOT_HEALTH_ADVICE_MODEL_BASE_URL: "https://example.api.tcloudbasegateway.com/v1/ai/cloudbase/",
     ROOT_HEALTH_ADVICE_MODEL_NAME: "hy3",
@@ -152,6 +180,7 @@ test("chat completions endpoint normalization rejects unsafe URL material", () =
 
 test("health advice model Adapter reports only a safe HTTP status on provider rejection", async () => {
   const adapter = createEnvironmentHealthAdviceModelAdapter({
+    ...DATA_POLICY_ENV,
     ROOT_HEALTH_ADVICE_MODEL_ENABLED: "true",
     ROOT_HEALTH_ADVICE_MODEL_ENDPOINT: "https://model.example.com/v1/chat/completions",
     ROOT_HEALTH_ADVICE_MODEL_API_KEY: "secret",

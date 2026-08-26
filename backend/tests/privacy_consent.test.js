@@ -42,7 +42,7 @@ test("health consent records grant and withdrawal as append-only decisions", () 
   }, context);
   assert.equal(granted.active, true);
   assert.equal(granted.recorded, true);
-  assert.match(privacyConsent.HEALTH_CONSENT_POLICY_VERSION, /2026-08-26-v4$/);
+  assert.match(privacyConsent.HEALTH_CONSENT_POLICY_VERSION, /2026-08-26-v5$/);
   assert.ok(data.privacyConsentRecords[0].purposes_json.some((item) => item.includes("腾讯云 CloudBase AI")));
   assert.ok(data.privacyConsentRecords[0].data_categories_json.some((item) => item.includes("原始问卷答案")));
 
@@ -87,6 +87,16 @@ test("health consent rejects a non-actionable privacy contact", () => {
   assert.equal(status.active, false);
 });
 
+test("health consent rejects a health-content retention period above the fixed 180-day maximum", () => {
+  const data = createSeedData();
+  const status = privacyConsent.getHealthConsentStatus(data, "root-user-retention", {
+    env: { ...consentEnv, ROOT_HEALTH_DATA_RETENTION_DAYS: "181" },
+  });
+
+  assert.equal(status.required, true);
+  assert.equal(status.configured, false);
+});
+
 test("health consent notice discloses minimum model processing and invalidates the previous policy version", () => {
   const data = createSeedData();
   data.privacyConsentRecords.push({
@@ -102,5 +112,13 @@ test("health consent notice discloses minimum model processing and invalidates t
   assert.match(status.notice.modelProcessingText, /腾讯云 CloudBase AI/);
   assert.match(status.notice.modelProcessingText, /评测类型、问卷版本、结果代码和状态标题/);
   assert.match(status.notice.modelProcessingText, /不发送姓名、手机号、微信身份标识、安全分流标记、原始问卷答案或自由文本/);
+  assert.match(status.notice.modelProcessingText, /日志和缓存均关闭/);
   assert.match(status.notice.modelProcessingText, /自动改用经审核固定建议/);
+  assert.match(status.notice.retentionText, /问卷答案、评测结果、回测记录和健康建议/);
+  assert.match(status.notice.retentionText, /24 小时内删除/);
+  assert.equal(status.notice.dataManagement.providerLogRetentionDays, 0);
+  assert.equal(status.notice.dataManagement.providerCacheRetentionDays, 0);
+  assert.equal(status.notice.dataManagement.backupRetentionDays, 30);
+  assert.equal(status.notice.dataManagement.securityLogRetentionDays, 180);
+  assert.equal(status.notice.dataManagement.privacyEvidenceRetentionDays, 1095);
 });
