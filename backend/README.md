@@ -53,7 +53,7 @@ ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME=以实际订单和数据处理协议为�
 ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE=NONE
 ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION=CN_MAINLAND
 ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS=NONE
-ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS=0
+ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS=7
 ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS=0
 ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED=true
 ROOT_CLOUDBASE_ENV_ID=CloudBase环境ID
@@ -81,7 +81,7 @@ ROOT_ADMIN_TOKEN=由正式环境密钥配置注入
 
 正式环境登录会使用 `wx.login` 和 `getPhoneNumber` 返回的 code，到微信服务端换取 openid 和手机号。未配置 `WECHAT_APPID` / `WECHAT_APPSECRET` 时，正式手机号登录会拒绝执行，避免无授权手机号进入。
 
-健康建议模型必须遵守 [`docs/v0.7.0_health_ai_data_management_standard_2026-08-26.md`](../docs/v0.7.0_health_ai_data_management_standard_2026-08-26.md)：供应商日志和缓存均为 0 天、无训练等二次使用、只在中国大陆处理且无其他受托方。上述六项数据策略变量缺失或不符合固定值时，模型 Adapter 会 fail-close 并使用经审核固定建议。`ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED=true` 只能在 CloudBase 账户设置已核验并归档脱敏证据后配置；该布尔值本身不是上线证据。
+健康建议模型必须遵守 [`docs/v0.7.0_health_ai_data_management_standard_2026-08-26.md`](../docs/v0.7.0_health_ai_data_management_standard_2026-08-26.md)：供应商请求/响应日志最长保留 7 天、服务端缓存为 0 天、无训练等二次使用、只在中国大陆处理且无其他受托方。上述六项数据策略变量缺失或不符合固定值时，模型 Adapter 会 fail-close 并使用经审核固定建议。`ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED=true` 只能在 CloudBase 账户设置已核验并归档脱敏证据后配置；该布尔值本身不是上线证据。
 
 微信订阅发送只允许 `https://api.weixin.qq.com/cgi-bin/message/subscribe/send`。即使配置了 `ROOT_WECHAT_OPENAPI_BASE_URL` 或 `ROOT_WECHAT_SUBSCRIBE_SEND_URL`，受保护运行时也拒绝非官方 origin、明文、userinfo、额外 query/fragment、端口或路径漂移；订阅 access token 永不发送到 loopback。发送 Adapter 在获取 token 前和网络调用前分别校验，服务器在 `ROOT_CHECKIN_REMINDER_SEND_ENABLED=true` 时启动前再次校验，底层 HTTP Implementation 不跟随 redirect。该本地防护不代表 Candidate/生产网络出口、模板、额度或真实送达已经验收。
 

@@ -1,9 +1,9 @@
-const HEALTH_AI_DATA_POLICY_VERSION = "myroot-health-ai-data-2026-08-26-v1";
+const HEALTH_AI_DATA_POLICY_VERSION = "myroot-health-ai-data-2026-08-26-v2";
 
 const HEALTH_AI_DATA_LIMITS = Object.freeze({
   healthContentRetentionDays: 180,
   primaryDeletionSlaHours: 24,
-  providerLogRetentionDays: 0,
+  providerLogRetentionDays: 7,
   providerCacheRetentionDays: 0,
   applicationLogRetentionDays: 30,
   securityLogRetentionDays: 180,
@@ -23,6 +23,10 @@ function exactZero(value) {
   return text(value) === "0";
 }
 
+function exactProviderLogRetention(value) {
+  return text(value) === String(HEALTH_AI_DATA_LIMITS.providerLogRetentionDays);
+}
+
 function resolveHealthAiDataPolicy(env = process.env) {
   const values = {
     secondaryUse: text(env.ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE).toUpperCase(),
@@ -36,7 +40,7 @@ function resolveHealthAiDataPolicy(env = process.env) {
   if (values.secondaryUse !== "NONE") issues.push("SECONDARY_USE_MUST_BE_NONE");
   if (values.processingRegion !== "CN_MAINLAND") issues.push("PROCESSING_REGION_MUST_BE_CN_MAINLAND");
   if (values.otherProcessors !== "NONE") issues.push("OTHER_PROCESSORS_MUST_BE_NONE");
-  if (!exactZero(values.logRetentionDays)) issues.push("PROVIDER_LOG_RETENTION_MUST_BE_ZERO");
+  if (!exactProviderLogRetention(values.logRetentionDays)) issues.push("PROVIDER_LOG_RETENTION_MUST_BE_SEVEN_DAYS");
   if (!exactZero(values.cacheRetentionDays)) issues.push("PROVIDER_CACHE_RETENTION_MUST_BE_ZERO");
   if (!values.verified) issues.push("DATA_POLICY_MUST_BE_VERIFIED");
   return Object.freeze({

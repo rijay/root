@@ -710,7 +710,7 @@ test("production cutover readiness gates live external proof", () => {
     ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE: "NONE",
     ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION: "CN_MAINLAND",
     ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS: "NONE",
-    ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "0",
+    ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "7",
     ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS: "0",
     ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED: "true",
     WEWORK_CONTACT_LIST_URL: "https://wework.example.com/contacts",
@@ -842,7 +842,7 @@ test("production environment matrix validates the formal launch runtime", () => 
     ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE: "NONE",
     ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION: "CN_MAINLAND",
     ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS: "NONE",
-    ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "0",
+    ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "7",
     ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS: "0",
     ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED: "true",
     ROOT_STORE_ADAPTER: "mysql",
@@ -894,13 +894,13 @@ test("production environment matrix validates the formal launch runtime", () => 
   }, { target: "production" });
   assert.equal(invalidRetention.status, "BLOCKED");
 
-  const modelLogsEnabled = buildProductionEnvMatrix({
+  const modelLogRetentionMismatch = buildProductionEnvMatrix({
     ...readyEnv,
-    ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "7",
+    ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "30",
   }, { target: "production" });
-  assert.equal(modelLogsEnabled.status, "BLOCKED");
-  assert.ok(modelLogsEnabled.groups.find((group) => group.id === "health_ai_data_policy")
-    .missingRequired.includes("ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS=0"));
+  assert.equal(modelLogRetentionMismatch.status, "BLOCKED");
+  assert.ok(modelLogRetentionMismatch.groups.find((group) => group.id === "health_ai_data_policy")
+    .missingRequired.includes("ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS=7"));
 
   const unsafeModelEndpoint = buildProductionEnvMatrix({
     ...readyEnv,
@@ -966,7 +966,7 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.match(notice.data.retentionText, /24 小时内删除/);
   assert.match(notice.data.modelProcessingText, /腾讯云 CloudBase AI/);
   assert.match(notice.data.modelProcessingText, /不发送姓名、手机号、微信身份标识、安全分流标记、原始问卷答案或自由文本/);
-  assert.equal(notice.data.dataManagement.providerLogRetentionDays, 0);
+  assert.equal(notice.data.dataManagement.providerLogRetentionDays, 7);
   assert.equal(notice.data.dataManagement.providerCacheRetentionDays, 0);
   assert.equal(notice.data.dataManagement.backupRetentionDays, 30);
   assert.equal(notice.data.version, "0.7.0");
