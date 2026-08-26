@@ -1,7 +1,12 @@
-const { resolveHealthAiDataPolicy } = require("./healthAiDataPolicy");
+const {
+  CATALOG_PROMPT_VERSION,
+  GUT_RESULTS,
+  INITIAL_RESULTS,
+  TAXONOMY_VERSION,
+  normalizeSyntheticScenario,
+} = require("./healthAdviceCatalog");
 
-const MODEL_INPUT_VERSION = "root4u-health-advice-input-v1";
-const REQUIRED_ASSESSMENT_TYPES = Object.freeze(["INITIAL", "GUT_REGULARITY"]);
+const MODEL_INPUT_VERSION = "root4u-health-advice-synthetic-input-v1";
 
 function enabled(value) {
   return ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase());
@@ -17,33 +22,6 @@ function adapterError(code, message) {
   return error;
 }
 
-function normalizeModelStates(value) {
-  if (!Array.isArray(value) || value.length !== REQUIRED_ASSESSMENT_TYPES.length) {
-    throw adapterError("HEALTH_ADVICE_MODEL_INPUT_INVALID", "健康建议模型输入无效");
-  }
-  const states = value.map((item) => {
-    const source = item && typeof item === "object" && !Array.isArray(item) ? item : {};
-    const assessmentType = text(source.assessmentType).toUpperCase();
-    const questionnaireVersion = Number(source.questionnaireVersion);
-    const resultCode = text(source.resultCode).toUpperCase();
-    const title = text(source.title);
-    if (!REQUIRED_ASSESSMENT_TYPES.includes(assessmentType)
-      || !Number.isInteger(questionnaireVersion)
-      || questionnaireVersion < 1
-      || questionnaireVersion > 9999
-      || !/^[A-Z0-9_:-]{1,64}$/.test(resultCode)
-      || !title
-      || title.length > 64) {
-      throw adapterError("HEALTH_ADVICE_MODEL_INPUT_INVALID", "健康建议模型输入无效");
-    }
-    return { assessmentType, questionnaireVersion, resultCode, title };
-  });
-  if (new Set(states.map((item) => item.assessmentType)).size !== REQUIRED_ASSESSMENT_TYPES.length) {
-    throw adapterError("HEALTH_ADVICE_MODEL_INPUT_INVALID", "健康建议模型输入无效");
-  }
-  return states;
-}
-
 function normalizeChatCompletionsEndpoint(value) {
   const source = text(value);
   if (!source) return "";
@@ -55,7 +33,7 @@ function normalizeChatCompletionsEndpoint(value) {
       ? pathname
       : `${pathname}/chat/completions`;
     return url.toString();
-  } catch (error) {
+  } catch {
     return "";
   }
 }
@@ -64,45 +42,50 @@ function parseJsonContent(value) {
   const source = text(value).replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
   try {
     return JSON.parse(source);
-  } catch (error) {
+  } catch {
     throw adapterError("HEALTH_ADVICE_MODEL_INVALID_JSON", "模型未返回有效建议结构");
   }
 }
 
-function createEnvironmentHealthAdviceModelAdapter(env = process.env, options = {}) {
-  const requested = enabled(env.ROOT_HEALTH_ADVICE_MODEL_ENABLED);
+function syntheticPromptInput(value) {
+  const scenario = normalizeSyntheticScenario(value);
+  return Object.freeze({
+    inputVersion: MODEL_INPUT_VERSION,
+    taxonomyVersion: TAXONOMY_VERSION,
+    promptVersion: CATALOG_PROMPT_VERSION,
+    scenario: Object.freeze({
+      initialResultCode: scenario.initialResultCode,
+      initialLabel: INITIAL_RESULTS[scenario.initialResultCode].label,
+      initialDescription: INITIAL_RESULTS[scenario.initialResultCode].description,
+      gutResultCode: scenario.gutResultCode,
+      gutLabel: GUT_RESULTS[scenario.gutResultCode].label,
+      gutDescription: GUT_RESULTS[scenario.gutResultCode].description,
+    }),
+  });
+}
+
+function createEnvironmentHealthAdviceCatalogModelAdapter(env = process.env, options = {}) {
+  const requested = enabled(env.ROOT_HEALTH_ADVICE_CATALOG_MODEL_ENABLED);
   const endpoint = normalizeChatCompletionsEndpoint(
-    env.ROOT_HEALTH_ADVICE_MODEL_BASE_URL || env.ROOT_HEALTH_ADVICE_MODEL_ENDPOINT
+    env.ROOT_HEALTH_ADVICE_CATALOG_MODEL_BASE_URL || env.ROOT_HEALTH_ADVICE_CATALOG_MODEL_ENDPOINT
   );
   const apiKey = text(Object.hasOwn(options, "apiKey")
     ? options.apiKey
-    : env.ROOT_HEALTH_ADVICE_MODEL_API_KEY);
-  const modelName = text(env.ROOT_HEALTH_ADVICE_MODEL_NAME);
-  const processorName = text(env.ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME);
-  const dataPolicy = resolveHealthAiDataPolicy(env);
+    : env.ROOT_HEALTH_ADVICE_CATALOG_MODEL_API_KEY);
+  const modelName = text(env.ROOT_HEALTH_ADVICE_CATALOG_MODEL_NAME);
   const fetchImpl = options.fetchImpl || globalThis.fetch;
-  const configured = Boolean(
-    requested
-    && endpoint
-    && apiKey
-    && modelName
-    && processorName
-    && dataPolicy.configured
-    && typeof fetchImpl === "function"
-  );
-  const timeoutMs = Math.max(1000, Math.min(30000, Number(env.ROOT_HEALTH_ADVICE_MODEL_TIMEOUT_MS || 15000)));
-  const maxTokens = Math.max(400, Math.min(2000, Number(env.ROOT_HEALTH_ADVICE_MODEL_MAX_TOKENS || 1200)));
+  const configured = Boolean(requested && endpoint && apiKey && modelName && typeof fetchImpl === "function");
+  const timeoutMs = Math.max(1000, Math.min(30000, Number(env.ROOT_HEALTH_ADVICE_CATALOG_MODEL_TIMEOUT_MS || 20000)));
+  const maxTokens = Math.max(400, Math.min(2000, Number(env.ROOT_HEALTH_ADVICE_CATALOG_MODEL_MAX_TOKENS || 1200)));
 
   return Object.freeze({
-    adapterId: "OPENAI_COMPATIBLE_HEALTH_ADVICE_V1",
+    adapterId: "OPENAI_COMPATIBLE_SYNTHETIC_HEALTH_ADVICE_CATALOG_V1",
     configured,
     modelName,
-    processorName,
-    dataPolicy,
     inputVersion: MODEL_INPUT_VERSION,
-    async generate(input = {}) {
-      if (!configured) throw adapterError("HEALTH_ADVICE_MODEL_NOT_CONFIGURED", "健康建议模型尚未配置");
-      const states = normalizeModelStates(input.states);
+    async generateSyntheticScenario(input = {}) {
+      if (!configured) throw adapterError("HEALTH_ADVICE_CATALOG_MODEL_NOT_CONFIGURED", "健康建议目录模型尚未配置");
+      const promptInput = syntheticPromptInput(input);
       const controller = typeof AbortController === "function" ? new AbortController() : null;
       const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
       try {
@@ -120,21 +103,15 @@ function createEnvironmentHealthAdviceModelAdapter(env = process.env, options = 
             messages: [
               {
                 role: "system",
-                content: "你是 Root4U 的健康生活方式建议助手。不要输出思考过程，直接输出 JSON。不做诊断、治疗、用药、疾病判断或疗效承诺。输出字段必须为 summary、actions、cautions、followUp；actions 必须恰好三条，建议应低风险且可执行。",
+                content: "你是 Root4U 的通用健康生活方式内容助手。输入是产品团队预先定义的合成状态枚举，不代表任何真实用户。不要输出思考过程，直接输出 JSON。不做诊断、治疗、用药、疾病判断或疗效承诺。输出字段必须为 summary、actions、cautions、followUp；actions 必须恰好三条，建议应低风险且可执行。",
               },
-              {
-                role: "user",
-                content: JSON.stringify({
-                  inputVersion: MODEL_INPUT_VERSION,
-                  states,
-                }),
-              },
+              { role: "user", content: JSON.stringify(promptInput) },
             ],
           }),
           ...(controller ? { signal: controller.signal } : {}),
         });
         if (!response || !response.ok) {
-          const error = adapterError("HEALTH_ADVICE_MODEL_HTTP_ERROR", "健康建议模型暂时不可用");
+          const error = adapterError("HEALTH_ADVICE_CATALOG_MODEL_HTTP_ERROR", "健康建议目录模型暂时不可用");
           error.status = Number(response && response.status) || 0;
           throw error;
         }
@@ -144,7 +121,7 @@ function createEnvironmentHealthAdviceModelAdapter(env = process.env, options = 
         return parseJsonContent(content);
       } catch (error) {
         if (error && error.name === "AbortError") {
-          throw adapterError("HEALTH_ADVICE_MODEL_TIMEOUT", "健康建议生成超时");
+          throw adapterError("HEALTH_ADVICE_CATALOG_MODEL_TIMEOUT", "健康建议目录生成超时");
         }
         throw error;
       } finally {
@@ -156,7 +133,8 @@ function createEnvironmentHealthAdviceModelAdapter(env = process.env, options = 
 
 module.exports = {
   MODEL_INPUT_VERSION,
-  createEnvironmentHealthAdviceModelAdapter,
+  createEnvironmentHealthAdviceCatalogModelAdapter,
   normalizeChatCompletionsEndpoint,
   parseJsonContent,
+  syntheticPromptInput,
 };

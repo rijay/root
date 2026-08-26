@@ -1,0 +1,115 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const test = require("node:test");
+
+const {
+  CATALOG_PROMPT_VERSION,
+  CATALOG_VERSION,
+  SYNTHETIC_SCENARIOS,
+  TAXONOMY_VERSION,
+  createHealthAdviceCatalog,
+  defaultCatalog,
+  scenarioKey,
+} = require("../src/healthAdviceCatalog");
+const { outputPath, run } = require("../scripts/generate-health-advice-catalog-draft");
+
+function advice() {
+  return {
+    summary: "保持稳定节奏并继续观察。",
+    actions: ["固定作息。", "分次饮水。", "记录近期感受。"],
+    cautions: ["不适持续时请咨询专业人士。"],
+    followUp: "一周后回测。",
+  };
+}
+
+function approvedManifest() {
+  return {
+    schemaVersion: 1,
+    catalogVersion: CATALOG_VERSION,
+    taxonomyVersion: TAXONOMY_VERSION,
+    promptVersion: CATALOG_PROMPT_VERSION,
+    modelName: "hy3",
+    generatedAt: "2026-08-26T10:00:00.000Z",
+    reviewStatus: "APPROVED",
+    reviewedAt: "2026-08-26T11:00:00.000Z",
+    reviewer: "content-reviewer-1",
+    entries: SYNTHETIC_SCENARIOS.map((scenario) => ({ ...scenario, advice: advice(), reviewStatus: "APPROVED" })),
+  };
+}
+
+test("checked-in catalog fails closed until all 30 scenarios are generated and reviewed", () => {
+  assert.equal(SYNTHETIC_SCENARIOS.length, 30);
+  assert.equal(defaultCatalog.configured, false);
+  assert.equal(defaultCatalog.approvedEntryCount, 0);
+  assert.equal(defaultCatalog.lookup([
+    { assessmentType: "INITIAL", resultCode: "BASELINE" },
+    { assessmentType: "GUT_REGULARITY", resultCode: "HEALTHY" },
+  ]), null);
+});
+
+test("approved catalog resolves only frozen result-code combinations", () => {
+  const catalog = createHealthAdviceCatalog(approvedManifest());
+  assert.equal(catalog.configured, true);
+  assert.equal(catalog.approvedEntryCount, 30);
+  const entry = catalog.lookup([
+    { assessmentType: "INITIAL", resultCode: "BASELINE", rootUserId: "not-used" },
+    { assessmentType: "GUT_REGULARITY", resultCode: "HEALTHY", answers: { private: true } },
+  ]);
+  assert.equal(scenarioKey({
+    initialResultCode: entry.initialResultCode,
+    gutResultCode: entry.gutResultCode,
+  }), "BASELINE:HEALTHY");
+  assert.equal(entry.advice.actions.length, 3);
+});
+
+test("one missing review or unsafe entry disables the entire catalog", () => {
+  const missingReview = approvedManifest();
+  missingReview.entries[0].reviewStatus = "PENDING_REVIEW";
+  assert.equal(createHealthAdviceCatalog(missingReview).configured, false);
+
+  const unsafe = approvedManifest();
+  unsafe.entries[0].advice.summary = "保证有效并提供治疗";
+  assert.equal(createHealthAdviceCatalog(unsafe).configured, false);
+
+  const extra = approvedManifest();
+  extra.entries.push({ ...extra.entries[0], initialResultCode: "UNKNOWN" });
+  assert.equal(createHealthAdviceCatalog(extra).configured, false);
+});
+
+test("draft generator requires a new explicit output and emits 30 pending-review scenarios", async () => {
+  assert.throws(() => outputPath([]), { code: "HEALTH_ADVICE_CATALOG_OUTPUT_REQUIRED" });
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "myroot-health-catalog-test-"));
+  const target = path.join(directory, "catalog.draft.json");
+  let calls = 0;
+  try {
+    const result = await run({
+      argv: [`--output=${target}`],
+      readApiKey: () => "keychain-secret",
+      async fetchImpl(_url, options) {
+        calls += 1;
+        const body = JSON.parse(options.body);
+        assert.equal(JSON.stringify(body).includes("keychain-secret"), false);
+        assert.equal(JSON.stringify(body).includes("rootUserId"), false);
+        return {
+          ok: true,
+          async json() {
+            return { choices: [{ message: { content: JSON.stringify(advice()) } }] };
+          },
+        };
+      },
+    });
+    const draft = JSON.parse(fs.readFileSync(target, "utf8"));
+    assert.equal(result.scenarioCount, 30);
+    assert.equal(calls, 30);
+    assert.equal(draft.reviewStatus, "DRAFT");
+    assert.equal(draft.entries.length, 30);
+    assert.equal(draft.entries.every((entry) => entry.reviewStatus === "PENDING_REVIEW"), true);
+    await assert.rejects(() => run({ argv: [`--output=${target}`], readApiKey: () => "unused" }), {
+      code: "HEALTH_ADVICE_CATALOG_OUTPUT_EXISTS",
+    });
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});

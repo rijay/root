@@ -45,17 +45,8 @@ ROOT_PRIVACY_CONTACT=hydennis@foxmail.com
 ROOT_HEALTH_DATA_RETENTION_DAYS=180
 ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED=true
 ROOT_HEALTH_DATA_RETENTION_CLEANUP_LIMIT=50
-ROOT_HEALTH_ADVICE_MODEL_ENABLED=true
-ROOT_HEALTH_ADVICE_MODEL_BASE_URL=https://your-env.api.tcloudbasegateway.com/v1/ai/cloudbase
-ROOT_HEALTH_ADVICE_MODEL_API_KEY=由正式环境密钥配置注入
-ROOT_HEALTH_ADVICE_MODEL_NAME=hy3
-ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME=以实际订单和数据处理协议为准
-ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE=NONE
-ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION=CN_MAINLAND
-ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS=NONE
-ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS=7
-ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_MINUTES=5
-ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED=true
+ROOT_HEALTH_ADVICE_CATALOG_VERSION=root4u-health-advice-catalog-v1
+ROOT_HEALTH_ADVICE_CATALOG_REVIEWED=true
 ROOT_CLOUDBASE_ENV_ID=CloudBase环境ID
 ROOT_STORE_ADAPTER=mysql
 MYSQL_ADDRESS=MySQL私网地址:3306
@@ -81,7 +72,7 @@ ROOT_ADMIN_TOKEN=由正式环境密钥配置注入
 
 正式环境登录会使用 `wx.login` 和 `getPhoneNumber` 返回的 code，到微信服务端换取 openid 和手机号。未配置 `WECHAT_APPID` / `WECHAT_APPSECRET` 时，正式手机号登录会拒绝执行，避免无授权手机号进入。
 
-健康建议模型必须遵守 [`docs/v0.7.0_health_ai_data_management_standard_2026-08-26.md`](../docs/v0.7.0_health_ai_data_management_standard_2026-08-26.md)：供应商请求/响应日志最长保留 7 天、服务端临时缓存最长 5 分钟、无训练等二次使用、只在中国大陆处理且无其他受托方。上述六项数据策略变量缺失或不符合固定值时，模型 Adapter 会 fail-close 并使用经审核固定建议。`ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED=true` 只能在缓存最长时限等账户或合同级数据策略已核验并归档脱敏证据后配置；该布尔值本身不是上线证据。
+健康建议线上运行时不调用模型：服务端只从仓库内的已审核目录按两个结果代码选择建议，目录不完整、未审核或内容无效时 fail-close 到固定建议。CloudBase `hy3` 只用于离线生成 30 个产品预定义的合成状态场景，不接收真实用户身份、答案、评测结果、健康状态或请求日志。生产环境不得配置健康建议模型 API Key；`ROOT_HEALTH_ADVICE_CATALOG_REVIEWED=true` 还必须配套 30/30 条内容审核记录和候选工件证据，变量本身不是上线证据。详见 [`健康 AI 数据管理规范`](../docs/v0.7.0_health_ai_data_management_standard_2026-08-26.md)。
 
 微信订阅发送只允许 `https://api.weixin.qq.com/cgi-bin/message/subscribe/send`。即使配置了 `ROOT_WECHAT_OPENAPI_BASE_URL` 或 `ROOT_WECHAT_SUBSCRIBE_SEND_URL`，受保护运行时也拒绝非官方 origin、明文、userinfo、额外 query/fragment、端口或路径漂移；订阅 access token 永不发送到 loopback。发送 Adapter 在获取 token 前和网络调用前分别校验，服务器在 `ROOT_CHECKIN_REMINDER_SEND_ENABLED=true` 时启动前再次校验，底层 HTTP Implementation 不跟随 redirect。该本地防护不代表 Candidate/生产网络出口、模板、额度或真实送达已经验收。
 

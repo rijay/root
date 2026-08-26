@@ -2,6 +2,13 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const healthAssessment = require("../src/healthAssessment");
+const {
+  CATALOG_PROMPT_VERSION,
+  CATALOG_VERSION,
+  SYNTHETIC_SCENARIOS,
+  TAXONOMY_VERSION,
+  createHealthAdviceCatalog,
+} = require("../src/healthAdviceCatalog");
 const healthStatusAdvice = require("../src/healthStatusAdvice");
 const { createSeedData } = require("../src/seed");
 
@@ -29,7 +36,7 @@ function completedAttempt(id, rootUserId, type, resultCode, options = {}) {
 function readyData(rootUserId = "root-advice") {
   const data = createSeedData();
   data.healthAssessmentAttempts.push(
-    completedAttempt("has-initial", rootUserId, "INITIAL", "STEADY"),
+    completedAttempt("has-initial", rootUserId, "INITIAL", "BASELINE"),
     completedAttempt("has-gut", rootUserId, "GUT_REGULARITY", "HEALTHY"),
   );
   return data;
@@ -44,41 +51,56 @@ test("combined overview identifies the missing assessment before generation", ()
   assert.equal(overview.advice, null);
 });
 
-test("model advice receives only derived state fields and is reused for the same inputs", async () => {
-  const data = readyData();
-  let calls = 0;
-  let received;
-  const adapter = {
-    adapterId: "TEST_MODEL_ADAPTER",
-    configured: true,
-    modelName: "test-health-model",
-    async generate(input) {
-      calls += 1;
-      received = input;
-      return {
+function reviewedCatalog(overrides = {}) {
+  return createHealthAdviceCatalog({
+    schemaVersion: 1,
+    catalogVersion: CATALOG_VERSION,
+    taxonomyVersion: TAXONOMY_VERSION,
+    promptVersion: CATALOG_PROMPT_VERSION,
+    modelName: "hy3",
+    generatedAt: "2026-08-26T10:00:00.000Z",
+    reviewStatus: "APPROVED",
+    reviewedAt: "2026-08-26T11:00:00.000Z",
+    reviewer: "content-reviewer-1",
+    entries: SYNTHETIC_SCENARIOS.map((scenario) => ({
+      ...scenario,
+      reviewStatus: "APPROVED",
+      advice: {
         summary: "先保持近期节奏稳定。",
         actions: ["固定起床时间。", "分次补充饮水。", "记录一周身体感受。"],
         cautions: ["不适持续时请咨询专业人士。"],
         followUp: "一周后可再次评测。",
-      };
+      },
+    })),
+    ...overrides,
+  });
+}
+
+test("reviewed model catalog is selected locally and reused for the same inputs", async () => {
+  const data = readyData();
+  let calls = 0;
+  const forbiddenRuntimeAdapter = {
+    configured: true,
+    async generate(input) {
+      calls += 1;
+      throw new Error(`runtime model must not run: ${JSON.stringify(input)}`);
     },
   };
 
-  const generated = await healthStatusAdvice.generate(data, "root-advice", { healthAdviceModelAdapter: adapter });
-  assert.equal(generated.advice.source, "MODEL_ASSISTED");
-  assert.equal(generated.advice.sourceLabel, "AI 辅助生成");
+  const generated = await healthStatusAdvice.generate(data, "root-advice", {
+    healthAdviceCatalog: reviewedCatalog(),
+    healthAdviceModelAdapter: forbiddenRuntimeAdapter,
+  });
+  assert.equal(generated.advice.source, "REVIEWED_MODEL_CATALOG");
+  assert.equal(generated.advice.sourceLabel, "AI 辅助生成，经审核");
+  assert.equal(generated.advice.modelName, "hy3");
   assert.equal(data.healthAdviceSnapshots.length, 1);
-  assert.equal(JSON.stringify(received).includes("has-initial"), false);
-  assert.equal(JSON.stringify(received).includes("root-advice"), false);
-  assert.deepEqual(Object.keys(received.states[0]).sort(), [
-    "assessmentType", "questionnaireVersion", "resultCode", "title",
-  ]);
-  assert.equal(received.states[0].safetyStopped, undefined);
   assert.equal(data.healthAdviceSnapshots[0].states_json[0].safetyStopped, false);
+  assert.equal(calls, 0);
 
-  const reused = await healthStatusAdvice.generate(data, "root-advice", { healthAdviceModelAdapter: adapter });
+  const reused = await healthStatusAdvice.generate(data, "root-advice", { healthAdviceCatalog: reviewedCatalog() });
   assert.equal(reused.reused, true);
-  assert.equal(calls, 1);
+  assert.equal(calls, 0);
 });
 
 test("safety result never calls the ordinary model and deleting an input removes its advice snapshot", async () => {
@@ -100,17 +122,10 @@ test("safety result never calls the ordinary model and deleting an input removes
   assert.equal(data.healthAdviceSnapshots.length, 0);
 });
 
-test("invalid model output falls back to reviewed fixed content", async () => {
+test("draft or incomplete catalog falls back to reviewed fixed content", async () => {
   const data = readyData("root-fallback");
   const generated = await healthStatusAdvice.generate(data, "root-fallback", {
-    healthAdviceModelAdapter: {
-      adapterId: "INVALID_TEST_ADAPTER",
-      configured: true,
-      modelName: "invalid-model",
-      async generate() {
-        return { summary: "保证有效并提供治疗", actions: ["一条"], followUp: "稍后" };
-      },
-    },
+    healthAdviceCatalog: reviewedCatalog({ reviewStatus: "DRAFT" }),
   });
   assert.equal(generated.advice.source, "REVIEWED_FALLBACK");
   assert.equal(generated.advice.actions.length, 3);

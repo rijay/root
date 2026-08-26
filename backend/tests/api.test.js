@@ -680,7 +680,7 @@ test("production cutover readiness gates live external proof", () => {
     ROOT_CUTOVER_ROOT_MEMBER_CENTER_APPID_CONFIRMED: "yes",
     ROOT_CUTOVER_YOUZAN_FIELDS_CALIBRATED: "done",
     ROOT_CUTOVER_YOUZAN_CREDENTIALS_ROTATED: "done",
-    ROOT_CUTOVER_HEALTH_ADVICE_MODEL_VERIFIED: "done",
+    ROOT_CUTOVER_HEALTH_ADVICE_CATALOG_VERIFIED: "done",
     ROOT_CUTOVER_YOUZAN_REWARD_FIELDS_CALIBRATED: "done",
     ROOT_CUTOVER_WEWORK_FIELDS_CALIBRATED: "done",
     ROOT_CUTOVER_CLOUDBASE_JOBS_CREATED: "done",
@@ -702,17 +702,8 @@ test("production cutover readiness gates live external proof", () => {
     YOUZAN_CLIENT_SECRET: "youzan-client-secret",
     YOUZAN_COUPON_SEND_URL: "https://youzan.example.com/coupons/send",
     YOUZAN_COUPON_STATUS_URL: "https://youzan.example.com/coupons/status",
-    ROOT_HEALTH_ADVICE_MODEL_ENABLED: "true",
-    ROOT_HEALTH_ADVICE_MODEL_ENDPOINT: "https://model.example.com/v1/chat/completions",
-    ROOT_HEALTH_ADVICE_MODEL_API_KEY: "model-api-key",
-    ROOT_HEALTH_ADVICE_MODEL_NAME: "root-health-model",
-    ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME: "境内模型服务商",
-    ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE: "NONE",
-    ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION: "CN_MAINLAND",
-    ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS: "NONE",
-    ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "7",
-    ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_MINUTES: "5",
-    ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED: "true",
+    ROOT_HEALTH_ADVICE_CATALOG_VERSION: "root4u-health-advice-catalog-v1",
+    ROOT_HEALTH_ADVICE_CATALOG_REVIEWED: "true",
     WEWORK_CONTACT_LIST_URL: "https://wework.example.com/contacts",
     WEWORK_TAG_APPLY_URL: "https://wework.example.com/tags",
     WEWORK_CONTACT_WRITEBACK_URL: "https://wework.example.com/writeback",
@@ -834,17 +825,8 @@ test("production environment matrix validates the formal launch runtime", () => 
     ROOT_PRIVACY_CONTACT: "privacy@example.com",
     ROOT_HEALTH_DATA_RETENTION_DAYS: "180",
     ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED: "true",
-    ROOT_HEALTH_ADVICE_MODEL_ENABLED: "true",
-    ROOT_HEALTH_ADVICE_MODEL_BASE_URL: "https://model.example.com/v1",
-    ROOT_HEALTH_ADVICE_MODEL_API_KEY: "model-api-key",
-    ROOT_HEALTH_ADVICE_MODEL_NAME: "root-health-model",
-    ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME: "境内模型服务商",
-    ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE: "NONE",
-    ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION: "CN_MAINLAND",
-    ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS: "NONE",
-    ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "7",
-    ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_MINUTES: "5",
-    ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED: "true",
+    ROOT_HEALTH_ADVICE_CATALOG_VERSION: "root4u-health-advice-catalog-v1",
+    ROOT_HEALTH_ADVICE_CATALOG_REVIEWED: "true",
     ROOT_STORE_ADAPTER: "mysql",
     ROOT_MYSQL_MIGRATION_MODE: "verify_only",
     MYSQL_ADDRESS: "10.11.103.164:3306",
@@ -865,17 +847,25 @@ test("production environment matrix validates the formal launch runtime", () => 
       [retentionRoute]: ["retention-route-secret-with-strong-entropy-2026"],
     }),
   };
-  const ready = buildProductionEnvMatrix(readyEnv, { target: "production" });
+  const approvedHealthAdviceCatalog = { configured: true, approvedEntryCount: 30 };
+  const unreviewedCatalog = buildProductionEnvMatrix(readyEnv, { target: "production" });
+  assert.equal(unreviewedCatalog.status, "BLOCKED");
+  assert.ok(unreviewedCatalog.groups.find((group) => group.id === "health_advice_catalog")
+    .missingRequired.some((item) => item.includes("当前 0/30")));
+
+  const ready = buildProductionEnvMatrix(readyEnv, {
+    target: "production",
+    healthAdviceCatalog: approvedHealthAdviceCatalog,
+  });
   assert.equal(ready.status, "READY");
   assert.equal(ready.groups.some((group) => group.id === "v1_runtime_control"), false);
   assert.equal(ready.groups.every((group) => ["PASS", "OPTIONAL"].includes(group.status)), true);
 
-  const endpointOnly = buildProductionEnvMatrix({
+  const catalogReviewed = buildProductionEnvMatrix({
     ...readyEnv,
-    ROOT_HEALTH_ADVICE_MODEL_BASE_URL: "",
-    ROOT_HEALTH_ADVICE_MODEL_ENDPOINT: "https://model.example.com/v1/chat/completions",
-  }, { target: "production" });
-  assert.equal(endpointOnly.status, "READY");
+    ROOT_HEALTH_ADVICE_CATALOG_REVIEWED: "true",
+  }, { target: "production", healthAdviceCatalog: approvedHealthAdviceCatalog });
+  assert.equal(catalogReviewed.status, "READY");
 
   const blocked = buildProductionEnvMatrix({}, { target: "production" });
   assert.equal(blocked.status, "BLOCKED");
@@ -894,19 +884,27 @@ test("production environment matrix validates the formal launch runtime", () => 
   }, { target: "production" });
   assert.equal(invalidRetention.status, "BLOCKED");
 
-  const modelLogRetentionMismatch = buildProductionEnvMatrix({
+  const catalogReviewMissing = buildProductionEnvMatrix({
     ...readyEnv,
-    ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "30",
+    ROOT_HEALTH_ADVICE_CATALOG_REVIEWED: "false",
   }, { target: "production" });
-  assert.equal(modelLogRetentionMismatch.status, "BLOCKED");
-  assert.ok(modelLogRetentionMismatch.groups.find((group) => group.id === "health_ai_data_policy")
-    .missingRequired.includes("ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS=7"));
+  assert.equal(catalogReviewMissing.status, "BLOCKED");
+  assert.ok(catalogReviewMissing.groups.find((group) => group.id === "health_advice_catalog")
+    .missingRequired.includes("ROOT_HEALTH_ADVICE_CATALOG_REVIEWED=true"));
 
-  const unsafeModelEndpoint = buildProductionEnvMatrix({
+  const catalogVersionMismatch = buildProductionEnvMatrix({
     ...readyEnv,
-    ROOT_HEALTH_ADVICE_MODEL_BASE_URL: "http://model.example.com/v1",
+    ROOT_HEALTH_ADVICE_CATALOG_VERSION: "root4u-health-advice-catalog-v0",
   }, { target: "production" });
-  assert.equal(unsafeModelEndpoint.status, "BLOCKED");
+  assert.equal(catalogVersionMismatch.status, "BLOCKED");
+
+  const forbiddenRuntimeModelCredential = buildProductionEnvMatrix({
+    ...readyEnv,
+    ROOT_HEALTH_ADVICE_MODEL_API_KEY: "must-not-exist-in-runtime",
+  }, { target: "production", healthAdviceCatalog: approvedHealthAdviceCatalog });
+  assert.equal(forbiddenRuntimeModelCredential.status, "BLOCKED");
+  assert.ok(forbiddenRuntimeModelCredential.groups.find((group) => group.id === "health_advice_catalog")
+    .missingRequired.some((item) => item.includes("必须移除 ROOT_HEALTH_ADVICE_MODEL_API_KEY")));
 
   const invalidPrivacyContact = buildProductionEnvMatrix({
     ...readyEnv,
@@ -964,10 +962,10 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.equal(notice.data.retentionDays, 180);
   assert.match(notice.data.retentionText, /180 天/);
   assert.match(notice.data.retentionText, /24 小时内删除/);
-  assert.match(notice.data.modelProcessingText, /腾讯云 CloudBase AI/);
-  assert.match(notice.data.modelProcessingText, /不发送姓名、手机号、微信身份标识、安全分流标记、原始问卷答案或自由文本/);
-  assert.equal(notice.data.dataManagement.providerLogRetentionDays, 7);
-  assert.equal(notice.data.dataManagement.providerCacheRetentionMinutes, 5);
+  assert.match(notice.data.modelProcessingText, /腾讯云 CloudBase AI|CloudBase AI/);
+  assert.match(notice.data.modelProcessingText, /不接收任何真实用户的身份、问卷答案、评测结果、健康状态、请求日志或其他个人信息/);
+  assert.match(notice.data.modelProcessingText, /不会发起实时模型调用/);
+  assert.equal(notice.data.dataManagement.runtimeModelPersonalDataTransfer, false);
   assert.equal(notice.data.dataManagement.backupRetentionDays, 30);
   assert.equal(notice.data.version, "0.7.0");
   assert.equal(notice.data.releaseId, "0.7.0");

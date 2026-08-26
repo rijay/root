@@ -42,9 +42,9 @@ test("health consent records grant and withdrawal as append-only decisions", () 
   }, context);
   assert.equal(granted.active, true);
   assert.equal(granted.recorded, true);
-  assert.match(privacyConsent.HEALTH_CONSENT_POLICY_VERSION, /2026-08-26-v7$/);
-  assert.ok(data.privacyConsentRecords[0].purposes_json.some((item) => item.includes("腾讯云 CloudBase AI")));
-  assert.ok(data.privacyConsentRecords[0].data_categories_json.some((item) => item.includes("原始问卷答案")));
+  assert.match(privacyConsent.HEALTH_CONSENT_POLICY_VERSION, /2026-08-26-v8$/);
+  assert.ok(data.privacyConsentRecords[0].purposes_json.some((item) => item.includes("通用建议目录")));
+  assert.ok(data.privacyConsentRecords[0].data_categories_json.some((item) => item.includes("不发送给模型")));
 
   const unchanged = privacyConsent.recordHealthConsentDecision(data, rootUserId, {
     decision: "GRANTED",
@@ -97,7 +97,7 @@ test("health consent rejects a health-content retention period above the fixed 1
   assert.equal(status.configured, false);
 });
 
-test("health consent notice discloses minimum model processing and invalidates the previous policy version", () => {
+test("health consent notice discloses offline synthetic catalog processing and invalidates the previous policy version", () => {
   const data = createSeedData();
   data.privacyConsentRecords.push({
     privacy_consent_record_id: "old-model-policy-consent",
@@ -108,17 +108,17 @@ test("health consent notice discloses minimum model processing and invalidates t
   });
 
   const status = privacyConsent.getHealthConsentStatus(data, "root-user-model-policy", { env: consentEnv });
-  assert.equal(status.active, false, "新增模型受托处理说明后必须重新单独同意");
-  assert.match(status.notice.modelProcessingText, /腾讯云 CloudBase AI/);
-  assert.match(status.notice.modelProcessingText, /评测类型、问卷版本、结果代码和状态标题/);
-  assert.match(status.notice.modelProcessingText, /不发送姓名、手机号、微信身份标识、安全分流标记、原始问卷答案或自由文本/);
-  assert.match(status.notice.modelProcessingText, /请求和响应日志最长保留 7 天/);
-  assert.match(status.notice.modelProcessingText, /最长 5 分钟的临时缓存/);
-  assert.match(status.notice.modelProcessingText, /自动改用经审核固定建议/);
+  assert.equal(status.active, false, "建议目录处理方式变更后必须重新单独同意");
+  assert.match(status.notice.modelProcessingText, /CloudBase AI/);
+  assert.match(status.notice.modelProcessingText, /30 个合成状态场景/);
+  assert.match(status.notice.modelProcessingText, /不接收任何真实用户/);
+  assert.match(status.notice.modelProcessingText, /不会发起实时模型调用/);
+  assert.match(status.notice.modelProcessingText, /自动使用经审核固定建议/);
   assert.match(status.notice.retentionText, /问卷答案、评测结果、回测记录和健康建议/);
   assert.match(status.notice.retentionText, /24 小时内删除/);
-  assert.equal(status.notice.dataManagement.providerLogRetentionDays, 7);
-  assert.equal(status.notice.dataManagement.providerCacheRetentionMinutes, 5);
+  assert.equal(status.notice.dataManagement.providerLogRetentionDays, undefined);
+  assert.equal(status.notice.dataManagement.providerCacheRetentionMinutes, undefined);
+  assert.equal(status.notice.dataManagement.runtimeModelPersonalDataTransfer, false);
   assert.equal(status.notice.dataManagement.backupRetentionDays, 30);
   assert.equal(status.notice.dataManagement.securityLogRetentionDays, 180);
   assert.equal(status.notice.dataManagement.privacyEvidenceRetentionDays, 1095);

@@ -6,9 +6,23 @@ const {
 } = require("./keyRotationConfiguration");
 const { parseScopedJobRouteTokens } = require("./jobRouteToken");
 const { resolveWechatOpenApiUrl } = require("./wechatOpenApiEndpoint");
+const { defaultCatalog: defaultHealthAdviceCatalog } = require("./healthAdviceCatalog");
 
 const FORMAL_JOB_ROUTES = Object.freeze([
   "/api/v1/jobs/health-data-retention-cleanup",
+]);
+
+const FORBIDDEN_HEALTH_ADVICE_RUNTIME_ENV = Object.freeze([
+  "ROOT_HEALTH_ADVICE_MODEL_ENABLED",
+  "ROOT_HEALTH_ADVICE_MODEL_BASE_URL",
+  "ROOT_HEALTH_ADVICE_MODEL_ENDPOINT",
+  "ROOT_HEALTH_ADVICE_MODEL_API_KEY",
+  "ROOT_HEALTH_ADVICE_MODEL_NAME",
+  "ROOT_HEALTH_ADVICE_CATALOG_MODEL_ENABLED",
+  "ROOT_HEALTH_ADVICE_CATALOG_MODEL_BASE_URL",
+  "ROOT_HEALTH_ADVICE_CATALOG_MODEL_ENDPOINT",
+  "ROOT_HEALTH_ADVICE_CATALOG_MODEL_API_KEY",
+  "ROOT_HEALTH_ADVICE_CATALOG_MODEL_NAME",
 ]);
 
 const ENV_GROUPS = [
@@ -76,41 +90,18 @@ const ENV_GROUPS = [
     action: "开启健康类敏感信息单独同意，配置处理者、联系方式和保存天数，并启用可审计的到期脱敏与 CloudBase 图片清理 Job。",
   },
   {
-    id: "health_ai_data_policy",
-    label: "健康建议模型数据规范",
-    ownerRole: "产品/研发/合规",
+    id: "health_advice_catalog",
+    label: "健康建议审核目录",
+    ownerRole: "产品/研发/内容审核",
     required: [
-      "ROOT_HEALTH_ADVICE_MODEL_ENABLED",
-      "ROOT_HEALTH_ADVICE_MODEL_API_KEY",
-      "ROOT_HEALTH_ADVICE_MODEL_NAME",
-      "ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME",
-      "ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE",
-      "ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION",
-      "ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS",
-      "ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS",
-      "ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_MINUTES",
-      "ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED",
+      "ROOT_HEALTH_ADVICE_CATALOG_VERSION",
+      "ROOT_HEALTH_ADVICE_CATALOG_REVIEWED",
     ],
-    anyOf: [["ROOT_HEALTH_ADVICE_MODEL_BASE_URL", "ROOT_HEALTH_ADVICE_MODEL_ENDPOINT"]],
-    anyOfRules: {
-      ROOT_HEALTH_ADVICE_MODEL_BASE_URL: "https_endpoint",
-      ROOT_HEALTH_ADVICE_MODEL_ENDPOINT: "https_endpoint",
-    },
     requiredValues: {
-      ROOT_HEALTH_ADVICE_MODEL_ENABLED: ["true"],
-      ROOT_HEALTH_ADVICE_MODEL_SECONDARY_USE: ["none"],
-      ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION: ["cn_mainland"],
-      ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS: ["none"],
-      ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: ["7"],
-      ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_MINUTES: ["5"],
-      ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED: ["true"],
+      ROOT_HEALTH_ADVICE_CATALOG_VERSION: ["root4u-health-advice-catalog-v1"],
+      ROOT_HEALTH_ADVICE_CATALOG_REVIEWED: ["true"],
     },
-    requiredRules: {
-      ROOT_HEALTH_ADVICE_MODEL_API_KEY: "nonblank_value",
-      ROOT_HEALTH_ADVICE_MODEL_NAME: "opaque_ascii_128",
-      ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME: "nonblank_value",
-    },
-    action: "正式模型调用只允许中国大陆境内处理、无其他受托方和无训练等二次使用；确认 CloudBase 请求/响应日志最长保留 7 天、服务端临时缓存最长 5 分钟，保存账户或合同级脱敏证据，再把数据规范核验标记为 true。",
+    action: "发布前确认 30 个合成状态场景全部生成、逐条通过内容与安全审核，并将审核人、审核时间、目录版本和候选工件证据归档；正式运行环境不得配置模型 API Key，也不得发起实时模型调用。",
   },
   {
     id: "store",
@@ -603,12 +594,23 @@ function anyOfRows(env, groups = [], rules = {}) {
   });
 }
 
-function crossGroupMissing(group, env) {
-  if (group.id !== "cloudbase_jobs") return [];
-  return String(env && env.ROOT_REQUIRE_SCOPED_JOB_TOKENS || "") === "true"
-    && !isJobRouteTokenRotation(env && env.ROOT_ADMIN_JOB_ROUTE_TOKENS)
-    ? ["ROOT_ADMIN_JOB_ROUTE_TOKENS=每个 exact Job route 的独立轮换 token"]
-    : [];
+function crossGroupMissing(group, env, context = {}) {
+  if (group.id === "health_advice_catalog") {
+    const catalog = context.healthAdviceCatalog || defaultHealthAdviceCatalog;
+    const missing = catalog && catalog.configured
+      ? []
+      : [`health-advice-catalog=需要 30/30 条已审核内容（当前 ${Number(catalog && catalog.approvedEntryCount) || 0}/30）`];
+    const forbidden = FORBIDDEN_HEALTH_ADVICE_RUNTIME_ENV.filter((name) => present(env, name));
+    if (forbidden.length) missing.push(`health-advice-runtime-model-env=必须移除 ${forbidden.join(", ")}`);
+    return missing;
+  }
+  if (group.id === "cloudbase_jobs") {
+    return String(env && env.ROOT_REQUIRE_SCOPED_JOB_TOKENS || "") === "true"
+      && !isJobRouteTokenRotation(env && env.ROOT_ADMIN_JOB_ROUTE_TOKENS)
+      ? ["ROOT_ADMIN_JOB_ROUTE_TOKENS=每个 exact Job route 的独立轮换 token"]
+      : [];
+  }
+  return [];
 }
 
 function groupStatus(group, target, missingRequired, missingAnyOf) {
@@ -625,14 +627,14 @@ function groupMessage(group, missingRequired, missingAnyOf) {
   return parts.length ? `${parts.join("；")}。${group.action}` : "必要环境变量已配置。";
 }
 
-function buildGroup(group, env, target) {
+function buildGroup(group, env, target, context = {}) {
   const required = envRows(env, group.required || [], group.requiredValues || {}, group.requiredRules || {});
   const anyOf = anyOfRows(env, group.anyOf || [], group.anyOfRules || {});
   const optional = envRows(env, group.optional || [], {}, group.optionalRules || {});
   const missingRequired = required
     .filter((item) => !item.present || !item.valid)
     .map((item) => item.valid ? item.name : `${item.name}=${item.expectedValues[0] || item.expectedDescription}`);
-  missingRequired.push(...crossGroupMissing(group, env));
+  missingRequired.push(...crossGroupMissing(group, env, context));
   missingRequired.push(...optional
     .filter((item) => item.present && !item.valid)
     .map((item) => `${item.name}=${item.expectedDescription}`));
@@ -683,7 +685,7 @@ function flattenMissingEnv(groups) {
 
 function buildProductionEnvMatrix(env = process.env, options = {}) {
   const target = normalizeTarget(options.target);
-  const groups = ENV_GROUPS.map((group) => buildGroup(group, env, target));
+  const groups = ENV_GROUPS.map((group) => buildGroup(group, env, target, options));
   const summary = summarize(groups);
   return {
     title: "ROOT 生产环境变量矩阵",

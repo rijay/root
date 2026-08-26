@@ -1,12 +1,16 @@
 const { nowISO } = require("./dates");
 const { createId } = require("./seed");
+const {
+  CATALOG_PROMPT_VERSION,
+  defaultCatalog,
+  validateCatalogAdvice,
+} = require("./healthAdviceCatalog");
 
 const REQUIRED_TYPES = Object.freeze(["INITIAL", "GUT_REGULARITY"]);
 const COMPLETED_STATUSES = new Set(["COMPLETED", "SAFETY_STOPPED"]);
-const PROMPT_VERSION = "root4u-health-advice-prompt-v1";
-const CONTENT_VERSION = "root4u-reviewed-fallback-v1";
+const PROMPT_VERSION = CATALOG_PROMPT_VERSION;
+const CONTENT_VERSION = "root4u-reviewed-fallback-v2";
 const RULE_VERSION = "root4u-combined-state-v1";
-const FORBIDDEN_MODEL_COPY = /诊断|治疗|治愈|疗效|处方|停药|换药|疾病判断|保证有效|药物剂量/;
 
 function text(value, fallback = "") {
   const normalized = String(value || "").trim();
@@ -69,8 +73,8 @@ function publicAdvice(snapshot) {
   return {
     adviceId: snapshot.health_advice_snapshot_id,
     source: snapshot.advice_source,
-    sourceLabel: snapshot.advice_source === "MODEL_ASSISTED" ? "AI 辅助生成" : "经审核规则建议",
-    modelName: snapshot.advice_source === "MODEL_ASSISTED" ? snapshot.model_name : "",
+    sourceLabel: snapshot.advice_source === "REVIEWED_MODEL_CATALOG" ? "AI 辅助生成，经审核" : "经审核规则建议",
+    modelName: snapshot.advice_source === "REVIEWED_MODEL_CATALOG" ? snapshot.model_name : "",
     promptVersion: snapshot.prompt_version,
     contentVersion: snapshot.content_version,
     generatedAt: snapshot.generated_at,
@@ -125,31 +129,8 @@ function safetyAdvice() {
   };
 }
 
-function normalizedList(value, maxItems, maxLength) {
-  if (!Array.isArray(value)) return [];
-  return value.map((item) => text(item).slice(0, maxLength)).filter(Boolean).slice(0, maxItems);
-}
-
 function validateModelAdvice(value) {
-  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
-  const advice = {
-    summary: text(source.summary).slice(0, 240),
-    actions: normalizedList(source.actions, 3, 120),
-    cautions: normalizedList(source.cautions, 3, 120),
-    followUp: text(source.followUp).slice(0, 160),
-  };
-  if (!advice.summary || advice.actions.length !== 3 || !advice.followUp) return null;
-  if (FORBIDDEN_MODEL_COPY.test(JSON.stringify(advice))) return null;
-  return advice;
-}
-
-function modelInput(states) {
-  return states.map((item) => ({
-    assessmentType: item.assessmentType,
-    questionnaireVersion: item.questionnaireVersion,
-    resultCode: item.resultCode,
-    title: item.title,
-  }));
+  return validateCatalogAdvice(value);
 }
 
 function snapshotState(states) {
@@ -168,16 +149,15 @@ async function generate(data, rootUserId, context = {}) {
   if (current.advice) return { ...current, reused: true };
 
   const safetyStopped = current.states.some((item) => item.safetyStopped);
-  const adapter = context.healthAdviceModelAdapter;
   let advice = safetyStopped ? safetyAdvice() : null;
   let adviceSource = safetyStopped ? "REVIEWED_SAFETY" : "REVIEWED_FALLBACK";
-  if (!safetyStopped && adapter && adapter.configured && typeof adapter.generate === "function") {
-    try {
-      advice = validateModelAdvice(await adapter.generate({ states: modelInput(current.states) }));
-      if (advice) adviceSource = "MODEL_ASSISTED";
-    } catch (error) {
-      advice = null;
-    }
+  const catalog = context.healthAdviceCatalog || defaultCatalog;
+  const catalogEntry = !safetyStopped && catalog && typeof catalog.lookup === "function"
+    ? catalog.lookup(current.states)
+    : null;
+  if (catalogEntry) {
+    advice = validateCatalogAdvice(catalogEntry.advice);
+    if (advice) adviceSource = "REVIEWED_MODEL_CATALOG";
   }
   if (!advice) advice = fallbackAdvice(current.states);
 
@@ -191,10 +171,10 @@ async function generate(data, rootUserId, context = {}) {
     states_json: snapshotState(current.states),
     advice_json: advice,
     advice_source: adviceSource,
-    adapter_id: adviceSource === "MODEL_ASSISTED" ? text(adapter.adapterId) : "ROOT4U_REVIEWED_CONTENT",
-    model_name: adviceSource === "MODEL_ASSISTED" ? text(adapter.modelName) : "",
+    adapter_id: adviceSource === "REVIEWED_MODEL_CATALOG" ? text(catalog.adapterId) : "ROOT4U_REVIEWED_CONTENT",
+    model_name: adviceSource === "REVIEWED_MODEL_CATALOG" ? text(catalog.modelName) : "",
     prompt_version: PROMPT_VERSION,
-    content_version: CONTENT_VERSION,
+    content_version: adviceSource === "REVIEWED_MODEL_CATALOG" ? text(catalog.catalogVersion) : CONTENT_VERSION,
     rule_version: RULE_VERSION,
     generated_at: now,
     created_at: now,
@@ -211,7 +191,6 @@ module.exports = {
   RULE_VERSION,
   fallbackAdvice,
   generate,
-  modelInput,
   overview,
   safetyAdvice,
   validateModelAdvice,

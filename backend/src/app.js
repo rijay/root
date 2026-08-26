@@ -21,7 +21,6 @@ const { clientErrorResponse, createClientError } = require("./clientError");
 const sessionModule = require("./sessionModule");
 const adminFormalUserQuery = require("./adminFormalUserQuery");
 const v060Api = require("./v060Api");
-const { createEnvironmentHealthAdviceModelAdapter } = require("./healthAdviceModelAdapter");
 const { createEnvironmentYouzanCommerceAdapter } = require("./youzanCommerceAdapter");
 
 const {
@@ -534,8 +533,6 @@ function createApp(options = {}) {
   const performanceMetricsModule = options.performanceMetricsModule || createPerformanceMetricsModule({
     logger: options.performanceLogger || console,
   });
-  const healthAdviceModelAdapter = options.healthAdviceModelAdapter
-    || createEnvironmentHealthAdviceModelAdapter(runtimeEnv, { fetchImpl: options.fetchImpl });
   const youzanCommerceAdapter = options.youzanCommerceAdapter
     || createEnvironmentYouzanCommerceAdapter(runtimeEnv, {
       fetchImpl: options.fetchImpl,
@@ -552,7 +549,7 @@ function createApp(options = {}) {
     trustedWechatIdentityAdapter: options.trustedWechatIdentityAdapter,
     activityPublicationAuthorizationAdapter: options.activityPublicationAuthorizationAdapter,
     activityAssetAdapter: options.activityAssetAdapter,
-    healthAdviceModelAdapter,
+    healthAdviceCatalog: options.healthAdviceCatalog,
     memberCommerceAdapter: options.memberCommerceAdapter || youzanCommerceAdapter,
     productCommerceAdapter: options.productCommerceAdapter || youzanCommerceAdapter,
     runtimeMetadata,

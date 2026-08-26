@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const {
-  MODEL_ASSISTED,
+  REVIEWED_MODEL_CATALOG,
   REVIEWED_FALLBACK,
   resolveExpectedSource,
   validateResult,
@@ -10,19 +10,19 @@ const {
 
 function result(overrides = {}) {
   return {
-    expectedSource: MODEL_ASSISTED,
+    expectedSource: REVIEWED_MODEL_CATALOG,
     ready: true,
     initialResult: "STEADY",
     gutResult: "HEALTHY",
-    adviceSource: MODEL_ASSISTED,
+    adviceSource: REVIEWED_MODEL_CATALOG,
     modelName: "hy3",
     actionCount: 3,
     ...overrides,
   };
 }
 
-test("local health advice verification keeps model-assisted as the strict default", () => {
-  assert.equal(resolveExpectedSource([]), MODEL_ASSISTED);
+test("local health advice verification keeps reviewed catalog as the strict default", () => {
+  assert.equal(resolveExpectedSource([]), REVIEWED_MODEL_CATALOG);
   assert.equal(resolveExpectedSource(["--expected-source=REVIEWED_FALLBACK"]), REVIEWED_FALLBACK);
   assert.throws(
     () => resolveExpectedSource(["--expected-source=AUTO"]),

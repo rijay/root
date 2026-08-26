@@ -1,7 +1,7 @@
 const ADVICE_SOURCE_PRESENTATION = Object.freeze({
-  MODEL_ASSISTED: Object.freeze({
+  REVIEWED_MODEL_CATALOG: Object.freeze({
     tone: "model",
-    hint: "由 AI 根据两项评测状态辅助生成，并通过结构与安全规则校验。",
+    hint: "由 AI 基于合成状态辅助生成，经人工审核后收录；你的评测数据不会发送给模型。",
   }),
   REVIEWED_FALLBACK: Object.freeze({
     tone: "fallback",
@@ -9,7 +9,7 @@ const ADVICE_SOURCE_PRESENTATION = Object.freeze({
   }),
   REVIEWED_SAFETY: Object.freeze({
     tone: "safety",
-    hint: "当前结果进入安全提示分支，本次未调用模型。",
+    hint: "当前结果进入安全提示分支，本次未调用模型，使用经审核的安全提示。",
   }),
 });
 
