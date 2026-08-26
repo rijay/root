@@ -24,6 +24,11 @@
       <view class="consent-note">{{notice.necessity}}</view>
     </view>
 
+    <view wx:if="{{notice.modelProcessingText}}" class="consent-section">
+      <view class="section-title">模型辅助建议</view>
+      <view class="consent-note">{{notice.modelProcessingText}}</view>
+    </view>
+
     <view class="consent-section">
       <view class="section-title">拒绝与保存</view>
       <view class="consent-note">{{notice.refusalImpact}}</view>

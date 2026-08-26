@@ -11,7 +11,7 @@
   </view>
 
   <view wx:if="{{documentType === 'privacy' && privacyNotice && privacyNotice.configured}}" class="legal-section">
-    <view class="section-title">八、个人信息处理者与联系方式</view>
+    <view class="section-title">六、个人信息处理者与联系方式</view>
     <view class="body legal-copy">个人信息处理者：{{privacyNotice.controllerName}}</view>
     <view class="body legal-copy">联系方式：{{privacyNotice.contact}}</view>
     <view class="body legal-copy">{{privacyNotice.retentionText}}</view>

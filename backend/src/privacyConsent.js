@@ -4,12 +4,13 @@ const { createId } = require("./seed");
 const { createClientError } = require("./clientError");
 
 const HEALTH_CONSENT_TYPE = "HEALTH_SENSITIVE_INFO";
-const HEALTH_CONSENT_POLICY_VERSION = "root4u-health-sensitive-2026-08-25-v2";
+const HEALTH_CONSENT_POLICY_VERSION = "root4u-health-sensitive-2026-08-26-v3";
 const DECISIONS = new Set(["GRANTED", "WITHDRAWN"]);
 
 const PURPOSES = [
   "完成 Root4U 健康起点评测与生活方式分类",
   "生成日常生活方式建议和后续评测推荐",
+  "在两项评测均完成且未进入安全提示分支时，将评测规则生成的最小结构化状态交由腾讯云 CloudBase AI 受托生成辅助建议",
   "在账号中保存问卷答案、评测结果和回测记录，支持跨设备查看与主动删除",
   "在出现需要进一步确认的信息时提供必要人工协助",
 ];
@@ -18,6 +19,7 @@ const DATA_CATEGORIES = [
   "排便频率、便便形态与消化感受",
   "睡眠、活动、饮食、饮水、压力和精力情况",
   "健康目标、安全与适用性确认",
+  "评测类型、问卷版本、结果代码、状态标题和安全分流标记（模型不接收姓名、手机号、微信身份标识、原始问卷答案或自由文本）",
 ];
 
 function ensureList(data) {
@@ -78,6 +80,7 @@ function noticePayload(config) {
     dataCategories: DATA_CATEGORIES.slice(),
     necessity: "这些信息会安全保存到你的 myRoot 账号，仅用于你主动参加的 Root4U 评测、生活方式建议、历史回测和必要人工协助，不用于医疗诊断。",
     refusalImpact: "不同意不会影响首页、活动和会员支持，但无法提交 Root4U 健康评测或查看基于评测生成的建议。",
+    modelProcessingText: "仅在两项评测均完成且未进入安全提示分支时，才会将评测类型、问卷版本、结果代码、状态标题和安全分流标记交由腾讯云 CloudBase AI 受托生成辅助建议；不发送姓名、手机号、微信身份标识、原始问卷答案或自由文本。模型不可用或输出未通过安全校验时，自动改用经审核固定建议。",
     controllerName: config.controllerName,
     contact: config.contact,
     retentionDays: config.retentionDays,

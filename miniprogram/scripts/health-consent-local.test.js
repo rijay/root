@@ -42,6 +42,7 @@ getHealthConsentStatus()
     assert.equal(localNotice.retentionDays, 180);
     assert.match(localNotice.necessity, /仅在当前设备处理/);
     assert.match(localNotice.necessity, /不上传至 myRoot 服务器/);
+    assert.match(localNotice.modelProcessingText, /不调用模型服务/);
     assert.match(localNotice.retentionText, /最长保留 180 天/);
     assert.match(localNotice.retentionText, /到期自动从本机删除/);
     env.healthAssessmentStorageMode = "SERVER";

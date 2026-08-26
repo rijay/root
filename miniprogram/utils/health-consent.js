@@ -15,6 +15,7 @@ function presentHealthPrivacyNotice(notice = {}) {
     storageMode: "LOCAL_DEVICE",
     purposes: LOCAL_DEVICE_PURPOSES.slice(),
     necessity: "问卷答案、评测结果和回测记录仅在当前设备处理，不上传至 myRoot 服务器；服务器仅保存同意或撤回的审计记录，以及保障接口安全所必需的最少技术记录，不包含问卷答案和评测结果。",
+    modelProcessingText: "当前设备模式不调用模型服务，仅展示经审核的固定生活方式建议。",
     retentionDays,
     retentionText: `问卷答案、评测结果和回测记录自最后保存起最长保留 ${retentionDays} 天，到期自动从本机删除；你也可通过微信清理小程序数据提前删除。更换设备或清理数据后无法恢复。同意或撤回审计记录按法律与安全所需的最短期限保存。`,
   };

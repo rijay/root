@@ -19,6 +19,7 @@ Page({
       dataCategories: [],
       necessity: "",
       refusalImpact: "",
+      modelProcessingText: "",
       controllerName: "",
       contact: "",
       retentionText: "",
