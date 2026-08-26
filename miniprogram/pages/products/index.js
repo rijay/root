@@ -12,6 +12,7 @@ const { listProducts } = require("../../utils/product-api");
 const { jumpToYouzanProduct, mergeJumpTarget } = require("../../utils/youzan-jump");
 const { failureReason, track } = require("../../utils/analytics");
 const { showFriendShareMenu } = require("../../utils/page-share");
+const { performanceMonitor } = require("../../utils/performance-monitor");
 
 function decorateProducts(products = []) {
   return products.map((product, index) => ({
@@ -39,6 +40,7 @@ Page({
   },
 
   onLoad(options = {}) {
+    this._pageStartedAt = Date.now();
     this.viewState = readProductViewState();
     this.carouselScrollLeft = this.viewState.scrollLeft;
     this.pageScrollTop = this.viewState.scrollTop;
@@ -100,6 +102,7 @@ Page({
         catalogNotice: data.degradedText || "",
         loading: false,
       }, () => {
+        this.recordUsableContent(products.length ? "CONTENT_READY" : "EMPTY_READY");
         if (!focus.requestedUnavailable && focusProductId && focusProductId !== savedProductId) {
           this.focusProduct(defaultProductId, { resetPageScroll: true });
         }
@@ -107,8 +110,21 @@ Page({
         this.recordProductImpression(defaultProductId);
       });
     } catch (error) {
-      this.setData({ errorText: error.message || "商品加载失败", loading: false });
+      this.setData({ errorText: error.message || "商品加载失败", loading: false }, () => {
+        this.recordUsableContent("ERROR_READY");
+      });
     }
+  },
+
+  recordUsableContent(status) {
+    if (this._usableContentRecorded) return;
+    this._usableContentRecorded = true;
+    performanceMonitor.recordPageMetric({
+      page: "pages/products/index",
+      entry: "usable_content",
+      durationMs: Date.now() - this._pageStartedAt,
+      status,
+    });
   },
 
   focusProduct(productId, options = {}) {
@@ -170,6 +186,20 @@ Page({
   productImageFailed(event) {
     const productId = String(event.currentTarget.dataset.productId || "");
     if (productId) this.setData({ [`failedProductImages.${productId}`]: true });
+    performanceMonitor.recordImageResult({
+      page: "pages/products/index",
+      entry: "product_image",
+      status: "LOAD_FAILED",
+      errorCode: "IMAGE_LOAD_FAILED",
+    });
+  },
+
+  productImageLoaded() {
+    performanceMonitor.recordImageResult({
+      page: "pages/products/index",
+      entry: "product_image",
+      status: "LOAD_SUCCESS",
+    });
   },
 
   onProductScroll(event = {}) {

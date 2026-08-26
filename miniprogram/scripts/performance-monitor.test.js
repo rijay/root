@@ -92,6 +92,57 @@ async function main() {
     status: "RESULT_UNKNOWN",
     write: true,
   }).accepted, true);
+  assert.equal(sampledReleaseMonitor.recordImageResult({
+    page: "pages/home/index",
+    entry: "home_banner",
+    status: "LOAD_SUCCESS",
+  }).reason, "SAMPLED_OUT");
+  assert.equal(sampledReleaseMonitor.recordImageResult({
+    page: "pages/home/index",
+    entry: "home_banner",
+    status: "LOAD_FAILED",
+    errorCode: "IMAGE_LOAD_FAILED",
+  }).reason, "SAMPLED_OUT");
+
+  const loadingEvents = [];
+  const loadingMonitor = createPerformanceMonitor({
+    envVersion: "trial",
+    enabled: true,
+    now: () => ++now,
+    random: () => 0,
+    uploader: async (batch) => loadingEvents.push(...batch.events),
+  });
+  assert.equal(loadingMonitor.recordPageMetric({
+    page: "pages/profile/index",
+    entry: "profile_refresh",
+    durationMs: 184,
+    status: "REFRESH_SUCCESS",
+    nickname: "must-not-be-collected",
+  }).accepted, true);
+  assert.equal(loadingMonitor.recordImageResult({
+    page: "pages/products/index",
+    entry: "product_image",
+    status: "LOAD_FAILED",
+    errorCode: "IMAGE_LOAD_FAILED",
+    imageUrl: "https://example.invalid/private.png",
+  }).accepted, true);
+  await loadingMonitor.flush();
+  assert.deepEqual(loadingEvents.map(({ name, page, entry, status }) => ({ name, page, entry, status })), [
+    {
+      name: "page",
+      page: "pages/profile/index",
+      entry: "profile_refresh",
+      status: "REFRESH_SUCCESS",
+    },
+    {
+      name: "image",
+      page: "pages/products/index",
+      entry: "product_image",
+      status: "LOAD_FAILED",
+    },
+  ]);
+  assert.ok(!JSON.stringify(loadingEvents).includes("must-not-be-collected"));
+  assert.ok(!JSON.stringify(loadingEvents).includes("private.png"));
 
   let failures = 0;
   const resilientMonitor = createPerformanceMonitor({

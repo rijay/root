@@ -21,7 +21,7 @@ const baselineHashes = Object.freeze({
   "pages/login/index.wxss": "0f1e5044abe90631bcdd368f0071747fbe3171f820407b9c7829814d1807a59d",
   "pages/register/index.wxml": "e5d9a8ec1cb836680373d333f15ff0cbd69227a0da13607540044de7701c059f",
   "pages/register/index.wxss": "2526017a545c6dd1b7fdbd8138cf738d659933e83878fae284e2530e19dd5b8b",
-  "pages/profile/index.wxml": "113e2d24fd7a6b0e0539fb1c26afef3d8fc7d050e2f99afdf252ee5bc060875c",
+  "pages/profile/index.wxml": "6b46e91e30f24a7e28e1c833b937685cfb9ed898663e445b42c4ff21bc71c176",
   "pages/profile/index.wxss": "9098589ff531039922c1b177d21bc5eb740b7a63c7914f77681cc5f398941755",
 });
 

@@ -5,6 +5,7 @@ const { presentHome } = require("../../utils/content-presenter");
 const { executeContentAction } = require("../../utils/content-action");
 const { defaultOnShareAppMessage } = require("../../utils/page-share");
 const { track } = require("../../utils/analytics");
+const { performanceMonitor } = require("../../utils/performance-monitor");
 
 const CACHE_KEY = "home";
 const REQUEST_SCOPE = "formal-home-content";
@@ -14,6 +15,7 @@ Page({
   data: { state: "loading", items: [], current: 0, failedImages: {} },
 
   onLoad() {
+    this._pageStartedAt = Date.now();
     const cached = readPublicPageCache(CACHE_KEY, CACHE_OPTIONS);
     if (cached) this.applyContent(cached.value);
     this.loadContent({ background: Boolean(cached) });
@@ -47,8 +49,21 @@ Page({
     const current = selectedIndex >= 0
       ? selectedIndex
       : Math.min(Number(this.data.current || 0), Math.max(0, items.length - 1));
-    this.setData({ state: items.length ? "ready" : "empty", items, current });
+    this.setData({ state: items.length ? "ready" : "empty", items, current }, () => {
+      this.recordUsableContent(items.length ? "CONTENT_READY" : "EMPTY_READY");
+    });
     this.trackImpression(items[current], current);
+  },
+
+  recordUsableContent(status) {
+    if (this._usableContentRecorded) return;
+    this._usableContentRecorded = true;
+    performanceMonitor.recordPageMetric({
+      page: "pages/home/index",
+      entry: "usable_content",
+      durationMs: Date.now() - this._pageStartedAt,
+      status,
+    });
   },
 
   async loadContent(options = {}) {
@@ -96,6 +111,20 @@ Page({
   imageFailed(event) {
     const index = Number(event.currentTarget.dataset.index);
     this.setData({ [`failedImages.${index}`]: true });
+    performanceMonitor.recordImageResult({
+      page: "pages/home/index",
+      entry: "home_banner",
+      status: "LOAD_FAILED",
+      errorCode: "IMAGE_LOAD_FAILED",
+    });
+  },
+
+  imageLoaded() {
+    performanceMonitor.recordImageResult({
+      page: "pages/home/index",
+      entry: "home_banner",
+      status: "LOAD_SUCCESS",
+    });
   },
 
   async openCurrent(event) {

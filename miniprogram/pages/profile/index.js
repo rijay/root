@@ -9,6 +9,7 @@ const { unbindUserScope } = require("../../utils/local-health-assessment");
 const { defaultOnShareAppMessage } = require("../../utils/page-share");
 const { readProfileCache, writeProfileCache } = require("../../utils/profile-cache");
 const { getMemberCommerceSummary } = require("../../utils/member-commerce");
+const { performanceMonitor } = require("../../utils/performance-monitor");
 
 const PROFILE_ROUTE = "/pages/profile/index";
 const PENDING_MEMBER_TARGET_KEY = "ROOT_PROFILE_MEMBER_TARGET_V1";
@@ -53,11 +54,13 @@ Page({
     memberLinkFailure: false,
     failedMemberKey: "",
     profileRefreshFailed: false,
+    profileImageFailed: false,
     memberCommerce: { ready: false, orderHint: "会员中心", couponHint: "会员中心" },
   },
 
   onLoad() {
-    this.setData({ version: runtimeVersion() });
+    this._pageStartedAt = Date.now();
+    this.setData({ version: runtimeVersion() }, () => this.recordUsableContent());
   },
 
   onShow() {
@@ -66,8 +69,8 @@ Page({
     const cached = hasSession ? readProfileCache() : null;
     this.setData(hasSession
       ? cached
-        ? { loggedIn: true, sessionChecking: false, profile: cached.profile, profileRefreshFailed: false }
-        : { loggedIn: true, sessionChecking: true, profile: DEFAULT_PROFILE, profileRefreshFailed: false }
+        ? { loggedIn: true, sessionChecking: false, profile: cached.profile, profileRefreshFailed: false, profileImageFailed: false }
+        : { loggedIn: true, sessionChecking: true, profile: DEFAULT_PROFILE, profileRefreshFailed: false, profileImageFailed: false }
       : {
         loggedIn: false,
         sessionChecking: false,
@@ -75,6 +78,7 @@ Page({
         memberLinkFailure: false,
         failedMemberKey: "",
         profileRefreshFailed: false,
+        profileImageFailed: false,
       });
     if (hasSession) {
       this.loadProfile({ preserveCached: Boolean(cached) });
@@ -84,21 +88,26 @@ Page({
 
   loadProfile(options = {}) {
     if (this._profileLoadPromise) return this._profileLoadPromise;
+    const startedAt = Date.now();
+    let refreshStatus = "REFRESH_FAILED";
     const pending = (async () => {
       try {
         const access = await inspectFormalAccess("profile-home");
         const loggedIn = access.state !== FORMAL_ACCESS_STATE.PHONE_REQUIRED;
         const profile = access.profile || { nickname: loggedIn ? "Root用户" : "未登录", avatarUrl: "" };
+        refreshStatus = loggedIn ? "REFRESH_SUCCESS" : "REFRESH_GUEST";
         if (loggedIn) writeProfileCache(profile);
         this.setData({
           loggedIn,
           sessionChecking: false,
           profile,
           profileRefreshFailed: false,
+          profileImageFailed: false,
         });
         if (loggedIn) this.resumeMemberTarget();
       } catch (error) {
         if (options.preserveCached && getToken()) {
+          refreshStatus = "REFRESH_STALE_CACHE";
           this.setData({ sessionChecking: false, profileRefreshFailed: true });
           return;
         }
@@ -107,12 +116,48 @@ Page({
           sessionChecking: false,
           profile: GUEST_PROFILE,
           profileRefreshFailed: false,
+          profileImageFailed: false,
         });
       }
     })();
     this._profileLoadPromise = pending;
     return pending.finally(() => {
+      performanceMonitor.recordPageMetric({
+        page: "pages/profile/index",
+        entry: "profile_refresh",
+        durationMs: Date.now() - startedAt,
+        status: refreshStatus,
+      });
       if (this._profileLoadPromise === pending) this._profileLoadPromise = null;
+    });
+  },
+
+  recordUsableContent() {
+    if (this._usableContentRecorded) return;
+    this._usableContentRecorded = true;
+    performanceMonitor.recordPageMetric({
+      page: "pages/profile/index",
+      entry: "usable_content",
+      durationMs: Date.now() - this._pageStartedAt,
+      status: "FIRST_FRAME_READY",
+    });
+  },
+
+  profileImageLoaded() {
+    performanceMonitor.recordImageResult({
+      page: "pages/profile/index",
+      entry: "profile_avatar",
+      status: "LOAD_SUCCESS",
+    });
+  },
+
+  profileImageFailed() {
+    this.setData({ profileImageFailed: true });
+    performanceMonitor.recordImageResult({
+      page: "pages/profile/index",
+      entry: "profile_avatar",
+      status: "LOAD_FAILED",
+      errorCode: "IMAGE_LOAD_FAILED",
     });
   },
 
@@ -207,6 +252,7 @@ Page({
       memberLinkFailure: false,
       failedMemberKey: "",
       profileRefreshFailed: false,
+      profileImageFailed: false,
       memberCommerce: { ready: false, orderHint: "会员中心", couponHint: "会员中心" },
     });
     wx.showToast({ title: "已退出登录", icon: "success" });

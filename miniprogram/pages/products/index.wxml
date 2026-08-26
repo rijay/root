@@ -51,7 +51,7 @@
             <text>{{item.productCode}}</text>
           </view>
           <view wx:if="{{item.imageUrl && !failedProductImages[item.productId]}}" class="product-visual product-visual--photo">
-            <image class="product-image" src="{{item.imageUrl}}" mode="aspectFit" lazy-load="{{index > 0}}" data-product-id="{{item.productId}}" binderror="productImageFailed" aria-hidden="true" />
+            <image class="product-image" src="{{item.imageUrl}}" mode="aspectFit" lazy-load="{{index > 0}}" data-product-id="{{item.productId}}" bindload="productImageLoaded" binderror="productImageFailed" aria-hidden="true" />
           </view>
           <view wx:else class="product-visual product-visual--generated">
             <view class="packshot-shadow"></view>
