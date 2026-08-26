@@ -149,6 +149,15 @@ function modelInput(states) {
     questionnaireVersion: item.questionnaireVersion,
     resultCode: item.resultCode,
     title: item.title,
+  }));
+}
+
+function snapshotState(states) {
+  return states.map((item) => ({
+    assessmentType: item.assessmentType,
+    questionnaireVersion: item.questionnaireVersion,
+    resultCode: item.resultCode,
+    title: item.title,
     safetyStopped: item.safetyStopped,
   }));
 }
@@ -179,7 +188,7 @@ async function generate(data, rootUserId, context = {}) {
     root_user_id: rootUserId,
     initial_assessment_id: ids.initialAssessmentId,
     gut_assessment_id: ids.gutAssessmentId,
-    states_json: modelInput(current.states),
+    states_json: snapshotState(current.states),
     advice_json: advice,
     advice_source: adviceSource,
     adapter_id: adviceSource === "MODEL_ASSISTED" ? text(adapter.adapterId) : "ROOT4U_REVIEWED_CONTENT",

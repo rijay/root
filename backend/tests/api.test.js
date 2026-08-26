@@ -926,7 +926,7 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.equal(notice.data.retentionDays, 180);
   assert.match(notice.data.retentionText, /180 天/);
   assert.match(notice.data.modelProcessingText, /腾讯云 CloudBase AI/);
-  assert.match(notice.data.modelProcessingText, /不发送姓名、手机号、微信身份标识、原始问卷答案或自由文本/);
+  assert.match(notice.data.modelProcessingText, /不发送姓名、手机号、微信身份标识、安全分流标记、原始问卷答案或自由文本/);
   assert.equal(notice.data.version, "0.7.0");
   assert.equal(notice.data.releaseId, "0.7.0");
 });

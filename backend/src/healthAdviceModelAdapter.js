@@ -1,4 +1,5 @@
 const MODEL_INPUT_VERSION = "root4u-health-advice-input-v1";
+const REQUIRED_ASSESSMENT_TYPES = Object.freeze(["INITIAL", "GUT_REGULARITY"]);
 
 function enabled(value) {
   return ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase());
@@ -12,6 +13,33 @@ function adapterError(code, message) {
   const error = new Error(message);
   error.code = code;
   return error;
+}
+
+function normalizeModelStates(value) {
+  if (!Array.isArray(value) || value.length !== REQUIRED_ASSESSMENT_TYPES.length) {
+    throw adapterError("HEALTH_ADVICE_MODEL_INPUT_INVALID", "健康建议模型输入无效");
+  }
+  const states = value.map((item) => {
+    const source = item && typeof item === "object" && !Array.isArray(item) ? item : {};
+    const assessmentType = text(source.assessmentType).toUpperCase();
+    const questionnaireVersion = Number(source.questionnaireVersion);
+    const resultCode = text(source.resultCode).toUpperCase();
+    const title = text(source.title);
+    if (!REQUIRED_ASSESSMENT_TYPES.includes(assessmentType)
+      || !Number.isInteger(questionnaireVersion)
+      || questionnaireVersion < 1
+      || questionnaireVersion > 9999
+      || !/^[A-Z0-9_:-]{1,64}$/.test(resultCode)
+      || !title
+      || title.length > 64) {
+      throw adapterError("HEALTH_ADVICE_MODEL_INPUT_INVALID", "健康建议模型输入无效");
+    }
+    return { assessmentType, questionnaireVersion, resultCode, title };
+  });
+  if (new Set(states.map((item) => item.assessmentType)).size !== REQUIRED_ASSESSMENT_TYPES.length) {
+    throw adapterError("HEALTH_ADVICE_MODEL_INPUT_INVALID", "健康建议模型输入无效");
+  }
+  return states;
 }
 
 function normalizeChatCompletionsEndpoint(value) {
@@ -69,6 +97,7 @@ function createEnvironmentHealthAdviceModelAdapter(env = process.env, options = 
     inputVersion: MODEL_INPUT_VERSION,
     async generate(input = {}) {
       if (!configured) throw adapterError("HEALTH_ADVICE_MODEL_NOT_CONFIGURED", "健康建议模型尚未配置");
+      const states = normalizeModelStates(input.states);
       const controller = typeof AbortController === "function" ? new AbortController() : null;
       const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
       try {
@@ -92,7 +121,7 @@ function createEnvironmentHealthAdviceModelAdapter(env = process.env, options = 
                 role: "user",
                 content: JSON.stringify({
                   inputVersion: MODEL_INPUT_VERSION,
-                  states: Array.isArray(input.states) ? input.states : [],
+                  states,
                 }),
               },
             ],

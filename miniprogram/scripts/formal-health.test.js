@@ -84,8 +84,8 @@ const legalScript = read("pages/legal/index.js");
 assert.match(legalScript, /保存到你的 myRoot 账号/);
 assert.match(legalScript, /评测历史中随时删除/);
 assert.match(legalScript, /腾讯云 CloudBase AI/);
-assert.match(legalScript, /评测类型、问卷版本、结果代码、状态标题和安全分流标记/);
-assert.match(legalScript, /不发送姓名、手机号、微信身份标识、原始问卷答案或自由文本/);
+assert.match(legalScript, /评测类型、问卷版本、结果代码和状态标题/);
+assert.match(legalScript, /不发送姓名、手机号、微信身份标识、安全分流标记、原始问卷答案或自由文本/);
 assert.match(legalScript, /高风险分支不调用普通建议模型/);
 
 console.log("v0.6.0 formal health tests ok");

@@ -71,8 +71,10 @@ test("model advice receives only derived state fields and is reused for the same
   assert.equal(JSON.stringify(received).includes("has-initial"), false);
   assert.equal(JSON.stringify(received).includes("root-advice"), false);
   assert.deepEqual(Object.keys(received.states[0]).sort(), [
-    "assessmentType", "questionnaireVersion", "resultCode", "safetyStopped", "title",
+    "assessmentType", "questionnaireVersion", "resultCode", "title",
   ]);
+  assert.equal(received.states[0].safetyStopped, undefined);
+  assert.equal(data.healthAdviceSnapshots[0].states_json[0].safetyStopped, false);
 
   const reused = await healthStatusAdvice.generate(data, "root-advice", { healthAdviceModelAdapter: adapter });
   assert.equal(reused.reused, true);

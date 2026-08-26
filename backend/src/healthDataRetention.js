@@ -210,6 +210,14 @@ function candidateSpecs() {
       },
     },
     {
+      kind: "HEALTH_ADVICE_SNAPSHOT",
+      collection: "healthAdviceSnapshots",
+      id: (item) => item.health_advice_snapshot_id,
+      time: (item) => item.generated_at || item.updated_at || item.created_at,
+      media: () => [],
+      remove: true,
+    },
+    {
       kind: "CHECKIN_RECORD",
       collection: "checkinRecords",
       id: (item) => item.record_id,
@@ -527,6 +535,7 @@ function appendCleanupAudit(data, options, result) {
       eligibleCount: result.eligibleCount,
       redactedByKind: kindCounts(result.results, "redacted"),
       partialRedactedByKind: kindCounts(result.results, "partialRedacted"),
+      removedByKind: kindCounts(result.results, "removed"),
       failedByKind: kindCounts(result.results, "failed"),
     },
   });

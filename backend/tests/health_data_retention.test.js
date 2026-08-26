@@ -33,6 +33,7 @@ function emptyHealthCollections(data = createSeedData()) {
   data.questionnaireAnswers = [];
   data.questionnaireResponses = [];
   data.healthScaleResponses = [];
+  data.healthAdviceSnapshots = [];
   data.checkinRecords = [];
   data.dailyCheckinRecords = [];
   data.uploads = [];
@@ -88,6 +89,53 @@ test("health retention cleanup fails closed but permits dry-run before execution
     cleanupExpiredHealthData(data, { now: "not-a-date" }, { env: retentionEnv() }),
     (error) => error.code === 400
   );
+});
+
+test("health retention cleanup deletes expired advice snapshots and preserves recent advice", async () => {
+  const data = emptyHealthCollections();
+  data.healthAdviceSnapshots = [
+    {
+      health_advice_snapshot_id: "advice_old",
+      root_user_id: "root_old",
+      states_json: [{ assessmentType: "GUT_REGULARITY", resultCode: "SENSITIVE", title: "private old state" }],
+      advice_json: { summary: "private old generated advice" },
+      advice_source: "MODEL_ASSISTED",
+      generated_at: OLD,
+      created_at: OLD,
+    },
+    {
+      health_advice_snapshot_id: "advice_recent",
+      root_user_id: "root_recent",
+      states_json: [{ assessmentType: "GUT_REGULARITY", resultCode: "HEALTHY", title: "recent state" }],
+      advice_json: { summary: "recent generated advice" },
+      advice_source: "MODEL_ASSISTED",
+      generated_at: RECENT,
+      created_at: RECENT,
+    },
+  ];
+
+  const dryRun = await cleanupExpiredHealthData(data, { now: NOW }, { env: retentionEnv() });
+  assert.equal(dryRun.selectedCount, 1);
+  assert.deepEqual(dryRun.candidates, [{
+    kind: "HEALTH_ADVICE_SNAPSHOT",
+    recordId: "advice_old",
+    occurredAt: OLD,
+    mediaCount: 0,
+    cleanupAction: "DELETE_RECORD",
+  }]);
+  assert.equal(data.healthAdviceSnapshots.length, 2);
+
+  const result = await cleanupExpiredHealthData(data, {
+    execute: true,
+    now: NOW,
+    requestId: "retention-advice-001",
+  }, { env: retentionEnv() });
+
+  assert.equal(result.removedCount, 1);
+  assert.equal(result.redactedCount, 0);
+  assert.deepEqual(data.healthAdviceSnapshots.map((item) => item.health_advice_snapshot_id), ["advice_recent"]);
+  assert.equal(JSON.stringify(data).includes("private old generated advice"), false);
+  assert.deepEqual(data.auditLogs[0].metadata.removedByKind, { HEALTH_ADVICE_SNAPSHOT: 1 });
 });
 
 test("health retention cleanup redacts expired content and deletes each unshared CloudBase object once", async () => {

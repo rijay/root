@@ -42,7 +42,7 @@ test("health consent records grant and withdrawal as append-only decisions", () 
   }, context);
   assert.equal(granted.active, true);
   assert.equal(granted.recorded, true);
-  assert.match(privacyConsent.HEALTH_CONSENT_POLICY_VERSION, /2026-08-26-v3$/);
+  assert.match(privacyConsent.HEALTH_CONSENT_POLICY_VERSION, /2026-08-26-v4$/);
   assert.ok(data.privacyConsentRecords[0].purposes_json.some((item) => item.includes("腾讯云 CloudBase AI")));
   assert.ok(data.privacyConsentRecords[0].data_categories_json.some((item) => item.includes("原始问卷答案")));
 
@@ -100,7 +100,7 @@ test("health consent notice discloses minimum model processing and invalidates t
   const status = privacyConsent.getHealthConsentStatus(data, "root-user-model-policy", { env: consentEnv });
   assert.equal(status.active, false, "新增模型受托处理说明后必须重新单独同意");
   assert.match(status.notice.modelProcessingText, /腾讯云 CloudBase AI/);
-  assert.match(status.notice.modelProcessingText, /评测类型、问卷版本、结果代码、状态标题和安全分流标记/);
-  assert.match(status.notice.modelProcessingText, /不发送姓名、手机号、微信身份标识、原始问卷答案或自由文本/);
+  assert.match(status.notice.modelProcessingText, /评测类型、问卷版本、结果代码和状态标题/);
+  assert.match(status.notice.modelProcessingText, /不发送姓名、手机号、微信身份标识、安全分流标记、原始问卷答案或自由文本/);
   assert.match(status.notice.modelProcessingText, /自动改用经审核固定建议/);
 });

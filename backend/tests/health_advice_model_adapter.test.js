@@ -7,6 +7,23 @@ const {
   parseJsonContent,
 } = require("../src/healthAdviceModelAdapter");
 
+function validStates() {
+  return [
+    {
+      assessmentType: "INITIAL",
+      questionnaireVersion: 1,
+      resultCode: "STEADY",
+      title: "状态较平稳",
+    },
+    {
+      assessmentType: "GUT_REGULARITY",
+      questionnaireVersion: 2,
+      resultCode: "HEALTHY",
+      title: "肠道节奏挺稳",
+    },
+  ];
+}
+
 test("health advice model Adapter fails closed until every privacy and provider field is configured", () => {
   const adapter = createEnvironmentHealthAdviceModelAdapter({
     ROOT_HEALTH_ADVICE_MODEL_ENABLED: "true",
@@ -50,9 +67,11 @@ test("health advice model Adapter sends the fixed minimum JSON Interface", async
       };
     },
   });
-  const result = await adapter.generate({
-    states: [{ assessmentType: "INITIAL", resultCode: "STEADY", title: "状态较平稳" }],
-  });
+  const states = validStates();
+  states[0].rootUserId = "must-not-leave-server";
+  states[0].answers = { private: true };
+  states[0].safetyStopped = false;
+  const result = await adapter.generate({ states });
   assert.equal(result.actions.length, 3);
   assert.equal(request.url, "https://model.example.com/v1/chat/completions");
   const body = JSON.parse(request.options.body);
@@ -62,6 +81,37 @@ test("health advice model Adapter sends the fixed minimum JSON Interface", async
   assert.equal(body.response_format, undefined);
   assert.equal(body.messages[1].content.includes("STEADY"), true);
   assert.equal(body.messages[1].content.includes("secret"), false);
+  assert.equal(body.messages[1].content.includes("must-not-leave-server"), false);
+  assert.equal(body.messages[1].content.includes("answers"), false);
+  assert.equal(body.messages[1].content.includes("safetyStopped"), false);
+});
+
+test("health advice model Adapter rejects incomplete states before network access", async () => {
+  let called = false;
+  const adapter = createEnvironmentHealthAdviceModelAdapter({
+    ROOT_HEALTH_ADVICE_MODEL_ENABLED: "true",
+    ROOT_HEALTH_ADVICE_MODEL_ENDPOINT: "https://model.example.com/v1/chat/completions",
+    ROOT_HEALTH_ADVICE_MODEL_API_KEY: "secret",
+    ROOT_HEALTH_ADVICE_MODEL_NAME: "health-model",
+    ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME: "境内模型服务商",
+  }, {
+    async fetchImpl() { called = true; return { ok: true }; },
+  });
+
+  await assert.rejects(
+    () => adapter.generate({ states: validStates().slice(0, 1) }),
+    (error) => error.code === "HEALTH_ADVICE_MODEL_INPUT_INVALID"
+      && !error.message.includes("STEADY")
+  );
+  assert.equal(called, false);
+  await assert.rejects(
+    () => adapter.generate({ states: [
+      validStates()[0],
+      { ...validStates()[0], resultCode: "HEALTHY" },
+    ] }),
+    (error) => error.code === "HEALTH_ADVICE_MODEL_INPUT_INVALID"
+  );
+  assert.equal(called, false);
 });
 
 test("health advice model Adapter accepts a CloudBase Base URL and a non-env credential", async () => {
@@ -85,7 +135,7 @@ test("health advice model Adapter accepts a CloudBase Base URL and a non-env cre
   });
 
   assert.equal(adapter.configured, true);
-  await adapter.generate({ states: [] });
+  await adapter.generate({ states: validStates() });
   assert.equal(request.url, "https://example.api.tcloudbasegateway.com/v1/ai/cloudbase/chat/completions");
   assert.equal(request.options.headers.Authorization, "Bearer keychain-only-secret");
 });
@@ -111,7 +161,7 @@ test("health advice model Adapter reports only a safe HTTP status on provider re
     fetchImpl: async () => ({ ok: false, status: 400 }),
   });
   await assert.rejects(
-    () => adapter.generate({ states: [] }),
+    () => adapter.generate({ states: validStates() }),
     (error) => error.code === "HEALTH_ADVICE_MODEL_HTTP_ERROR"
       && error.status === 400
       && !error.message.includes("secret")
