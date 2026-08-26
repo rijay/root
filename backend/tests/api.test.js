@@ -711,7 +711,7 @@ test("production cutover readiness gates live external proof", () => {
     ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION: "CN_MAINLAND",
     ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS: "NONE",
     ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "7",
-    ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS: "0",
+    ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_MINUTES: "5",
     ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED: "true",
     WEWORK_CONTACT_LIST_URL: "https://wework.example.com/contacts",
     WEWORK_TAG_APPLY_URL: "https://wework.example.com/tags",
@@ -843,7 +843,7 @@ test("production environment matrix validates the formal launch runtime", () => 
     ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION: "CN_MAINLAND",
     ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS: "NONE",
     ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "7",
-    ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS: "0",
+    ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_MINUTES: "5",
     ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED: "true",
     ROOT_STORE_ADAPTER: "mysql",
     ROOT_MYSQL_MIGRATION_MODE: "verify_only",
@@ -967,7 +967,7 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.match(notice.data.modelProcessingText, /腾讯云 CloudBase AI/);
   assert.match(notice.data.modelProcessingText, /不发送姓名、手机号、微信身份标识、安全分流标记、原始问卷答案或自由文本/);
   assert.equal(notice.data.dataManagement.providerLogRetentionDays, 7);
-  assert.equal(notice.data.dataManagement.providerCacheRetentionDays, 0);
+  assert.equal(notice.data.dataManagement.providerCacheRetentionMinutes, 5);
   assert.equal(notice.data.dataManagement.backupRetentionDays, 30);
   assert.equal(notice.data.version, "0.7.0");
   assert.equal(notice.data.releaseId, "0.7.0");

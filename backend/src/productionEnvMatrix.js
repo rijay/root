@@ -88,7 +88,7 @@ const ENV_GROUPS = [
       "ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION",
       "ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS",
       "ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS",
-      "ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS",
+      "ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_MINUTES",
       "ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED",
     ],
     anyOf: [["ROOT_HEALTH_ADVICE_MODEL_BASE_URL", "ROOT_HEALTH_ADVICE_MODEL_ENDPOINT"]],
@@ -102,7 +102,7 @@ const ENV_GROUPS = [
       ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION: ["cn_mainland"],
       ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS: ["none"],
       ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: ["7"],
-      ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS: ["0"],
+      ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_MINUTES: ["5"],
       ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED: ["true"],
     },
     requiredRules: {
@@ -110,7 +110,7 @@ const ENV_GROUPS = [
       ROOT_HEALTH_ADVICE_MODEL_NAME: "opaque_ascii_128",
       ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME: "nonblank_value",
     },
-    action: "正式模型调用只允许中国大陆境内处理、无其他受托方和无训练等二次使用；确认 CloudBase 请求/响应日志最长保留 7 天、服务端缓存关闭，保存脱敏配置证据，再把数据规范核验标记为 true。",
+    action: "正式模型调用只允许中国大陆境内处理、无其他受托方和无训练等二次使用；确认 CloudBase 请求/响应日志最长保留 7 天、服务端临时缓存最长 5 分钟，保存账户或合同级脱敏证据，再把数据规范核验标记为 true。",
   },
   {
     id: "store",

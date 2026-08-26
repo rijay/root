@@ -12,7 +12,7 @@ const DATA_POLICY_ENV = Object.freeze({
   ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION: "CN_MAINLAND",
   ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS: "NONE",
   ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS: "7",
-  ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS: "0",
+  ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_MINUTES: "5",
   ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED: "true",
 });
 
@@ -56,6 +56,20 @@ test("health advice model Adapter rejects a provider log period outside the appr
   }, { fetchImpl: async () => ({ ok: true }) });
   assert.equal(adapter.configured, false);
   assert.deepEqual(adapter.dataPolicy.issues, ["PROVIDER_LOG_RETENTION_MUST_BE_SEVEN_DAYS"]);
+});
+
+test("health advice model Adapter rejects a provider cache period outside the approved five minutes", () => {
+  const adapter = createEnvironmentHealthAdviceModelAdapter({
+    ...DATA_POLICY_ENV,
+    ROOT_HEALTH_ADVICE_MODEL_ENABLED: "true",
+    ROOT_HEALTH_ADVICE_MODEL_ENDPOINT: "https://model.example.com/v1/chat/completions",
+    ROOT_HEALTH_ADVICE_MODEL_API_KEY: "secret",
+    ROOT_HEALTH_ADVICE_MODEL_NAME: "health-model",
+    ROOT_HEALTH_ADVICE_MODEL_PROCESSOR_NAME: "境内模型服务商",
+    ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_MINUTES: "10",
+  }, { fetchImpl: async () => ({ ok: true }) });
+  assert.equal(adapter.configured, false);
+  assert.deepEqual(adapter.dataPolicy.issues, ["PROVIDER_CACHE_RETENTION_MUST_BE_FIVE_MINUTES"]);
 });
 
 test("an explicitly empty injected credential cannot fall back to a process environment secret", () => {

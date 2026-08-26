@@ -19,7 +19,7 @@ test("local miniprogram runtime pins loopback, SQLite and CloudBase hy3 without 
   assert.equal(env.ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION, "CN_MAINLAND");
   assert.equal(env.ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS, "NONE");
   assert.equal(env.ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS, "7");
-  assert.equal(env.ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS, "0");
+  assert.equal(env.ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_MINUTES, "5");
   assert.equal(Object.hasOwn(LOCAL_MINIPROGRAM_ENV, "ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED"), false);
   assert.equal(Object.hasOwn(LOCAL_MINIPROGRAM_ENV, "ROOT_HEALTH_ADVICE_MODEL_API_KEY"), false);
 });

@@ -59,11 +59,11 @@ const CUTOVER_ITEMS = [
       "ROOT_HEALTH_ADVICE_MODEL_PROCESSING_REGION",
       "ROOT_HEALTH_ADVICE_MODEL_OTHER_PROCESSORS",
       "ROOT_HEALTH_ADVICE_MODEL_LOG_RETENTION_DAYS",
-      "ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_DAYS",
+      "ROOT_HEALTH_ADVICE_MODEL_CACHE_RETENTION_MINUTES",
       "ROOT_HEALTH_ADVICE_MODEL_DATA_POLICY_VERIFIED",
     ],
     supportingAnyOf: [["ROOT_HEALTH_ADVICE_MODEL_BASE_URL", "ROOT_HEALTH_ADVICE_MODEL_ENDPOINT"]],
-    action: "按 myRoot 健康 AI 数据规范确认无二次使用、中国大陆境内处理、无其他受托方、供应商请求/响应日志最长保留 7 天且服务端缓存关闭，并保存账户配置证据；完成最小输入、固定 JSON、超时降级、高风险不调用模型及隐私影响评估。",
+    action: "按 myRoot 健康 AI 数据规范确认无二次使用、中国大陆境内处理、无其他受托方、供应商请求/响应日志最长保留 7 天且服务端临时缓存最长 5 分钟，并保存账户或合同级证据；完成最小输入、固定 JSON、超时降级、高风险不调用模型及隐私影响评估。",
   },
   {
     id: "wework_live_fields",
