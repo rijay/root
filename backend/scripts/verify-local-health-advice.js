@@ -1,6 +1,9 @@
 const crypto = require("node:crypto");
 
 const BASE_URL = "http://127.0.0.1:8787";
+const MODEL_ASSISTED = "MODEL_ASSISTED";
+const REVIEWED_FALLBACK = "REVIEWED_FALLBACK";
+const SUPPORTED_SOURCES = new Set([MODEL_ASSISTED, REVIEWED_FALLBACK]);
 const initialAnswers = Object.freeze({
   primary_goal: "observe",
   impact_level: "0",
@@ -35,7 +38,35 @@ async function request(path, options = {}) {
   return payload.data;
 }
 
-async function run() {
+function resolveExpectedSource(argv = process.argv.slice(2)) {
+  const prefix = "--expected-source=";
+  const argument = argv.find((item) => String(item).startsWith(prefix));
+  const source = argument ? String(argument).slice(prefix.length).trim() : MODEL_ASSISTED;
+  if (!SUPPORTED_SOURCES.has(source)) {
+    const error = new Error("expected source must be MODEL_ASSISTED or REVIEWED_FALLBACK");
+    error.code = "LOCAL_HEALTH_ADVICE_VERIFY_SOURCE_INVALID";
+    throw error;
+  }
+  return source;
+}
+
+function validateResult(result, expectedSource = MODEL_ASSISTED) {
+  const modelMatches = expectedSource === MODEL_ASSISTED
+    ? result.modelName === "hy3"
+    : result.modelName === "";
+  if (!result.ready
+    || result.adviceSource !== expectedSource
+    || !modelMatches
+    || result.actionCount !== 3) {
+    const error = new Error(`local health advice verification failed: ${JSON.stringify(result)}`);
+    error.code = "LOCAL_HEALTH_ADVICE_VERIFY_RESULT_FAILED";
+    throw error;
+  }
+  return result;
+}
+
+async function run(options = {}) {
+  const expectedSource = options.expectedSource || resolveExpectedSource(options.argv);
   const runId = crypto.randomUUID().replace(/-/g, "");
   const login = await request("/api/v1/auth/login", {
     method: "POST",
@@ -75,6 +106,7 @@ async function run() {
   });
 
   const result = {
+    expectedSource,
     ready: generated.ready,
     initialResult: initial.assessment.result.resultCode,
     gutResult: gut.assessment.result.resultCode,
@@ -84,15 +116,21 @@ async function run() {
       ? generated.advice.actions.length
       : 0,
   };
-  if (!result.ready || result.adviceSource !== "MODEL_ASSISTED" || result.modelName !== "hy3" || result.actionCount !== 3) {
-    const error = new Error(`local model verification failed: ${JSON.stringify(result)}`);
-    error.code = "LOCAL_HEALTH_ADVICE_VERIFY_RESULT_FAILED";
-    throw error;
-  }
+  validateResult(result, expectedSource);
   console.log(JSON.stringify(result, null, 2));
 }
 
-run().catch((error) => {
-  console.error(error.message);
-  process.exit(1);
-});
+if (require.main === module) {
+  run().catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  MODEL_ASSISTED,
+  REVIEWED_FALLBACK,
+  resolveExpectedSource,
+  run,
+  validateResult,
+};
