@@ -55,7 +55,7 @@ assert.equal(content.path, "/subpkg/content/pages/detail/index?contentId=root_da
 
 const phggReference = buildShareCard("/subpkg/content/pages/phgg-reference/index", {
   token: "must-not-share",
-}, { title: "PHGG 原料科学档案" });
+}, { title: "ROOT 核心原料 PHGG 科学参考文献集" });
 assert.equal(phggReference.path, "/subpkg/content/pages/phgg-reference/index");
 assert.equal(JSON.stringify(phggReference).includes("must-not-share"), false);
 
@@ -133,10 +133,10 @@ assert.equal(shown, 5, "public page onShow must restore sharing after a hidden-s
 
 runtime.Page({
   onShareAppMessage() {
-    return { title: "PHGG 原料科学档案｜ROOT" };
+    return { title: "ROOT 核心原料 PHGG 科学参考文献集" };
   },
   onShareTimeline() {
-    return { title: "PHGG 原料科学档案｜ROOT", query: "" };
+    return { title: "ROOT 核心原料 PHGG 科学参考文献集", query: "" };
   },
 });
 registered.onShow.call({ route: "subpkg/content/pages/phgg-reference/index" });

@@ -52,6 +52,7 @@ matches(aboutWxss, /about-page__title\s*\{[^}]*top:\s*130px/s, "MY-04 标题坐�
 matches(aboutWxss, /about-page__wordmark\s*\{[^}]*top:\s*210px[^}]*width:\s*126px[^}]*height:\s*33px/s, "文字 Logo 坐标");
 matches(aboutWxml, /人如草木，根定而生。/, "品牌核心文案");
 matches(aboutWxml, /bindtap="openPhggReference"/, "关于页提供 PHGG 科学档案入口");
+matches(aboutWxml, /ROOT 核心原料 PHGG 科学参考文献集/, "PHGG 入口使用完整科学参考文献集标题");
 matches(aboutWxss, /about-page__links\s*\{[^}]*top:\s*520px[^}]*height:\s*230px/s, "关于页链接区坐标");
 matches(aboutWxss, /about-page__row\s*\{[^}]*height:\s*46px/s, "五个关于页入口保持可点击高度");
 matches(aboutWxss, /about-page__links\s*\{[^}]*width:\s*calc\(100% - 40px\)/s, "关于页保持双侧 20px 边距");

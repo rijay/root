@@ -18,6 +18,7 @@ const brandWxml = read("subpkg/content/pages/brand-foundation/index.wxml");
 const brandWxss = read("subpkg/content/pages/brand-foundation/index.wxss");
 const phggScript = read("subpkg/content/pages/phgg-reference/index.js");
 const phggWxml = read("subpkg/content/pages/phgg-reference/index.wxml");
+const phggWxss = read("subpkg/content/pages/phgg-reference/index.wxss");
 
 assert.match(homeScript, /\/api\/v1\/public\/content\/home/);
 assert.match(homeScript, /readPublicPageCache/);
@@ -57,6 +58,12 @@ assert.match(phggScript, /33ad4be54acef24a7ac0d345ea7a1e54ae8ab3f8ab9ac34d8b4114
   "文献引用仅用于科学信息交流，不构成医疗建议或功效宣称。产品不能替代药物治疗。",
 ].forEach((copy) => assert.equal(phggWxml.includes(copy), true, `missing PHGG source copy: ${copy}`));
 assert.equal((phggWxml.match(/id="s[1-7]"/g) || []).length, 7);
+assert.match(phggWxml, /<text wx:if="\{\{item\.identifier\}\}" class="science-reference__source"/);
+assert.doesNotMatch(phggWxml, /science-reference__copy|<button[^>]*item\.identifier/);
+assert.match(phggWxss, /science-reference__source\s*\{[^}]*display:\s*block[^}]*text-align:\s*left[^}]*word-break:\s*break-all/s);
+assert.doesNotMatch(phggWxss, /science-reference__copy/);
+const referenceSourceRule = phggWxss.match(/\.science-reference__source\s*\{[^}]*\}/s)[0];
+assert.doesNotMatch(referenceSourceRule, /background|border-radius|padding|min-height|max-width|text-overflow|white-space/);
 assert.match(detailScript, /\/api\/v1\/public\/content\/detail/);
 assert.match(detailScript, /executeContentAction/);
 assert.match(detailWxml, /page-navigation/);

@@ -165,7 +165,7 @@ World J Gastroenterol</text><text>RCT；n=60 儿童功能性腹痛/IBS</text><te
         <view class="science-reference__content">
           <text class="science-reference__title">{{item.title}}</text>
           <text wx:if="{{item.citation}}" class="science-reference__citation">{{item.citation}}</text>
-          <button wx:if="{{item.identifier}}" class="science-reference__copy" data-value="{{item.copyValue || item.identifier}}" bindtap="copyReference">{{item.identifier}}</button>
+          <text wx:if="{{item.identifier}}" class="science-reference__source" data-value="{{item.copyValue || item.identifier}}" bindtap="copyReference">{{item.identifier}}</text>
         </view>
       </view>
     </view>

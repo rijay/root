@@ -80,8 +80,7 @@ page {
   line-height: 64rpx;
 }
 
-.science-toc button::after,
-.science-reference__copy::after {
+.science-toc button::after {
   border: 0;
 }
 
@@ -381,20 +380,14 @@ page {
   line-height: 1.55;
 }
 
-.science-reference__copy {
-  max-width: 100%;
-  min-height: 52rpx;
-  margin: 14rpx 0 0;
-  padding: 7rpx 16rpx;
-  overflow: hidden;
-  color: var(--color-brand-olive);
-  background: var(--color-olive-tint);
-  border-radius: 10rpx;
-  font-size: 19rpx;
-  line-height: 1.45;
+.science-reference__source {
+  display: block;
+  margin-top: 6rpx;
+  color: var(--color-neutral-grey);
+  font-size: 21rpx;
+  line-height: 1.55;
   text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-all;
 }
 
 .science-footer {

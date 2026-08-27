@@ -65,6 +65,7 @@ const listWxml = fs.readFileSync(path.join(root, "pages/products/index.wxml"), "
 const detailScript = fs.readFileSync(path.join(root, "pages/product-detail/index.js"), "utf8");
 const detailWxml = fs.readFileSync(path.join(root, "pages/product-detail/index.wxml"), "utf8");
 assert.match(listWxml, /bindscroll="onProductScroll"/);
+assert.match(listWxml, /ROOT 核心原料 PHGG 科学参考文献集/);
 assert.match(listScript, /persistViewState/);
 assert.match(listScript, /product_impression/);
 assert.match(listScript, /member_center_handoff/);

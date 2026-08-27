@@ -151,14 +151,14 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: "PHGG 原料科学档案｜ROOT",
+      title: "ROOT 核心原料 PHGG 科学参考文献集",
       path: "/subpkg/content/pages/phgg-reference/index",
     };
   },
 
   onShareTimeline() {
     return {
-      title: "PHGG 原料科学档案｜ROOT",
+      title: "ROOT 核心原料 PHGG 科学参考文献集",
       query: "",
     };
   },
