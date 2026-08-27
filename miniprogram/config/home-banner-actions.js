@@ -1,5 +1,7 @@
 const BRAND_FOUNDATION_PATH = "/subpkg/content/pages/brand-foundation/index";
 const ROOT_WITH_YOU_PATH = "/subpkg/health/pages/assessment/index?assessmentType=GUT_REGULARITY";
+const ROOT_FOUNDATION_CONTENT_ID = "SHARED_DETAIL_C53C7360B016F4";
+const ROOT_WITH_YOU_PUBLISHED_CONTENT_ID = "SHARED_DETAIL_DB47F77499F012";
 const ROOT_WITH_YOU_CONTENT_ID = "ROOT_WITH_YOU_V060";
 const ROOT_PRODUCTS_CONTENT_ID = "SHARED_DETAIL_6292953EB853D1";
 
@@ -11,8 +13,9 @@ const HOME_BANNER_ACTIONS_BY_SLOT = Object.freeze({
 
 const HOME_BANNER_ACTIONS_BY_CONTENT_ID = Object.freeze({
   cnt_home_foundation: HOME_BANNER_ACTIONS_BY_SLOT[1],
-  SHARED_DETAIL_C53C7360B016F4: HOME_BANNER_ACTIONS_BY_SLOT[1],
+  [ROOT_FOUNDATION_CONTENT_ID]: HOME_BANNER_ACTIONS_BY_SLOT[1],
   [ROOT_PRODUCTS_CONTENT_ID]: HOME_BANNER_ACTIONS_BY_SLOT[2],
+  [ROOT_WITH_YOU_PUBLISHED_CONTENT_ID]: HOME_BANNER_ACTIONS_BY_SLOT[3],
   [ROOT_WITH_YOU_CONTENT_ID]: Object.freeze({ type: "MINIPROGRAM_PAGE", path: ROOT_WITH_YOU_PATH }),
 });
 
@@ -23,7 +26,7 @@ const HOME_BANNER_PRESENTATION_BY_CONTENT_ID = Object.freeze({
     copyMode: "text",
     copyVariant: "foundation-single",
   }),
-  SHARED_DETAIL_C53C7360B016F4: Object.freeze({
+  [ROOT_FOUNDATION_CONTENT_ID]: Object.freeze({
     kicker: "ROOT FOUNDATION",
     lines: Object.freeze(["人如草木，根定而生"]),
     copyMode: "text",
@@ -37,6 +40,11 @@ const HOME_BANNER_PRESENTATION_BY_CONTENT_ID = Object.freeze({
     coverAssetUrl: "/static/home/banner2.jpg",
   }),
   [ROOT_WITH_YOU_CONTENT_ID]: Object.freeze({
+    copyMode: "text",
+    copyVariant: "campaign-split",
+    coverAssetUrl: "/static/campaign/root-with-you-home.jpg",
+  }),
+  [ROOT_WITH_YOU_PUBLISHED_CONTENT_ID]: Object.freeze({
     copyMode: "text",
     copyVariant: "campaign-split",
     coverAssetUrl: "/static/campaign/root-with-you-home.jpg",
@@ -71,6 +79,42 @@ const LOCAL_HOME_BANNERS = Object.freeze([
   }),
 ]);
 
+const BUNDLED_HOME_FIRST_FRAME = Object.freeze({
+  publicationState: "BUNDLED_FIRST_FRAME",
+  items: Object.freeze([
+    Object.freeze({
+      contentId: ROOT_FOUNDATION_CONTENT_ID,
+      slot: 1,
+      kicker: "ROOT FOUNDATION",
+      lines: Object.freeze(["人如草木，", "根定而生"]),
+      copyMode: "text",
+      coverAssetUrl: "/static/welcome/welcome-01.jpg",
+      assetState: "BUILTIN_FIRST_FRAME",
+      action: HOME_BANNER_ACTIONS_BY_SLOT[1],
+    }),
+    Object.freeze({
+      contentId: ROOT_PRODUCTS_CONTENT_ID,
+      slot: 2,
+      kicker: "ROOT PRODUCTS",
+      lines: Object.freeze(["根据自身肠道状态", "选择专属养护方式"]),
+      copyMode: "text",
+      coverAssetUrl: "/static/home/banner2.jpg",
+      assetState: "BUILTIN_FIRST_FRAME",
+      action: HOME_BANNER_ACTIONS_BY_SLOT[2],
+    }),
+    Object.freeze({
+      contentId: ROOT_WITH_YOU_PUBLISHED_CONTENT_ID,
+      slot: 3,
+      kicker: "ROOT WITH YOU",
+      lines: Object.freeze(["ROOT陪伴计划", "快速了解你的肠道状态", "并领取5支益生元体验装"]),
+      copyMode: "text",
+      coverAssetUrl: "/static/campaign/root-with-you-home.jpg",
+      assetState: "BUILTIN_FIRST_FRAME",
+      action: HOME_BANNER_ACTIONS_BY_SLOT[3],
+    }),
+  ]),
+});
+
 function configuredHomeBannerAction(item = {}) {
   const contentId = String(item.contentId || "").trim();
   if (HOME_BANNER_ACTIONS_BY_CONTENT_ID[contentId]) return HOME_BANNER_ACTIONS_BY_CONTENT_ID[contentId];
@@ -98,6 +142,7 @@ function appendConfiguredHomeBanners(items = []) {
 }
 
 module.exports = Object.freeze({
+  BUNDLED_HOME_FIRST_FRAME,
   BRAND_FOUNDATION_PATH,
   HOME_BANNER_ACTIONS_BY_CONTENT_ID,
   HOME_BANNER_PRESENTATION_BY_CONTENT_ID,
@@ -105,7 +150,9 @@ module.exports = Object.freeze({
   HOME_BANNER_ACTIONS_BY_SLOT,
   LOCAL_HOME_BANNERS,
   ROOT_PRODUCTS_CONTENT_ID,
+  ROOT_FOUNDATION_CONTENT_ID,
   ROOT_WITH_YOU_CONTENT_ID,
+  ROOT_WITH_YOU_PUBLISHED_CONTENT_ID,
   ROOT_WITH_YOU_PATH,
   appendConfiguredHomeBanners,
   configuredHomeBannerAction,

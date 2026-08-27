@@ -1,8 +1,45 @@
 const assert = require("node:assert/strict");
 
-const { presentDetail, presentHome, presentHomeAction, presentWelcome } = require("../utils/content-presenter");
+const { initialHome, presentDetail, presentHome, presentHomeAction, presentWelcome } = require("../utils/content-presenter");
 
 const assetUrl = "/api/v1/public/content/assets/content_asset_001";
+
+const firstFrame = initialHome();
+assert.deepEqual(firstFrame.map((item) => item.contentId), [
+  "SHARED_DETAIL_C53C7360B016F4",
+  "SHARED_DETAIL_6292953EB853D1",
+  "SHARED_DETAIL_DB47F77499F012",
+]);
+assert.deepEqual(firstFrame.map((item) => item.coverAssetUrl), [
+  "/static/welcome/welcome-01.jpg",
+  "/static/home/banner2.jpg",
+  "/static/campaign/root-with-you-home.jpg",
+]);
+assert.deepEqual(firstFrame.map((item) => item.action.type), ["MINIPROGRAM_PAGE", "PRODUCTS", "MINIPROGRAM_PAGE"]);
+
+const refreshedHome = presentHome({ items: [
+  {
+    contentId: "SHARED_DETAIL_C53C7360B016F4",
+    kicker: "ROOT FOUNDATION",
+    lines: ["人如草木，", "根定而生"],
+    coverAssetUrl: assetUrl,
+  },
+  {
+    contentId: "SHARED_DETAIL_6292953EB853D1",
+    kicker: "ROOT PRODUCTS",
+    lines: ["根据自身肠道状态", "选择专属养护方式"],
+    coverAssetUrl: assetUrl,
+  },
+  {
+    contentId: "SHARED_DETAIL_DB47F77499F012",
+    kicker: "ROOT WITH YOU",
+    lines: ["ROOT陪伴计划", "快速了解你的肠道状态", "并领取5支益生元体验装"],
+    coverAssetUrl: assetUrl,
+  },
+] });
+assert.deepEqual(refreshedHome.map((item) => item.contentId), firstFrame.map((item) => item.contentId));
+assert.deepEqual(refreshedHome.map((item) => item.lines), firstFrame.map((item) => item.lines));
+assert.deepEqual(refreshedHome.map((item) => item.action), firstFrame.map((item) => item.action));
 
 assert.equal(presentWelcome({ screens: [{ slot: 1, copy: "第一屏", assetUrl }] }), null);
 assert.deepEqual(presentWelcome({ screens: [

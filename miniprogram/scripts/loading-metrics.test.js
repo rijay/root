@@ -27,6 +27,10 @@ assert.match(profileView, /bindload="profileImageLoaded" binderror="profileImage
 assert.match(homeScript, /entry: "usable_content"/);
 assert.match(homeScript, /entry: "home_banner"/);
 assert.match(homeView, /bindload="imageLoaded" binderror="imageFailed"/);
+assert.match(homeScript, /const firstItems = initialHome\(\)/);
+assert.match(homeScript, /state: firstItems\.length \? "ready" : "loading"/);
+assert.match(homeScript, /recordUsableContent\("LOCAL_FIRST_FRAME"\)/);
+assert.match(homeScript, /background: this\.data\.items\.length > 0/);
 
 assert.match(productsScript, /entry: "usable_content"/);
 assert.match(productsScript, /entry: "product_image"/);

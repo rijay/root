@@ -1,7 +1,7 @@
 const { syncTabBar } = require("../../utils/tab-bar");
 const { cancelRequestScope, requestWithDeadline } = require("../../utils/request");
 const { readPublicPageCache, writePublicPageCache } = require("../../utils/page-cache");
-const { presentHome } = require("../../utils/content-presenter");
+const { initialHome, presentHome } = require("../../utils/content-presenter");
 const { executeContentAction } = require("../../utils/content-action");
 const { defaultOnShareAppMessage } = require("../../utils/page-share");
 const { track } = require("../../utils/analytics");
@@ -10,15 +10,22 @@ const { performanceMonitor } = require("../../utils/performance-monitor");
 const CACHE_KEY = "home";
 const REQUEST_SCOPE = "formal-home-content";
 const CACHE_OPTIONS = Object.freeze({ freshForMs: 2 * 60 * 1000, maxStaleMs: 24 * 60 * 60 * 1000 });
+const firstItems = initialHome();
 
 Page({
-  data: { state: "loading", items: [], current: 0, failedImages: {} },
+  data: {
+    state: firstItems.length ? "ready" : "loading",
+    items: firstItems,
+    current: 0,
+    failedImages: {},
+  },
 
   onLoad() {
     this._pageStartedAt = Date.now();
+    if (this.data.items.length) this.recordUsableContent("LOCAL_FIRST_FRAME");
     const cached = readPublicPageCache(CACHE_KEY, CACHE_OPTIONS);
     if (cached) this.applyContent(cached.value);
-    this.loadContent({ background: Boolean(cached) });
+    this.loadContent({ background: this.data.items.length > 0 });
   },
 
   onShow() {

@@ -1,4 +1,5 @@
 const {
+  BUNDLED_HOME_FIRST_FRAME,
   appendConfiguredHomeBanners,
   configuredHomeBannerAction,
   configuredHomeBannerPresentation,
@@ -82,6 +83,10 @@ function presentHome(data = {}) {
   }));
 }
 
+function initialHome() {
+  return presentHome(BUNDLED_HOME_FIRST_FRAME);
+}
+
 function presentDetail(data = {}) {
   const item = data.item;
   if (!item || !/^[A-Za-z0-9_-]{3,80}$/.test(String(item.contentId || ""))) return null;
@@ -111,4 +116,4 @@ function presentDetail(data = {}) {
   };
 }
 
-module.exports = { presentDetail, presentHome, presentHomeAction, presentWelcome, safeAssetUrl, safeHomeAssetUrl };
+module.exports = { initialHome, presentDetail, presentHome, presentHomeAction, presentWelcome, safeAssetUrl, safeHomeAssetUrl };
