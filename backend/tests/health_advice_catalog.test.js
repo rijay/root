@@ -101,10 +101,12 @@ test("draft generator requires a new explicit output and emits 30 pending-review
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "myroot-health-catalog-test-"));
   const target = path.join(directory, "catalog.draft.json");
   let calls = 0;
+  const progress = [];
   try {
     const result = await run({
       argv: [`--output=${target}`],
       readApiKey: () => "keychain-secret",
+      onProgress: (event) => progress.push(event),
       async fetchImpl(_url, options) {
         calls += 1;
         const body = JSON.parse(options.body);
@@ -128,7 +130,10 @@ test("draft generator requires a new explicit output and emits 30 pending-review
     const draft = JSON.parse(fs.readFileSync(target, "utf8"));
     assert.equal(result.scenarioCount, 30);
     assert.equal(calls, 30);
+    assert.equal(progress[0].completed, 0);
+    assert.equal(progress.at(-1).completed, 30);
     assert.equal(draft.reviewStatus, "DRAFT");
+    assert.equal(draft.generationStatus, "GENERATED");
     assert.equal(draft.entries.length, 30);
     assert.equal(draft.entries.every((entry) => entry.reviewStatus === "PENDING_REVIEW"), true);
     assert.equal(draft.entries.every((entry) => (
@@ -137,6 +142,53 @@ test("draft generator requires a new explicit output and emits 30 pending-review
     await assert.rejects(() => run({ argv: [`--output=${target}`], readApiKey: () => "unused" }), {
       code: "HEALTH_ADVICE_CATALOG_OUTPUT_EXISTS",
     });
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("failed generation keeps a validated partial draft and explicit resume continues from the next scenario", async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "myroot-health-catalog-resume-test-"));
+  const target = path.join(directory, "catalog.draft.json");
+  let initialCalls = 0;
+  let resumedCalls = 0;
+  const validResponse = {
+    ok: true,
+    async json() {
+      return { choices: [{ message: { content: JSON.stringify({
+        summary: "保持稳定节奏并继续观察。",
+        actions: ["模型建议一。", "模型建议二。", "模型建议三。"],
+        cautions: [],
+        followUp: "一周后回测。",
+      }) } }] };
+    },
+  };
+  try {
+    await assert.rejects(() => run({
+      argv: [`--output=${target}`],
+      readApiKey: () => "keychain-secret",
+      async fetchImpl() {
+        initialCalls += 1;
+        if (initialCalls === 3) {
+          return { ok: true, async json() { return { choices: [{ message: { content: "{}" } }] }; } };
+        }
+        return validResponse;
+      },
+    }), { code: "HEALTH_ADVICE_CATALOG_MODEL_OUTPUT_INVALID" });
+    const partial = JSON.parse(fs.readFileSync(target, "utf8"));
+    assert.equal(partial.generationStatus, "IN_PROGRESS");
+    assert.equal(partial.entries.length, 2);
+
+    const result = await run({
+      argv: [`--output=${target}`, "--resume"],
+      readApiKey: () => "keychain-secret",
+      async fetchImpl() { resumedCalls += 1; return validResponse; },
+    });
+    const completed = JSON.parse(fs.readFileSync(target, "utf8"));
+    assert.equal(result.scenarioCount, 30);
+    assert.equal(resumedCalls, 28);
+    assert.equal(completed.generationStatus, "GENERATED");
+    assert.equal(completed.entries.length, 30);
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }
