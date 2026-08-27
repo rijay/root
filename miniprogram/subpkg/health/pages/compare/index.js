@@ -6,7 +6,7 @@ const REASON_COPY = {
   ASSESSMENT_NOT_COMPLETED: "存在未完成的评测，暂不支持对比。",
   QUESTIONNAIRE_VERSION_MISMATCH: "问卷版本不同，暂不支持直接对比。你仍可分别查看两次结果。",
   SAFETY_RESULT_NOT_COMPARABLE: "安全分支结果不进行数值对比，请分别查看结果中的优先行动。",
-  NO_SHARED_DIMENSIONS: "两次结果没有可直接对比的相同维度。",
+  NO_SHARED_DIMENSIONS: "两次结果已并列展示；当前问卷未配置共同数值维度。",
 };
 
 Page({

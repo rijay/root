@@ -72,7 +72,7 @@ function matchingSnapshot(data, rootUserId, states) {
 function publicAdvice(snapshot) {
   if (!snapshot) return null;
   const sourceLabels = {
-    REVIEWED_ADVICE_POOL: "AI 辅助起草，经人工审核",
+    REVIEWED_ADVICE_POOL: "经审核健康建议",
     REVIEWED_FALLBACK: "经审核规则建议",
     REVIEWED_SAFETY: "经审核安全提示",
   };

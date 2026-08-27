@@ -271,7 +271,7 @@ test("approved v0.7 advice pool is served through the health advice HTTP Interfa
   assert.equal(generated.status, 200);
   assert.equal(generated.payload.code, 0);
   assert.equal(generated.payload.data.advice.source, "REVIEWED_ADVICE_POOL");
-  assert.equal(generated.payload.data.advice.sourceLabel, "AI 辅助起草，经人工审核");
+  assert.equal(generated.payload.data.advice.sourceLabel, "经审核健康建议");
   assert.equal(generated.payload.data.advice.modelName, "");
   assert.equal(generated.payload.data.advice.contentVersion, "root4u-health-advice-pool-v1");
   assert.equal(generated.payload.data.advice.actions.length, 3);

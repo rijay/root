@@ -72,7 +72,7 @@ test("reviewed advice pool is selected locally and reused for the same inputs", 
     healthAdviceModelAdapter: forbiddenRuntimeAdapter,
   });
   assert.equal(generated.advice.source, "REVIEWED_ADVICE_POOL");
-  assert.equal(generated.advice.sourceLabel, "AI 辅助起草，经人工审核");
+  assert.equal(generated.advice.sourceLabel, "经审核健康建议");
   assert.equal(generated.advice.modelName, "");
   assert.equal(generated.advice.contentVersion, POOL_VERSION);
   assert.equal(generated.advice.actions[0], "日常补充益生元，持续滋养肠道有益菌");

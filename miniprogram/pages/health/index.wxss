@@ -621,25 +621,16 @@ page {
 }
 
 .health-overview-card__eyebrow,
-.health-overview-card__source,
 .health-overview-state__type,
 .health-overview-state__time {
   font-size: 10px;
   line-height: 16px;
 }
 
-.health-overview-card__eyebrow,
-.health-overview-card__source {
+.health-overview-card__eyebrow {
   color: var(--color-brand-olive);
   font-weight: 600;
   letter-spacing: 1px;
-}
-
-.health-overview-card__source {
-  padding: 3px 8px;
-  background: var(--color-brand-white);
-  border-radius: 10px;
-  letter-spacing: 0;
 }
 
 .health-overview-card__title {
@@ -738,10 +729,6 @@ page {
   border-radius: 9px;
   font-size: 10px;
   line-height: 16px;
-}
-
-.health-advice__source-note--model {
-  color: var(--color-olive-dark);
 }
 
 .health-advice__source-note--safety {

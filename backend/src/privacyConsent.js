@@ -23,7 +23,7 @@ const DATA_CATEGORIES = [
   "排便频率、便便形态与消化感受",
   "睡眠、活动、饮食、饮水、压力和精力情况",
   "健康目标、安全与适用性确认",
-  "评测结果代码与建议池匹配结果（仅在 myRoot 服务端处理，不发送给模型）",
+  "评测结果代码与建议池匹配结果（仅在 myRoot 服务端处理，不对外提供）",
 ];
 
 function ensureList(data) {
@@ -89,12 +89,12 @@ function noticePayload(config) {
     dataCategories: DATA_CATEGORIES.slice(),
     necessity: "这些信息会安全保存到你的 myRoot 账号，仅用于你主动参加的 Root4U 评测、生活方式建议、历史回测和必要人工协助，不用于医疗诊断。",
     refusalImpact: "不同意不会影响首页、活动和会员支持，但无法提交 Root4U 健康评测或查看基于评测生成的建议。",
-    modelProcessingText: "健康建议采用离线起草并经人工审核的通用建议池。内容制作只使用产品定义的 6 类健康起点和 5 类肠道状态，不使用任何真实用户的身份、问卷答案、评测结果、健康状态、请求日志或其他个人信息。你使用小程序时，myRoot 服务端只在本地按评测结果组合已审核建议；建议池缺失或未通过审核时自动使用经审核固定建议，不会发起实时模型调用，也不会把用户健康数据发送给任何模型服务。",
+    modelProcessingText: "健康建议采用预先起草并经人工审核的通用建议池。内容制作只使用产品定义的 6 类健康起点和 5 类肠道状态，不使用任何真实用户的身份、问卷答案、评测结果、健康状态、请求日志或其他个人信息。你使用小程序时，myRoot 服务端只在本地按评测结果组合已审核建议；建议池缺失或未通过审核时自动使用经审核固定建议，不会对外发送用户健康数据。",
     controllerName: config.controllerName,
     contact: config.contact,
     retentionDays: config.retentionDays,
     retentionText: config.retentionDays
-      ? `问卷答案、评测结果、回测记录和健康建议自最后保存起最长保留 ${config.retentionDays} 天；你可随时删除单条评测，在线主数据和关联建议最迟在 ${HEALTH_AI_DATA_LIMITS.primaryDeletionSlaHours} 小时内删除。运行时不会把用户健康数据发送给模型，因此用户删除、撤回或注销不涉及清理模型供应商侧的个人信息。加密滚动备份最长保留 ${HEALTH_AI_DATA_LIMITS.backupRetentionDays} 天，恢复备份前会重新执行删除。到期后仅保留不含健康内容的必要版本、时间和同意审计事实。法律法规要求继续保存的，只作隔离存储和安全保护。`
+      ? `问卷答案、评测结果、回测记录和健康建议自最后保存起最长保留 ${config.retentionDays} 天；你可随时删除单条评测，在线主数据和关联建议最迟在 ${HEALTH_AI_DATA_LIMITS.primaryDeletionSlaHours} 小时内删除。运行时只在 myRoot 服务端本地匹配建议，不对外发送用户健康数据。加密滚动备份最长保留 ${HEALTH_AI_DATA_LIMITS.backupRetentionDays} 天，恢复备份前会重新执行删除。到期后仅保留不含健康内容的必要版本、时间和同意审计事实。法律法规要求继续保存的，只作隔离存储和安全保护。`
       : "保存期限待运营负责人确认。",
     dataManagement: {
       policyVersion: HEALTH_AI_DATA_POLICY_VERSION,

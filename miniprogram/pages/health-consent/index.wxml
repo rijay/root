@@ -25,7 +25,7 @@
     </view>
 
     <view wx:if="{{notice.modelProcessingText}}" class="consent-section">
-      <view class="section-title">模型辅助建议</view>
+      <view class="section-title">健康建议说明</view>
       <view class="consent-note">{{notice.modelProcessingText}}</view>
     </view>
 

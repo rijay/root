@@ -39,7 +39,6 @@
     <view class="health-overview-card">
       <view class="health-overview-card__head">
         <text class="health-overview-card__eyebrow">YOUR CURRENT STATE</text>
-        <text wx:if="{{overview && overview.advice}}" class="health-overview-card__source">{{overview.advice.sourceLabel}}</text>
       </view>
       <text class="health-overview-card__title">当前状态与健康建议</text>
 
@@ -63,7 +62,7 @@
       </view>
 
       <view wx:if="{{overview && overview.advice}}" class="health-advice">
-        <text class="health-advice__source-note health-advice__source-note--{{overview.advice.sourceTone}}">{{overview.advice.sourceHint}}</text>
+        <text wx:if="{{overview.advice.sourceHint}}" class="health-advice__source-note health-advice__source-note--{{overview.advice.sourceTone}}">{{overview.advice.sourceHint}}</text>
         <text class="health-advice__summary">{{overview.advice.summary}}</text>
         <view class="health-advice__actions">
           <view wx:for="{{overview.advice.actions}}" wx:key="*this" class="health-advice__action">

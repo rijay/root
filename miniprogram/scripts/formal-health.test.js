@@ -76,16 +76,17 @@ assert.match(compareScript, /QUESTIONNAIRE_VERSION_MISMATCH/);
 
 const consentWxml = read("pages/health-consent/index.wxml");
 assert.match(consentWxml, /首页、活动和会员支持不以同意为前提/);
-assert.match(consentWxml, /模型辅助建议/);
+assert.match(consentWxml, /健康建议说明/);
 assert.match(consentWxml, /notice\.modelProcessingText/);
 assert.doesNotMatch(consentWxml, /任务|奖励|打卡/);
 
 const legalScript = read("pages/legal/index.js");
 assert.match(legalScript, /保存到你的 myRoot 账号/);
 assert.match(legalScript, /评测历史中随时删除/);
-assert.match(legalScript, /CloudBase AI/);
+assert.match(legalScript, /三、健康建议/);
 assert.match(legalScript, /合成状态场景/);
-assert.match(legalScript, /不接收任何真实用户/);
-assert.match(legalScript, /线上运行时不调用该模型服务/);
+assert.match(legalScript, /不使用任何真实用户/);
+assert.match(legalScript, /不对外提供用户身份/);
+assert.doesNotMatch(legalScript, /AI 辅助|模型辅助|CloudBase AI|实时模型/);
 
 console.log("v0.6.0 formal health tests ok");

@@ -9,12 +9,11 @@ const {
 } = require("../utils/health-advice-ui");
 
 assert.equal(decorateAdvice({ source: "REVIEWED_ADVICE_POOL" }).sourceTone, "reviewed");
-assert.match(decorateAdvice({ source: "REVIEWED_ADVICE_POOL" }).sourceHint, /AI 离线辅助起草/);
-assert.match(decorateAdvice({ source: "REVIEWED_ADVICE_POOL" }).sourceHint, /不会发送给任何模型服务/);
+assert.equal(decorateAdvice({ source: "REVIEWED_ADVICE_POOL" }).sourceHint, "");
 assert.equal(decorateAdvice({ source: "REVIEWED_FALLBACK" }).sourceTone, "fallback");
-assert.match(decorateAdvice({ source: "REVIEWED_FALLBACK" }).sourceHint, /经审核/);
+assert.equal(decorateAdvice({ source: "REVIEWED_FALLBACK" }).sourceHint, "本次展示经审核固定建议。");
 assert.equal(decorateAdvice({ source: "REVIEWED_SAFETY" }).sourceTone, "safety");
-assert.match(decorateAdvice({ source: "REVIEWED_SAFETY" }).sourceHint, /未调用模型/);
+assert.equal(decorateAdvice({ source: "REVIEWED_SAFETY" }).sourceHint, "当前结果进入安全提示分支，展示经审核安全提示。");
 assert.equal(decorateAdvice(null), null);
 assert.equal(isAdviceResultUnknown({ code: "WRITE_RESULT_UNKNOWN" }), true);
 assert.equal(isAdviceResultUnknown({ resultUnknown: true }), true);
@@ -28,7 +27,8 @@ assert.match(pageScript, /isAdviceResultUnknown/);
 assert.match(pageScript, /confirmPendingAdvice/);
 assert.match(pageScript, /adviceLoading/);
 assert.match(pageView, /adviceStatusText/);
-assert.match(pageView, /sourceHint/);
+assert.match(pageView, /wx:if="\{\{overview\.advice\.sourceHint\}\}"/);
+assert.doesNotMatch(pageView, /health-overview-card__source/);
 assert.match(pageView, /无需重复点击/);
 
 console.log("health advice UI state checks passed");

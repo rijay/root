@@ -1,15 +1,15 @@
 const ADVICE_SOURCE_PRESENTATION = Object.freeze({
   REVIEWED_ADVICE_POOL: Object.freeze({
     tone: "reviewed",
-    hint: "由 AI 离线辅助起草，经人工审核后收录；你的评测数据不会发送给任何模型服务。",
+    hint: "",
   }),
   REVIEWED_FALLBACK: Object.freeze({
     tone: "fallback",
-    hint: "本次使用经审核的规则建议，不展示未通过校验的模型内容。",
+    hint: "本次展示经审核固定建议。",
   }),
   REVIEWED_SAFETY: Object.freeze({
     tone: "safety",
-    hint: "当前结果进入安全提示分支，本次未调用模型，使用经审核的安全提示。",
+    hint: "当前结果进入安全提示分支，展示经审核安全提示。",
   }),
 });
 

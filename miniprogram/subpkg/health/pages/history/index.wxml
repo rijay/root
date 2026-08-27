@@ -2,7 +2,7 @@
   <view class="history-header">
     <view class="history-kicker">ASSESSMENT HISTORY</view>
     <view class="history-title">每一次结果，独立保存</view>
-    <view class="history-copy">记录已安全保存到你的 myRoot 账号。你可以删除单条记录；仅相同问卷 ID 与版本支持数值对比。</view>
+    <view class="history-copy">记录已安全保存到你的 myRoot 账号。你可以删除单条记录；同一问卷 ID 与版本的两次结果可并列查看，双方都有相同数值维度时才展示数值变化。</view>
   </view>
 
   <view wx:if="{{loading}}" class="root-card history-state" role="status" aria-live="polite">

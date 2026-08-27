@@ -95,7 +95,7 @@ function buildHistoryView(rows = [], activeFilter = "ALL", selectedIds = []) {
     recentPairIds: recentPair.map((item) => item.assessmentId),
     recentPairText: recentPair.length === 2
       ? `${recentPair[0].typeLabel} · ${recentPair[0].versionText}`
-      : "暂无同问卷同版本记录",
+      : "暂无可进行数值对比的同版记录",
   };
 }
 

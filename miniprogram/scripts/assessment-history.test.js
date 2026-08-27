@@ -49,6 +49,10 @@ const view = buildHistoryView(rows, "INITIAL", ["initial-old", "missing"]);
 assert.deepEqual(view.selectedIds, ["initial-old"]);
 assert.deepEqual(view.visibleAssessments.map((item) => item.assessmentId), ["initial-v2", "initial-new", "initial-old"]);
 assert.deepEqual(view.recentPairIds, ["initial-old", "initial-new"]);
+assert.equal(
+  buildHistoryView(rows.map((item) => ({ ...item, dimensions: [] })), "ALL", []).recentPairText,
+  "暂无可进行数值对比的同版记录",
+);
 
 assert.deepEqual(toggleSelection(["initial-old"], "initial-new"), {
   selectedIds: ["initial-old", "initial-new"],
