@@ -113,3 +113,8 @@
 4. 体验版上传、微信审核与生产发布验收。
 
 以上四项均未执行外部写入、上传或生产变更。
+
+### Android Gate 处置
+
+- 2026-08-28 项目负责人确认当前没有 Android 测试机，决定本轮跳过 Android 真机验证。
+- 状态记为 `SKIPPED_DEVICE_UNAVAILABLE`，不是 PASS；iOS 当前网络下的通过结果不得外推为 Android 兼容证明。
