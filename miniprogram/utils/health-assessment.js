@@ -66,6 +66,32 @@ function decorateCatalogItem(item = {}) {
   };
 }
 
+function initialCatalog() {
+  return {
+    storageMode: useLocalAssessmentStorage ? "LOCAL_DEVICE" : "SERVER",
+    assessments: Object.values(localAssessment.DEFINITIONS).map((definition) => decorateCatalogItem({
+      assessmentType: definition.assessmentType,
+      definition: {
+        assessmentDefinitionId: definition.assessmentDefinitionId,
+        assessmentType: definition.assessmentType,
+        questionnaireId: definition.questionnaireId,
+        questionnaireVersion: definition.questionnaireVersion,
+        title: definition.title,
+        description: definition.description,
+        estimatedMinutes: definition.estimatedMinutes,
+        available: definition.available,
+      },
+      available: definition.available !== false,
+      unavailableReason: "",
+      historyCount: 0,
+      latest: null,
+      inProgress: null,
+      canResume: false,
+      canRetest: false,
+    })),
+  };
+}
+
 async function getCatalog() {
   const data = useLocalAssessmentStorage
     ? localAssessment.catalog()
@@ -227,6 +253,7 @@ module.exports = {
   getCatalog,
   getHistory,
   getHealthOverview,
+  initialCatalog,
   generateHealthAdvice,
   saveDraft,
   startAssessment,

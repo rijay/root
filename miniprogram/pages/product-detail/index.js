@@ -1,4 +1,4 @@
-const { getProduct } = require("../../utils/product-api");
+const { getProduct, initialProduct } = require("../../utils/product-api");
 const { setPendingProductFocus } = require("../../utils/product-navigation");
 const { jumpToYouzanProduct, mergeJumpTarget } = require("../../utils/youzan-jump");
 const { failureReason, track } = require("../../utils/analytics");
@@ -29,11 +29,15 @@ Page({
   },
 
   onLoad(options = {}) {
+    const productId = options.productId || options.product_id || "";
+    const product = decorateProduct(initialProduct(productId));
     this.setData({
-      productId: options.productId || options.product_id || "",
+      loading: !product,
+      productId,
+      product,
       sourcePage: options.source || "direct",
     });
-    this.loadProduct();
+    this.loadProduct({ background: Boolean(product) });
   },
 
   onUnload() {
@@ -44,25 +48,32 @@ Page({
     showFriendShareMenu();
   },
 
-  async loadProduct() {
+  async loadProduct(options = {}) {
     if (!this.data.productId) {
       this.setData({ loading: false, errorText: "商品不存在" });
       return;
     }
-    const data = await getProduct(this.data.productId);
-    const product = decorateProduct(data.product);
-    this.setData({
-      loading: false,
-      product,
-      errorText: product ? "" : "商品不存在",
-      catalogNotice: data.degradedText || "",
-    });
-    if (product) {
-      track("product_detail_view", {
-        productId: product.productId,
-        skuId: "",
-        sourcePage: this.data.sourcePage,
+    try {
+      const data = await getProduct(this.data.productId);
+      const product = decorateProduct(data.product);
+      this.setData({
+        loading: false,
+        product: product || this.data.product,
+        errorText: product || this.data.product ? "" : "商品不存在",
+        catalogNotice: data.degradedText || "",
       });
+      if (product && !this._detailViewTracked) {
+        this._detailViewTracked = true;
+        track("product_detail_view", {
+          productId: product.productId,
+          skuId: "",
+          sourcePage: this.data.sourcePage,
+        });
+      }
+    } catch (error) {
+      if (!options.background || !this.data.product) {
+        this.setData({ loading: false, errorText: error.message || "商品不存在" });
+      }
     }
   },
 

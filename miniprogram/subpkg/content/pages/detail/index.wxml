@@ -2,8 +2,8 @@
   <page-navigation tone="light" show-home="{{false}}" />
   <block wx:if="{{state === 'ready'}}">
     <block wx:if="{{item.assets && item.assets.length}}">
-      <view wx:for="{{item.assets}}" wx:for-item="asset" wx:for-index="assetIndex" wx:key="assetId" class="content-detail__asset">
-        <image class="content-detail__image" src="{{asset.imageUrl}}" mode="widthFix" lazy-load="{{assetIndex > 0}}" />
+      <view wx:for="{{item.assets}}" wx:for-item="asset" wx:for-index="assetIndex" wx:key="assetId" class="content-detail__asset {{asset.displayHeightRpx ? 'content-detail__asset--reserved' : ''}}" style="{{asset.displayStyle}}">
+        <image class="content-detail__image" src="{{asset.imageUrl}}" mode="{{asset.displayMode}}" lazy-load="{{assetIndex > 0}}" />
         <button
           wx:for="{{asset.hotspots}}"
           wx:for-item="hotspot"

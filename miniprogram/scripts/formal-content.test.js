@@ -40,9 +40,23 @@ assert.match(phggScript, /showTimelineShareMenu/);
 assert.match(phggScript, /setClipboardData/);
 assert.match(phggScript, /onShareAppMessage/);
 assert.match(phggScript, /onShareTimeline/);
-assert.match(phggWxml, /不代表任何 ROOT 成品具备同等研究结论/);
-assert.match(phggWxml, /研究中的用量不能替代包装标示的食用方式/);
-assert.doesNotMatch(phggWxml, /阻挡\s*30%|100%改善|体重下降|国内首款|抗生素|术后|治疗作用/);
+assert.match(phggScript, /33ad4be54acef24a7ac0d345ea7a1e54ae8ab3f8ab9ac34d8b4114c9f58d7081/);
+[
+  "一、原料概览",
+  "二、核心理化与配方特性",
+  "三、作用机制",
+  "四、肠道健康临床证据",
+  "五、体重管理与代谢证据",
+  "六、安全性与耐受性",
+  "七、完整参考文献",
+  "表 1 PHGG 与其他常见益生元/膳食纤维关键特性对比",
+  "表 2 PHGG 在 IBS 及相关肠道症状中的关键临床试验",
+  "Fibalance® 28 天消费者测试",
+  "特殊人群：SIBO 辅助治疗",
+  "术后肠内营养应用（中国人群数据）",
+  "文献引用仅用于科学信息交流，不构成医疗建议或功效宣称。产品不能替代药物治疗。",
+].forEach((copy) => assert.equal(phggWxml.includes(copy), true, `missing PHGG source copy: ${copy}`));
+assert.equal((phggWxml.match(/id="s[1-7]"/g) || []).length, 7);
 assert.match(detailScript, /\/api\/v1\/public\/content\/detail/);
 assert.match(detailScript, /executeContentAction/);
 assert.match(detailWxml, /page-navigation/);

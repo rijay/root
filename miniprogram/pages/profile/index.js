@@ -8,7 +8,9 @@ const { FORMAL_ACCESS_STATE, inspectFormalAccess } = require("../../utils/formal
 const { unbindUserScope } = require("../../utils/local-health-assessment");
 const { defaultOnShareAppMessage } = require("../../utils/page-share");
 const { readProfileCache, writeProfileCache } = require("../../utils/profile-cache");
-const { getMemberCommerceSummary } = require("../../utils/member-commerce");
+const { currentLoginSession, ensureLoginSession } = require("../../utils/login-session");
+const { getMemberCommerceSummary, readMemberCommerceSummary } = require("../../utils/member-commerce");
+const { clearSessionPageCache } = require("../../utils/page-cache");
 const { performanceMonitor } = require("../../utils/performance-monitor");
 
 const PROFILE_ROUTE = "/pages/profile/index";
@@ -39,6 +41,7 @@ function initialProfileState() {
   if (!getToken()) {
     return { loggedIn: false, sessionChecking: false, profile: GUEST_PROFILE, profileRefreshFailed: false };
   }
+  ensureLoginSession();
   const cached = readProfileCache();
   return cached
     ? { loggedIn: true, sessionChecking: false, profile: cached.profile, profileRefreshFailed: false }
@@ -46,6 +49,7 @@ function initialProfileState() {
 }
 
 const firstProfileState = initialProfileState();
+const firstMemberCommerce = firstProfileState.loggedIn ? readMemberCommerceSummary() : null;
 
 Page({
   data: {
@@ -55,7 +59,7 @@ Page({
     failedMemberKey: "",
     profileRefreshFailed: false,
     profileImageFailed: false,
-    memberCommerce: { ready: false, orderHint: "会员中心", couponHint: "会员中心" },
+    memberCommerce: firstMemberCommerce || { ready: false, orderHint: "会员中心", couponHint: "会员中心" },
   },
 
   onLoad() {
@@ -66,11 +70,13 @@ Page({
   onShow() {
     syncTabBar(this, 4);
     const hasSession = Boolean(getToken());
+    if (hasSession) ensureLoginSession();
     const cached = hasSession ? readProfileCache() : null;
+    const memberCommerce = hasSession ? readMemberCommerceSummary() : null;
     this.setData(hasSession
       ? cached
-        ? { loggedIn: true, sessionChecking: false, profile: cached.profile, profileRefreshFailed: false, profileImageFailed: false }
-        : { loggedIn: true, sessionChecking: true, profile: DEFAULT_PROFILE, profileRefreshFailed: false, profileImageFailed: false }
+        ? { loggedIn: true, sessionChecking: false, profile: cached.profile, profileRefreshFailed: false, profileImageFailed: false, ...(memberCommerce ? { memberCommerce } : {}) }
+        : { loggedIn: true, sessionChecking: true, profile: DEFAULT_PROFILE, profileRefreshFailed: false, profileImageFailed: false, ...(memberCommerce ? { memberCommerce } : {}) }
       : {
         loggedIn: false,
         sessionChecking: false,
@@ -79,6 +85,7 @@ Page({
         failedMemberKey: "",
         profileRefreshFailed: false,
         profileImageFailed: false,
+        memberCommerce: { ready: false, orderHint: "会员中心", couponHint: "会员中心" },
       });
     if (hasSession) {
       this.loadProfile({ preserveCached: Boolean(cached) });
@@ -89,10 +96,15 @@ Page({
   loadProfile(options = {}) {
     if (this._profileLoadPromise) return this._profileLoadPromise;
     const startedAt = Date.now();
+    const expectedSessionId = currentLoginSession().sessionId;
     let refreshStatus = "REFRESH_FAILED";
     const pending = (async () => {
       try {
         const access = await inspectFormalAccess("profile-home");
+        if (!getToken() || currentLoginSession().sessionId !== expectedSessionId) {
+          refreshStatus = "SESSION_CHANGED";
+          return;
+        }
         const loggedIn = access.state !== FORMAL_ACCESS_STATE.PHONE_REQUIRED;
         const profile = access.profile || { nickname: loggedIn ? "Root用户" : "未登录", avatarUrl: "" };
         refreshStatus = loggedIn ? "REFRESH_SUCCESS" : "REFRESH_GUEST";
@@ -106,6 +118,10 @@ Page({
         });
         if (loggedIn) this.resumeMemberTarget();
       } catch (error) {
+        if (!getToken() || currentLoginSession().sessionId !== expectedSessionId) {
+          refreshStatus = "SESSION_CHANGED";
+          return;
+        }
         if (options.preserveCached && getToken()) {
           refreshStatus = "REFRESH_STALE_CACHE";
           this.setData({ sessionChecking: false, profileRefreshFailed: true });
@@ -163,11 +179,16 @@ Page({
 
   loadMemberCommerce() {
     if (this._memberCommercePromise || !getToken()) return this._memberCommercePromise;
+    const expectedSessionId = currentLoginSession().sessionId;
     const pending = getMemberCommerceSummary()
-      .then((memberCommerce) => this.setData({ memberCommerce }))
-      .catch(() => this.setData({
-        memberCommerce: { ready: false, orderHint: "会员中心", couponHint: "会员中心" },
-      }));
+      .then((memberCommerce) => {
+        if (getToken() && currentLoginSession().sessionId === expectedSessionId) this.setData({ memberCommerce });
+      })
+      .catch(() => {
+        if (getToken() && currentLoginSession().sessionId === expectedSessionId) this.setData({
+          memberCommerce: { ready: false, orderHint: "会员中心", couponHint: "会员中心" },
+        });
+      });
     this._memberCommercePromise = pending;
     return pending.finally(() => {
       if (this._memberCommercePromise === pending) this._memberCommercePromise = null;
@@ -245,6 +266,7 @@ Page({
     LOCAL_SESSION_KEYS.forEach((key) => wx.removeStorageSync(key));
     clearTransientHealthData();
     clearLegacyTransientHealthStorage(wx);
+    clearSessionPageCache();
     this.setData({
       loggedIn: false,
       sessionChecking: false,

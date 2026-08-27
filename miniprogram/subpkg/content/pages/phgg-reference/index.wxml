@@ -1,90 +1,178 @@
 <view class="science-page">
-  <page-navigation show-home="{{true}}" />
+  <page-navigation tone="light" show-home="{{true}}" />
 
-  <view class="science-hero">
-    <view class="science-hero__eyebrow">SCIENTIFIC REFERENCE DOSSIER</view>
-    <view class="science-hero__title">PHGG 原料科学档案</view>
-    <view class="science-hero__subtitle">
-      <text>部分水解瓜尔胶</text>
-      <text class="science-hero__subtitle-en">Partially Hydrolyzed Guar Gum</text>
+  <view class="science-cover">
+    <view class="science-wrap">
+      <view class="science-cover__eyebrow">SCIENTIFIC REFERENCE DOSSIER</view>
+      <view class="science-cover__title">ROOT 核心原料 PHGG 科学参考文献集</view>
+      <view class="science-cover__subtitle">本文件系统梳理 ROOT 益生元膳食纤维饮核心原料——部分水解瓜尔胶（PHGG, partially hydrolyzed guar gum）的化学特性、作用机制、人体临床证据与安全性资料，供客户及合作伙伴参考。</view>
+      <view class="science-cover__meta">
+        <text>品牌：ROOT｜杭州连生健康科技有限公司</text>
+        <text>原料商品名：Fibalance®</text>
+        <text>整理日期：2026-08-27</text>
+      </view>
     </view>
-    <view class="science-hero__meta">资料整理于 2026.08.27</view>
   </view>
 
-  <view class="science-boundary" role="note">
-    <view class="science-boundary__label">先说明边界</view>
-    <view>本页整理 PHGG 原料的公开研究信息，不代表任何 ROOT 成品具备同等研究结论。具体配料、营养成分及食用方式以当前产品包装和会员中心页面为准。</view>
-  </view>
-
-  <scroll-view class="science-nav" scroll-x enhanced show-scrollbar="{{false}}" aria-label="页面目录">
-    <view class="science-nav__track">
-      <button class="science-nav__item" data-section="overview" bindtap="scrollToSection">原料概览</button>
-      <button class="science-nav__item" data-section="reading-guide" bindtap="scrollToSection">如何读证据</button>
-      <button class="science-nav__item" data-section="references" bindtap="scrollToSection">研究索引</button>
-      <button class="science-nav__item" data-section="usage-boundary" bindtap="scrollToSection">使用边界</button>
+  <scroll-view class="science-toc" style="top: {{tocTop}}px;" scroll-x enhanced show-scrollbar="{{false}}" aria-label="页面目录">
+    <view class="science-toc__track">
+      <button data-section="s1" bindtap="scrollToSection">原料概览</button>
+      <button data-section="s2" bindtap="scrollToSection">核心特性</button>
+      <button data-section="s3" bindtap="scrollToSection">作用机制</button>
+      <button data-section="s4" bindtap="scrollToSection">肠道健康证据</button>
+      <button data-section="s5" bindtap="scrollToSection">体重管理证据</button>
+      <button data-section="s6" bindtap="scrollToSection">安全性与耐受性</button>
+      <button data-section="s7" bindtap="scrollToSection">参考文献</button>
     </view>
   </scroll-view>
 
-  <view class="science-content">
-    <view id="overview" class="science-section">
-      <view class="science-section__index">01</view>
-      <view class="science-section__title">认识 PHGG</view>
-      <view class="science-section__copy">PHGG 是部分水解瓜尔胶的英文缩写，是由瓜尔胶经部分水解得到的水溶性膳食纤维。公开文献主要讨论其理化性质、人体耐受性及肠道相关研究。</view>
+  <view class="science-main science-wrap">
+    <view id="s1" class="science-section">
+      <view class="science-heading">一、原料概览</view>
+      <view class="science-paragraph science-paragraph--lead">PHGG（partially hydrolyzed guar gum，部分水解瓜尔胶）是从瓜尔豆（Cyamopsis tetragonoloba）胚乳中提取的半乳甘露聚糖，经受控酶解将高分子瓜尔胶切割为平均分子量约 20,000 Da 的长链可溶性膳食纤维。<text class="science-sup">[1][12]</text></view>
+      <view class="science-paragraph">ROOT 选用的 Fibalance® 由上海赞倍司生物科技有限公司出品，是<text class="science-strong">国内首款获得澳大利亚蒙纳士大学（Monash University）低 FODMAP 认证</text>的半乳甘露聚糖原料。<text class="science-sup">[7]</text>其化学结构为甘露糖与半乳糖以约 2:1 比例组成的 β-1,4-甘露聚糖主链，带 α-1,6-半乳糖侧链；人体消化酶无法切断该糖苷键，因此 PHGG 完整到达结肠后被肠道菌群缓慢发酵，生成短链脂肪酸（SCFA）。<text class="science-sup">[1][12]</text></view>
+
       <view class="science-facts">
-        <view class="science-fact">
-          <view class="science-fact__title">水溶性膳食纤维</view>
-          <view class="science-fact__copy">研究对象是原料本身，不等同于某一成品。</view>
-        </view>
-        <view class="science-fact">
-          <view class="science-fact__title">低粘度特性</view>
-          <view class="science-fact__copy">部分水解改变了天然瓜尔胶的粘度与加工表现。</view>
-        </view>
-        <view class="science-fact">
-          <view class="science-fact__title">可发酵纤维</view>
-          <view class="science-fact__copy">相关研究观察其与结肠菌群及发酵产物的关系。</view>
-        </view>
+        <view class="science-fact"><text class="science-fact__num">~20,000 Da</text><text class="science-fact__label">平均分子量，高分子长链结构</text></view>
+        <view class="science-fact"><text class="science-fact__num">≈85%</text><text class="science-fact__label">可溶性膳食纤维含量</text></view>
+        <view class="science-fact"><text class="science-fact__num">5–10 g/天</text><text class="science-fact__label">经临床验证的有效剂量区间</text></view>
+        <view class="science-fact"><text class="science-fact__num">低 FODMAP</text><text class="science-fact__label">Monash University 认证，适合敏感肠道</text></view>
       </view>
     </view>
 
-    <view id="reading-guide" class="science-section">
-      <view class="science-section__index">02</view>
-      <view class="science-section__title">如何读这些证据</view>
-      <view class="science-evidence-card">
-        <view class="science-evidence-card__type">系统综述 / 荟萃分析</view>
-        <view class="science-evidence-card__copy">用于汇总多项研究，也需要继续查看纳入研究的质量、人群和剂量差异。</view>
-      </view>
-      <view class="science-evidence-card">
-        <view class="science-evidence-card__type">人体随机对照试验</view>
-        <view class="science-evidence-card__copy">结论只适用于特定研究设计，不能从原料、剂量或研究人群直接推到成品。</view>
-      </view>
-      <view class="science-evidence-card">
-        <view class="science-evidence-card__type">体外、动物或供应商资料</view>
-        <view class="science-evidence-card__copy">适合解释研究方向，不应直接转化为消费者功效或使用建议。</view>
-      </view>
+    <view id="s2" class="science-section">
+      <view class="science-heading">二、核心理化与配方特性</view>
+      <view class="science-subheading">2.1 溶解性与粘度</view>
+      <view class="science-paragraph">与天然瓜尔胶（高粘度、易凝胶）不同，PHGG 经酶解后粘度大幅降低。5% (w/v) Fibalance® 水溶液粘度低于 12 mPa·s，比同浓度瓜尔胶溶液粘度降低约 1000 倍，可完全溶解于水且无色无味，不改变饮品口感和质地。<text class="science-sup">[1][12]</text>这一特性使其在液体剂型（如 ROOT 纤维饮）中具有显著的配方优势。</view>
+
+      <view class="science-subheading">2.2 稳定性</view>
+      <view class="science-paragraph">Fibalance® 具有良好的加工稳定性：耐温范围 −18 °C 至 120 °C，在 pH 3–8 范围内稳定无降解，不吸潮、不易结块，可耐受巴氏杀菌、高温灌装及冷链储运等常见食品加工条件。</view>
+
+      <view class="science-subheading">2.3 与常见益生元纤维的对比</view>
+      <scroll-view class="science-table-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="science-table science-table--comparison">
+          <view class="science-table__caption">表 1 PHGG 与其他常见益生元/膳食纤维关键特性对比</view>
+          <view class="science-table__row science-table__row--head"><text>维度</text><text>PHGG（半乳甘露聚糖）</text><text>菊粉 / FOS / GOS</text><text>抗性糊精</text></view>
+          <view class="science-table__row"><text>分子链长</text><text>长链（~20,000 Da）</text><text>短链</text><text>中短链</text></view>
+          <view class="science-table__row"><text>发酵方式</text><text>缓慢、全结肠均匀发酵</text><text>快速、近端结肠集中发酵</text><text>部分发酵</text></view>
+          <view class="science-table__row"><text>FODMAP 分级</text><text><text class="science-tag">低 FODMAP 认证</text></text><text>高 FODMAP（FOS/GOS/菊粉本身即为 FODMAP）</text><text>通常耐受良好</text></view>
+          <view class="science-table__row"><text>产气/胀气风险</text><text>低，临床报道胀气显著改善</text><text>较高，易引起胀气和排气增多</text><text>低至中等</text></view>
+          <view class="science-table__row"><text>口味与质地</text><text>无色无味、低粘度、完全溶解</text><text>可能带甜味、部分有沙粒感</text><text>溶解性好</text></view>
+          <view class="science-table__row"><text>SCFA 产量</text><text>高（体外优于菊粉及车前子壳）<text class="science-sup">[8]</text></text><text>高，但伴随气体骤增</text><text>中等</text></view>
+        </view>
+      </scroll-view>
+      <view class="science-callout"><text class="science-strong">关键差异：</text>菊粉、FOS、GOS 等短链益生元本身即属于 FODMAP 中的"可发酵低聚糖"，在近端结肠快速发酵，易产生气体骤增；PHGG 为长链高分子纤维，被分类为可溶性纤维而非可发酵低聚糖，沿全结肠缓慢发酵，因此在获得益生元益处的同时显著降低胀气风险。<text class="science-sup">[7][12]</text></view>
     </view>
 
-    <view id="references" class="science-section">
-      <view class="science-section__index">03</view>
-      <view class="science-section__title">精选研究索引</view>
-      <view class="science-section__copy">以下条目用于继续检索原文。点击可复制 DOI、PMID 或 PMCID。</view>
+    <view id="s3" class="science-section">
+      <view class="science-heading">三、作用机制</view>
+      <view class="science-mechanism">
+        <view class="science-mechanism__step"><text class="science-mechanism__title">① 完整到达结肠</text><text>人体上消化道缺乏 β-甘露聚糖酶，无法分解半乳甘露聚糖主链，PHGG 以完整形态通过胃和小肠，不被吸收、不升高血糖。</text></view>
+        <text class="science-mechanism__arrow">↓</text>
+        <view class="science-mechanism__step"><text class="science-mechanism__title">② 菌群选择性利用</text><text>结肠中的有益菌（双歧杆菌、罗斯氏菌、普拉梭菌等）表达甘露聚糖酶，将 PHGG 作为碳源发酵，促进有益菌增殖、抑制条件致病菌。<text class="science-sup">[6][9]</text></text></view>
+        <text class="science-mechanism__arrow">↓</text>
+        <view class="science-mechanism__step"><text class="science-mechanism__title">③ 生成短链脂肪酸</text><text>发酵产物为乙酸、丙酸、丁酸等 SCFA，为结肠上皮提供能量、维护肠屏障、调节免疫和代谢。<text class="science-sup">[8]</text></text></view>
+        <text class="science-mechanism__arrow">↓</text>
+        <view class="science-mechanism__step"><text class="science-mechanism__title">④ 双向调节肠道功能</text><text>SCFA 促进钠水吸收、调节结肠动力；同时 PHGG 增加粪便含水量与体积，对便秘和腹泻均有改善作用。<text class="science-sup">[2][3]</text></text></view>
+      </view>
+
+      <view class="science-subheading">3.1 短链脂肪酸（SCFA）的核心功能</view>
+      <view class="science-scfa-grid">
+        <view class="science-scfa"><text class="science-scfa__name">丁酸</text><text>结肠上皮首选能量来源；维护肠壁完整性；抗炎；调节免疫</text></view>
+        <view class="science-scfa"><text class="science-scfa__name">乙酸</text><text>促进肠道蠕动；是其他细菌合成丁酸的底物；参与食欲调节</text></view>
+        <view class="science-scfa"><text class="science-scfa__name">丙酸</text><text>抑制肝脏胆固醇合成；调节糖代谢；增强饱腹感信号</text></view>
+      </view>
+      <view class="science-source-note">数据来源：Velázquez M, et al. J Anaerobe. 体外粪便发酵实验显示 PHGG 的 SCFA 产量显著高于菊粉、车前子壳等对照纤维。</view>
+    </view>
+
+    <view id="s4" class="science-section">
+      <view class="science-heading">四、肠道健康临床证据</view>
+      <view class="science-subheading">4.1 系统综述与荟萃分析</view>
+      <view class="science-paragraph">Kapoor 等（2017）发表于 Journal of Functional Foods 的系统综述与荟萃分析，纳入 7 项对照试验共 325 名健康受试者，结果显示 PHGG 显著增加排便频率（SMD 0.58 次/天，95% CI 0.43–0.74，P &lt; 0.00001），且剂量–效应关系显著（P = 0.011），<text class="science-strong">每日 5–7 g PHGG 即可显著改善便秘人群排便</text>；所有纳入研究均未观察到不良反应。<text class="science-sup">[2]</text></view>
+
+      <view class="science-subheading">4.2 肠易激综合征（IBS）</view>
+      <scroll-view class="science-table-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="science-table science-table--clinical">
+          <view class="science-table__caption">表 2 PHGG 在 IBS 及相关肠道症状中的关键临床试验</view>
+          <view class="science-table__row science-table__row--head"><text>研究</text><text>设计 / 样本</text><text>干预</text><text>核心结果</text></view>
+          <view class="science-table__row"><text>Niv et al., 2016
+Nutr Metab <text class="science-sup">[3]</text></text><text>RCT 双盲安慰剂对照；n=108 IBS 患者；18 周</text><text>PHGG 6 g/天 × 12 周</text><text>胀气评分较安慰剂显著改善（P=0.03），胀气+排气综合评分显著改善（P=0.035）；效果持续至停药后 4 周；PHGG 组脱落率显著低于安慰剂组（22% vs 49%）</text></view>
+          <view class="science-table__row"><text>Parisi et al., 2002
+Dig Dis Sci <text class="science-sup">[4]</text></text><text>多中心 RCT 开放标签；n=188 IBS 患者；12 周</text><text>PHGG 5 g/天 vs 麦麸 30 g/天</text><text>两组腹痛和排便均显著改善；意向性分析 PHGG 组成功率更高（60% vs 40%）；约 50% 麦麸组患者主动要求换用 PHGG，仅 11% 反向切换</text></view>
+          <view class="science-table__row"><text>Parisi et al., 2005
+Dig Dis Sci <text class="science-sup">[5]</text></text><text>多中心 RCT；n=86 IBS 患者；6 个月</text><text>PHGG 5 g/天 vs 10 g/天</text><text>两个剂量组胃肠道症状评分（GSRS）、生活质量（SF-36）和心理状态（HADS）均较基线显著改善（P&lt;0.05）；获益在停药后消退，提示需持续服用</text></view>
+          <view class="science-table__row"><text>Romano et al., 2013
+World J Gastroenterol</text><text>RCT；n=60 儿童功能性腹痛/IBS</text><text>含 PHGG 配方 6–8 周</text><text>IBS-D 症状改善 58%；腹痛改善 68%</text></view>
+          <view class="science-table__row"><text>Furnari et al., 2012</text><text>RCT；n=40 IBS 患者；4 个月</text><text>PHGG 5 g/天 vs 无干预</text><text>胃肠道症状严重度及甲烷排泄量显著下降</text></view>
+        </view>
+      </scroll-view>
+
+      <view class="science-subheading">4.3 双向调节：便秘与腹泻</view>
+      <view class="science-paragraph">PHGG 对便秘和腹泻均显示改善作用，这种"双向调节"源于其对粪便含水量和结肠动力的平衡效应。</view>
+      <view class="science-bullet"><text>•</text><view><text class="science-strong">便秘方向：</text>Kapoor 荟萃分析确认 PHGG 显著增加排便频率、粪便体积和含水量；在老年长期护理居民中，Chan 等（2022）RCT 证实 PHGG 显著减少便秘。<text class="science-sup">[2]</text></view></view>
+      <view class="science-bullet"><text>•</text><view><text class="science-strong">腹泻方向：</text>Yasukawa 等（2019）在 44 名有腹泻倾向的健康志愿者中进行的双盲 RCT 显示，每日 5 g PHGG、持续 12 周显著使布里斯托大便分型正常化（P&lt;0.01），同时双歧杆菌丰度显著增加。<text class="science-sup">[6]</text></view></view>
+
+      <view class="science-subheading">4.4 菌群调节</view>
+      <view class="science-paragraph">多项研究一致表明，PHGG 可选择性促进有益菌增殖：Ohashi 等（2015）发现 6 g/天 PHGG 连续 2 周显著增加双歧杆菌、C. coccoides 群、Roseburia/E. rectale 群及产丁酸菌丰度（均 P&lt;0.05）。<text class="science-sup">[9]</text>Yasukawa 等（2019）进一步确认双歧杆菌显著增加、拟杆菌属相应下降。<text class="science-sup">[6]</text>Abe 等（2023）RCT 显示 3 g/天和 5 g/天 PHGG 连续 8 周显著抑制潜在有害黏液溶解菌，同时改善排便频率、睡眠和动力评分。</view>
+
+      <view class="science-subheading">4.5 Fibalance® 自有消费者测试</view>
+      <view class="science-facts">
+        <view class="science-fact"><text class="science-fact__num">23% → 97%</text><text class="science-fact__label">健康大便（布里斯托 3–4 型）比例提升（D0→D28）</text></view>
+        <view class="science-fact"><text class="science-fact__num">−73%</text><text class="science-fact__label">Wexner 便秘评分下降（12 g/天 × 28 天）</text></view>
+        <view class="science-fact"><text class="science-fact__num">100%</text><text class="science-fact__label">持续排便不适者 14 天内症状改善</text></view>
+        <view class="science-fact"><text class="science-fact__num">0</text><text class="science-fact__label">腹泻、过敏或其他不适报告</text></view>
+      </view>
+      <view class="science-source-note">Fibalance® 28 天消费者测试：严重便秘人群，每日 12 g（6 g/次，bid）；Wexner 评分 7/14/21/28 天分别下降 29%/50%/62%/73%。</view>
+
+      <view class="science-subheading">4.6 特殊人群：SIBO 辅助治疗</view>
+      <view class="science-paragraph">一项随机试验（2010）在 77 名经葡萄糖氢呼气试验确诊的小肠细菌过度生长（SIBO）患者中发现，抗生素利福昔明（1200 mg/天 × 10 天）联合 PHGG 5 g/天，根除率从单药的 62% 提升至 87%（ITT 85%，P&lt;0.05）。机制可能与 PHGG 改善小肠动力和细菌清除有关。</view>
+    </view>
+
+    <view id="s5" class="science-section">
+      <view class="science-heading">五、体重管理与代谢证据</view>
+      <view class="science-subheading">5.1 碳水阻挡与餐后血糖</view>
+      <view class="science-paragraph">PHGG 通过延缓胃排空和葡萄糖吸收，降低餐后血糖峰值。Fibalance® 体外和人体测试数据显示，其可阻挡高达约 30% 碳水化合物引起的升糖效应，控糖效果优于菊粉和抗性糊精。作为可溶性粘性纤维，PHGG 在小肠形成网状结构，减缓碳水化合物消化酶与底物的接触速率。</view>
+
+      <view class="science-subheading">5.2 体脂与体重</view>
+      <view class="science-paragraph">在"高脂饮食+不运动"的动物模型中，Fibalance® 干预组显示皮下脂肪减少约 10%、体重下降 6% 以上。菌群分析显示厚壁菌门/拟杆菌门比例降低（该比例升高与肥胖相关），并增加阿克曼氏菌（Akkermansia muciniphila，AKK 菌）丰度——AKK 菌与肠屏障完整性、代谢改善和抗炎相关。</view>
+
+      <view class="science-subheading">5.3 饱腹感</view>
+      <view class="science-paragraph">Rao 等（2015）发表于 British Journal of Nutrition 的随机交叉试验显示，PHGG 显著增强餐后可感知饱腹感并减少后续能量摄入，效果优于菊粉和抗性糊精（P&lt;0.05）。<text class="science-sup">[10]</text>这可能与丙酸介导的食欲调节信号及胃排空延缓有关。</view>
+      <view class="science-callout"><text class="science-strong">定位提示：</text>体重管理相关证据多来自动物模型和小样本人体研究，证据强度低于肠道健康领域。ROOT 产品传播应以肠道养护为核心定位，体重管理作为附加益处表述，避免夸大。</view>
+    </view>
+
+    <view id="s6" class="science-section">
+      <view class="science-heading">六、安全性与耐受性</view>
+      <view class="science-subheading">6.1 总体安全性</view>
+      <view class="science-paragraph">PHGG 在全球范围内作为食品原料使用近 30 年（商品名 Sunfiber® 等），美国 FDA 给予 GRAS（一般公认安全）认定，欧盟、日本、澳新等均批准为食品原料。<text class="science-sup">[12]</text> Kapoor（2017）荟萃分析纳入的所有临床试验均未报告与 PHGG 相关的严重不良事件。<text class="science-sup">[2]</text></view>
+
+      <view class="science-subheading">6.2 低 FODMAP 认证与耐受性</view>
+      <view class="science-paragraph">Fibalance® 获蒙纳士大学低 FODMAP 认证，是国内首款获此认证的半乳甘露聚糖原料。<text class="science-sup">[7]</text>低 FODMAP 饮食是国际指南推荐的 IBS 和 SIBO 饮食管理方式。该认证意味着 Fibalance® 在推荐剂量下经实验室检测确认 FODMAP 含量低于阈值，适合肠道敏感人群。</view>
+      <view class="science-paragraph">Niv 等（2016）的 RCT 提供了最直接的人体耐受性证据：IBS 患者连续 12 周服用 6 g/天 PHGG 后，胀气评分和胀气+排气综合评分<text class="science-strong">显著低于安慰剂组</text>（而非高于安慰剂），且 PHGG 组因不良反应脱落率显著更低。<text class="science-sup">[3]</text></view>
+
+      <view class="science-subheading">6.3 初期适应现象说明</view>
+      <view class="science-paragraph">尽管 PHGG 耐受性优异，部分膳食纤维摄入基线较低的人群在初次补充时仍可能出现轻度胀气或排气增多。这是肠道菌群从"低纤维状态"切换到"益生元供给"时的正常适应过程——有益菌增殖、发酵代谢通路启动，气体产量在 1–2 周内随菌群代谢能力上调而趋于平稳。此现象为所有益生元/膳食纤维品类共有，并非 PHGG 特有。</view>
+      <view class="science-paragraph"><text class="science-strong">建议服用方式：</text>前 3 天可减半（约 3 g/天），第 4 天起过渡至全量；配合足量饮水（≥200 mL/次冲调，全天 1.5–2 L）；持续 2–4 周后评估体感。临床研究中排便习惯的显著改善通常在 2–4 周出现，菌群结构深层调整需 6–8 周。</view>
+
+      <view class="science-subheading">6.4 术后肠内营养应用（中国人群数据）</view>
+      <view class="science-paragraph">Han 等（2025）发表于 Clinical Nutrition 的多中心 RCT 纳入中国 10 家医院 631 名胃肠术后患者，结果显示含 PHGG 15 g/L 的肠内营养配方腹泻发生率与无纤维配方相当（9.6% vs 10.1%，非劣效 P&lt;0.001）；足量摄入亚组腹胀显著降低（19.4% vs 38.4%，P=0.016），出院时体重保持更好。<text class="science-sup">[11]</text>该研究为 PHGG 在中国人群中的安全性提供了大样本 RCT 证据。</view>
+    </view>
+
+    <view id="s7" class="science-section science-section--references">
+      <view class="science-heading">七、完整参考文献</view>
       <view wx:for="{{references}}" wx:key="id" class="science-reference">
-        <view class="science-reference__type">{{item.type}}</view>
-        <view class="science-reference__focus">{{item.focus}}</view>
-        <view class="science-reference__authors">{{item.authors}}</view>
-        <view class="science-reference__source">{{item.source}}</view>
-        <button class="science-reference__copy" data-value="{{item.identifier}}" bindtap="copyReference">复制 {{item.identifier}}</button>
+        <text class="science-reference__number">[{{index + 1}}]</text>
+        <view class="science-reference__content">
+          <text class="science-reference__title">{{item.title}}</text>
+          <text wx:if="{{item.citation}}" class="science-reference__citation">{{item.citation}}</text>
+          <button wx:if="{{item.identifier}}" class="science-reference__copy" data-value="{{item.copyValue || item.identifier}}" bindtap="copyReference">{{item.identifier}}</button>
+        </view>
       </view>
-    </view>
-
-    <view id="usage-boundary" class="science-section science-section--boundary">
-      <view class="science-section__index">04</view>
-      <view class="science-section__title">信息使用边界</view>
-      <view class="science-rule"><text>1</text><view>原料研究不等于 ROOT 成品功效证据。</view></view>
-      <view class="science-rule"><text>2</text><view>研究中的用量不能替代包装标示的食用方式。</view></view>
-      <view class="science-rule"><text>3</text><view>疾病或特殊人群研究仅用于文献导航，不作为消费建议。</view></view>
-      <view class="science-rule"><text>4</text><view>本页不用于诊断、治疗或替代专业医疗意见。</view></view>
     </view>
   </view>
 
-  <view class="science-footer">ROOT｜身体，自有其序</view>
+  <view class="science-footer">
+    <view class="science-wrap">本文件由 ROOT 品牌团队整理，文献来源包括 PubMed/PMC 同行评审期刊、Monash University 低 FODMAP 认证数据库及 Fibalance® 原料供应商技术资料。文献引用仅用于科学信息交流，不构成医疗建议或功效宣称。产品不能替代药物治疗。
+© 2026 杭州连生健康科技有限公司｜ROOT｜身体 自有其序</view>
+  </view>
 </view>

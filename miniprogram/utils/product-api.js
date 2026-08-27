@@ -14,6 +14,22 @@ function mergeProduct(serverProduct = {}, localProduct = {}) {
   };
 }
 
+function initialProductCatalog() {
+  const local = listLocalProducts();
+  return {
+    ...local,
+    products: (local.products || []).map((item) => mergeProduct({}, item)),
+    source: "LOCAL_BUNDLED",
+    degraded: false,
+    degradedText: "",
+  };
+}
+
+function initialProduct(productId) {
+  const local = getLocalProduct(productId);
+  return local ? mergeProduct({}, local) : null;
+}
+
 async function listProducts() {
   try {
     const data = await request({ url: "/api/v1/products" });
@@ -52,4 +68,4 @@ async function getProduct(productId) {
   }
 }
 
-module.exports = { getProduct, listProducts, mergeProduct };
+module.exports = { getProduct, initialProduct, initialProductCatalog, listProducts, mergeProduct };

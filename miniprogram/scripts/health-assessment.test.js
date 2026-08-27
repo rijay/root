@@ -4,7 +4,14 @@ const {
   decorateCatalogItem,
   decorateOverview,
   formatDate,
+  initialCatalog,
 } = require("../utils/health-assessment");
+
+const firstCatalog = initialCatalog();
+assert.equal(firstCatalog.assessments.length, 2);
+assert.deepEqual(firstCatalog.assessments.map((item) => item.assessmentType), ["INITIAL", "GUT_REGULARITY"]);
+assert.equal(firstCatalog.assessments.every((item) => item.latest === null && item.inProgress === null), true);
+assert.equal(firstCatalog.assessments.every((item) => item.definition.questions === undefined), true);
 
 assert.equal(formatDate(""), "");
 assert.equal(formatDate("not-a-date"), "not-a-date");

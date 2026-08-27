@@ -142,10 +142,13 @@ assert.deepEqual(generatedBackendCampaign.action, {
 
 const detail = presentDetail({ item: {
   contentId: "detail_001",
-  assets: [{ assetId: "asset_001", imageUrl: assetUrl, hotspots: [{ x: 10, y: 10, width: 20, height: 20, action: { type: "MINIPROGRAM_PAGE", path: "/pages/activities/index" } }] }],
+  assets: [{ assetId: "asset_001", imageUrl: assetUrl, width: 1125, height: 1500, hotspots: [{ x: 10, y: 10, width: 20, height: 20, action: { type: "MINIPROGRAM_PAGE", path: "/pages/activities/index" } }] }],
   detailImages: [assetUrl],
 } });
 assert.equal(detail.assets.length, 1);
 assert.equal(detail.assets[0].hotspots.length, 1);
+assert.equal(detail.assets[0].displayHeightRpx, 1000);
+assert.equal(detail.assets[0].displayStyle, "height: 1000rpx;");
+assert.equal(detail.assets[0].displayMode, "aspectFill");
 
 console.log("content presenter tests ok");

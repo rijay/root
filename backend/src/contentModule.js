@@ -812,9 +812,12 @@ function getDetail(data, contentId, context = {}) {
     const assets = (version.content.assets || []).map((row) => {
       const asset = assetById(data, row.assetId);
       if (!asset) return null;
+      const presented = presentAsset(asset);
       return {
         assetId: row.assetId,
-        imageUrl: presentAsset(asset).previewUrl,
+        imageUrl: presented.previewUrl,
+        width: presented.width,
+        height: presented.height,
         hotspots: (row.hotspots || []).map((hotspot) => ({
           id: hotspot.id,
           x: hotspot.x,

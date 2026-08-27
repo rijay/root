@@ -16,7 +16,7 @@
     >{{item.label}}</button>
   </view>
 
-  <view wx:if="{{state === 'loading'}}" class="activity-state">
+  <view wx:if="{{state === 'loading'}}" class="activity-state activity-state--loading">
     <view class="activity-state__line activity-state__line--wide"></view>
     <view class="activity-state__line"></view>
     <text>正在读取近期活动…</text>

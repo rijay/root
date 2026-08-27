@@ -2,12 +2,25 @@ const {
   generateHealthAdvice,
   getCatalog,
   getHealthOverview,
+  initialCatalog,
 } = require("../../utils/health-assessment");
 const {
   ADVICE_CONFIRMATION_DELAYS_MS,
   isAdviceResultUnknown,
 } = require("../../utils/health-advice-ui");
 const { syncTabBar } = require("../../utils/tab-bar");
+const { currentLoginSession } = require("../../utils/login-session");
+const { readSessionPageCache, writeSessionPageCache } = require("../../utils/page-cache");
+
+const firstCatalog = initialCatalog();
+
+function healthCacheKey() {
+  const session = currentLoginSession();
+  return `health:home:${session.sessionId || "guest"}`;
+}
+
+const firstCachedHealth = readSessionPageCache(healthCacheKey());
+const firstHealthState = firstCachedHealth && firstCachedHealth.value || {};
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -15,11 +28,11 @@ function wait(ms) {
 
 Page({
   data: {
-    loading: true,
+    loading: false,
     errorText: "",
-    assessments: [],
-    storageMode: "",
-    overview: null,
+    assessments: firstHealthState.assessments || firstCatalog.assessments,
+    storageMode: firstHealthState.storageMode || firstCatalog.storageMode,
+    overview: firstHealthState.overview || null,
     overviewErrorText: "",
     adviceLoading: false,
     adviceConfirming: false,
@@ -31,7 +44,14 @@ Page({
     this._healthPageVisible = true;
     this.setData({ adviceLoading: false, adviceConfirming: false, adviceStatusText: "" });
     syncTabBar(this, 2);
-    this.loadCatalog();
+    this._healthCacheKey = healthCacheKey();
+    const cached = readSessionPageCache(this._healthCacheKey);
+    this.setData(cached && cached.value ? cached.value : {
+      assessments: firstCatalog.assessments,
+      storageMode: firstCatalog.storageMode,
+      overview: null,
+    });
+    this.loadCatalog({ background: true, cacheKey: this._healthCacheKey });
   },
 
   onHide() {
@@ -54,22 +74,39 @@ Page({
     return this._healthPageVisible === true && this._adviceRunId === runId;
   },
 
-  async loadCatalog() {
-    this.setData({ loading: true, errorText: "", overviewErrorText: "" });
+  cacheCurrentHealthState(cacheKey = this._healthCacheKey) {
+    if (!cacheKey || cacheKey !== healthCacheKey()) return false;
+    return writeSessionPageCache(cacheKey, {
+      assessments: this.data.assessments,
+      storageMode: this.data.storageMode,
+      overview: this.data.overview,
+    });
+  },
+
+  async loadCatalog(options = {}) {
+    const background = options.background === true && this.data.assessments.length > 0;
+    const cacheKey = options.cacheKey || this._healthCacheKey || healthCacheKey();
+    this.setData({ loading: !background, errorText: "", overviewErrorText: "" });
     try {
       const data = await getCatalog();
+      if (cacheKey !== healthCacheKey()) return;
       this.setData({ assessments: data.assessments || [], storageMode: data.storageMode || "" });
       try {
         const overview = await getHealthOverview();
-        this.setData({ overview });
+        if (cacheKey !== healthCacheKey()) return;
+        this.setData({ overview }, () => this.cacheCurrentHealthState(cacheKey));
         if (overview.ready && !overview.advice) this.generateAdvice();
       } catch (error) {
+        if (cacheKey !== healthCacheKey()) return;
         this.setData({ overviewErrorText: error.message || "当前状态暂时无法加载" });
       }
     } catch (error) {
-      this.setData({ errorText: error.message || "健康评测暂时无法加载" });
+      if (cacheKey !== healthCacheKey()) return;
+      this.setData(background
+        ? { overviewErrorText: "最新评测状态暂时无法同步，可稍后重试。" }
+        : { errorText: error.message || "健康评测暂时无法加载" });
     } finally {
-      this.setData({ loading: false });
+      if (cacheKey === healthCacheKey()) this.setData({ loading: false });
     }
   },
 
@@ -90,7 +127,7 @@ Page({
     }, 8000);
     try {
       const overview = await generateHealthAdvice(this.data.overview);
-      if (this.adviceRunIsCurrent(runId)) this.setData({ overview });
+      if (this.adviceRunIsCurrent(runId)) this.setData({ overview }, () => this.cacheCurrentHealthState(this._healthCacheKey));
     } catch (error) {
       if (!this.adviceRunIsCurrent(runId)) return;
       if (isAdviceResultUnknown(error)) {
@@ -123,7 +160,7 @@ Page({
       try {
         const overview = await getHealthOverview();
         if (overview.advice) {
-          this.setData({ overview });
+          this.setData({ overview }, () => this.cacheCurrentHealthState(this._healthCacheKey));
           return true;
         }
       } catch (error) {
@@ -134,12 +171,15 @@ Page({
   },
 
   async reloadOverview() {
+    const cacheKey = this._healthCacheKey || healthCacheKey();
     try {
       this.setData({ overviewErrorText: "" });
       const overview = await getHealthOverview();
-      this.setData({ overview });
+      if (cacheKey !== healthCacheKey()) return;
+      this.setData({ overview }, () => this.cacheCurrentHealthState(cacheKey));
       if (overview.ready && !overview.advice) this.generateAdvice();
     } catch (error) {
+      if (cacheKey !== healthCacheKey()) return;
       this.setData({ overviewErrorText: error.message || "当前状态暂时无法加载" });
     }
   },

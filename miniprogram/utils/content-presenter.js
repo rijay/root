@@ -85,14 +85,25 @@ function presentHome(data = {}) {
 function presentDetail(data = {}) {
   const item = data.item;
   if (!item || !/^[A-Za-z0-9_-]{3,80}$/.test(String(item.contentId || ""))) return null;
-  const assets = (Array.isArray(item.assets) ? item.assets : []).map((asset) => ({
-    assetId: String(asset.assetId || ""),
-    imageUrl: safeAssetUrl(asset.imageUrl),
-    hotspots: (Array.isArray(asset.hotspots) ? asset.hotspots : []).filter((hotspot) => {
-      return hotspot && hotspot.action
-        && [hotspot.x, hotspot.y, hotspot.width, hotspot.height].every((value) => Number.isFinite(Number(value)));
-    }),
-  })).filter((asset) => asset.assetId && asset.imageUrl);
+  const assets = (Array.isArray(item.assets) ? item.assets : []).map((asset) => {
+    const width = Number(asset.width);
+    const height = Number(asset.height);
+    const dimensionsValid = Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0;
+    const displayHeightRpx = dimensionsValid ? Math.round(750 * height / width) : 0;
+    return {
+      assetId: String(asset.assetId || ""),
+      imageUrl: safeAssetUrl(asset.imageUrl),
+      width: dimensionsValid ? width : 0,
+      height: dimensionsValid ? height : 0,
+      displayHeightRpx,
+      displayStyle: displayHeightRpx ? `height: ${displayHeightRpx}rpx;` : "",
+      displayMode: displayHeightRpx ? "aspectFill" : "widthFix",
+      hotspots: (Array.isArray(asset.hotspots) ? asset.hotspots : []).filter((hotspot) => {
+        return hotspot && hotspot.action
+          && [hotspot.x, hotspot.y, hotspot.width, hotspot.height].every((value) => Number.isFinite(Number(value)));
+      }),
+    };
+  }).filter((asset) => asset.assetId && asset.imageUrl);
   return {
     ...item,
     assets,

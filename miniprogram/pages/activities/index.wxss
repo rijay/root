@@ -315,6 +315,11 @@ page {
   border-radius: 14px;
 }
 
+.activity-state--loading {
+  min-height: 390px;
+  box-sizing: border-box;
+}
+
 .activity-state__title {
   margin-bottom: 6px;
   color: var(--color-brand-black);

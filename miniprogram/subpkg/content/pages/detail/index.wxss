@@ -2,6 +2,8 @@ page { min-height: 100%; background: var(--color-brand-black); }
 .content-detail { position: relative; min-height: 100vh; color: var(--color-brand-white); background: var(--color-brand-black); }
 .content-detail__image { display: block; width: 100%; }
 .content-detail__asset { position: relative; width: 100%; }
+.content-detail__asset--reserved { overflow: hidden; background: var(--color-brand-black); }
+.content-detail__asset--reserved .content-detail__image { height: 100%; }
 .content-detail__hotspot { position: absolute; z-index: 2; min-width: 44px; min-height: 44px; margin: 0; padding: 0; border: 0; background: transparent; }
 .content-detail__hotspot::after { border: 0; }
 .content-detail__placeholder { position: relative; min-height: 100vh; overflow: hidden; background: radial-gradient(circle at 70% 20%, var(--color-olive-mid) 0%, var(--color-olive-dark) 34%, var(--color-brand-black) 76%); }

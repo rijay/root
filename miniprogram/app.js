@@ -10,6 +10,7 @@ const { captureFirstChannel, channelEntryOptions } = require("./utils/channel-at
 const { FORMAL_ACCESS_STATE, inspectFormalAccess } = require("./utils/formal-access");
 const { cleanupExpiredLocalHealthData } = require("./utils/local-health-retention");
 const { readProfileCache, writeProfileCache } = require("./utils/profile-cache");
+const { ensureLoginSession } = require("./utils/login-session");
 const { getToken } = require("./utils/request");
 const { resolveRuntimeRequestConfig } = require("./utils/runtime-request-adapter");
 
@@ -18,7 +19,9 @@ installGlobalSharePolicy(globalThis);
 const appModuleStartedAt = Date.now();
 
 function prewarmProfileCache() {
-  if (!getToken() || readProfileCache()) return;
+  if (!getToken()) return;
+  ensureLoginSession();
+  if (readProfileCache()) return;
   inspectFormalAccess("profile-home")
     .then((access) => {
       if (access.state !== FORMAL_ACCESS_STATE.PHONE_REQUIRED && access.profile) {

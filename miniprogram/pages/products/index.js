@@ -8,7 +8,7 @@ const {
   scrollLeftForProduct,
   setPendingProductFocus,
 } = require("../../utils/product-navigation");
-const { listProducts } = require("../../utils/product-api");
+const { initialProductCatalog, listProducts } = require("../../utils/product-api");
 const { jumpToYouzanProduct, mergeJumpTarget } = require("../../utils/youzan-jump");
 const { failureReason, track } = require("../../utils/analytics");
 const { showFriendShareMenu } = require("../../utils/page-share");
@@ -24,14 +24,17 @@ function decorateProducts(products = []) {
   }));
 }
 
+const firstCatalog = initialProductCatalog();
+const firstProducts = decorateProducts(firstCatalog.products || []);
+
 Page({
   data: {
-    loading: true,
+    loading: false,
     jumpLoadingProductId: "",
-    products: [],
+    products: firstProducts,
     errorText: "",
     scrollIntoView: "",
-    activeProductId: "",
+    activeProductId: firstProducts[0] && firstProducts[0].productId || "",
     carouselScrollLeft: 0,
     carouselVisible: true,
     focusNotice: "",
@@ -48,14 +51,22 @@ Page({
     if (options.productId || options.product_id) {
       setPendingProductFocus(options.productId || options.product_id, options.source || "direct");
     }
+    if (this.data.products.length) this.recordUsableContent("LOCAL_FIRST_FRAME");
   },
 
   onShow() {
     showFriendShareMenu();
     syncTabBar(this, 1);
     const pending = consumePendingProductFocus();
-    if (!this.data.products.length) {
-      this.loadProducts(pending.productId || this.viewState.productId);
+    if (!this._catalogRefreshStarted) {
+      this._catalogRefreshStarted = true;
+      const firstFocusId = pending.productId || this.viewState.productId;
+      if (this.data.products.length) {
+        if (pending.source === "product_detail_return") this.restoreViewState(pending.productId);
+        else if (pending.productId) this.focusProduct(pending.productId, { resetPageScroll: true });
+        else this.restoreViewState();
+      }
+      this.loadProducts(firstFocusId, { background: this.data.products.length > 0 });
       return;
     }
     if (pending.source === "product_detail_return") {
@@ -80,12 +91,13 @@ Page({
   },
 
   async onPullDownRefresh() {
-    await this.loadProducts(this.data.activeProductId);
+    await this.loadProducts(this.data.activeProductId, { background: this.data.products.length > 0 });
     wx.stopPullDownRefresh();
   },
 
-  async loadProducts(focusProductId = "") {
-    this.setData({ loading: true, errorText: "" });
+  async loadProducts(focusProductId = "", options = {}) {
+    const background = options.background === true && this.data.products.length > 0;
+    this.setData({ loading: !background, errorText: "" });
     try {
       const data = await listProducts();
       const products = decorateProducts(data.products || []);
@@ -110,7 +122,9 @@ Page({
         this.recordProductImpression(defaultProductId);
       });
     } catch (error) {
-      this.setData({ errorText: error.message || "商品加载失败", loading: false }, () => {
+      this.setData(background
+        ? { catalogNotice: "商品信息刷新失败，当前继续显示本地基础信息。", loading: false }
+        : { errorText: error.message || "商品加载失败", loading: false }, () => {
         this.recordUsableContent("ERROR_READY");
       });
     }

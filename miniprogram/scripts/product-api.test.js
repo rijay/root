@@ -25,6 +25,13 @@ require.cache[require.resolve("../utils/request")] = {
 const api = require("../utils/product-api");
 
 async function main() {
+  const initial = api.initialProductCatalog();
+  assert.equal(initial.source, "LOCAL_BUNDLED");
+  assert.equal(initial.degraded, false);
+  assert.equal(initial.products.length, 2);
+  assert.equal(initial.products[0].imageUrl, "/static/products/rt-prb-01.jpg");
+  assert.equal(api.initialProduct("4749049439").productId, "4749049439");
+
   const live = await api.listProducts();
   assert.equal(live.source, "SERVER_SNAPSHOT");
   assert.equal(live.products[0].priceText, "¥199");
