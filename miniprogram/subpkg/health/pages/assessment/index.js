@@ -18,6 +18,7 @@ const {
   GUT_INTRO_SOURCE,
   GUT_INTRO_PATH,
   assessmentGuardPath,
+  assessmentTypeFromOptions,
   shouldRedirectToIntro,
 } = require("../../../../utils/gut-assessment-entry");
 
@@ -70,7 +71,7 @@ Page({
     this._initializing = true;
     this.setData({ loading: true, errorText: "" });
     try {
-      const requestedType = routeOptions.assessmentType || routeOptions.assessment_type || "INITIAL";
+      const requestedType = assessmentTypeFromOptions(routeOptions);
       const requestedId = routeOptions.assessmentId || routeOptions.assessment_id || "";
       const allowed = await router.routeGuard(assessmentGuardPath({
         assessmentType: requestedType,

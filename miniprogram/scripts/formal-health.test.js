@@ -36,6 +36,8 @@ assert.match(assessmentScript, /routeGuard/);
 assert.match(assessmentScript, /saveDraft/);
 assert.match(assessmentScript, /completeAssessment/);
 assert.match(assessmentScript, /requestedType/);
+assert.match(assessmentScript, /assessmentTypeFromOptions/);
+assert.doesNotMatch(assessmentScript, /assessment_type \|\| "INITIAL"/);
 assert.match(assessmentScript, /shouldRedirectToIntro/);
 assert.match(assessmentScript, /GUT_INTRO_PATH/);
 assert.match(assessmentScript, /retryInitialize/);

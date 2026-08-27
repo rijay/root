@@ -94,6 +94,15 @@
 - 结论：`311ec90` 的首页随包首帧及关联跳转在当前真机、当前网络条件下 4/4 PASS。弱网和其他代表性设备仍按独立 Gate 管理。
 - 本次只生成开发者预览，未上传体验版、提交审核、发布或写入生产环境。
 
+## 2026-08-28 历史扫码 path 兼容修复
+
+- 用户回报：既有对外二维码只配置到 `subpkg/health/pages/assessment/index`，未携带 `assessmentType`，因此统一评测页按旧默认值 `INITIAL` 打开“健康起点评测”，没有进入肠道自测 5 道题的“ROOT 陪伴计划”前置图。
+- 根因修复：无参数的历史扫码 path 现在默认解析为 `GUT_REGULARITY` 并跳转前置图；健康页启动“健康起点评测”时仍显式传入 `assessmentType=INITIAL`，原入口不受影响；带 `assessmentId` 的继续作答路径也不变。
+- 新增契约断言：无参数入口必须进入肠道前置图；显式 `INITIAL` 不得跳转；固定肠道路径、前置图继续答题路径及历史记录恢复路径保持原样。
+- 微信开发者工具：以场景值 `1011` 打开无参数 path 后，当前页回读为 `subpkg/campaign/pages/root-with-you/index`，画面显示“开始肠道自测”前置图；以 `assessmentType=INITIAL` 打开时未跳转前置图，而是按原流程保存起点评测 intent 并进入登录页。
+- `npm run check --prefix miniprogram`：PASS；`git diff --check`：PASS。
+- 下一门禁：用同一个无参数扫码 path 做真机冷启动验证；通过后再继续其他独立 Gate。
+
 ## 尚未覆盖的发布 Gate
 
 1. 有赞临时白名单或等价受控网络条件下的实时商品、价格、订单、优惠券只读联调；
