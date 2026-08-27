@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "poolVersion": "root4u-health-advice-pool-v1",
+  "source": "CODEX_OFFLINE_DRAFT",
+  "generatedAt": "2026-08-27",
+  "reviewStatus": "DRAFT",
+  "reviewedAt": "",
+  "reviewer": "",
+  "fixedFiberRules": {
+    "CONSTIPATION": {
+      "text": "补充益生元纤维，帮助软化便便促蠕动",
+      "reviewStatus": "LOCKED_FROM_V0.6.1"
+    },
+    "LOOSE": {
+      "text": "补充可溶性纤维，帮助吸水让便便成形",
+      "reviewStatus": "LOCKED_FROM_V0.6.1"
+    },
+    "ALTERNATING": {
+      "text": "补充益生元纤维，双向调节排便节奏",
+      "reviewStatus": "LOCKED_FROM_V0.6.1"
+    },
+    "SENSITIVE": {
+      "text": "补充低FODMAP益生元，温和滋养不胀气",
+      "reviewStatus": "LOCKED_FROM_V0.6.1"
+    },
+    "HEALTHY": {
+      "text": "日常补充益生元，持续滋养肠道有益菌",
+      "reviewStatus": "LOCKED_FROM_V0.6.1"
+    }
+  },
+  "initialGroups": {
+    "BASELINE": {
+      "label": "基础状态维护型",
+      "summary": "健康起点评测显示，目前更适合以稳定日常节奏和持续观察为主。",
+      "summaryReviewStatus": "PENDING_REVIEW",
+      "actions": [
+        { "id": "BASELINE-01", "topic": "schedule", "text": "保持相对固定的起床和三餐时间，连续观察一周。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "BASELINE-02", "topic": "tracking", "text": "每天选一个固定时段，记录睡眠、精力和排便感受。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "BASELINE-03", "topic": "activity", "text": "每天安排一次十分钟轻松走动，先以能够坚持为准。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "BASELINE-04", "topic": "hydration", "text": "把饮水分散到白天完成，不用一次补足全天水量。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "BASELINE-05", "topic": "habit", "text": "每周只新增一个容易坚持的小习惯，避免同时改变太多。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "BASELINE-06", "topic": "reflection", "text": "每晚用一分钟回顾当天最明显的身体感受和生活变化。", "reviewStatus": "PENDING_REVIEW" }
+      ]
+    },
+    "BOWEL": {
+      "label": "肠道规律关注型",
+      "summary": "健康起点评测显示，排便规律是现阶段更值得优先关注的方向。",
+      "summaryReviewStatus": "PENDING_REVIEW",
+      "actions": [
+        { "id": "BOWEL-01", "topic": "toileting", "text": "每天在相近时段观察排便情况，不强求当次一定完成。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "BOWEL-02", "topic": "tracking", "text": "记录排便时间、形态和费力程度，用一周看变化。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "BOWEL-03", "topic": "response", "text": "有便意时尽量及时如厕，减少长时间憋便或久坐。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "BOWEL-04", "topic": "hydration", "text": "把饮水拆到起床后、两餐之间和活动后逐步完成。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "BOWEL-05", "topic": "activity", "text": "饭后安排五到十分钟轻松走动，观察肠道节奏变化。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "BOWEL-06", "topic": "habit", "text": "一次只调整一个与排便有关的习惯，稳定后再增加下一项。", "reviewStatus": "PENDING_REVIEW" }
+      ]
+    },
+    "DIGESTION": {
+      "label": "腹胀反酸关注型",
+      "summary": "健康起点评测显示，进餐节奏与餐后感受是现阶段的观察重点。",
+      "summaryReviewStatus": "PENDING_REVIEW",
+      "actions": [
+        { "id": "DIGESTION-01", "topic": "meal-pace", "text": "用餐时放慢速度，每吃一部分就短暂停一下感受饱腹程度。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "DIGESTION-02", "topic": "meal-time", "text": "晚餐与入睡之间尽量留出一段消化时间，避免临睡前大量进食。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "DIGESTION-03", "topic": "tracking", "text": "记录最容易出现腹胀或反酸的餐次、食物和时间。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "DIGESTION-04", "topic": "portion", "text": "容易餐后不适时，先尝试适量减少单餐份量并规律进餐。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "DIGESTION-05", "topic": "post-meal", "text": "进餐后保持坐立或轻松走动，暂时避免立即平躺。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "DIGESTION-06", "topic": "food-change", "text": "每次只观察一类食物变化，不要同时删掉多类日常食物。", "reviewStatus": "PENDING_REVIEW" }
+      ]
+    },
+    "SLEEP": {
+      "label": "睡眠节律关注型",
+      "summary": "健康起点评测显示，睡眠节律和白天恢复感是现阶段的观察重点。",
+      "summaryReviewStatus": "PENDING_REVIEW",
+      "actions": [
+        { "id": "SLEEP-01", "topic": "wake-time", "text": "先固定每天的起床时间，再逐步调整入睡时间。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "SLEEP-02", "topic": "wind-down", "text": "睡前一小时减少工作消息和高刺激屏幕内容。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "SLEEP-03", "topic": "daylight", "text": "白天安排一次户外走动，帮助建立更清楚的昼夜节奏。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "SLEEP-04", "topic": "caffeine", "text": "留意下午或晚间含咖啡因饮品与入睡感受之间的关系。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "SLEEP-05", "topic": "nap", "text": "如需午睡，尽量安排在较早时段并避免时间过长。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "SLEEP-06", "topic": "tracking", "text": "连续记录一周入睡、夜间醒来和晨起精神状态。", "reviewStatus": "PENDING_REVIEW" }
+      ]
+    },
+    "ENERGY": {
+      "label": "压力活力关注型",
+      "summary": "健康起点评测显示，压力、精力分配和恢复节奏是现阶段的观察重点。",
+      "summaryReviewStatus": "PENDING_REVIEW",
+      "actions": [
+        { "id": "ENERGY-01", "topic": "tracking", "text": "记录一天中精力下降最明显的时段和当时正在做的事情。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "ENERGY-02", "topic": "break", "text": "连续工作一段时间后，安排两到五分钟起身走动或放松。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "ENERGY-03", "topic": "meal-rhythm", "text": "忙碌日也尽量保持基本进餐节奏，避免长时间空腹后集中进食。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "ENERGY-04", "topic": "task-planning", "text": "把更需要专注的事情放在自己相对有精神的时段。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "ENERGY-05", "topic": "recovery", "text": "每天留出一次不看屏幕的短暂恢复时间，做伸展或安静呼吸。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "ENERGY-06", "topic": "habit", "text": "本周只设一个恢复目标，例如提前休息或增加一次短走动。", "reviewStatus": "PENDING_REVIEW" }
+      ]
+    },
+    "LIFESTYLE": {
+      "label": "活动饮食调整型",
+      "summary": "健康起点评测显示，活动、饮食和饮水习惯适合从小幅调整开始。",
+      "summaryReviewStatus": "PENDING_REVIEW",
+      "actions": [
+        { "id": "LIFESTYLE-01", "topic": "activity", "text": "从每天增加一次十分钟走动开始，不必一开始追求强度。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "LIFESTYLE-02", "topic": "meal-balance", "text": "先让一天中的一餐更接近蔬菜、蛋白质和主食的组合。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "LIFESTYLE-03", "topic": "hydration", "text": "把饮水与起床、午餐和下午休息等固定节点绑定。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "LIFESTYLE-04", "topic": "preparation", "text": "提前准备一份简单食物，减少忙碌时完全随机选择。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "LIFESTYLE-05", "topic": "sedentary", "text": "久坐时每隔一段时间起身活动几分钟，让身体切换状态。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "LIFESTYLE-06", "topic": "habit", "text": "每周选择一个最容易执行的生活调整，稳定后再增加下一项。", "reviewStatus": "PENDING_REVIEW" }
+      ]
+    }
+  },
+  "gutGroups": {
+    "CONSTIPATION": {
+      "label": "肠道节奏偏慢",
+      "summary": "肠道自测同时提示近期排便节奏偏慢，可从温和、渐进的小行动开始。",
+      "summaryReviewStatus": "PENDING_REVIEW",
+      "caution": "如排便困难持续、明显加重，或出现便血、黑便、持续腹痛等情况，请及时咨询专业人士。",
+      "cautionReviewStatus": "PENDING_REVIEW",
+      "actions": [
+        { "id": "CONSTIPATION-01", "topic": "toileting", "text": "早晨或早餐后预留五分钟从容如厕，不要勉强久坐用力。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "CONSTIPATION-02", "topic": "hydration", "text": "白天少量多次饮水，并根据活动量和自身感受调整。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "CONSTIPATION-03", "topic": "food", "text": "在日常餐食中逐步增加蔬菜、全谷物或豆类，观察耐受。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "CONSTIPATION-04", "topic": "activity", "text": "选一餐后轻松走动十分钟，帮助建立固定活动节奏。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "CONSTIPATION-05", "topic": "sedentary", "text": "减少连续久坐，每隔一段时间起身活动几分钟。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "CONSTIPATION-06", "topic": "tracking", "text": "记录排便间隔、形态和费力程度，用一周判断变化。", "reviewStatus": "PENDING_REVIEW" }
+      ]
+    },
+    "LOOSE": {
+      "label": "肠道节奏偏快",
+      "summary": "肠道自测同时提示近期排便节奏偏快，先以稳定饮食和补充水分为主。",
+      "summaryReviewStatus": "PENDING_REVIEW",
+      "caution": "如稀便持续、次数明显增加，或出现便血、黑便、发热、明显乏力等情况，请及时咨询专业人士。",
+      "cautionReviewStatus": "PENDING_REVIEW",
+      "actions": [
+        { "id": "LOOSE-01", "topic": "meal-rhythm", "text": "保持相对规律的进餐时间，暂时避免一餐吃得过多。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "LOOSE-02", "topic": "food", "text": "近期减少辛辣、油腻、生冷食物，并观察排便变化。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "LOOSE-03", "topic": "hydration", "text": "排便次数偏多时注意分次补充水分，避免一次大量饮用。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "LOOSE-04", "topic": "tracking", "text": "记录便急出现的时段、餐次和食物，寻找重复规律。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "LOOSE-05", "topic": "change-control", "text": "暂时不要同时尝试多种新食物或补充剂，以便判断身体反应。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "LOOSE-06", "topic": "rest", "text": "优先保证休息和规律作息，减少疲劳状态下的饮食波动。", "reviewStatus": "PENDING_REVIEW" }
+      ]
+    },
+    "ALTERNATING": {
+      "label": "肠道节奏波动",
+      "summary": "肠道自测同时提示近期排便节奏有波动，重点是先找规律、再做单项调整。",
+      "summaryReviewStatus": "PENDING_REVIEW",
+      "caution": "如排便变化持续加重，或伴随便血、黑便、夜间痛醒、非刻意体重明显下降等情况，请及时咨询专业人士。",
+      "cautionReviewStatus": "PENDING_REVIEW",
+      "actions": [
+        { "id": "ALTERNATING-01", "topic": "tracking", "text": "每天记录排便时间、形态和当天饮食，用连续记录看波动。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "ALTERNATING-02", "topic": "schedule", "text": "尽量固定起床和进餐时间，为比较变化建立稳定基线。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "ALTERNATING-03", "topic": "change-control", "text": "每次只调整一个习惯，至少观察几天后再决定是否继续。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "ALTERNATING-04", "topic": "stability", "text": "先让饮水和日常活动保持相对稳定，减少额外变量。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "ALTERNATING-05", "topic": "comparison", "text": "以一周的整体趋势判断变化，不因单日状态频繁更换方案。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "ALTERNATING-06", "topic": "breakfast", "text": "准备一份相对固定的早餐组合，观察上午的肠道反应。", "reviewStatus": "PENDING_REVIEW" }
+      ]
+    },
+    "SENSITIVE": {
+      "label": "肠道较敏感",
+      "summary": "肠道自测同时提示近期消化感受较敏感，温和观察比一次改变很多更重要。",
+      "summaryReviewStatus": "PENDING_REVIEW",
+      "caution": "如腹痛、腹胀或反酸持续加重，影响进食睡眠，或出现便血、黑便等情况，请及时咨询专业人士。",
+      "cautionReviewStatus": "PENDING_REVIEW",
+      "actions": [
+        { "id": "SENSITIVE-01", "topic": "meal-pace", "text": "吃饭时放慢速度并充分咀嚼，留意餐后身体感受。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "SENSITIVE-02", "topic": "portion", "text": "容易餐后不适时，先尝试少量、规律地安排餐食。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "SENSITIVE-03", "topic": "tracking", "text": "记录可能引起不适的食物、情境和出现时间，不急于下结论。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "SENSITIVE-04", "topic": "food", "text": "近期适当减少辛辣、酒精和过于油腻的食物。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "SENSITIVE-05", "topic": "relaxation", "text": "压力明显时安排几分钟散步、伸展或安静呼吸。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "SENSITIVE-06", "topic": "change-control", "text": "不要一次排除多类食物，每次只观察一种变化。", "reviewStatus": "PENDING_REVIEW" }
+      ]
+    },
+    "HEALTHY": {
+      "label": "肠道节奏稳定",
+      "summary": "肠道自测同时显示近期节奏较稳定，重点是继续保持容易坚持的习惯。",
+      "summaryReviewStatus": "PENDING_REVIEW",
+      "caution": "如之后出现持续或令你担心的排便、腹部或进食变化，请及时重新评测或咨询专业人士。",
+      "cautionReviewStatus": "PENDING_REVIEW",
+      "actions": [
+        { "id": "HEALTHY-01", "topic": "meal-rhythm", "text": "继续保持规律进餐，让日常节奏尽量稳定。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "HEALTHY-02", "topic": "diversity", "text": "在耐受良好的前提下，逐步保持食物种类多样。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "HEALTHY-03", "topic": "hydration", "text": "维持白天分次饮水，根据活动量和天气调整。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "HEALTHY-04", "topic": "activity", "text": "保持每周规律活动，并减少长时间连续久坐。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "HEALTHY-05", "topic": "tracking", "text": "每周记录一次排便形态和身体感受，留意趋势变化。", "reviewStatus": "PENDING_REVIEW" },
+        { "id": "HEALTHY-06", "topic": "sleep", "text": "继续保持相对固定的睡眠和起床时间。", "reviewStatus": "PENDING_REVIEW" }
+      ]
+    }
+  },
+  "followUps": [
+    { "id": "FOLLOWUP-01", "text": "建议连续执行七天后回看记录，再决定保留或调整哪些行动。", "reviewStatus": "PENDING_REVIEW" },
+    { "id": "FOLLOWUP-02", "text": "当饮食、作息或身体感受明显变化时，可以重新完成两项评测。", "reviewStatus": "PENDING_REVIEW" },
+    { "id": "FOLLOWUP-03", "text": "先坚持当前两项行动一周，回测时再比较整体趋势。", "reviewStatus": "PENDING_REVIEW" },
+    { "id": "FOLLOWUP-04", "text": "如一周后状态稳定，可继续保持；如变化明显，可重新评测。", "reviewStatus": "PENDING_REVIEW" },
+    { "id": "FOLLOWUP-05", "text": "完成一轮七天观察后，再选择下一项最容易坚持的调整。", "reviewStatus": "PENDING_REVIEW" },
+    { "id": "FOLLOWUP-06", "text": "建议以连续记录为依据，在下一次回测时比较变化。", "reviewStatus": "PENDING_REVIEW" }
+  ]
+}

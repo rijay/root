@@ -962,9 +962,11 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.equal(notice.data.retentionDays, 180);
   assert.match(notice.data.retentionText, /180 天/);
   assert.match(notice.data.retentionText, /24 小时内删除/);
-  assert.match(notice.data.modelProcessingText, /腾讯云 CloudBase AI|CloudBase AI/);
-  assert.match(notice.data.modelProcessingText, /不接收任何真实用户的身份、问卷答案、评测结果、健康状态、请求日志或其他个人信息/);
+  assert.match(notice.data.modelProcessingText, /离线起草并经人工审核的通用建议池/);
+  assert.match(notice.data.modelProcessingText, /不使用任何真实用户的身份、问卷答案、评测结果、健康状态、请求日志或其他个人信息/);
   assert.match(notice.data.modelProcessingText, /不会发起实时模型调用/);
+  assert.match(notice.data.modelProcessingText, /不会把用户健康数据发送给任何模型服务/);
+  assert.doesNotMatch(notice.data.modelProcessingText, /CloudBase|hy3/);
   assert.equal(notice.data.dataManagement.runtimeModelPersonalDataTransfer, false);
   assert.equal(notice.data.dataManagement.backupRetentionDays, 30);
   assert.equal(notice.data.version, "0.7.0");

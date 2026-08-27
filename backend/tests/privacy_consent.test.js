@@ -42,8 +42,8 @@ test("health consent records grant and withdrawal as append-only decisions", () 
   }, context);
   assert.equal(granted.active, true);
   assert.equal(granted.recorded, true);
-  assert.match(privacyConsent.HEALTH_CONSENT_POLICY_VERSION, /2026-08-26-v8$/);
-  assert.ok(data.privacyConsentRecords[0].purposes_json.some((item) => item.includes("通用建议目录")));
+  assert.match(privacyConsent.HEALTH_CONSENT_POLICY_VERSION, /2026-08-27-v9$/);
+  assert.ok(data.privacyConsentRecords[0].purposes_json.some((item) => item.includes("通用建议池")));
   assert.ok(data.privacyConsentRecords[0].data_categories_json.some((item) => item.includes("不发送给模型")));
 
   const unchanged = privacyConsent.recordHealthConsentDecision(data, rootUserId, {
@@ -97,7 +97,7 @@ test("health consent rejects a health-content retention period above the fixed 1
   assert.equal(status.configured, false);
 });
 
-test("health consent notice discloses offline synthetic catalog processing and invalidates the previous policy version", () => {
+test("health consent notice discloses offline reviewed pool processing and invalidates the previous policy version", () => {
   const data = createSeedData();
   data.privacyConsentRecords.push({
     privacy_consent_record_id: "old-model-policy-consent",
@@ -108,12 +108,15 @@ test("health consent notice discloses offline synthetic catalog processing and i
   });
 
   const status = privacyConsent.getHealthConsentStatus(data, "root-user-model-policy", { env: consentEnv });
-  assert.equal(status.active, false, "建议目录处理方式变更后必须重新单独同意");
-  assert.match(status.notice.modelProcessingText, /CloudBase AI/);
-  assert.match(status.notice.modelProcessingText, /30 个合成状态场景/);
-  assert.match(status.notice.modelProcessingText, /不接收任何真实用户/);
+  assert.equal(status.active, false, "建议池处理方式变更后必须重新单独同意");
+  assert.match(status.notice.modelProcessingText, /离线起草并经人工审核/);
+  assert.match(status.notice.modelProcessingText, /6 类健康起点/);
+  assert.match(status.notice.modelProcessingText, /5 类肠道状态/);
+  assert.match(status.notice.modelProcessingText, /不使用任何真实用户/);
   assert.match(status.notice.modelProcessingText, /不会发起实时模型调用/);
   assert.match(status.notice.modelProcessingText, /自动使用经审核固定建议/);
+  assert.match(status.notice.modelProcessingText, /不会把用户健康数据发送给任何模型服务/);
+  assert.doesNotMatch(status.notice.modelProcessingText, /CloudBase|hy3/);
   assert.match(status.notice.retentionText, /问卷答案、评测结果、回测记录和健康建议/);
   assert.match(status.notice.retentionText, /24 小时内删除/);
   assert.equal(status.notice.dataManagement.providerLogRetentionDays, undefined);

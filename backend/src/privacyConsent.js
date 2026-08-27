@@ -8,13 +8,13 @@ const { createId } = require("./seed");
 const { createClientError } = require("./clientError");
 
 const HEALTH_CONSENT_TYPE = "HEALTH_SENSITIVE_INFO";
-const HEALTH_CONSENT_POLICY_VERSION = "root4u-health-sensitive-2026-08-26-v8";
+const HEALTH_CONSENT_POLICY_VERSION = "root4u-health-sensitive-2026-08-27-v9";
 const DECISIONS = new Set(["GRANTED", "WITHDRAWN"]);
 
 const PURPOSES = [
   "完成 Root4U 健康起点评测与生活方式分类",
   "生成日常生活方式建议和后续评测推荐",
-  "在两项评测均完成且未进入安全提示分支时，从经审核的通用建议目录中匹配生活方式建议",
+  "在两项评测均完成且未进入安全提示分支时，从经审核的通用建议池中组合生活方式建议",
   "在账号中保存问卷答案、评测结果和回测记录，支持跨设备查看与主动删除",
   "在出现需要进一步确认的信息时提供必要人工协助",
 ];
@@ -23,7 +23,7 @@ const DATA_CATEGORIES = [
   "排便频率、便便形态与消化感受",
   "睡眠、活动、饮食、饮水、压力和精力情况",
   "健康目标、安全与适用性确认",
-  "评测结果代码与建议目录匹配结果（仅在 myRoot 服务端处理，不发送给模型）",
+  "评测结果代码与建议池匹配结果（仅在 myRoot 服务端处理，不发送给模型）",
 ];
 
 function ensureList(data) {
@@ -89,7 +89,7 @@ function noticePayload(config) {
     dataCategories: DATA_CATEGORIES.slice(),
     necessity: "这些信息会安全保存到你的 myRoot 账号，仅用于你主动参加的 Root4U 评测、生活方式建议、历史回测和必要人工协助，不用于医疗诊断。",
     refusalImpact: "不同意不会影响首页、活动和会员支持，但无法提交 Root4U 健康评测或查看基于评测生成的建议。",
-    modelProcessingText: "健康建议采用预先生成并经人工审核的通用建议目录。CloudBase AI 只在内容制作阶段接收产品团队定义的 30 个合成状态场景，不接收任何真实用户的身份、问卷答案、评测结果、健康状态、请求日志或其他个人信息。你使用小程序时，myRoot 服务端仅按评测结果在本地目录中匹配建议；目录缺失或未通过审核时自动使用经审核固定建议，不会发起实时模型调用。",
+    modelProcessingText: "健康建议采用离线起草并经人工审核的通用建议池。内容制作只使用产品定义的 6 类健康起点和 5 类肠道状态，不使用任何真实用户的身份、问卷答案、评测结果、健康状态、请求日志或其他个人信息。你使用小程序时，myRoot 服务端只在本地按评测结果组合已审核建议；建议池缺失或未通过审核时自动使用经审核固定建议，不会发起实时模型调用，也不会把用户健康数据发送给任何模型服务。",
     controllerName: config.controllerName,
     contact: config.contact,
     retentionDays: config.retentionDays,
