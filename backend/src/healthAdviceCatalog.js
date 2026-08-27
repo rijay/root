@@ -2,7 +2,7 @@ const manifest = require("../data/health-advice-catalog.v1.json");
 
 const CATALOG_VERSION = "root4u-health-advice-catalog-v1";
 const TAXONOMY_VERSION = "root4u-health-advice-taxonomy-v1";
-const CATALOG_PROMPT_VERSION = "root4u-health-advice-catalog-prompt-v1";
+const CATALOG_PROMPT_VERSION = "root4u-health-advice-catalog-prompt-v2";
 const CATALOG_ADAPTER_ID = "ROOT4U_REVIEWED_MODEL_CATALOG_V1";
 
 const INITIAL_RESULTS = Object.freeze({
@@ -22,6 +22,14 @@ const GUT_RESULTS = Object.freeze({
   HEALTHY: Object.freeze({ label: "肠道节奏稳定", description: "保持规律饮食、饮水与日常观察。" }),
 });
 
+const REQUIRED_GUT_FIBER_ACTIONS = Object.freeze({
+  CONSTIPATION: "补充益生元纤维，帮助软化便便促蠕动",
+  LOOSE: "补充可溶性纤维，帮助吸水让便便成形",
+  ALTERNATING: "补充益生元纤维，双向调节排便节奏",
+  SENSITIVE: "补充低FODMAP益生元，温和滋养不胀气",
+  HEALTHY: "日常补充益生元，持续滋养肠道有益菌",
+});
+
 function text(value) {
   return String(value || "").trim();
 }
@@ -33,7 +41,7 @@ function normalizedList(value, maxItems, maxLength) {
 
 const FORBIDDEN_COPY = /诊断|治疗|治愈|疗效|处方|停药|换药|疾病判断|保证有效|药物剂量/;
 
-function validateCatalogAdvice(value) {
+function normalizeCatalogAdvice(value) {
   const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   const advice = {
     summary: text(source.summary).slice(0, 240),
@@ -44,6 +52,34 @@ function validateCatalogAdvice(value) {
   if (!advice.summary || advice.actions.length !== 3 || !advice.followUp) return null;
   if (FORBIDDEN_COPY.test(JSON.stringify(advice))) return null;
   return advice;
+}
+
+function requiredFiberActionForGutResult(value) {
+  return REQUIRED_GUT_FIBER_ACTIONS[text(value).toUpperCase()] || "";
+}
+
+function requiredFiberActionForScenario(value) {
+  const scenario = normalizeSyntheticScenario(value);
+  return requiredFiberActionForGutResult(scenario.gutResultCode);
+}
+
+function validateCatalogAdvice(value, scenario) {
+  const advice = normalizeCatalogAdvice(value);
+  if (!advice) return null;
+  if (scenario && advice.actions[0] !== requiredFiberActionForScenario(scenario)) return null;
+  return advice;
+}
+
+function applyRequiredFiberAction(value, scenario) {
+  const advice = normalizeCatalogAdvice(value);
+  if (!advice) return null;
+  const requiredAction = requiredFiberActionForScenario(scenario);
+  const remainingActions = advice.actions.filter((action) => action !== requiredAction).slice(0, 2);
+  if (remainingActions.length !== 2) return null;
+  return {
+    ...advice,
+    actions: [requiredAction, ...remainingActions],
+  };
 }
 
 function normalizeSyntheticScenario(value) {
@@ -109,7 +145,11 @@ function createHealthAdviceCatalog(source = manifest) {
       invalidEntryCount += 1;
       continue;
     }
-    const advice = validateCatalogAdvice(entry.advice);
+    const scenario = {
+      initialResultCode: entry.initialResultCode,
+      gutResultCode: entry.gutResultCode,
+    };
+    const advice = validateCatalogAdvice(entry.advice, scenario);
     if (!advice || approvedEntries.has(key)) {
       invalidEntryCount += 1;
       continue;
@@ -157,11 +197,15 @@ module.exports = {
   CATALOG_VERSION,
   GUT_RESULTS,
   INITIAL_RESULTS,
+  REQUIRED_GUT_FIBER_ACTIONS,
   SYNTHETIC_SCENARIOS,
   TAXONOMY_VERSION,
+  applyRequiredFiberAction,
   createHealthAdviceCatalog,
   defaultCatalog,
   normalizeSyntheticScenario,
+  requiredFiberActionForGutResult,
+  requiredFiberActionForScenario,
   scenarioForStates,
   scenarioKey,
   validateCatalogAdvice,

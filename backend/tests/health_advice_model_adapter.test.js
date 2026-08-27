@@ -49,11 +49,14 @@ test("synthetic catalog Adapter sends only the fixed product taxonomy scenario",
   assert.deepEqual(Object.keys(prompt).sort(), ["inputVersion", "promptVersion", "scenario", "taxonomyVersion"]);
   assert.deepEqual(Object.keys(prompt.scenario).sort(), [
     "gutDescription", "gutLabel", "gutResultCode", "initialDescription", "initialLabel", "initialResultCode",
+    "requiredFiberAction",
   ]);
   assert.equal(JSON.stringify(body).includes("keychain-secret"), false);
   assert.equal(JSON.stringify(body).includes("questionnaireVersion"), false);
   assert.equal(JSON.stringify(body).includes("rootUserId"), false);
   assert.match(body.messages[0].content, /不代表任何真实用户/);
+  assert.match(body.messages[0].content, /actions\[0\].*逐字使用/);
+  assert.equal(prompt.scenario.requiredFiberAction, "日常补充益生元，持续滋养肠道有益菌");
 });
 
 test("synthetic scenario rejects extra fields and unknown codes before network access", async () => {

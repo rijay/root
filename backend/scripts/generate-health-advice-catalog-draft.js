@@ -5,6 +5,7 @@ const {
   CATALOG_VERSION,
   SYNTHETIC_SCENARIOS,
   TAXONOMY_VERSION,
+  applyRequiredFiberAction,
   scenarioKey,
   validateCatalogAdvice,
 } = require("../src/healthAdviceCatalog");
@@ -51,8 +52,8 @@ async function run(options = {}) {
 
   const entries = [];
   for (const scenario of SYNTHETIC_SCENARIOS) {
-    const advice = validateCatalogAdvice(await adapter.generateSyntheticScenario(scenario));
-    if (!advice) {
+    const advice = applyRequiredFiberAction(await adapter.generateSyntheticScenario(scenario), scenario);
+    if (!advice || !validateCatalogAdvice(advice, scenario)) {
       const error = new Error(`场景 ${scenarioKey(scenario)} 的模型输出未通过内容结构校验`);
       error.code = "HEALTH_ADVICE_CATALOG_MODEL_OUTPUT_INVALID";
       throw error;

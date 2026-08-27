@@ -17,6 +17,7 @@ function result(overrides = {}) {
     adviceSource: REVIEWED_MODEL_CATALOG,
     modelName: "hy3",
     actionCount: 3,
+    firstAction: "日常补充益生元，持续滋养肠道有益菌",
     ...overrides,
   };
 }
@@ -35,6 +36,10 @@ test("model-assisted verification requires the configured hy3 model", () => {
   assert.equal(validateResult(modelAssisted), modelAssisted);
   assert.throws(
     () => validateResult(result({ modelName: "" })),
+    { code: "LOCAL_HEALTH_ADVICE_VERIFY_RESULT_FAILED" },
+  );
+  assert.throws(
+    () => validateResult(result({ firstAction: "被模型改写的建议" })),
     { code: "LOCAL_HEALTH_ADVICE_VERIFY_RESULT_FAILED" },
   );
 });

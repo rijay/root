@@ -8,6 +8,7 @@ const {
   SYNTHETIC_SCENARIOS,
   TAXONOMY_VERSION,
   createHealthAdviceCatalog,
+  requiredFiberActionForGutResult,
 } = require("../src/healthAdviceCatalog");
 const healthStatusAdvice = require("../src/healthStatusAdvice");
 const { createSeedData } = require("../src/seed");
@@ -67,7 +68,7 @@ function reviewedCatalog(overrides = {}) {
       reviewStatus: "APPROVED",
       advice: {
         summary: "先保持近期节奏稳定。",
-        actions: ["固定起床时间。", "分次补充饮水。", "记录一周身体感受。"],
+        actions: [requiredFiberActionForGutResult(scenario.gutResultCode), "分次补充饮水。", "记录一周身体感受。"],
         cautions: ["不适持续时请咨询专业人士。"],
         followUp: "一周后可再次评测。",
       },
@@ -94,6 +95,7 @@ test("reviewed model catalog is selected locally and reused for the same inputs"
   assert.equal(generated.advice.source, "REVIEWED_MODEL_CATALOG");
   assert.equal(generated.advice.sourceLabel, "AI 辅助生成，经审核");
   assert.equal(generated.advice.modelName, "hy3");
+  assert.equal(generated.advice.actions[0], "日常补充益生元，持续滋养肠道有益菌");
   assert.equal(data.healthAdviceSnapshots.length, 1);
   assert.equal(data.healthAdviceSnapshots[0].states_json[0].safetyStopped, false);
   assert.equal(calls, 0);
@@ -129,4 +131,25 @@ test("draft or incomplete catalog falls back to reviewed fixed content", async (
   });
   assert.equal(generated.advice.source, "REVIEWED_FALLBACK");
   assert.equal(generated.advice.actions.length, 3);
+  assert.equal(generated.advice.actions[0], "日常补充益生元，持续滋养肠道有益菌");
+});
+
+test("runtime rejects a catalog Adapter that changes the required fiber action", async () => {
+  const data = readyData("root-runtime-fiber-guard");
+  const generated = await healthStatusAdvice.generate(data, "root-runtime-fiber-guard", {
+    healthAdviceCatalog: {
+      lookup() {
+        return {
+          advice: {
+            summary: "模型目录摘要。",
+            actions: ["被改写的纤维建议。", "分次饮水。", "记录身体感受。"],
+            cautions: [],
+            followUp: "一周后回测。",
+          },
+        };
+      },
+    },
+  });
+  assert.equal(generated.advice.source, "REVIEWED_FALLBACK");
+  assert.equal(generated.advice.actions[0], "日常补充益生元，持续滋养肠道有益菌");
 });

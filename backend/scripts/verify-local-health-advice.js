@@ -4,6 +4,7 @@ const BASE_URL = "http://127.0.0.1:8787";
 const REVIEWED_MODEL_CATALOG = "REVIEWED_MODEL_CATALOG";
 const REVIEWED_FALLBACK = "REVIEWED_FALLBACK";
 const SUPPORTED_SOURCES = new Set([REVIEWED_MODEL_CATALOG, REVIEWED_FALLBACK]);
+const REQUIRED_HEALTHY_FIBER_ACTION = "日常补充益生元，持续滋养肠道有益菌";
 const initialAnswers = Object.freeze({
   primary_goal: "observe",
   impact_level: "0",
@@ -57,7 +58,8 @@ function validateResult(result, expectedSource = REVIEWED_MODEL_CATALOG) {
   if (!result.ready
     || result.adviceSource !== expectedSource
     || !modelMatches
-    || result.actionCount !== 3) {
+    || result.actionCount !== 3
+    || result.firstAction !== REQUIRED_HEALTHY_FIBER_ACTION) {
     const error = new Error(`local health advice verification failed: ${JSON.stringify(result)}`);
     error.code = "LOCAL_HEALTH_ADVICE_VERIFY_RESULT_FAILED";
     throw error;
@@ -115,6 +117,9 @@ async function run(options = {}) {
     actionCount: generated.advice && Array.isArray(generated.advice.actions)
       ? generated.advice.actions.length
       : 0,
+    firstAction: generated.advice && Array.isArray(generated.advice.actions)
+      ? generated.advice.actions[0]
+      : "",
   };
   validateResult(result, expectedSource);
   console.log(JSON.stringify(result, null, 2));

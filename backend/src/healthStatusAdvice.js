@@ -3,14 +3,16 @@ const { createId } = require("./seed");
 const {
   CATALOG_PROMPT_VERSION,
   defaultCatalog,
+  requiredFiberActionForGutResult,
+  scenarioForStates,
   validateCatalogAdvice,
 } = require("./healthAdviceCatalog");
 
 const REQUIRED_TYPES = Object.freeze(["INITIAL", "GUT_REGULARITY"]);
 const COMPLETED_STATUSES = new Set(["COMPLETED", "SAFETY_STOPPED"]);
 const PROMPT_VERSION = CATALOG_PROMPT_VERSION;
-const CONTENT_VERSION = "root4u-reviewed-fallback-v2";
-const RULE_VERSION = "root4u-combined-state-v1";
+const CONTENT_VERSION = "root4u-reviewed-fallback-v3";
+const RULE_VERSION = "root4u-combined-state-v2";
 
 function text(value, fallback = "") {
   const normalized = String(value || "").trim();
@@ -107,7 +109,7 @@ function fallbackAdvice(states) {
   return {
     summary: byGutResult[gut.resultCode] || "结合两项评测，建议先用稳定、可重复的小行动继续观察近期状态。",
     actions: [
-      "未来 7 天保持相对固定的起床和进餐时间。",
+      requiredFiberActionForGutResult(gut.resultCode) || "未来 7 天保持相对固定的起床和进餐时间。",
       "每天选择一个固定时段记录饮水、活动和排便感受。",
       "一次只调整一个容易坚持的习惯，并在回测后再判断是否继续。",
     ],
@@ -156,7 +158,7 @@ async function generate(data, rootUserId, context = {}) {
     ? catalog.lookup(current.states)
     : null;
   if (catalogEntry) {
-    advice = validateCatalogAdvice(catalogEntry.advice);
+    advice = validateCatalogAdvice(catalogEntry.advice, scenarioForStates(current.states));
     if (advice) adviceSource = "REVIEWED_MODEL_CATALOG";
   }
   if (!advice) advice = fallbackAdvice(current.states);

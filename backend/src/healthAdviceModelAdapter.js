@@ -4,6 +4,7 @@ const {
   INITIAL_RESULTS,
   TAXONOMY_VERSION,
   normalizeSyntheticScenario,
+  requiredFiberActionForGutResult,
 } = require("./healthAdviceCatalog");
 
 const MODEL_INPUT_VERSION = "root4u-health-advice-synthetic-input-v1";
@@ -60,6 +61,7 @@ function syntheticPromptInput(value) {
       gutResultCode: scenario.gutResultCode,
       gutLabel: GUT_RESULTS[scenario.gutResultCode].label,
       gutDescription: GUT_RESULTS[scenario.gutResultCode].description,
+      requiredFiberAction: requiredFiberActionForGutResult(scenario.gutResultCode),
     }),
   });
 }
@@ -103,7 +105,7 @@ function createEnvironmentHealthAdviceCatalogModelAdapter(env = process.env, opt
             messages: [
               {
                 role: "system",
-                content: "你是 Root4U 的通用健康生活方式内容助手。输入是产品团队预先定义的合成状态枚举，不代表任何真实用户。不要输出思考过程，直接输出 JSON。不做诊断、治疗、用药、疾病判断或疗效承诺。输出字段必须为 summary、actions、cautions、followUp；actions 必须恰好三条，建议应低风险且可执行。",
+                content: "你是 Root4U 的通用健康生活方式内容助手。输入是产品团队预先定义的合成状态枚举，不代表任何真实用户。不要输出思考过程，直接输出 JSON。不做诊断、治疗、用药、疾病判断或疗效承诺。输出字段必须为 summary、actions、cautions、followUp；actions 必须恰好三条，actions[0] 必须逐字使用 scenario.requiredFiberAction，不得改写、删除或后移；其余建议应低风险且可执行。",
               },
               { role: "user", content: JSON.stringify(promptInput) },
             ],

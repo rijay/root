@@ -72,7 +72,7 @@ ROOT_ADMIN_TOKEN=由正式环境密钥配置注入
 
 正式环境登录会使用 `wx.login` 和 `getPhoneNumber` 返回的 code，到微信服务端换取 openid 和手机号。未配置 `WECHAT_APPID` / `WECHAT_APPSECRET` 时，正式手机号登录会拒绝执行，避免无授权手机号进入。
 
-健康建议线上运行时不调用模型：服务端只从仓库内的已审核目录按两个结果代码选择建议，目录不完整、未审核或内容无效时 fail-close 到固定建议。CloudBase `hy3` 只用于离线生成 30 个产品预定义的合成状态场景，不接收真实用户身份、答案、评测结果、健康状态或请求日志。生产环境不得配置健康建议模型 API Key；`ROOT_HEALTH_ADVICE_CATALOG_REVIEWED=true` 还必须配套 30/30 条内容审核记录和候选工件证据，变量本身不是上线证据。详见 [`健康 AI 数据管理规范`](../docs/v0.7.0_health_ai_data_management_standard_2026-08-26.md)。
+健康建议线上运行时不调用模型：服务端只从仓库内的已审核目录按两个结果代码选择建议，目录不完整、未审核或内容无效时 fail-close 到固定建议。CloudBase `hy3` 只用于离线生成 30 个产品预定义的合成状态场景，不接收真实用户身份、答案、评测结果、健康状态或请求日志。每个场景的第一条行动由五类肠道结果对应的固定纤维规则注入，模型不得改写、删除或后移；草稿生成、整目录审核门禁和运行时加载都会校验这一规则，安全拦截分支仍优先停止普通生活方式建议。生产环境不得配置健康建议模型 API Key；`ROOT_HEALTH_ADVICE_CATALOG_REVIEWED=true` 还必须配套 30/30 条内容审核记录和候选工件证据，变量本身不是上线证据。详见 [`健康 AI 数据管理规范`](../docs/v0.7.0_health_ai_data_management_standard_2026-08-26.md)。
 
 微信订阅发送只允许 `https://api.weixin.qq.com/cgi-bin/message/subscribe/send`。即使配置了 `ROOT_WECHAT_OPENAPI_BASE_URL` 或 `ROOT_WECHAT_SUBSCRIBE_SEND_URL`，受保护运行时也拒绝非官方 origin、明文、userinfo、额外 query/fragment、端口或路径漂移；订阅 access token 永不发送到 loopback。发送 Adapter 在获取 token 前和网络调用前分别校验，服务器在 `ROOT_CHECKIN_REMINDER_SEND_ENABLED=true` 时启动前再次校验，底层 HTTP Implementation 不跟随 redirect。该本地防护不代表 Candidate/生产网络出口、模板、额度或真实送达已经验收。
 

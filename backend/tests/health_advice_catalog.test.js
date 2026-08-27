@@ -7,18 +7,31 @@ const test = require("node:test");
 const {
   CATALOG_PROMPT_VERSION,
   CATALOG_VERSION,
+  REQUIRED_GUT_FIBER_ACTIONS,
   SYNTHETIC_SCENARIOS,
   TAXONOMY_VERSION,
   createHealthAdviceCatalog,
   defaultCatalog,
+  requiredFiberActionForGutResult,
   scenarioKey,
 } = require("../src/healthAdviceCatalog");
 const { outputPath, run } = require("../scripts/generate-health-advice-catalog-draft");
 
-function advice() {
+test("v0.6.1 five-result fiber rules remain exact and immutable", () => {
+  assert.deepEqual(REQUIRED_GUT_FIBER_ACTIONS, {
+    CONSTIPATION: "补充益生元纤维，帮助软化便便促蠕动",
+    LOOSE: "补充可溶性纤维，帮助吸水让便便成形",
+    ALTERNATING: "补充益生元纤维，双向调节排便节奏",
+    SENSITIVE: "补充低FODMAP益生元，温和滋养不胀气",
+    HEALTHY: "日常补充益生元，持续滋养肠道有益菌",
+  });
+  assert.equal(Object.isFrozen(REQUIRED_GUT_FIBER_ACTIONS), true);
+});
+
+function advice(scenario) {
   return {
     summary: "保持稳定节奏并继续观察。",
-    actions: ["固定作息。", "分次饮水。", "记录近期感受。"],
+    actions: [requiredFiberActionForGutResult(scenario.gutResultCode), "分次饮水。", "记录近期感受。"],
     cautions: ["不适持续时请咨询专业人士。"],
     followUp: "一周后回测。",
   };
@@ -35,7 +48,7 @@ function approvedManifest() {
     reviewStatus: "APPROVED",
     reviewedAt: "2026-08-26T11:00:00.000Z",
     reviewer: "content-reviewer-1",
-    entries: SYNTHETIC_SCENARIOS.map((scenario) => ({ ...scenario, advice: advice(), reviewStatus: "APPROVED" })),
+    entries: SYNTHETIC_SCENARIOS.map((scenario) => ({ ...scenario, advice: advice(scenario), reviewStatus: "APPROVED" })),
   };
 }
 
@@ -62,6 +75,7 @@ test("approved catalog resolves only frozen result-code combinations", () => {
     gutResultCode: entry.gutResultCode,
   }), "BASELINE:HEALTHY");
   assert.equal(entry.advice.actions.length, 3);
+  assert.equal(entry.advice.actions[0], "日常补充益生元，持续滋养肠道有益菌");
 });
 
 test("one missing review or unsafe entry disables the entire catalog", () => {
@@ -72,6 +86,10 @@ test("one missing review or unsafe entry disables the entire catalog", () => {
   const unsafe = approvedManifest();
   unsafe.entries[0].advice.summary = "保证有效并提供治疗";
   assert.equal(createHealthAdviceCatalog(unsafe).configured, false);
+
+  const fiberRuleChanged = approvedManifest();
+  fiberRuleChanged.entries[0].advice.actions[0] = "模型自行改写的第一条建议。";
+  assert.equal(createHealthAdviceCatalog(fiberRuleChanged).configured, false);
 
   const extra = approvedManifest();
   extra.entries.push({ ...extra.entries[0], initialResultCode: "UNKNOWN" });
@@ -95,7 +113,14 @@ test("draft generator requires a new explicit output and emits 30 pending-review
         return {
           ok: true,
           async json() {
-            return { choices: [{ message: { content: JSON.stringify(advice()) } }] };
+            return {
+              choices: [{ message: { content: JSON.stringify({
+                summary: "保持稳定节奏并继续观察。",
+                actions: ["模型建议一。", "模型建议二。", "模型建议三。"],
+                cautions: ["不适持续时请咨询专业人士。"],
+                followUp: "一周后回测。",
+              }) } }],
+            };
           },
         };
       },
@@ -106,6 +131,9 @@ test("draft generator requires a new explicit output and emits 30 pending-review
     assert.equal(draft.reviewStatus, "DRAFT");
     assert.equal(draft.entries.length, 30);
     assert.equal(draft.entries.every((entry) => entry.reviewStatus === "PENDING_REVIEW"), true);
+    assert.equal(draft.entries.every((entry) => (
+      entry.advice.actions[0] === requiredFiberActionForGutResult(entry.gutResultCode)
+    )), true);
     await assert.rejects(() => run({ argv: [`--output=${target}`], readApiKey: () => "unused" }), {
       code: "HEALTH_ADVICE_CATALOG_OUTPUT_EXISTS",
     });
