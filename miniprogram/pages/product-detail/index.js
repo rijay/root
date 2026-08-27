@@ -3,6 +3,7 @@ const { setPendingProductFocus } = require("../../utils/product-navigation");
 const { jumpToYouzanProduct, mergeJumpTarget } = require("../../utils/youzan-jump");
 const { failureReason, track } = require("../../utils/analytics");
 const { showFriendShareMenu } = require("../../utils/page-share");
+const { formatProductSyncedAt } = require("../../utils/product-display");
 
 function decorateProduct(product) {
   if (!product) return null;
@@ -11,6 +12,7 @@ function decorateProduct(product) {
     productCode: product.title && product.title.includes("RT-PrB-")
       ? `RT-PrB-${product.title.split("RT-PrB-")[1].split(/\s/)[0]}`
       : "ROOT",
+    syncedAtText: formatProductSyncedAt(product.syncedAt),
     visualTone: product.productId === "4875324599" ? "graphite" : "sprout",
   };
 }

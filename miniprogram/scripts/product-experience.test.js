@@ -10,7 +10,13 @@ global.wx = {
 
 const navigation = require("../utils/product-navigation");
 const { listLocalProducts } = require("../utils/local-product-catalog");
+const { formatProductSyncedAt } = require("../utils/product-display");
 const { isConfiguredProductPath, mergeJumpTarget } = require("../utils/youzan-jump");
+
+assert.equal(formatProductSyncedAt("2026-08-25"), "2026.08.25");
+assert.equal(formatProductSyncedAt("2026-08-25T21:28:24+08:00"), "2026.08.25 21:28");
+assert.equal(formatProductSyncedAt("2026-08-25T13:28:24Z"), "2026.08.25 21:28");
+assert.equal(formatProductSyncedAt(""), "");
 
 const products = listLocalProducts().products;
 assert.equal(navigation.activeProductIdForScroll(products, 0, 375), "4749049439");
@@ -57,6 +63,7 @@ const root = path.resolve(__dirname, "..");
 const listScript = fs.readFileSync(path.join(root, "pages/products/index.js"), "utf8");
 const listWxml = fs.readFileSync(path.join(root, "pages/products/index.wxml"), "utf8");
 const detailScript = fs.readFileSync(path.join(root, "pages/product-detail/index.js"), "utf8");
+const detailWxml = fs.readFileSync(path.join(root, "pages/product-detail/index.wxml"), "utf8");
 assert.match(listWxml, /bindscroll="onProductScroll"/);
 assert.match(listScript, /persistViewState/);
 assert.match(listScript, /product_impression/);
@@ -71,6 +78,8 @@ assert.match(listWxml, /wx:if="\{\{carouselVisible\}\}"/);
 assert.match(detailScript, /product_detail_view/);
 assert.match(detailScript, /member_center_handoff/);
 assert.match(detailScript, /openProducts\(\)/);
+assert.match(detailWxml, /product\.syncedAtText/);
+assert.doesNotMatch(detailWxml, /\{\{product\.syncedAt\}\}/);
 
 delete global.wx;
 console.log("product experience tests passed");

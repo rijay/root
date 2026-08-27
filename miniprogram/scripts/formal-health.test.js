@@ -79,6 +79,7 @@ assert.match(consentWxml, /首页、活动和会员支持不以同意为前提/)
 assert.match(consentWxml, /健康建议说明/);
 assert.match(consentWxml, /notice\.modelProcessingText/);
 assert.doesNotMatch(consentWxml, /任务|奖励|打卡/);
+assert.doesNotMatch(consentWxml, /Gate/);
 
 const legalScript = read("pages/legal/index.js");
 assert.match(legalScript, /保存到你的 myRoot 账号/);

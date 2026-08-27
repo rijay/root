@@ -8,7 +8,7 @@
   <view wx:if="{{loading}}" class="consent-state">正在加载说明...</view>
 
   <view wx:elif="{{!required}}" class="consent-state">
-    <view>当前环境尚未启用身体记录单独同意 Gate。</view>
+    <view>当前版本无需在这里管理身体记录授权。</view>
     <button class="btn-secondary consent-fallback" bindtap="goBack">返回</button>
   </view>
 
