@@ -9,6 +9,7 @@
 
 - 0.7.0 的全局分享策略与基线提交 `63cbc81` 中的 0.6.1 修复一致：非欢迎页在 `onLoad/onShow` 恢复“转发给朋友”，欢迎页隐藏分享菜单。
 - PHGG 科学档案已加入公开分享白名单，分享卡片回流路径为 `/subpkg/content/pages/phgg-reference/index`。
+- 真机普通预览已确认“发送给朋友”可用；“分享到朋友圈”首次验证失败，定位为页面未注册 `onShareTimeline`。现已为 PHGG 公开内容页单独补齐朋友圈回调和菜单，其余页面不扩开朋友圈能力。
 - 新增回归断言：从隐藏分享菜单的页面返回公开页后，下一次 `onShow` 必须重新恢复分享。
 - 微信开发者工具当前页调用 `showShareMenu` 返回 `showShareMenu:ok`；当前页生成的分享卡片标题和路径正确。
 
@@ -24,7 +25,7 @@
 ## 验证结果
 
 - `npm run check --prefix miniprogram`：PASS。
-- 新增 `phgg-reference.test.js`：目录定位、复制、分享卡片均 PASS。
+- 新增 `phgg-reference.test.js`：目录定位、复制、朋友分享卡片和朋友圈分享参数均 PASS。
 - `page-share.test.js`：分享恢复和安全路径过滤 PASS。
 - `brand-palette.test.js`：74 个 WXML/WXSS 文件通过，未引入旧米色或页面原始色值。
 - 新页面、产品页、关于页的 WXML/WXSS 局部编译：PASS。
@@ -33,7 +34,7 @@
 
 ## 尚未覆盖
 
-1. iOS 与 Android 真机系统分享菜单及分享回流；
+1. PHGG 朋友圈补丁的 iOS 真机菜单与分享回流，以及 Android 真机系统分享菜单及两类分享回流；
 2. 体验版上传、微信审核与生产发布；
 3. 具体 SKU 与 PHGG/Fibalance® 配料适用关系的包装或批准资料核验。
 

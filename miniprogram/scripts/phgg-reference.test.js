@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 
 let registered = null;
 let shown = 0;
+let shareMenuOptions = null;
 let copied = "";
 let scrolledTo = null;
 
@@ -10,7 +11,10 @@ global.Page = (definition) => {
   return definition;
 };
 global.wx = {
-  showShareMenu() { shown += 1; },
+  showShareMenu(options) {
+    shown += 1;
+    shareMenuOptions = options;
+  },
   setClipboardData(options) { copied = options.data; },
   getMenuButtonBoundingClientRect() { return { bottom: 104 }; },
   createSelectorQuery() {
@@ -40,6 +44,7 @@ assert.deepEqual(registered.data.references[3], {
 
 registered.onShow();
 assert.equal(shown, 1);
+assert.deepEqual(shareMenuOptions.menus, ["shareAppMessage", "shareTimeline"]);
 
 registered.copyReference({ currentTarget: { dataset: { value: "DOI: 10.3390/nu11092170" } } });
 assert.equal(copied, "DOI: 10.3390/nu11092170");
@@ -50,6 +55,10 @@ assert.deepEqual(scrolledTo, { scrollTop: 220, duration: 240 });
 assert.deepEqual(registered.onShareAppMessage(), {
   title: "PHGG 原料科学档案｜ROOT",
   path: "/subpkg/content/pages/phgg-reference/index",
+});
+assert.deepEqual(registered.onShareTimeline(), {
+  title: "PHGG 原料科学档案｜ROOT",
+  query: "",
 });
 
 delete global.Page;

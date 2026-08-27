@@ -1,4 +1,4 @@
-const { showFriendShareMenu } = require("../../../../utils/page-share");
+const { showTimelineShareMenu } = require("../../../../utils/page-share");
 
 const REFERENCES = Object.freeze([
   Object.freeze({
@@ -52,7 +52,7 @@ Page({
   data: { references: REFERENCES },
 
   onShow() {
-    showFriendShareMenu();
+    showTimelineShareMenu();
   },
 
   scrollToSection(event) {
@@ -82,6 +82,13 @@ Page({
     return {
       title: "PHGG 原料科学档案｜ROOT",
       path: "/subpkg/content/pages/phgg-reference/index",
+    };
+  },
+
+  onShareTimeline() {
+    return {
+      title: "PHGG 原料科学档案｜ROOT",
+      query: "",
     };
   },
 });

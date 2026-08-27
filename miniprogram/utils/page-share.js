@@ -90,13 +90,13 @@ function trackShare(route, mappingType) {
   });
 }
 
-function showFriendShareMenu() {
+function showShareMenu(menus) {
   if (typeof wx === "undefined" || typeof wx.showShareMenu !== "function") return false;
   const page = typeof getCurrentPages === "function" ? getCurrentPages().slice(-1)[0] : null;
   const pageType = normalizeRoute(page && page.route) || "UNKNOWN";
   wx.showShareMenu({
     withShareTicket: false,
-    menus: ["shareAppMessage"],
+    menus,
     success() {
       track("share_menu_setup", { pageType, result: "SUCCESS", failureReason: "" });
     },
@@ -110,6 +110,14 @@ function showFriendShareMenu() {
     },
   });
   return true;
+}
+
+function showFriendShareMenu() {
+  return showShareMenu(["shareAppMessage"]);
+}
+
+function showTimelineShareMenu() {
+  return showShareMenu(["shareAppMessage", "shareTimeline"]);
 }
 
 function pageShareResponse(page, candidate = {}) {
@@ -136,10 +144,12 @@ function installGlobalSharePolicy(runtime = globalThis) {
     const originalOnLoad = definition.onLoad;
     const originalOnShow = definition.onShow;
     const originalShare = definition.onShareAppMessage;
+    const originalTimelineShare = definition.onShareTimeline;
     function syncShareMenu(page) {
       const route = normalizeRoute(page && page.route);
       if (route !== "/pages/welcome/index") {
-        showFriendShareMenu();
+        if (typeof originalTimelineShare === "function") showTimelineShareMenu();
+        else showFriendShareMenu();
       } else if (wx.hideShareMenu) {
         wx.hideShareMenu();
       }
@@ -183,4 +193,5 @@ module.exports = {
   normalizeRoute,
   publicPath,
   showFriendShareMenu,
+  showTimelineShareMenu,
 };

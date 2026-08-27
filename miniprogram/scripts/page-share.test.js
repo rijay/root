@@ -22,6 +22,7 @@ const {
   defaultOnShareAppMessage,
   installGlobalSharePolicy,
   showFriendShareMenu,
+  showTimelineShareMenu,
 } = require("../utils/page-share");
 
 assert.equal(showFriendShareMenu(), true);
@@ -30,6 +31,10 @@ assert.equal(lastShareMenuOptions.withShareTicket, false);
 assert.deepEqual(lastShareMenuOptions.menus, ["shareAppMessage"]);
 assert.equal(typeof lastShareMenuOptions.success, "function");
 assert.equal(typeof lastShareMenuOptions.fail, "function");
+
+assert.equal(showTimelineShareMenu(), true);
+assert.equal(shown, 2);
+assert.deepEqual(lastShareMenuOptions.menus, ["shareAppMessage", "shareTimeline"]);
 
 const product = buildShareCard("pages/product-detail/index", {
   productId: "4749049439",
@@ -105,11 +110,11 @@ runtime.Page({
 });
 const page = { route: "pages/product-detail/index" };
 registered.onLoad.call(page, { productId: "4875324599", signature: "a".repeat(64) });
-assert.equal(shown, 2);
+assert.equal(shown, 3);
 assert.equal(page.loadedProductId, "4875324599");
 registered.onShow.call(page);
 assert.equal(originalShows, 1);
-assert.equal(shown, 3);
+assert.equal(shown, 4);
 assert.deepEqual(registered.onShareAppMessage.call(page), {
   title: "产品分享",
   path: "/pages/product-detail/index?productId=4875324599",
@@ -124,7 +129,19 @@ registered.onShow.call(welcomePage);
 assert.equal(hidden, 2);
 
 registered.onShow.call({ route: "subpkg/content/pages/phgg-reference/index" });
-assert.equal(shown, 4, "public page onShow must restore sharing after a hidden-share page");
+assert.equal(shown, 5, "public page onShow must restore sharing after a hidden-share page");
+
+runtime.Page({
+  onShareAppMessage() {
+    return { title: "PHGG 原料科学档案｜ROOT" };
+  },
+  onShareTimeline() {
+    return { title: "PHGG 原料科学档案｜ROOT", query: "" };
+  },
+});
+registered.onShow.call({ route: "subpkg/content/pages/phgg-reference/index" });
+assert.equal(shown, 6);
+assert.deepEqual(lastShareMenuOptions.menus, ["shareAppMessage", "shareTimeline"]);
 
 const root = path.resolve(__dirname, "..");
 const appConfig = JSON.parse(fs.readFileSync(path.join(root, "app.json"), "utf8"));
