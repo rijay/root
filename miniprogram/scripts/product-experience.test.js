@@ -53,6 +53,9 @@ products.forEach((product) => {
   assert.equal(target.updatedAt, "2026-08-24");
   assert.match(product.imageUrl, /^\/static\/products\/rt-prb-0[12]\.jpg$/);
   assert.match(product.specText, /会员中心/);
+  assert.equal(product.syncedAt, "2026-08-25T21:28:24+08:00");
+  assert.match(product.summary, /益生元饮料/);
+  assert.match(product.description, /会员中心快照/);
 });
 assert.equal(isConfiguredProductPath(
   "packages/goods/detail/index?alias=valid&shopAutoEnter=1&openid=private",
@@ -76,6 +79,10 @@ assert.match(listScript, /scrollLeftForProduct/);
 assert.match(listScript, /resetPageScroll:\s*true/);
 assert.match(listScript, /carouselVisible:\s*false/);
 assert.match(listWxml, /wx:if="\{\{carouselVisible\}\}"/);
+assert.doesNotMatch(listWxml, /\{\{catalogNotice\}\}/);
+assert.match(listScript, /presentCatalogRefreshStatus\(data\.degradedText \|\| ""\)/);
+assert.match(listScript, /title:\s*"商品更新失败，已显示本地信息"/);
+assert.match(listScript, /icon:\s*"none"/);
 assert.match(detailScript, /product_detail_view/);
 assert.match(detailScript, /member_center_handoff/);
 assert.match(detailScript, /openProducts\(\)/);

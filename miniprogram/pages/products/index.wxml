@@ -29,7 +29,6 @@
   </view>
 
   <view wx:else class="products-content">
-    <view wx:if="{{catalogNotice}}" class="product-focus-notice" role="status" aria-live="polite">{{catalogNotice}}</view>
     <view wx:if="{{focusNotice}}" class="product-focus-notice" role="status" aria-live="polite">{{focusNotice}}</view>
     <scroll-view
       wx:if="{{carouselVisible}}"

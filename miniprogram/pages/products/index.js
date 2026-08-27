@@ -39,7 +39,6 @@ Page({
     carouselVisible: true,
     focusNotice: "",
     failedProductImages: {},
-    catalogNotice: "",
   },
 
   onLoad(options = {}) {
@@ -111,7 +110,6 @@ Page({
         focusNotice: focus.requestedUnavailable
           ? "指定商品暂不可见，已为你展示当前可用产品。"
           : "",
-        catalogNotice: data.degradedText || "",
         loading: false,
       }, () => {
         this.recordUsableContent(products.length ? "CONTENT_READY" : "EMPTY_READY");
@@ -120,14 +118,25 @@ Page({
         }
         else this.restoreViewState(defaultProductId);
         this.recordProductImpression(defaultProductId);
+        this.presentCatalogRefreshStatus(data.degradedText || "");
       });
     } catch (error) {
       this.setData(background
-        ? { catalogNotice: "商品信息刷新失败，当前继续显示本地基础信息。", loading: false }
+        ? { loading: false }
         : { errorText: error.message || "商品加载失败", loading: false }, () => {
         this.recordUsableContent("ERROR_READY");
+        if (background) this.presentCatalogRefreshStatus("商品信息刷新失败");
       });
     }
+  },
+
+  presentCatalogRefreshStatus(message) {
+    if (!message || typeof wx.showToast !== "function") return;
+    wx.showToast({
+      title: "商品更新失败，已显示本地信息",
+      icon: "none",
+      duration: 3000,
+    });
   },
 
   recordUsableContent(status) {
