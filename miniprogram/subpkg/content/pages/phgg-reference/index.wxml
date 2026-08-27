@@ -1,0 +1,90 @@
+<view class="science-page">
+  <page-navigation show-home="{{true}}" />
+
+  <view class="science-hero">
+    <view class="science-hero__eyebrow">SCIENTIFIC REFERENCE DOSSIER</view>
+    <view class="science-hero__title">PHGG 原料科学档案</view>
+    <view class="science-hero__subtitle">
+      <text>部分水解瓜尔胶</text>
+      <text class="science-hero__subtitle-en">Partially Hydrolyzed Guar Gum</text>
+    </view>
+    <view class="science-hero__meta">资料整理于 2026.08.27</view>
+  </view>
+
+  <view class="science-boundary" role="note">
+    <view class="science-boundary__label">先说明边界</view>
+    <view>本页整理 PHGG 原料的公开研究信息，不代表任何 ROOT 成品具备同等研究结论。具体配料、营养成分及食用方式以当前产品包装和会员中心页面为准。</view>
+  </view>
+
+  <scroll-view class="science-nav" scroll-x enhanced show-scrollbar="{{false}}" aria-label="页面目录">
+    <view class="science-nav__track">
+      <button class="science-nav__item" data-section="overview" bindtap="scrollToSection">原料概览</button>
+      <button class="science-nav__item" data-section="reading-guide" bindtap="scrollToSection">如何读证据</button>
+      <button class="science-nav__item" data-section="references" bindtap="scrollToSection">研究索引</button>
+      <button class="science-nav__item" data-section="usage-boundary" bindtap="scrollToSection">使用边界</button>
+    </view>
+  </scroll-view>
+
+  <view class="science-content">
+    <view id="overview" class="science-section">
+      <view class="science-section__index">01</view>
+      <view class="science-section__title">认识 PHGG</view>
+      <view class="science-section__copy">PHGG 是部分水解瓜尔胶的英文缩写，是由瓜尔胶经部分水解得到的水溶性膳食纤维。公开文献主要讨论其理化性质、人体耐受性及肠道相关研究。</view>
+      <view class="science-facts">
+        <view class="science-fact">
+          <view class="science-fact__title">水溶性膳食纤维</view>
+          <view class="science-fact__copy">研究对象是原料本身，不等同于某一成品。</view>
+        </view>
+        <view class="science-fact">
+          <view class="science-fact__title">低粘度特性</view>
+          <view class="science-fact__copy">部分水解改变了天然瓜尔胶的粘度与加工表现。</view>
+        </view>
+        <view class="science-fact">
+          <view class="science-fact__title">可发酵纤维</view>
+          <view class="science-fact__copy">相关研究观察其与结肠菌群及发酵产物的关系。</view>
+        </view>
+      </view>
+    </view>
+
+    <view id="reading-guide" class="science-section">
+      <view class="science-section__index">02</view>
+      <view class="science-section__title">如何读这些证据</view>
+      <view class="science-evidence-card">
+        <view class="science-evidence-card__type">系统综述 / 荟萃分析</view>
+        <view class="science-evidence-card__copy">用于汇总多项研究，也需要继续查看纳入研究的质量、人群和剂量差异。</view>
+      </view>
+      <view class="science-evidence-card">
+        <view class="science-evidence-card__type">人体随机对照试验</view>
+        <view class="science-evidence-card__copy">结论只适用于特定研究设计，不能从原料、剂量或研究人群直接推到成品。</view>
+      </view>
+      <view class="science-evidence-card">
+        <view class="science-evidence-card__type">体外、动物或供应商资料</view>
+        <view class="science-evidence-card__copy">适合解释研究方向，不应直接转化为消费者功效或使用建议。</view>
+      </view>
+    </view>
+
+    <view id="references" class="science-section">
+      <view class="science-section__index">03</view>
+      <view class="science-section__title">精选研究索引</view>
+      <view class="science-section__copy">以下条目用于继续检索原文。点击可复制 DOI、PMID 或 PMCID。</view>
+      <view wx:for="{{references}}" wx:key="id" class="science-reference">
+        <view class="science-reference__type">{{item.type}}</view>
+        <view class="science-reference__focus">{{item.focus}}</view>
+        <view class="science-reference__authors">{{item.authors}}</view>
+        <view class="science-reference__source">{{item.source}}</view>
+        <button class="science-reference__copy" data-value="{{item.identifier}}" bindtap="copyReference">复制 {{item.identifier}}</button>
+      </view>
+    </view>
+
+    <view id="usage-boundary" class="science-section science-section--boundary">
+      <view class="science-section__index">04</view>
+      <view class="science-section__title">信息使用边界</view>
+      <view class="science-rule"><text>1</text><view>原料研究不等于 ROOT 成品功效证据。</view></view>
+      <view class="science-rule"><text>2</text><view>研究中的用量不能替代包装标示的食用方式。</view></view>
+      <view class="science-rule"><text>3</text><view>疾病或特殊人群研究仅用于文献导航，不作为消费建议。</view></view>
+      <view class="science-rule"><text>4</text><view>本页不用于诊断、治疗或替代专业医疗意见。</view></view>
+    </view>
+  </view>
+
+  <view class="science-footer">ROOT｜身体，自有其序</view>
+</view>

@@ -22,6 +22,7 @@ const MAIN_ROUTES = Object.freeze([
 
 const SUBPACKAGE_ROUTES = Object.freeze([
   "subpkg/content/pages/brand-foundation/index",
+  "subpkg/content/pages/phgg-reference/index",
   "subpkg/content/pages/detail/index",
   "subpkg/content/pages/webview/index",
   "subpkg/campaign/pages/root-with-you/index",

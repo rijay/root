@@ -51,7 +51,9 @@ matches(aboutWxml, /<page-navigation show-home="\{\{false\}\}"/, "关于页复�
 matches(aboutWxss, /about-page__title\s*\{[^}]*top:\s*130px/s, "MY-04 标题坐标");
 matches(aboutWxss, /about-page__wordmark\s*\{[^}]*top:\s*210px[^}]*width:\s*126px[^}]*height:\s*33px/s, "文字 Logo 坐标");
 matches(aboutWxml, /人如草木，根定而生。/, "品牌核心文案");
-matches(aboutWxss, /about-page__links\s*\{[^}]*top:\s*530px[^}]*height:\s*200px/s, "关于页链接区坐标");
+matches(aboutWxml, /bindtap="openPhggReference"/, "关于页提供 PHGG 科学档案入口");
+matches(aboutWxss, /about-page__links\s*\{[^}]*top:\s*520px[^}]*height:\s*230px/s, "关于页链接区坐标");
+matches(aboutWxss, /about-page__row\s*\{[^}]*height:\s*46px/s, "五个关于页入口保持可点击高度");
 matches(aboutWxss, /about-page__links\s*\{[^}]*width:\s*calc\(100% - 40px\)/s, "关于页保持双侧 20px 边距");
 matches(supportWxml, /support-page__contact[^>]*style="width:\s*100%;\s*margin:\s*64rpx 0 0;"[\s\S]*bindtap="openWeComCustomerService"/s, "企微客服按钮显式占满内容区");
 matches(supportWxml, /open-type="contact"[\s\S]*bindcontact="onNativeContact"/s, "企微客服失败后保留微信客服降级入口");

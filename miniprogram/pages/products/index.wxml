@@ -3,6 +3,13 @@
     <view class="products-tab-title">产品</view>
     <view class="products-kicker">ROOT PRODUCTS</view>
     <view class="products-copy">浏览 ROOT 的日常补给方案，购买将在 Root 会员中心完成。</view>
+    <view class="products-science-entry" bindtap="openPhggReference" role="link" aria-label="查看 PHGG 原料科学档案">
+      <view>
+        <view class="products-science-entry__eyebrow">INGREDIENT SCIENCE</view>
+        <view class="products-science-entry__title">PHGG 原料科学档案</view>
+      </view>
+      <view class="products-science-entry__arrow" aria-hidden="true"></view>
+    </view>
   </view>
 
   <view wx:if="{{loading}}" class="root-page products-state" role="status" aria-live="polite">

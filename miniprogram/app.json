@@ -18,6 +18,7 @@
       "root": "subpkg/content",
       "pages": [
         "pages/brand-foundation/index",
+        "pages/phgg-reference/index",
         "pages/detail/index",
         "pages/webview/index"
       ]

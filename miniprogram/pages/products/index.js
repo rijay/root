@@ -202,6 +202,10 @@ Page({
     });
   },
 
+  openPhggReference() {
+    wx.navigateTo({ url: "/subpkg/content/pages/phgg-reference/index?source=products" });
+  },
+
   onProductScroll(event = {}) {
     const scrollLeft = Number(event.detail && event.detail.scrollLeft);
     if (!Number.isFinite(scrollLeft) || scrollLeft < 0) return;

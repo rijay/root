@@ -41,6 +41,41 @@ page {
   line-height: 1.58;
 }
 
+.products-science-entry {
+  display: flex;
+  min-height: 112rpx;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 30rpx;
+  padding: 22rpx 26rpx;
+  box-sizing: border-box;
+  color: var(--color-brand-white);
+  background: var(--color-brand-olive);
+  border-radius: 24rpx;
+}
+
+.products-science-entry__eyebrow {
+  color: var(--color-accent-on-dark);
+  font-size: 18rpx;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+}
+
+.products-science-entry__title {
+  margin-top: 8rpx;
+  font-size: 27rpx;
+  font-weight: 600;
+}
+
+.products-science-entry__arrow {
+  width: 14rpx;
+  height: 14rpx;
+  margin-right: 6rpx;
+  border-top: 2rpx solid var(--color-brand-white);
+  border-right: 2rpx solid var(--color-brand-white);
+  transform: rotate(45deg);
+}
+
 .products-state {
   display: grid;
   min-height: 0;

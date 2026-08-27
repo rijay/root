@@ -48,6 +48,12 @@ const content = buildShareCard("/subpkg/content/pages/detail/index", {
 }, { title: "ROOT 内容" });
 assert.equal(content.path, "/subpkg/content/pages/detail/index?contentId=root_daily_01");
 
+const phggReference = buildShareCard("/subpkg/content/pages/phgg-reference/index", {
+  token: "must-not-share",
+}, { title: "PHGG 原料科学档案" });
+assert.equal(phggReference.path, "/subpkg/content/pages/phgg-reference/index");
+assert.equal(JSON.stringify(phggReference).includes("must-not-share"), false);
+
 const gutAssessment = buildShareCard("/subpkg/health/pages/assessment/index", {
   assessmentType: "GUT_REGULARITY",
   assessmentId: "must-not-share",
@@ -116,6 +122,9 @@ registered.onLoad.call(welcomePage, {});
 assert.equal(hidden, 1);
 registered.onShow.call(welcomePage);
 assert.equal(hidden, 2);
+
+registered.onShow.call({ route: "subpkg/content/pages/phgg-reference/index" });
+assert.equal(shown, 4, "public page onShow must restore sharing after a hidden-share page");
 
 const root = path.resolve(__dirname, "..");
 const appConfig = JSON.parse(fs.readFileSync(path.join(root, "app.json"), "utf8"));

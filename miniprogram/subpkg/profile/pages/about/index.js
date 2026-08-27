@@ -27,5 +27,9 @@ Page({
     router.open("/subpkg/profile/pages/privacy-account/index");
   },
 
+  openPhggReference() {
+    router.open("/subpkg/content/pages/phgg-reference/index?source=about");
+  },
+
   onShareAppMessage: defaultOnShareAppMessage,
 });

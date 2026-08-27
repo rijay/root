@@ -10,6 +10,7 @@ const PUBLIC_ROUTES = new Set([
   "/pages/activities/index",
   "/subpkg/activity/pages/detail/index",
   "/subpkg/content/pages/brand-foundation/index",
+  "/subpkg/content/pages/phgg-reference/index",
   "/subpkg/content/pages/detail/index",
   "/subpkg/campaign/pages/root-with-you/index",
   "/subpkg/health/pages/assessment/index",
