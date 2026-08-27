@@ -1,18 +1,17 @@
 const { nowISO } = require("./dates");
 const { createId } = require("./seed");
 const {
-  CATALOG_PROMPT_VERSION,
-  defaultCatalog,
   requiredFiberActionForGutResult,
   scenarioForStates,
   validateCatalogAdvice,
 } = require("./healthAdviceCatalog");
+const { defaultHealthAdvicePool } = require("./healthAdvicePool");
 
 const REQUIRED_TYPES = Object.freeze(["INITIAL", "GUT_REGULARITY"]);
 const COMPLETED_STATUSES = new Set(["COMPLETED", "SAFETY_STOPPED"]);
-const PROMPT_VERSION = CATALOG_PROMPT_VERSION;
+const PROMPT_VERSION = "root4u-health-advice-pool-selection-v1";
 const CONTENT_VERSION = "root4u-reviewed-fallback-v3";
-const RULE_VERSION = "root4u-combined-state-v2";
+const RULE_VERSION = "root4u-combined-state-v3";
 
 function text(value, fallback = "") {
   const normalized = String(value || "").trim();
@@ -72,11 +71,16 @@ function matchingSnapshot(data, rootUserId, states) {
 
 function publicAdvice(snapshot) {
   if (!snapshot) return null;
+  const sourceLabels = {
+    REVIEWED_ADVICE_POOL: "AI 辅助起草，经人工审核",
+    REVIEWED_FALLBACK: "经审核规则建议",
+    REVIEWED_SAFETY: "经审核安全提示",
+  };
   return {
     adviceId: snapshot.health_advice_snapshot_id,
     source: snapshot.advice_source,
-    sourceLabel: snapshot.advice_source === "REVIEWED_MODEL_CATALOG" ? "AI 辅助生成，经审核" : "经审核规则建议",
-    modelName: snapshot.advice_source === "REVIEWED_MODEL_CATALOG" ? snapshot.model_name : "",
+    sourceLabel: sourceLabels[snapshot.advice_source] || "经审核规则建议",
+    modelName: "",
     promptVersion: snapshot.prompt_version,
     contentVersion: snapshot.content_version,
     generatedAt: snapshot.generated_at,
@@ -131,7 +135,7 @@ function safetyAdvice() {
   };
 }
 
-function validateModelAdvice(value) {
+function validateReviewedAdvice(value) {
   return validateCatalogAdvice(value);
 }
 
@@ -153,13 +157,13 @@ async function generate(data, rootUserId, context = {}) {
   const safetyStopped = current.states.some((item) => item.safetyStopped);
   let advice = safetyStopped ? safetyAdvice() : null;
   let adviceSource = safetyStopped ? "REVIEWED_SAFETY" : "REVIEWED_FALLBACK";
-  const catalog = context.healthAdviceCatalog || defaultCatalog;
-  const catalogEntry = !safetyStopped && catalog && typeof catalog.lookup === "function"
-    ? catalog.lookup(current.states)
+  const pool = context.healthAdvicePool || defaultHealthAdvicePool;
+  const poolEntry = !safetyStopped && pool && typeof pool.lookup === "function"
+    ? pool.lookup(current.states)
     : null;
-  if (catalogEntry) {
-    advice = validateCatalogAdvice(catalogEntry.advice, scenarioForStates(current.states));
-    if (advice) adviceSource = "REVIEWED_MODEL_CATALOG";
+  if (poolEntry) {
+    advice = validateCatalogAdvice(poolEntry.advice, scenarioForStates(current.states));
+    if (advice) adviceSource = "REVIEWED_ADVICE_POOL";
   }
   if (!advice) advice = fallbackAdvice(current.states);
 
@@ -173,10 +177,10 @@ async function generate(data, rootUserId, context = {}) {
     states_json: snapshotState(current.states),
     advice_json: advice,
     advice_source: adviceSource,
-    adapter_id: adviceSource === "REVIEWED_MODEL_CATALOG" ? text(catalog.adapterId) : "ROOT4U_REVIEWED_CONTENT",
-    model_name: adviceSource === "REVIEWED_MODEL_CATALOG" ? text(catalog.modelName) : "",
+    adapter_id: adviceSource === "REVIEWED_ADVICE_POOL" ? text(pool.adapterId) : "ROOT4U_REVIEWED_CONTENT",
+    model_name: "",
     prompt_version: PROMPT_VERSION,
-    content_version: adviceSource === "REVIEWED_MODEL_CATALOG" ? text(catalog.catalogVersion) : CONTENT_VERSION,
+    content_version: adviceSource === "REVIEWED_ADVICE_POOL" ? text(pool.poolVersion) : CONTENT_VERSION,
     rule_version: RULE_VERSION,
     generated_at: now,
     created_at: now,
@@ -195,5 +199,5 @@ module.exports = {
   generate,
   overview,
   safetyAdvice,
-  validateModelAdvice,
+  validateReviewedAdvice,
 };

@@ -1,7 +1,7 @@
 const ADVICE_SOURCE_PRESENTATION = Object.freeze({
-  REVIEWED_MODEL_CATALOG: Object.freeze({
-    tone: "model",
-    hint: "由 AI 基于合成状态辅助生成，经人工审核后收录；你的评测数据不会发送给模型。",
+  REVIEWED_ADVICE_POOL: Object.freeze({
+    tone: "reviewed",
+    hint: "由 AI 离线辅助起草，经人工审核后收录；你的评测数据不会发送给任何模型服务。",
   }),
   REVIEWED_FALLBACK: Object.freeze({
     tone: "fallback",

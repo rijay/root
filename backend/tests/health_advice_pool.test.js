@@ -34,12 +34,12 @@ function approvedManifest() {
   return approved;
 }
 
-test("checked-in suggestion pool contains 88 review components and remains disabled before human approval", () => {
+test("accepted suggestion pool contains 88 approved review components", () => {
   assert.equal(defaultHealthAdvicePool.structurallyValid, true);
-  assert.equal(defaultHealthAdvicePool.configured, false);
+  assert.equal(defaultHealthAdvicePool.configured, true);
   assert.equal(defaultHealthAdvicePool.expectedComponentCount, 88);
   assert.equal(defaultHealthAdvicePool.actualComponentCount, 88);
-  assert.equal(defaultHealthAdvicePool.pendingReviewCount, 88);
+  assert.equal(defaultHealthAdvicePool.pendingReviewCount, 0);
   assert.equal(defaultHealthAdvicePool.combinationsPerScenario, 36);
   assert.equal(defaultHealthAdvicePool.totalScenarioCombinations, 1080);
 });

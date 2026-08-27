@@ -10,7 +10,6 @@
     "production-env": "node scripts/production-env-matrix.js",
     "dev": "node src/server.js",
     "dev:miniprogram": "node scripts/dev-miniprogram.js",
-    "generate:health-advice-catalog:draft": "node scripts/generate-health-advice-catalog-draft.js",
     "verify:health-advice:local": "node scripts/verify-local-health-advice.js",
     "verify:health-advice:fallback": "node scripts/verify-local-health-advice.js --expected-source=REVIEWED_FALLBACK",
     "verify:youzan:local": "node scripts/verify-youzan-commerce-live.js",

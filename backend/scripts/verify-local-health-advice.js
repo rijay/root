@@ -1,9 +1,9 @@
 const crypto = require("node:crypto");
 
 const BASE_URL = "http://127.0.0.1:8787";
-const REVIEWED_MODEL_CATALOG = "REVIEWED_MODEL_CATALOG";
+const REVIEWED_ADVICE_POOL = "REVIEWED_ADVICE_POOL";
 const REVIEWED_FALLBACK = "REVIEWED_FALLBACK";
-const SUPPORTED_SOURCES = new Set([REVIEWED_MODEL_CATALOG, REVIEWED_FALLBACK]);
+const SUPPORTED_SOURCES = new Set([REVIEWED_ADVICE_POOL, REVIEWED_FALLBACK]);
 const REQUIRED_HEALTHY_FIBER_ACTION = "日常补充益生元，持续滋养肠道有益菌";
 const initialAnswers = Object.freeze({
   primary_goal: "observe",
@@ -42,22 +42,19 @@ async function request(path, options = {}) {
 function resolveExpectedSource(argv = process.argv.slice(2)) {
   const prefix = "--expected-source=";
   const argument = argv.find((item) => String(item).startsWith(prefix));
-  const source = argument ? String(argument).slice(prefix.length).trim() : REVIEWED_MODEL_CATALOG;
+  const source = argument ? String(argument).slice(prefix.length).trim() : REVIEWED_ADVICE_POOL;
   if (!SUPPORTED_SOURCES.has(source)) {
-    const error = new Error("expected source must be REVIEWED_MODEL_CATALOG or REVIEWED_FALLBACK");
+    const error = new Error("expected source must be REVIEWED_ADVICE_POOL or REVIEWED_FALLBACK");
     error.code = "LOCAL_HEALTH_ADVICE_VERIFY_SOURCE_INVALID";
     throw error;
   }
   return source;
 }
 
-function validateResult(result, expectedSource = REVIEWED_MODEL_CATALOG) {
-  const modelMatches = expectedSource === REVIEWED_MODEL_CATALOG
-    ? result.modelName === "hy3"
-    : result.modelName === "";
+function validateResult(result, expectedSource = REVIEWED_ADVICE_POOL) {
   if (!result.ready
     || result.adviceSource !== expectedSource
-    || !modelMatches
+    || result.modelName !== ""
     || result.actionCount !== 3
     || result.firstAction !== REQUIRED_HEALTHY_FIBER_ACTION) {
     const error = new Error(`local health advice verification failed: ${JSON.stringify(result)}`);
@@ -72,7 +69,7 @@ async function run(options = {}) {
   const runId = crypto.randomUUID().replace(/-/g, "");
   const login = await request("/api/v1/auth/login", {
     method: "POST",
-    body: JSON.stringify({ openid: `myroot-v070-model-${runId}`, appCode: "MYROOT" }),
+    body: JSON.stringify({ openid: `myroot-v070-advice-pool-${runId}`, appCode: "MYROOT" }),
   });
   const auth = { Authorization: `Bearer ${login.token}` };
   const consent = await request("/api/v1/privacy/health-consent", { headers: auth });
@@ -82,7 +79,7 @@ async function run(options = {}) {
     body: JSON.stringify({
       decision: "GRANTED",
       policyVersion: consent.notice.policyVersion,
-      sourceChannel: "LOCAL_MODEL_VERIFICATION",
+      sourceChannel: "LOCAL_ADVICE_POOL_VERIFICATION",
     }),
   });
 
@@ -133,7 +130,7 @@ if (require.main === module) {
 }
 
 module.exports = {
-  REVIEWED_MODEL_CATALOG,
+  REVIEWED_ADVICE_POOL,
   REVIEWED_FALLBACK,
   resolveExpectedSource,
   run,

@@ -7,6 +7,7 @@ const {
 } = require("./healthAdviceCatalog");
 
 const POOL_VERSION = "root4u-health-advice-pool-v1";
+const POOL_ADAPTER_ID = "ROOT4U_REVIEWED_ADVICE_POOL_V1";
 const EXPECTED_ACTIONS_PER_GROUP = 6;
 const EXPECTED_FOLLOW_UP_COUNT = 6;
 const REVIEWED_STATUS = "APPROVED";
@@ -171,6 +172,7 @@ function createHealthAdvicePool(source = manifest) {
   );
 
   return Object.freeze({
+    adapterId: POOL_ADAPTER_ID,
     poolVersion: POOL_VERSION,
     source: text(candidate.source),
     structurallyValid,
@@ -231,6 +233,7 @@ const defaultHealthAdvicePool = createHealthAdvicePool();
 module.exports = {
   EXPECTED_ACTIONS_PER_GROUP,
   EXPECTED_FOLLOW_UP_COUNT,
+  POOL_ADAPTER_ID,
   POOL_VERSION,
   createHealthAdvicePool,
   defaultHealthAdvicePool,

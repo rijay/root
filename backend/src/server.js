@@ -71,7 +71,7 @@ async function main(options = {}) {
     objectStorageAdapter,
     activityPublicationAuthorizationAdapter,
     activityAssetAdapter,
-    healthAdviceCatalog: options.healthAdviceCatalog,
+    healthAdvicePool: options.healthAdvicePool,
     youzanCommerceAdapter: options.youzanCommerceAdapter,
     youzanAccessTokenProvider: options.youzanAccessTokenProvider,
   });

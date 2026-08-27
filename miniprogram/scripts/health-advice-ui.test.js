@@ -8,9 +8,9 @@ const {
   isAdviceResultUnknown,
 } = require("../utils/health-advice-ui");
 
-assert.equal(decorateAdvice({ source: "REVIEWED_MODEL_CATALOG" }).sourceTone, "model");
-assert.match(decorateAdvice({ source: "REVIEWED_MODEL_CATALOG" }).sourceHint, /AI/);
-assert.match(decorateAdvice({ source: "REVIEWED_MODEL_CATALOG" }).sourceHint, /不会发送给模型/);
+assert.equal(decorateAdvice({ source: "REVIEWED_ADVICE_POOL" }).sourceTone, "reviewed");
+assert.match(decorateAdvice({ source: "REVIEWED_ADVICE_POOL" }).sourceHint, /AI 离线辅助起草/);
+assert.match(decorateAdvice({ source: "REVIEWED_ADVICE_POOL" }).sourceHint, /不会发送给任何模型服务/);
 assert.equal(decorateAdvice({ source: "REVIEWED_FALLBACK" }).sourceTone, "fallback");
 assert.match(decorateAdvice({ source: "REVIEWED_FALLBACK" }).sourceHint, /经审核/);
 assert.equal(decorateAdvice({ source: "REVIEWED_SAFETY" }).sourceTone, "safety");

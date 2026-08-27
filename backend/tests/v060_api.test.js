@@ -232,6 +232,53 @@ test("v0.6 public product and authenticated assessment Interfaces work end to en
   assert.equal(repeatedDelete.payload.data.deleted, false);
 });
 
+test("approved v0.7 advice pool is served through the health advice HTTP Interface", async (t) => {
+  const data = fixture();
+  const completedAt = "2026-08-27T12:00:00.000Z";
+  data.healthAssessmentAttempts.push(
+    {
+      assessment_id: "has-v070-pool-initial",
+      root_user_id: ROOT_USER_ID,
+      assessment_type: "INITIAL",
+      questionnaire_version: 1,
+      status: "COMPLETED",
+      result_json: { resultCode: "BASELINE", title: "基础状态维护型", summary: "测试摘要" },
+      completed_at: completedAt,
+      updated_at: completedAt,
+    },
+    {
+      assessment_id: "has-v070-pool-gut",
+      root_user_id: ROOT_USER_ID,
+      assessment_type: "GUT_REGULARITY",
+      questionnaire_version: 1,
+      status: "COMPLETED",
+      result_json: { resultCode: "HEALTHY", title: "肠道节奏稳定", summary: "测试摘要" },
+      completed_at: completedAt,
+      updated_at: completedAt,
+    },
+  );
+  const storeAdapter = createMemoryStore(data, { seedSampleData: false });
+  const server = createApp({ storeAdapter, env: {} });
+  const baseUrl = await listen(server);
+  t.after(() => server.close());
+
+  const generated = await request(baseUrl, "/api/v1/health/advice/generate", {
+    method: "POST",
+    headers: authenticatedHeaders({ "X-Idempotency-Key": "v070-advice-pool-generate-1" }),
+    body: "{}",
+  });
+
+  assert.equal(generated.status, 200);
+  assert.equal(generated.payload.code, 0);
+  assert.equal(generated.payload.data.advice.source, "REVIEWED_ADVICE_POOL");
+  assert.equal(generated.payload.data.advice.sourceLabel, "AI 辅助起草，经人工审核");
+  assert.equal(generated.payload.data.advice.modelName, "");
+  assert.equal(generated.payload.data.advice.contentVersion, "root4u-health-advice-pool-v1");
+  assert.equal(generated.payload.data.advice.actions.length, 3);
+  assert.equal(generated.payload.data.advice.actions[0], "日常补充益生元，持续滋养肠道有益菌");
+  assert.equal(storeAdapter.data.healthAdviceSnapshots[0].adapter_id, "ROOT4U_REVIEWED_ADVICE_POOL_V1");
+});
+
 test("v0.6 popup, first-touch channel and safe analytics Interfaces work end to end", async (t) => {
   const data = fixture();
   const storeAdapter = createMemoryStore(data, { seedSampleData: false });

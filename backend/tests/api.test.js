@@ -680,7 +680,7 @@ test("production cutover readiness gates live external proof", () => {
     ROOT_CUTOVER_ROOT_MEMBER_CENTER_APPID_CONFIRMED: "yes",
     ROOT_CUTOVER_YOUZAN_FIELDS_CALIBRATED: "done",
     ROOT_CUTOVER_YOUZAN_CREDENTIALS_ROTATED: "done",
-    ROOT_CUTOVER_HEALTH_ADVICE_CATALOG_VERIFIED: "done",
+    ROOT_CUTOVER_HEALTH_ADVICE_POOL_VERIFIED: "done",
     ROOT_CUTOVER_YOUZAN_REWARD_FIELDS_CALIBRATED: "done",
     ROOT_CUTOVER_WEWORK_FIELDS_CALIBRATED: "done",
     ROOT_CUTOVER_CLOUDBASE_JOBS_CREATED: "done",
@@ -702,8 +702,8 @@ test("production cutover readiness gates live external proof", () => {
     YOUZAN_CLIENT_SECRET: "youzan-client-secret",
     YOUZAN_COUPON_SEND_URL: "https://youzan.example.com/coupons/send",
     YOUZAN_COUPON_STATUS_URL: "https://youzan.example.com/coupons/status",
-    ROOT_HEALTH_ADVICE_CATALOG_VERSION: "root4u-health-advice-catalog-v1",
-    ROOT_HEALTH_ADVICE_CATALOG_REVIEWED: "true",
+    ROOT_HEALTH_ADVICE_POOL_VERSION: "root4u-health-advice-pool-v1",
+    ROOT_HEALTH_ADVICE_POOL_REVIEWED: "true",
     WEWORK_CONTACT_LIST_URL: "https://wework.example.com/contacts",
     WEWORK_TAG_APPLY_URL: "https://wework.example.com/tags",
     WEWORK_CONTACT_WRITEBACK_URL: "https://wework.example.com/writeback",
@@ -825,8 +825,8 @@ test("production environment matrix validates the formal launch runtime", () => 
     ROOT_PRIVACY_CONTACT: "privacy@example.com",
     ROOT_HEALTH_DATA_RETENTION_DAYS: "180",
     ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED: "true",
-    ROOT_HEALTH_ADVICE_CATALOG_VERSION: "root4u-health-advice-catalog-v1",
-    ROOT_HEALTH_ADVICE_CATALOG_REVIEWED: "true",
+    ROOT_HEALTH_ADVICE_POOL_VERSION: "root4u-health-advice-pool-v1",
+    ROOT_HEALTH_ADVICE_POOL_REVIEWED: "true",
     ROOT_STORE_ADAPTER: "mysql",
     ROOT_MYSQL_MIGRATION_MODE: "verify_only",
     MYSQL_ADDRESS: "10.11.103.164:3306",
@@ -847,25 +847,28 @@ test("production environment matrix validates the formal launch runtime", () => 
       [retentionRoute]: ["retention-route-secret-with-strong-entropy-2026"],
     }),
   };
-  const approvedHealthAdviceCatalog = { configured: true, approvedEntryCount: 30 };
-  const unreviewedCatalog = buildProductionEnvMatrix(readyEnv, { target: "production" });
-  assert.equal(unreviewedCatalog.status, "BLOCKED");
-  assert.ok(unreviewedCatalog.groups.find((group) => group.id === "health_advice_catalog")
-    .missingRequired.some((item) => item.includes("当前 0/30")));
+  const approvedHealthAdvicePool = { configured: true, pendingReviewCount: 0 };
+  const unreviewedPool = buildProductionEnvMatrix(readyEnv, {
+    target: "production",
+    healthAdvicePool: { configured: false, pendingReviewCount: 88 },
+  });
+  assert.equal(unreviewedPool.status, "BLOCKED");
+  assert.ok(unreviewedPool.groups.find((group) => group.id === "health_advice_pool")
+    .missingRequired.some((item) => item.includes("当前 0/88")));
 
   const ready = buildProductionEnvMatrix(readyEnv, {
     target: "production",
-    healthAdviceCatalog: approvedHealthAdviceCatalog,
+    healthAdvicePool: approvedHealthAdvicePool,
   });
   assert.equal(ready.status, "READY");
   assert.equal(ready.groups.some((group) => group.id === "v1_runtime_control"), false);
   assert.equal(ready.groups.every((group) => ["PASS", "OPTIONAL"].includes(group.status)), true);
 
-  const catalogReviewed = buildProductionEnvMatrix({
+  const poolReviewed = buildProductionEnvMatrix({
     ...readyEnv,
-    ROOT_HEALTH_ADVICE_CATALOG_REVIEWED: "true",
-  }, { target: "production", healthAdviceCatalog: approvedHealthAdviceCatalog });
-  assert.equal(catalogReviewed.status, "READY");
+    ROOT_HEALTH_ADVICE_POOL_REVIEWED: "true",
+  }, { target: "production", healthAdvicePool: approvedHealthAdvicePool });
+  assert.equal(poolReviewed.status, "READY");
 
   const blocked = buildProductionEnvMatrix({}, { target: "production" });
   assert.equal(blocked.status, "BLOCKED");
@@ -884,26 +887,26 @@ test("production environment matrix validates the formal launch runtime", () => 
   }, { target: "production" });
   assert.equal(invalidRetention.status, "BLOCKED");
 
-  const catalogReviewMissing = buildProductionEnvMatrix({
+  const poolReviewMissing = buildProductionEnvMatrix({
     ...readyEnv,
-    ROOT_HEALTH_ADVICE_CATALOG_REVIEWED: "false",
+    ROOT_HEALTH_ADVICE_POOL_REVIEWED: "false",
   }, { target: "production" });
-  assert.equal(catalogReviewMissing.status, "BLOCKED");
-  assert.ok(catalogReviewMissing.groups.find((group) => group.id === "health_advice_catalog")
-    .missingRequired.includes("ROOT_HEALTH_ADVICE_CATALOG_REVIEWED=true"));
+  assert.equal(poolReviewMissing.status, "BLOCKED");
+  assert.ok(poolReviewMissing.groups.find((group) => group.id === "health_advice_pool")
+    .missingRequired.includes("ROOT_HEALTH_ADVICE_POOL_REVIEWED=true"));
 
-  const catalogVersionMismatch = buildProductionEnvMatrix({
+  const poolVersionMismatch = buildProductionEnvMatrix({
     ...readyEnv,
-    ROOT_HEALTH_ADVICE_CATALOG_VERSION: "root4u-health-advice-catalog-v0",
+    ROOT_HEALTH_ADVICE_POOL_VERSION: "root4u-health-advice-pool-v0",
   }, { target: "production" });
-  assert.equal(catalogVersionMismatch.status, "BLOCKED");
+  assert.equal(poolVersionMismatch.status, "BLOCKED");
 
   const forbiddenRuntimeModelCredential = buildProductionEnvMatrix({
     ...readyEnv,
     ROOT_HEALTH_ADVICE_MODEL_API_KEY: "must-not-exist-in-runtime",
-  }, { target: "production", healthAdviceCatalog: approvedHealthAdviceCatalog });
+  }, { target: "production", healthAdvicePool: approvedHealthAdvicePool });
   assert.equal(forbiddenRuntimeModelCredential.status, "BLOCKED");
-  assert.ok(forbiddenRuntimeModelCredential.groups.find((group) => group.id === "health_advice_catalog")
+  assert.ok(forbiddenRuntimeModelCredential.groups.find((group) => group.id === "health_advice_pool")
     .missingRequired.some((item) => item.includes("必须移除 ROOT_HEALTH_ADVICE_MODEL_API_KEY")));
 
   const invalidPrivacyContact = buildProductionEnvMatrix({

@@ -45,16 +45,16 @@ const CUTOVER_ITEMS = [
     action: "轮换已暴露密钥，使用受控密钥完成商品、订单、客户和优惠券只读探针；验证分页、去重、隐私字段形态及已知样本回读。",
   },
   {
-    id: "health_advice_catalog_review",
+    id: "health_advice_pool_review",
     group: "health",
-    label: "健康建议合成目录生成与审核验收",
+    label: "健康建议池审核与运行验收",
     ownerRole: "产品/研发/内容审核",
-    proofEnv: "ROOT_CUTOVER_HEALTH_ADVICE_CATALOG_VERIFIED",
+    proofEnv: "ROOT_CUTOVER_HEALTH_ADVICE_POOL_VERIFIED",
     supportingEnv: [
-      "ROOT_HEALTH_ADVICE_CATALOG_VERSION",
-      "ROOT_HEALTH_ADVICE_CATALOG_REVIEWED",
+      "ROOT_HEALTH_ADVICE_POOL_VERSION",
+      "ROOT_HEALTH_ADVICE_POOL_REVIEWED",
     ],
-    action: "确认 30 个输入均为产品定义的合成状态枚举，CloudBase 日志与缓存不含用户个人信息；逐条完成内容与安全审核，验证目录缺失时固定建议降级、运行时零模型请求，并保存目录版本、审核记录和候选工件证据。",
+    action: "确认 88 个建议组件均已审核、五条固定纤维首条逐字一致；验证建议池缺失时固定建议降级、安全停止分支隔离、运行时零模型请求，并保存建议池版本、审核记录和候选工件证据。",
   },
   {
     id: "wework_live_fields",

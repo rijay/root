@@ -549,7 +549,7 @@ function createApp(options = {}) {
     trustedWechatIdentityAdapter: options.trustedWechatIdentityAdapter,
     activityPublicationAuthorizationAdapter: options.activityPublicationAuthorizationAdapter,
     activityAssetAdapter: options.activityAssetAdapter,
-    healthAdviceCatalog: options.healthAdviceCatalog,
+    healthAdvicePool: options.healthAdvicePool,
     memberCommerceAdapter: options.memberCommerceAdapter || youzanCommerceAdapter,
     productCommerceAdapter: options.productCommerceAdapter || youzanCommerceAdapter,
     runtimeMetadata,

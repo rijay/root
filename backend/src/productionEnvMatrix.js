@@ -6,7 +6,7 @@ const {
 } = require("./keyRotationConfiguration");
 const { parseScopedJobRouteTokens } = require("./jobRouteToken");
 const { resolveWechatOpenApiUrl } = require("./wechatOpenApiEndpoint");
-const { defaultCatalog: defaultHealthAdviceCatalog } = require("./healthAdviceCatalog");
+const { defaultHealthAdvicePool } = require("./healthAdvicePool");
 
 const FORMAL_JOB_ROUTES = Object.freeze([
   "/api/v1/jobs/health-data-retention-cleanup",
@@ -90,18 +90,18 @@ const ENV_GROUPS = [
     action: "开启健康类敏感信息单独同意，配置处理者、联系方式和保存天数，并启用可审计的到期脱敏与 CloudBase 图片清理 Job。",
   },
   {
-    id: "health_advice_catalog",
-    label: "健康建议审核目录",
+    id: "health_advice_pool",
+    label: "健康建议审核池",
     ownerRole: "产品/研发/内容审核",
     required: [
-      "ROOT_HEALTH_ADVICE_CATALOG_VERSION",
-      "ROOT_HEALTH_ADVICE_CATALOG_REVIEWED",
+      "ROOT_HEALTH_ADVICE_POOL_VERSION",
+      "ROOT_HEALTH_ADVICE_POOL_REVIEWED",
     ],
     requiredValues: {
-      ROOT_HEALTH_ADVICE_CATALOG_VERSION: ["root4u-health-advice-catalog-v1"],
-      ROOT_HEALTH_ADVICE_CATALOG_REVIEWED: ["true"],
+      ROOT_HEALTH_ADVICE_POOL_VERSION: ["root4u-health-advice-pool-v1"],
+      ROOT_HEALTH_ADVICE_POOL_REVIEWED: ["true"],
     },
-    action: "发布前确认 30 个合成状态场景全部生成、逐条通过内容与安全审核，并将审核人、审核时间、目录版本和候选工件证据归档；正式运行环境不得配置模型 API Key，也不得发起实时模型调用。",
+    action: "发布前确认 88 个建议组件全部通过内容与安全审核，五条固定纤维首条逐字一致，并将审核人、审核时间、建议池版本和候选工件证据归档；正式运行环境不得配置模型 API Key，也不得发起实时模型调用。",
   },
   {
     id: "store",
@@ -595,11 +595,15 @@ function anyOfRows(env, groups = [], rules = {}) {
 }
 
 function crossGroupMissing(group, env, context = {}) {
-  if (group.id === "health_advice_catalog") {
-    const catalog = context.healthAdviceCatalog || defaultHealthAdviceCatalog;
-    const missing = catalog && catalog.configured
+  if (group.id === "health_advice_pool") {
+    const pool = context.healthAdvicePool || defaultHealthAdvicePool;
+    const pendingReviewCount = Number(pool && pool.pendingReviewCount);
+    const approvedComponentCount = Number.isFinite(pendingReviewCount)
+      ? Math.max(0, 88 - pendingReviewCount)
+      : 0;
+    const missing = pool && pool.configured
       ? []
-      : [`health-advice-catalog=需要 30/30 条已审核内容（当前 ${Number(catalog && catalog.approvedEntryCount) || 0}/30）`];
+      : [`health-advice-pool=需要 88/88 个已审核组件（当前 ${approvedComponentCount}/88）`];
     const forbidden = FORBIDDEN_HEALTH_ADVICE_RUNTIME_ENV.filter((name) => present(env, name));
     if (forbidden.length) missing.push(`health-advice-runtime-model-env=必须移除 ${forbidden.join(", ")}`);
     return missing;

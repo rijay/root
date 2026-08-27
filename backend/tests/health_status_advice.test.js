@@ -2,14 +2,8 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const healthAssessment = require("../src/healthAssessment");
-const {
-  CATALOG_PROMPT_VERSION,
-  CATALOG_VERSION,
-  SYNTHETIC_SCENARIOS,
-  TAXONOMY_VERSION,
-  createHealthAdviceCatalog,
-  requiredFiberActionForGutResult,
-} = require("../src/healthAdviceCatalog");
+const poolManifest = require("../data/health-advice-pool.v1.json");
+const { createHealthAdvicePool, POOL_VERSION } = require("../src/healthAdvicePool");
 const healthStatusAdvice = require("../src/healthStatusAdvice");
 const { createSeedData } = require("../src/seed");
 
@@ -52,32 +46,17 @@ test("combined overview identifies the missing assessment before generation", ()
   assert.equal(overview.advice, null);
 });
 
-function reviewedCatalog(overrides = {}) {
-  return createHealthAdviceCatalog({
-    schemaVersion: 1,
-    catalogVersion: CATALOG_VERSION,
-    taxonomyVersion: TAXONOMY_VERSION,
-    promptVersion: CATALOG_PROMPT_VERSION,
-    modelName: "hy3",
-    generatedAt: "2026-08-26T10:00:00.000Z",
-    reviewStatus: "APPROVED",
-    reviewedAt: "2026-08-26T11:00:00.000Z",
-    reviewer: "content-reviewer-1",
-    entries: SYNTHETIC_SCENARIOS.map((scenario) => ({
-      ...scenario,
-      reviewStatus: "APPROVED",
-      advice: {
-        summary: "先保持近期节奏稳定。",
-        actions: [requiredFiberActionForGutResult(scenario.gutResultCode), "分次补充饮水。", "记录一周身体感受。"],
-        cautions: ["不适持续时请咨询专业人士。"],
-        followUp: "一周后可再次评测。",
-      },
-    })),
-    ...overrides,
-  });
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
-test("reviewed model catalog is selected locally and reused for the same inputs", async () => {
+function reviewedPool(transform) {
+  const source = clone(poolManifest);
+  if (transform) transform(source);
+  return createHealthAdvicePool(source);
+}
+
+test("reviewed advice pool is selected locally and reused for the same inputs", async () => {
   const data = readyData();
   let calls = 0;
   const forbiddenRuntimeAdapter = {
@@ -89,18 +68,19 @@ test("reviewed model catalog is selected locally and reused for the same inputs"
   };
 
   const generated = await healthStatusAdvice.generate(data, "root-advice", {
-    healthAdviceCatalog: reviewedCatalog(),
+    healthAdvicePool: reviewedPool(),
     healthAdviceModelAdapter: forbiddenRuntimeAdapter,
   });
-  assert.equal(generated.advice.source, "REVIEWED_MODEL_CATALOG");
-  assert.equal(generated.advice.sourceLabel, "AI 辅助生成，经审核");
-  assert.equal(generated.advice.modelName, "hy3");
+  assert.equal(generated.advice.source, "REVIEWED_ADVICE_POOL");
+  assert.equal(generated.advice.sourceLabel, "AI 辅助起草，经人工审核");
+  assert.equal(generated.advice.modelName, "");
+  assert.equal(generated.advice.contentVersion, POOL_VERSION);
   assert.equal(generated.advice.actions[0], "日常补充益生元，持续滋养肠道有益菌");
   assert.equal(data.healthAdviceSnapshots.length, 1);
   assert.equal(data.healthAdviceSnapshots[0].states_json[0].safetyStopped, false);
   assert.equal(calls, 0);
 
-  const reused = await healthStatusAdvice.generate(data, "root-advice", { healthAdviceCatalog: reviewedCatalog() });
+  const reused = await healthStatusAdvice.generate(data, "root-advice", { healthAdvicePool: reviewedPool() });
   assert.equal(reused.reused, true);
   assert.equal(calls, 0);
 });
@@ -124,20 +104,24 @@ test("safety result never calls the ordinary model and deleting an input removes
   assert.equal(data.healthAdviceSnapshots.length, 0);
 });
 
-test("draft or incomplete catalog falls back to reviewed fixed content", async () => {
+test("draft or incomplete pool falls back to reviewed fixed content", async () => {
   const data = readyData("root-fallback");
   const generated = await healthStatusAdvice.generate(data, "root-fallback", {
-    healthAdviceCatalog: reviewedCatalog({ reviewStatus: "DRAFT" }),
+    healthAdvicePool: reviewedPool((source) => {
+      source.gutGroups.HEALTHY.actions[0].reviewStatus = "PENDING_REVIEW";
+    }),
   });
   assert.equal(generated.advice.source, "REVIEWED_FALLBACK");
   assert.equal(generated.advice.actions.length, 3);
   assert.equal(generated.advice.actions[0], "日常补充益生元，持续滋养肠道有益菌");
 });
 
-test("runtime rejects a catalog Adapter that changes the required fiber action", async () => {
+test("runtime rejects a pool Adapter that changes the required fiber action", async () => {
   const data = readyData("root-runtime-fiber-guard");
   const generated = await healthStatusAdvice.generate(data, "root-runtime-fiber-guard", {
-    healthAdviceCatalog: {
+    healthAdvicePool: {
+      adapterId: "INVALID_POOL",
+      poolVersion: "invalid-pool",
       lookup() {
         return {
           advice: {
