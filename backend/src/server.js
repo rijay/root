@@ -8,6 +8,7 @@ const { createCloudbaseObjectStorageAdapter } = require("./cloudbaseObjectStorag
 const { createEnvironmentActivityPublicationAuthorizationAdapter } = require("./activityPublicationAuthorizationAdapter");
 const { createDataBackedActivityAssetAdapter } = require("./activityAssetAdapter");
 const { seedLocalMiniprogramDevData } = require("./localMiniprogramDevSeed");
+const { createCloudbaseTrustedWechatIdentityAdapter } = require("./cloudbaseTrustedWechatIdentityAdapter");
 
 const port = Number(process.env.PORT || 8787);
 
@@ -64,6 +65,7 @@ async function main(options = {}) {
     : null;
   const activityPublicationAuthorizationAdapter = createEnvironmentActivityPublicationAuthorizationAdapter(process.env);
   const activityAssetAdapter = createDataBackedActivityAssetAdapter({ dataProvider: () => storeAdapter.data });
+  const trustedWechatIdentityAdapter = createCloudbaseTrustedWechatIdentityAdapter(process.env);
   const server = createApp({
     storeAdapter,
     commandRequestDigestCodec,
@@ -71,6 +73,7 @@ async function main(options = {}) {
     objectStorageAdapter,
     activityPublicationAuthorizationAdapter,
     activityAssetAdapter,
+    trustedWechatIdentityAdapter,
     healthAdvicePool: options.healthAdvicePool,
     youzanCommerceAdapter: options.youzanCommerceAdapter,
     youzanAccessTokenProvider: options.youzanAccessTokenProvider,
