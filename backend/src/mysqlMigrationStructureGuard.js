@@ -26,6 +26,7 @@ const SUCCESSOR_MIGRATIONS = Object.freeze({
 });
 
 const FORMAL_LAUNCH_CLEANUP_MIGRATION = "067_formal_launch_retired_runtime_cleanup.sql";
+const CONFIRMED_PRELAUNCH_CLEANUP_MIGRATION = "068_formal_launch_confirmed_prelaunch_cleanup.sql";
 const FORMAL_LAUNCH_RETIRED_MIGRATIONS = new Set([
   "009_outbox_dispatcher_fencing.sql",
   "010_durable_inbox_checkpoint.sql",
@@ -66,6 +67,14 @@ const FORMAL_LAUNCH_RETIRED_MIGRATIONS = new Set([
   "064_v1_runtime_control_ledger_database_authority.sql",
   "065_v1_runtime_alert_registration_return_row.sql",
   "066_v1_runtime_alert_delivery_severity_slo_authority.sql",
+]);
+const CONFIRMED_PRELAUNCH_RETIRED_MIGRATIONS = new Set([
+  "046_task_event_idempotency_scope_stage.sql",
+  "047_task_event_idempotency_scope_backfill.sql",
+  "048_task_event_idempotency_scope_enforce.sql",
+  "052_notification_recipient_binding_legacy_stage.sql",
+  "054_notification_recipient_binding_legacy_backfill.sql",
+  "056_notification_recipient_binding_legacy_enforce.sql",
 ]);
 
 const COMPATIBLE_SUCCESSOR_MIGRATIONS = Object.freeze({
@@ -2520,9 +2529,13 @@ function mysqlMigrationStructureSuccessor(migrationName) {
 }
 
 function mysqlMigrationRetirementSuccessor(migrationName) {
-  return FORMAL_LAUNCH_RETIRED_MIGRATIONS.has(migrationName)
-    ? FORMAL_LAUNCH_CLEANUP_MIGRATION
-    : "";
+  if (FORMAL_LAUNCH_RETIRED_MIGRATIONS.has(migrationName)) {
+    return FORMAL_LAUNCH_CLEANUP_MIGRATION;
+  }
+  if (CONFIRMED_PRELAUNCH_RETIRED_MIGRATIONS.has(migrationName)) {
+    return CONFIRMED_PRELAUNCH_CLEANUP_MIGRATION;
+  }
+  return "";
 }
 
 module.exports = {

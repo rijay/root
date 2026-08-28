@@ -6,6 +6,7 @@ const path = require("node:path");
 const {
   MYSQL_MIGRATION_STRUCTURE_STATES,
   inspectMysqlMigrationStructure,
+  mysqlMigrationRetirementSuccessor,
   mysqlMigrationStructureSuccessor,
 } = require("../src/mysqlMigrationStructureGuard");
 const {
@@ -1111,6 +1112,66 @@ test("task-event idempotency staging accepts only its exact precondition or enfo
   );
   assert.equal(keyDrift.state, MYSQL_MIGRATION_STRUCTURE_STATES.DRIFTED);
   assert.equal(keyDrift.differences.includes("columns"), true);
+});
+
+test("confirmed prelaunch cleanup retires guarded task and legacy notification structures", () => {
+  for (const migrationName of [
+    "046_task_event_idempotency_scope_stage.sql",
+    "047_task_event_idempotency_scope_backfill.sql",
+    "048_task_event_idempotency_scope_enforce.sql",
+    "052_notification_recipient_binding_legacy_stage.sql",
+    "054_notification_recipient_binding_legacy_backfill.sql",
+    "056_notification_recipient_binding_legacy_enforce.sql",
+  ]) {
+    assert.equal(
+      mysqlMigrationRetirementSuccessor(migrationName),
+      "068_formal_launch_confirmed_prelaunch_cleanup.sql"
+    );
+  }
+  assert.equal(
+    mysqlMigrationRetirementSuccessor("053_notification_recipient_binding_v1_stage.sql"),
+    "067_formal_launch_retired_runtime_cleanup.sql"
+  );
+  assert.equal(mysqlMigrationRetirementSuccessor("049_wechat_unionid_provenance_stage.sql"), "");
+});
+
+test("migration runner accepts guarded structures that 068 already retired", async () => {
+  const retiredTables = new Set(["task_event", "notification_subscription_grant"]);
+  const fixtures = GUARDED_MIGRATIONS.flatMap(metadataFixtures);
+  const ledger = new Map(listMigrationFiles(MIGRATIONS_DIR).map((migrationName) => [
+    migrationName,
+    migrationChecksum(fs.readFileSync(path.join(MIGRATIONS_DIR, migrationName), "utf8")),
+  ]));
+  const metadata = metadataConnection(fixtures, { absent: retiredTables });
+  const connection = {
+    async query(sql) {
+      const compact = String(sql).replace(/\s+/g, " ").trim();
+      if (compact.startsWith("CREATE TABLE IF NOT EXISTS schema_migrations")) return [{ affectedRows: 0 }, []];
+      if (compact.startsWith("SELECT version, checksum, applied_at FROM schema_migrations")) {
+        return [[...ledger].map(([version, checksum]) => ({
+          version,
+          checksum,
+          applied_at: "2026-08-28 00:00:00.000",
+        })), []];
+      }
+      throw new Error(`fully applied ledger must not replay DDL: ${compact}`);
+    },
+    async execute(sql, values = []) {
+      const compact = String(sql).replace(/\s+/g, " ").trim();
+      if (compact.startsWith("SELECT GET_LOCK")) return [[{ acquired: 1 }], []];
+      if (compact.startsWith("SELECT RELEASE_LOCK")) return [[{ released: 1 }], []];
+      if (compact.includes("column_name = 'revision'")) return [[{ column_count: 1 }], []];
+      return metadata.execute(sql, values);
+    },
+    release() {},
+  };
+  const result = await applyMysqlMigrations(
+    { async getConnection() { return connection; } },
+    { migrationsDir: MIGRATIONS_DIR, database: "guard-test" }
+  );
+  assert.deepEqual(result.applied, []);
+  assert.deepEqual(result.reconciled, []);
+  assert.equal(result.latestVersion, "072_health_advice_snapshot.sql");
 });
 
 test("unknown migrations retain the legacy path and are never mistaken for an absent guarded migration", async () => {
