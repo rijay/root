@@ -1,4 +1,5 @@
 const { nowISO } = require("./dates");
+const { requiredFiberActionForGutResult } = require("./healthAdviceCatalog");
 const { createId } = require("./seed");
 
 const COMPLETED_STATUSES = new Set(["COMPLETED", "SAFETY_STOPPED"]);
@@ -146,11 +147,27 @@ function resultCopy(definition, resultCode) {
   return copies.find((item) => text(item.code) === text(resultCode)) || null;
 }
 
+function withRequiredGutFiberAction(type, status, result = {}) {
+  if (text(type).toUpperCase() !== "GUT_REGULARITY" || text(status).toUpperCase() !== "COMPLETED") {
+    return result;
+  }
+  const requiredAction = requiredFiberActionForGutResult(result.resultCode || result.result_code);
+  if (!requiredAction) return result;
+  const remainingActions = text(result.priorityAction || result.priority_action)
+    .split(/\n+/)
+    .map((item) => item.trim())
+    .filter((item) => item && item !== requiredAction);
+  return {
+    ...result,
+    priorityAction: [requiredAction, ...remainingActions].join("\n"),
+  };
+}
+
 function resultPayload(attempt) {
   const result = attempt.result_json && typeof attempt.result_json === "object"
     ? attempt.result_json
     : {};
-  return {
+  return withRequiredGutFiberAction(attempt.assessment_type, attempt.status, {
     resultCode: text(result.resultCode || result.result_code),
     title: text(result.title),
     summary: text(result.summary),
@@ -158,7 +175,7 @@ function resultPayload(attempt) {
     riskNotice: text(result.riskNotice || result.risk_notice),
     retestAdvice: text(result.retestAdvice || result.retest_advice),
     copyVersion: number(result.copyVersion || result.copy_version, 0),
-  };
+  });
 }
 
 function dimensionPayload(attempt) {
@@ -375,10 +392,10 @@ function selectResultCode(definition, dimensions, answers = {}) {
   return text(matched && matched.result_code, text(definition.default_result_code));
 }
 
-function buildResult(definition, code) {
+function buildResult(definition, code, status) {
   const copy = resultCopy(definition, code);
   if (!copy) throw businessError(6110, "评测结果文案尚未配置", 409);
-  return {
+  return withRequiredGutFiberAction(assessmentType(definition), status, {
     resultCode: text(copy.code),
     title: text(copy.title),
     summary: text(copy.summary),
@@ -386,7 +403,7 @@ function buildResult(definition, code) {
     riskNotice: text(copy.risk_notice || copy.riskNotice),
     retestAdvice: text(copy.retest_advice || copy.retestAdvice),
     copyVersion: number(definition.result_copy_version || definition.resultCopyVersion, 0),
-  };
+  });
 }
 
 function definitionForAttempt(data, attempt) {
@@ -526,7 +543,7 @@ function complete(data, rootUserId, assessmentId, input = {}) {
   }
   attempt.answers_json = clone(answers);
   attempt.dimensions_json = clone(dimensions);
-  attempt.result_json = buildResult(definition, code);
+  attempt.result_json = buildResult(definition, code, attempt.status);
   attempt.completed_at = nowISO();
   attempt.updated_at = attempt.completed_at;
   return { assessment: attemptPayload(attempt, definition), created: true };

@@ -209,6 +209,39 @@ test("health assessment safety branch can stop before ordinary required question
   assert.equal(completed.assessment.status, "SAFETY_STOPPED");
   assert.equal(completed.assessment.safetyState, "REVIEW_RECOMMENDED");
   assert.equal(completed.assessment.dimensions.length, 0);
+  assert.equal(completed.assessment.result.priorityAction, "");
+});
+
+test("gut assessment keeps the fixed dietary-fiber action first for new and existing results", () => {
+  const data = createSeedData();
+  const definition = approvedGutDefinition();
+  definition.default_result_code = "HEALTHY";
+  definition.result_copies.push({
+    code: "HEALTHY",
+    title: "肠道节奏稳定",
+    summary: "测试普通分支。",
+    priority_action: "继续保持规律饮食。\n日常补充益生元，持续滋养肠道有益菌\n每周记录一次身体感受。",
+  });
+  data.healthAssessmentDefinitions.push(definition);
+
+  const started = assessment.start(data, "root-gut-fiber", { assessmentType: "GUT_REGULARITY" });
+  const completed = assessment.complete(data, "root-gut-fiber", started.assessment.assessmentId, {
+    answers: { safety: false, regularity: 5 },
+  });
+  assert.deepEqual(completed.assessment.result.priorityAction.split("\n"), [
+    "日常补充益生元，持续滋养肠道有益菌",
+    "继续保持规律饮食。",
+    "每周记录一次身体感受。",
+  ]);
+
+  const stored = data.healthAssessmentAttempts.find((item) => item.assessment_id === started.assessment.assessmentId);
+  stored.result_json.priorityAction = "旧记录中的普通行动。";
+  const existing = assessment.get(data, "root-gut-fiber", started.assessment.assessmentId);
+  assert.deepEqual(existing.result.priorityAction.split("\n"), [
+    "日常补充益生元，持续滋养肠道有益菌",
+    "旧记录中的普通行动。",
+  ]);
+  assert.equal(stored.result_json.priorityAction, "旧记录中的普通行动。");
 });
 
 test("health assessment removes answers after their conditional questions become hidden", () => {

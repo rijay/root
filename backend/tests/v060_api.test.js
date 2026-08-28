@@ -262,6 +262,15 @@ test("approved v0.7 advice pool is served through the health advice HTTP Interfa
   const baseUrl = await listen(server);
   t.after(() => server.close());
 
+  const existingGutResult = await request(baseUrl, "/api/v1/health/assessments/has-v070-pool-gut", {
+    headers: authenticatedHeaders(),
+  });
+  assert.equal(existingGutResult.status, 200);
+  assert.equal(
+    existingGutResult.payload.data.assessment.result.priorityAction.split("\n")[0],
+    "日常补充益生元，持续滋养肠道有益菌",
+  );
+
   const generated = await request(baseUrl, "/api/v1/health/advice/generate", {
     method: "POST",
     headers: authenticatedHeaders({ "X-Idempotency-Key": "v070-advice-pool-generate-1" }),
