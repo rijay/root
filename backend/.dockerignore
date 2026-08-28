@@ -6,4 +6,6 @@ data/*.sqlite
 data/*.sqlite-shm
 data/*.sqlite-wal
 data/*.json
+!data/health-advice-catalog.v1.json
+!data/health-advice-pool.v1.json
 tests
