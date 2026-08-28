@@ -6,6 +6,7 @@ const CANARY_VALUE_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 const TRIAL_CANDIDATE_ROUTE_VALUE = "v070c45d7adidentity057";
 const TRIAL_CANDIDATE_PATH_PREFIXES = Object.freeze([
   "/api/v1/health/",
+  "/api/v1/privacy/health-consent",
   "/api/v1/member-commerce/",
   "/api/v1/products",
 ]);

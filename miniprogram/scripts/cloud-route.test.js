@@ -20,6 +20,14 @@ assert.equal(
   `/api/v1/health/assessments/history?assessmentType=INITIAL&myroot_canary=${trialCandidateValue}`
 );
 assert.equal(
+  appendCloudRoute("/api/v1/privacy/health-consent", "trial"),
+  `/api/v1/privacy/health-consent?myroot_canary=${trialCandidateValue}`
+);
+assert.equal(
+  appendCloudRoute("/api/v1/privacy/health-consent?mode=decision", "trial"),
+  `/api/v1/privacy/health-consent?mode=decision&myroot_canary=${trialCandidateValue}`
+);
+assert.equal(
   appendCloudRoute("/api/v1/products", "trial"),
   `/api/v1/products?myroot_canary=${trialCandidateValue}`
 );
@@ -38,6 +46,10 @@ assert.equal(
 assert.equal(
   appendCloudRoute("/api/v1/health/overview", "release"),
   "/api/v1/health/overview"
+);
+assert.equal(
+  appendCloudRoute("/api/v1/privacy/health-consent", "release"),
+  "/api/v1/privacy/health-consent"
 );
 
 assert.equal(initializeCloudRoute({ query: { myroot_canary: validValue } }, "trial"), true);
