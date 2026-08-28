@@ -29,11 +29,11 @@
   },
   "packages": {
     "main": {
-      "bytes": 984597,
-      "fileCount": 155,
+      "bytes": 1496059,
+      "fileCount": 156,
       "budget": {
-        "status": "PASS",
-        "value": 984597,
+        "status": "WARN",
+        "value": 1496059,
         "target": 1363148.8,
         "hardLimit": 1572864
       }
@@ -96,21 +96,21 @@
       }
     ],
     "total": {
-      "bytes": 2323273,
-      "fileCount": 227,
+      "bytes": 2834735,
+      "fileCount": 228,
       "budget": {
         "status": "PASS",
-        "value": 2323273,
+        "value": 2834735,
         "target": 6291456,
         "hardLimit": 8388608
       }
     },
     "mainLocalMedia": {
-      "bytes": 582052,
-      "fileCount": 24,
+      "bytes": 1093162,
+      "fileCount": 25,
       "budget": {
         "status": "BLOCK",
-        "value": 582052,
+        "value": 1093162,
         "target": 204800,
         "hardLimit": 307200
       }
@@ -150,6 +150,17 @@
       "budget": {
         "status": "PASS",
         "value": 19309,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/home/banner1.jpg",
+      "bytes": 511110,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "WARN",
+        "value": 511110,
         "target": 409600,
         "hardLimit": 614400
       }

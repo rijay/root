@@ -7,9 +7,26 @@ const {
 } = require("../utils/cloud-route");
 
 const validValue = "preview_route_12345678";
+const trialHealthValue = "v070c45d7adidentity057";
 
 clearCloudRoute();
 assert.equal(appendCloudRoute("/health", "trial"), "/health");
+assert.equal(
+  appendCloudRoute("/api/v1/health/assessments/catalog", "trial"),
+  `/api/v1/health/assessments/catalog?myroot_canary=${trialHealthValue}`
+);
+assert.equal(
+  appendCloudRoute("/api/v1/health/assessments/history?assessmentType=INITIAL", "trial"),
+  `/api/v1/health/assessments/history?assessmentType=INITIAL&myroot_canary=${trialHealthValue}`
+);
+assert.equal(
+  appendCloudRoute("/api/v1/health/overview", "develop"),
+  "/api/v1/health/overview"
+);
+assert.equal(
+  appendCloudRoute("/api/v1/health/overview", "release"),
+  "/api/v1/health/overview"
+);
 
 assert.equal(initializeCloudRoute({ query: { myroot_canary: validValue } }, "trial"), true);
 assert.equal(
@@ -29,6 +46,10 @@ assert.equal(appendCloudRoute("/health", "trial"), `/health?myroot_canary=${refr
 
 assert.equal(refreshCloudRoute({ query: { myroot_canary: "bad&route=1" } }, "trial"), false);
 assert.equal(appendCloudRoute("/health", "trial"), "/health");
+assert.equal(
+  appendCloudRoute("/api/v1/health/overview", "trial"),
+  `/api/v1/health/overview?myroot_canary=${trialHealthValue}`
+);
 
 assert.equal(initializeCloudRoute({ query: { myroot_canary: validValue } }, "trial"), true);
 assert.equal(
@@ -47,4 +68,4 @@ assert.equal(initializeCloudRoute({ query: { myroot_canary: validValue } }, "tri
 assert.equal(refreshCloudRoute({}, "release"), false);
 assert.equal(appendCloudRoute("/health", "trial"), "/health");
 
-console.log("cloud route scenarios: 20/20 PASS");
+console.log("cloud route scenarios: trial health binding and release isolation PASS");
