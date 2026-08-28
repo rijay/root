@@ -1,6 +1,7 @@
 const BRAND_FOUNDATION_PATH = "/subpkg/content/pages/brand-foundation/index";
 const ROOT_WITH_YOU_PATH = "/subpkg/health/pages/assessment/index?assessmentType=GUT_REGULARITY";
 const ROOT_FOUNDATION_CONTENT_ID = "SHARED_DETAIL_C53C7360B016F4";
+const ROOT_FOUNDATION_TOP_COPY = "ROOT 的旅程，从一粒种子开始";
 const ROOT_WITH_YOU_PUBLISHED_CONTENT_ID = "SHARED_DETAIL_DB47F77499F012";
 const ROOT_WITH_YOU_CONTENT_ID = "ROOT_WITH_YOU_V060";
 const ROOT_PRODUCTS_CONTENT_ID = "SHARED_DETAIL_6292953EB853D1";
@@ -22,6 +23,7 @@ const HOME_BANNER_ACTIONS_BY_CONTENT_ID = Object.freeze({
 const HOME_BANNER_PRESENTATION_BY_CONTENT_ID = Object.freeze({
   cnt_home_foundation: Object.freeze({
     kicker: "",
+    topCopy: ROOT_FOUNDATION_TOP_COPY,
     lines: Object.freeze(["立即探索"]),
     copyMode: "text",
     copyVariant: "foundation-single",
@@ -29,6 +31,7 @@ const HOME_BANNER_PRESENTATION_BY_CONTENT_ID = Object.freeze({
   }),
   [ROOT_FOUNDATION_CONTENT_ID]: Object.freeze({
     kicker: "",
+    topCopy: ROOT_FOUNDATION_TOP_COPY,
     lines: Object.freeze(["立即探索"]),
     copyMode: "text",
     copyVariant: "foundation-single",
@@ -88,6 +91,7 @@ const BUNDLED_HOME_FIRST_FRAME = Object.freeze({
       contentId: ROOT_FOUNDATION_CONTENT_ID,
       slot: 1,
       kicker: "",
+      topCopy: ROOT_FOUNDATION_TOP_COPY,
       lines: Object.freeze(["立即探索"]),
       copyMode: "text",
       copyVariant: "foundation-single",

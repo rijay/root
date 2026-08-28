@@ -16,6 +16,7 @@ assert.deepEqual(firstFrame.map((item) => item.coverAssetUrl), [
   "/static/campaign/root-with-you-home.jpg",
 ]);
 assert.equal(firstFrame[0].kicker, "");
+assert.equal(firstFrame[0].topCopy, "ROOT 的旅程，从一粒种子开始");
 assert.deepEqual(firstFrame[0].lines, ["立即探索"]);
 assert.deepEqual(firstFrame.map((item) => item.action.type), ["MINIPROGRAM_PAGE", "PRODUCTS", "MINIPROGRAM_PAGE"]);
 
@@ -70,6 +71,12 @@ assert.deepEqual(presentHome({ items: [{
   coverAssetUrl: assetUrl,
   detailPath: "/subpkg/content/pages/detail/index?contentId=cnt_home_foundation",
 }] })[0].lines, ["立即探索"]);
+assert.equal(presentHome({ items: [{
+  contentId: "cnt_home_foundation",
+  lines: ["后台旧标题", "后台旧副标题"],
+  coverAssetUrl: assetUrl,
+  detailPath: "/subpkg/content/pages/detail/index?contentId=cnt_home_foundation",
+}] })[0].topCopy, "ROOT 的旅程，从一粒种子开始");
 assert.equal(presentHome({ items: [{
   contentId: "cnt_home_foundation",
   lines: ["后台旧标题", "后台旧副标题"],

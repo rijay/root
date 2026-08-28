@@ -7,6 +7,8 @@ page { background: var(--color-brand-black); }
 .home-slide__fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.72); background: radial-gradient(circle at 50% 36%, var(--color-olive-mid) 0%, var(--color-olive-dark) 42%, var(--color-brand-black) 82%); font-size: 72rpx; letter-spacing: 12rpx; }
 .home-slide__shade { background: linear-gradient(180deg, rgba(0, 0, 0,.06) 34%, rgba(0, 0, 0,.92) 82%, var(--color-brand-black) 100%); }
 .home-slide__shade--asset { background: linear-gradient(180deg, rgba(0, 0, 0,.02) 0%, rgba(0, 0, 0,.08) 68%, rgba(0, 0, 0,.36) 100%); }
+.home-slide__top-copy { position: absolute; z-index: 2; top: 24%; right: 48rpx; left: 48rpx; color: var(--color-olive-dark); font-size: 34rpx; line-height: 1.5; font-weight: 500; letter-spacing: 2rpx; text-align: center; text-shadow: 0 2rpx 12rpx rgba(255,255,255,.48); opacity: .45; transform: translateY(12rpx); transition: opacity 320ms ease, transform 420ms ease; }
+.home-slide__top-copy.is-current { opacity: 1; transform: translateY(0); }
 .home-slide__copy { position: absolute; right: 48rpx; bottom: 212rpx; left: 48rpx; text-align: center; opacity: .45; transform: translateY(20rpx); transition: opacity 320ms ease, transform 420ms ease; }
 .home-slide__copy.is-current { opacity: 1; transform: translateY(0); }
 .home-slide__kicker { display: block; margin-bottom: 30rpx; color: var(--color-accent-on-dark); font-size: 22rpx; font-weight: 600; letter-spacing: 3rpx; transform: translateY(-5px); }
@@ -21,6 +23,7 @@ page { background: var(--color-brand-black); }
 .home-state button::after { border: 0; }
 
 @media (prefers-reduced-motion: reduce) {
+  .home-slide__top-copy,
   .home-slide__copy,
   .home-indicator__dot {
     transition: none;
