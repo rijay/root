@@ -1,5 +1,8 @@
-const detectedEnvVersion = typeof __wxConfig !== "undefined" && __wxConfig.envVersion ? __wxConfig.envVersion : "develop";
-const envVersion = ["develop", "trial", "release"].includes(detectedEnvVersion) ? detectedEnvVersion : "develop";
+const { detectRuntimeEnvVersion } = require("../utils/runtime-env-version");
+
+const runtimeWx = typeof wx !== "undefined" ? wx : null;
+const runtimeWxConfig = typeof __wxConfig !== "undefined" ? __wxConfig : null;
+const envVersion = detectRuntimeEnvVersion(runtimeWx, runtimeWxConfig);
 
 const productionCloudServiceName = "myroot-api";
 const internalTestCloudServiceName = "myroot-api";
