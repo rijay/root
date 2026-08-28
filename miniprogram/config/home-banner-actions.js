@@ -21,16 +21,18 @@ const HOME_BANNER_ACTIONS_BY_CONTENT_ID = Object.freeze({
 
 const HOME_BANNER_PRESENTATION_BY_CONTENT_ID = Object.freeze({
   cnt_home_foundation: Object.freeze({
-    kicker: "ROOT FOUNDATION",
-    lines: Object.freeze(["人如草木，根定而生"]),
+    kicker: "",
+    lines: Object.freeze(["立即探索"]),
     copyMode: "text",
     copyVariant: "foundation-single",
+    coverAssetUrl: "/static/home/banner1.jpg",
   }),
   [ROOT_FOUNDATION_CONTENT_ID]: Object.freeze({
-    kicker: "ROOT FOUNDATION",
-    lines: Object.freeze(["人如草木，根定而生"]),
+    kicker: "",
+    lines: Object.freeze(["立即探索"]),
     copyMode: "text",
     copyVariant: "foundation-single",
+    coverAssetUrl: "/static/home/banner1.jpg",
   }),
   [ROOT_PRODUCTS_CONTENT_ID]: Object.freeze({
     kicker: "ROOT PRODUCTS",
@@ -85,10 +87,11 @@ const BUNDLED_HOME_FIRST_FRAME = Object.freeze({
     Object.freeze({
       contentId: ROOT_FOUNDATION_CONTENT_ID,
       slot: 1,
-      kicker: "ROOT FOUNDATION",
-      lines: Object.freeze(["人如草木，", "根定而生"]),
+      kicker: "",
+      lines: Object.freeze(["立即探索"]),
       copyMode: "text",
-      coverAssetUrl: "/static/welcome/welcome-01.jpg",
+      copyVariant: "foundation-single",
+      coverAssetUrl: "/static/home/banner1.jpg",
       assetState: "BUILTIN_FIRST_FRAME",
       action: HOME_BANNER_ACTIONS_BY_SLOT[1],
     }),

@@ -17,6 +17,7 @@ function assertFiles(relativePaths) {
 
 assertFiles([
   "styles/tokens.wxss",
+  "static/home/banner1.jpg",
   "static/welcome/welcome-01.jpg",
   "static/welcome/welcome-02.jpg",
   "components/root-wordmark/index.js",
@@ -94,6 +95,7 @@ assert.equal(homeJson.usingComponents["immersive-header"], "/components/immersiv
 assert.match(homeWxml, /<immersive-header[^>]*tone="light"/);
 assert.match(homeWxml, /copyMode !== 'asset'/);
 assert.match(homeWxml, /data-release-asset="\{\{item\.assetState\}\}"/);
+assert.match(homeWxml, /wx:if="\{\{item\.kicker\}\}" class="home-slide__kicker"/);
 assert.doesNotMatch(homeWxml, /home-slide__placeholder/);
 assert.match(homeWxss, /\.home-slide__copy\s*\{[^}]*bottom:\s*212rpx/s);
 assert.match(homeWxss, /\.home-slide__kicker\s*\{[^}]*translateY\(-5px\)/s);

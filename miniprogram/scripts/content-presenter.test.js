@@ -11,10 +11,12 @@ assert.deepEqual(firstFrame.map((item) => item.contentId), [
   "SHARED_DETAIL_DB47F77499F012",
 ]);
 assert.deepEqual(firstFrame.map((item) => item.coverAssetUrl), [
-  "/static/welcome/welcome-01.jpg",
+  "/static/home/banner1.jpg",
   "/static/home/banner2.jpg",
   "/static/campaign/root-with-you-home.jpg",
 ]);
+assert.equal(firstFrame[0].kicker, "");
+assert.deepEqual(firstFrame[0].lines, ["立即探索"]);
 assert.deepEqual(firstFrame.map((item) => item.action.type), ["MINIPROGRAM_PAGE", "PRODUCTS", "MINIPROGRAM_PAGE"]);
 
 const refreshedHome = presentHome({ items: [
@@ -67,13 +69,19 @@ assert.deepEqual(presentHome({ items: [{
   lines: ["后台旧标题", "后台旧副标题"],
   coverAssetUrl: assetUrl,
   detailPath: "/subpkg/content/pages/detail/index?contentId=cnt_home_foundation",
-}] })[0].lines, ["人如草木，根定而生"]);
+}] })[0].lines, ["立即探索"]);
 assert.equal(presentHome({ items: [{
   contentId: "cnt_home_foundation",
   lines: ["后台旧标题", "后台旧副标题"],
   coverAssetUrl: assetUrl,
   detailPath: "/subpkg/content/pages/detail/index?contentId=cnt_home_foundation",
 }] })[0].copyVariant, "foundation-single");
+assert.equal(presentHome({ items: [{
+  contentId: "cnt_home_foundation",
+  lines: ["后台旧标题", "后台旧副标题"],
+  coverAssetUrl: assetUrl,
+  detailPath: "/subpkg/content/pages/detail/index?contentId=cnt_home_foundation",
+}] })[0].coverAssetUrl, "/static/home/banner1.jpg");
 assert.deepEqual(presentHome({ items: [{
   contentId: "SHARED_DETAIL_C53C7360B016F4",
   lines: ["人如草木", "根定而生"],

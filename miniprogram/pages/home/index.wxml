@@ -7,7 +7,7 @@
         <view wx:if="{{failedImages[index]}}" class="home-slide__fallback"><text>ROOT</text></view>
         <view class="home-slide__shade {{item.copyMode === 'asset' ? 'home-slide__shade--asset' : ''}}"></view>
         <view wx:if="{{item.copyMode !== 'asset'}}" class="home-slide__copy home-slide__copy--{{item.copyVariant ? item.copyVariant : 'default'}} {{current === index ? 'is-current' : ''}}">
-          <text class="home-slide__kicker">{{item.kicker}}</text>
+          <text wx:if="{{item.kicker}}" class="home-slide__kicker">{{item.kicker}}</text>
           <text wx:for="{{item.lines}}" wx:for-item="line" wx:for-index="lineIndex" wx:key="*this" class="home-slide__line {{item.copyVariant === 'campaign-split' && lineIndex > 0 ? 'home-slide__line--secondary' : ''}}">{{line}}</text>
         </view>
       </view>
