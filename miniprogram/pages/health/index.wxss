@@ -464,7 +464,8 @@ page {
 
 /* v0.7.0 健康入口、账号记录与综合建议。 */
 .health-entry--v060 {
-  min-height: 1460px;
+  min-height: calc(100vh - 52px - env(safe-area-inset-bottom));
+  padding-top: 338px;
   padding-bottom: 160px;
 }
 
@@ -473,10 +474,9 @@ page {
 }
 
 .health-assessment-list {
-  position: absolute;
-  top: 338px;
-  left: 20px;
-  width: calc(100% - 40px);
+  position: static;
+  width: auto;
+  margin: 0 20px;
 }
 
 .health-assessment-card {
@@ -562,16 +562,14 @@ page {
 }
 
 .health-history-entry {
-  position: absolute;
-  top: 730px;
-  left: 20px;
+  position: static;
   display: flex;
   align-items: center;
   justify-content: center;
   width: calc(100% - 40px) !important;
   height: 50px;
   min-height: 50px;
-  margin: 0;
+  margin: 8px 20px 0;
   padding: 0 16px;
   box-sizing: border-box;
   color: var(--color-graphite);
@@ -584,10 +582,9 @@ page {
 }
 
 .health-local-note {
-  position: absolute;
-  top: 796px;
-  left: 20px;
-  width: calc(100% - 40px);
+  position: static;
+  width: auto;
+  margin: 14px 28px 0;
   color: var(--color-neutral-grey);
   font-size: 11px;
   line-height: 18px;
@@ -595,10 +592,9 @@ page {
 }
 
 .health-overview-card {
-  position: absolute;
-  top: 856px;
-  left: 20px;
-  width: calc(100% - 40px);
+  position: static;
+  width: auto;
+  margin: 22px 20px 0;
   padding: 20px 16px;
   box-sizing: border-box;
   background: var(--color-olive-tint);

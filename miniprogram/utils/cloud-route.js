@@ -1,9 +1,14 @@
 const CANARY_ROUTE_KEY = "myroot_canary";
 const CANARY_VALUE_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
-// Keep the online trial's v0.7 health surface isolated until the same routes
-// are promoted to the default service. Release builds always bypass this value.
-const TRIAL_HEALTH_ROUTE_VALUE = "v070c45d7adidentity057";
-const TRIAL_HEALTH_PATH_PREFIX = "/api/v1/health/";
+// Keep the online trial's v0.7 data surfaces isolated until the same routes
+// are promoted to the default service. Login stays on the stable service, and
+// release builds always bypass this value.
+const TRIAL_CANDIDATE_ROUTE_VALUE = "v070c45d7adidentity057";
+const TRIAL_CANDIDATE_PATH_PREFIXES = Object.freeze([
+  "/api/v1/health/",
+  "/api/v1/member-commerce/",
+  "/api/v1/products",
+]);
 
 let canaryRouteValue = "";
 
@@ -31,8 +36,8 @@ function appendCloudRoute(path, envVersion = "release") {
   if (envVersion === "release" || !requestPath) return requestPath;
   if (new RegExp(`(?:^|[?&])${CANARY_ROUTE_KEY}=`).test(requestPath)) return requestPath;
   const routeValue = canaryRouteValue || (
-    envVersion === "trial" && requestPath.startsWith(TRIAL_HEALTH_PATH_PREFIX)
-      ? TRIAL_HEALTH_ROUTE_VALUE
+    envVersion === "trial" && TRIAL_CANDIDATE_PATH_PREFIXES.some((prefix) => requestPath.startsWith(prefix))
+      ? TRIAL_CANDIDATE_ROUTE_VALUE
       : ""
   );
   if (!routeValue) return requestPath;
