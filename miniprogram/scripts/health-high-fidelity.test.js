@@ -25,6 +25,8 @@ assert.match(healthWxss, /health-assessment-card__latest\s*\{[^}]*min-height:\s*
 assert.match(healthWxss, /health-history-entry\s*\{[^}]*width:\s*calc\(100% - 40px\)\s*!important/s);
 assert.match(healthWxss, /health-history-entry\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*justify-content:\s*center/s);
 assert.match(healthWxss, /health-history-entry\s*\{[^}]*padding:\s*0 16px[^}]*line-height:\s*20px[^}]*text-align:\s*center/s);
+assert.match(healthWxss, /health-local-note\s*\{[^}]*display:\s*block[^}]*width:\s*calc\(100% - 56px\)[^}]*margin:\s*14px 28px 0[^}]*box-sizing:\s*border-box/s);
+assert.match(healthWxss, /health-local-note\s*\{[^}]*white-space:\s*normal[^}]*word-break:\s*break-all/s);
 assert.match(healthWxss, /health-overview-card\s*\{[^}]*position:\s*static[^}]*margin:\s*22px 20px 0/s);
 
 const assessmentWxml = read("subpkg/health/pages/assessment/index.wxml");

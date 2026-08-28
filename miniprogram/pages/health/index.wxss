@@ -583,12 +583,16 @@ page {
 
 .health-local-note {
   position: static;
-  width: auto;
+  display: block;
+  width: calc(100% - 56px);
   margin: 14px 28px 0;
+  box-sizing: border-box;
   color: var(--color-neutral-grey);
   font-size: 11px;
   line-height: 18px;
   text-align: center;
+  white-space: normal;
+  word-break: break-all;
 }
 
 .health-overview-card {
