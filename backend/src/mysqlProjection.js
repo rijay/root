@@ -213,6 +213,7 @@ const PROJECTIONS = [
       "assessment_id", "root_user_id", "assessment_definition_id", "assessment_type",
       "questionnaire_id", "questionnaire_version", "status", "safety_state", "is_retest",
       "answers_json", "dimensions_json", "result_json", "result_copy_version", "source_channel",
+      "source_campaign_id", "source_qr_code_id", "source_visit_id",
       "started_at", "completed_at", "health_data_redacted_at", "created_at", "updated_at",
     ],
   },
@@ -236,6 +237,16 @@ const PROJECTIONS = [
     ],
   },
   {
+    table: "channel_qr_code",
+    source: "channelQrCodes",
+    id: "channel_qr_code_id",
+    columns: [
+      "channel_qr_code_id", "channel_definition_id", "channel_id", "campaign_id", "short_code",
+      "label", "target_page", "status", "start_at", "end_at", "env_version", "created_by",
+      "created_at", "updated_at",
+    ],
+  },
+  {
     table: "channel_attribution",
     source: "channelAttributions",
     id: "channel_attribution_id",
@@ -251,6 +262,25 @@ const PROJECTIONS = [
     columns: [
       "channel_attribution_attempt_id", "root_user_id", "requested_channel_id", "requested_campaign_id",
       "requested_target_page", "result", "reason", "occurred_at", "created_at",
+    ],
+  },
+  {
+    table: "channel_funnel_visit",
+    source: "channelFunnelVisits",
+    id: "channel_funnel_visit_id",
+    columns: [
+      "channel_funnel_visit_id", "client_visit_id", "channel_qr_code_id", "short_code",
+      "channel_definition_id", "channel_id", "campaign_id", "target_page", "root_user_id",
+      "assessment_id", "opened_at", "created_at", "updated_at",
+    ],
+  },
+  {
+    table: "channel_funnel_event",
+    source: "channelFunnelEvents",
+    id: "channel_funnel_event_id",
+    columns: [
+      "channel_funnel_event_id", "channel_funnel_visit_id", "channel_qr_code_id", "channel_id",
+      "campaign_id", "root_user_id", "assessment_id", "stage", "occurred_at", "created_at",
     ],
   },
   {

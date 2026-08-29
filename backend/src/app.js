@@ -20,6 +20,8 @@ const { isAtomicWriteError } = require("./atomicWriteError");
 const { clientErrorResponse, createClientError } = require("./clientError");
 const sessionModule = require("./sessionModule");
 const adminFormalUserQuery = require("./adminFormalUserQuery");
+const channelFunnel = require("./channelFunnel");
+const { generateChannelCodeImage } = require("./wechatMiniProgramCode");
 const v060Api = require("./v060Api");
 const { createEnvironmentYouzanCommerceAdapter } = require("./youzanCommerceAdapter");
 
@@ -550,6 +552,7 @@ function createApp(options = {}) {
     activityPublicationAuthorizationAdapter: options.activityPublicationAuthorizationAdapter,
     activityAssetAdapter: options.activityAssetAdapter,
     healthAdvicePool: options.healthAdvicePool,
+    wechatCodeGenerator: options.wechatCodeGenerator,
     memberCommerceAdapter: options.memberCommerceAdapter || youzanCommerceAdapter,
     productCommerceAdapter: options.productCommerceAdapter || youzanCommerceAdapter,
     runtimeMetadata,
@@ -807,6 +810,22 @@ function createApp(options = {}) {
           req.headers["x-idempotency-key"] || ""
         ));
       }
+      if (route === "POST /api/v1/channels/resolve") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => v060Api.resolveChannelCode(data, body, runtimeContext),
+          req.headers["x-idempotency-key"] || body.clientVisitId || body.client_visit_id || ""
+        ));
+      }
+      if (route === "POST /api/v1/channels/funnel") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => v060Api.recordChannelFunnelStage(data, token, body, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
       if (route === "POST /api/v1/event/track") {
         return apiOk(res, v060Api.recordAnalytics(data, token, body, runtimeContext));
       }
@@ -898,6 +917,24 @@ function createApp(options = {}) {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
         return ok(res, listAdminActivityDefinitions(data, Object.fromEntries(url.searchParams), runtimeContext));
       }
+      if (route === "GET /api/v1/admin/channels") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_ANALYTICS_READ);
+        return apiOk(res, channelFunnel.listConfiguration(data, Object.fromEntries(url.searchParams)));
+      }
+      if (route === "GET /api/v1/admin/channel-funnel") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_ANALYTICS_READ);
+        return apiOk(res, channelFunnel.report(data, Object.fromEntries(url.searchParams)));
+      }
+      const channelCodeImageMatch = url.pathname.match(/^\/api\/v1\/admin\/channel-codes\/([A-Za-z0-9_-]{1,64})\/image$/);
+      if (method === "GET" && channelCodeImageMatch) {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_MANAGE);
+        const code = channelFunnel.getCode(data, channelCodeImageMatch[1]);
+        const image = await generateChannelCodeImage(code, runtimeContext);
+        return sendBinary(res, 200, image.body, image.contentType, {
+          "Cache-Control": "no-store",
+          "Content-Disposition": `attachment; filename=ROOT-${code.shortCode}.png`,
+        });
+      }
       if (route === "GET /api/v1/admin/activity-sessions") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
         return ok(res, listAdminActivitySessions(data, Object.fromEntries(url.searchParams), runtimeContext));
@@ -977,6 +1014,34 @@ function createApp(options = {}) {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_CONTENT_WRITE);
         const command = prepareAdminCommandBody(req, adminPrincipal, body, "初始化建档草稿", "HEALTH_INITIALIZATION_DRAFT_SAVE");
         return ok(res, await withIdempotency(data, req, () => saveAdminFormalHealthInitializationDraft(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/channels") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_MANAGE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "渠道配置", "CHANNEL_UPSERT");
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => channelFunnel.upsertChannel(data, command, runtimeContext)
+        ));
+      }
+      if (route === "POST /api/v1/admin/channel-codes") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_MANAGE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "渠道码创建", "CHANNEL_CODE_CREATE");
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => channelFunnel.createCode(data, command, runtimeContext)
+        ));
+      }
+      const channelCodeStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/channel-codes\/([A-Za-z0-9_-]{1,64})\/status$/);
+      if (method === "POST" && channelCodeStatusMatch) {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_MANAGE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "渠道码状态更新", "CHANNEL_CODE_STATUS_UPDATE");
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => channelFunnel.updateCodeStatus(data, channelCodeStatusMatch[1], command, runtimeContext)
+        ));
       }
       if (route === "POST /api/v1/admin/formal-health/initialization/publish") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_PUBLISH);

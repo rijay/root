@@ -1,5 +1,6 @@
 const { sessionTokenDigest } = require("./credentialProtection");
 const { createClientError } = require("./clientError");
+const channelFunnel = require("./channelFunnel");
 const growthEngagement = require("./growthEngagement");
 const healthAssessment = require("./healthAssessment");
 const healthStatusAdvice = require("./healthStatusAdvice");
@@ -72,7 +73,17 @@ function assessmentCatalog(data, token) {
 function startAssessment(data, token, body = {}, context = {}) {
   const actor = principal(data, token);
   privacyConsent.requireHealthConsent(data, actor.rootUserId, context);
-  return healthAssessment.start(data, actor.rootUserId, body, context);
+  const channelSource = channelFunnel.assessmentSource(data, actor.rootUserId, body, context);
+  const result = healthAssessment.start(data, actor.rootUserId, body, {
+    ...context,
+    ...(channelSource || {}),
+  });
+  if (result.created) {
+    const attempt = (data.healthAssessmentAttempts || [])
+      .find((item) => item.assessment_id === result.assessment.assessmentId);
+    channelFunnel.assessmentStage(data, actor.rootUserId, attempt, "ASSESSMENT_CREATED", context);
+  }
+  return result;
 }
 
 function getAssessment(data, token, assessmentId) {
@@ -89,7 +100,11 @@ function saveAssessmentDraft(data, token, assessmentId, body = {}, context = {})
 function completeAssessment(data, token, assessmentId, body = {}, context = {}) {
   const actor = principal(data, token);
   privacyConsent.requireHealthConsent(data, actor.rootUserId, context);
-  return healthAssessment.complete(data, actor.rootUserId, assessmentId, body);
+  const result = healthAssessment.complete(data, actor.rootUserId, assessmentId, body);
+  const attempt = (data.healthAssessmentAttempts || [])
+    .find((item) => item.assessment_id === assessmentId);
+  channelFunnel.assessmentStage(data, actor.rootUserId, attempt, "ASSESSMENT_COMPLETED", context);
+  return result;
 }
 
 function assessmentHistory(data, token, query = {}) {
@@ -147,12 +162,37 @@ function recordPopupAction(data, token, body = {}, context = {}) {
 
 function attributeChannel(data, token, body = {}, context = {}) {
   const actor = principal(data, token);
+  if (body.visitId || body.visit_id) {
+    return channelFunnel.bindFirstTouch(data, actor.rootUserId, body, context);
+  }
   return growthEngagement.attributeFirstChannel(
     data,
     actor.rootUserId,
     body,
     context,
   );
+}
+
+function resolveChannelCode(data, body = {}, context = {}) {
+  return channelFunnel.resolveCode(data, body, context);
+}
+
+function recordChannelFunnelStage(data, token, body = {}, context = {}) {
+  const actor = principal(data, token, false);
+  const stage = String(body.stage || "").trim().toUpperCase();
+  if (["ASSESSMENT_CREATED", "ASSESSMENT_COMPLETED", "RESULT_VIEWED"].includes(stage)) {
+    if (!actor.rootUserId) throw createClientError(1003, "登录已过期，请重新登录", 401);
+    const assessmentId = String(body.assessmentId || body.assessment_id || "").trim();
+    const assessment = (data.healthAssessmentAttempts || []).find((item) => (
+      item.assessment_id === assessmentId && item.root_user_id === actor.rootUserId
+    ));
+    if (!assessment) throw createClientError(6101, "评测记录不存在", 404);
+    const visitId = String(body.visitId || body.visit_id || "").trim();
+    if (!assessment.source_visit_id || assessment.source_visit_id !== visitId) {
+      throw createClientError(6102, "评测渠道来源不匹配", 409);
+    }
+  }
+  return channelFunnel.recordStage(data, actor.rootUserId, body, context);
 }
 
 function firstAttribution(data, token) {
@@ -184,7 +224,9 @@ module.exports = Object.freeze({
   healthOverview,
   memberCommerceSummary,
   recordAnalytics,
+  recordChannelFunnelStage,
   recordPopupAction,
+  resolveChannelCode,
   recordProductJump,
   saveAssessmentDraft,
   sessionForToken,

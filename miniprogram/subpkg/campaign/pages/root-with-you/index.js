@@ -1,6 +1,7 @@
 const router = require("../../../../utils/router");
 const { showFriendShareMenu } = require("../../../../utils/page-share");
 const { failureReason, track } = require("../../../../utils/analytics");
+const { beginChannelVisit, recordFunnelStage } = require("../../../../utils/channel-attribution");
 const {
   GUT_ASSESSMENT_CONTINUE_PATH,
   FIXED_GUT_ASSESSMENT_PATH,
@@ -16,11 +17,17 @@ Page({
     imageUrl: ROOT_WITH_YOU_IMAGE_URL,
   },
 
-  onLoad(options = {}) {
+  async onLoad(options = {}) {
     track("campaign_page_view", {
       campaignId: "ROOT_WITH_YOU_V060",
       sourcePage: options.source || "direct",
     });
+    try {
+      await beginChannelVisit(options);
+      await recordFunnelStage("INTRO_VIEW");
+    } catch (_) {
+      // 渠道归因不可用不阻断公开的自测介绍和评测入口。
+    }
   },
 
   onShow() {
@@ -31,6 +38,7 @@ Page({
     if (this.data.opening) return;
     this.setData({ opening: true });
     try {
+      await recordFunnelStage("START_CLICK");
       const target = GUT_ASSESSMENT_CONTINUE_PATH;
       const allowed = await router.routeGuard(target);
       track("campaign_assessment_start", {

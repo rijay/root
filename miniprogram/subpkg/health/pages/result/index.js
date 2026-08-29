@@ -7,6 +7,7 @@ const router = require("../../../../utils/router");
 const env = require("../../../../config/env");
 const { executeContentAction } = require("../../../../utils/content-action");
 const { failureReason, track } = require("../../../../utils/analytics");
+const { recordFunnelStage } = require("../../../../utils/channel-attribution");
 
 Page({
   data: {
@@ -49,6 +50,16 @@ Page({
         questionnaireVersion: assessment.questionnaireVersion || 0,
         resultCode: assessment.result && (assessment.result.code || assessment.result.resultCode || assessment.result.title) || "UNKNOWN",
       });
+      if (assessment.channelVisitId) {
+        try {
+          await recordFunnelStage("RESULT_VIEWED", {
+            visitId: assessment.channelVisitId,
+            assessmentId: assessment.assessmentId,
+          });
+        } catch (_) {
+          // 漏斗记录失败不阻断评测结果展示。
+        }
+      }
     } catch (error) {
       this.setData({ errorText: error.message || "结果暂时无法加载" });
     } finally {

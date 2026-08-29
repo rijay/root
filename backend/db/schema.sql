@@ -4,9 +4,9 @@
 -- This inspection snapshot is not proof that migrations ran in any candidate or production environment.
 -- snapshot_format: myroot-mysql-schema-snapshot:v1
 -- mysql_engine_family: 8.0
--- migration_set_sha256: 189cdd96ba4ebd97ccc461e745491d4ae2888ad8f6924ef551c217201bb83c29
--- schema_body_sha256: 0a3a46746801a65fc9f4be3021bffe398ff6272fafe3d261f03a80db31a3a532
--- table_count: 22
+-- migration_set_sha256: 23adfe30cd04dc84d0e415b0fb2c1832a14ae2f2fd564aa93314b1d38b8ef8bc
+-- schema_body_sha256: a79b0b41c7102750a81af10d94a44c31e33ba5d8a82b4edcbd79d5da93f57ddc
+-- table_count: 25
 -- migration: 001_store_snapshot.sql sha256:57f0c3032dea218ad010f41ee4e9af6667ea4ae8f13c76096bc67f56763792e0
 -- migration: 002_core_relational.sql sha256:62362767da1748f1aa7e2ec974677b410f123b1c002f2f1519102f19ff905821
 -- migration: 003_privacy_consent.sql sha256:5758b1040533ef411361c8a2aad251497dfad7fb353348d6c887d3856bd68631
@@ -79,6 +79,7 @@
 -- migration: 070_growth_engagement.sql sha256:db4f76619459c058b0a7bb8be44d3986131bb363affa472eee5600e4e8315e0c
 -- migration: 071_product_analytics.sql sha256:646f786fde31acbf3f2009a2dfb27f01e80fa35dc12d3e7e15138cd8722d1f35
 -- migration: 072_health_advice_snapshot.sql sha256:7af77293b5d63f31c54fd33a8817f85bbc895b66c569e7e8bf76e642f9132fb8
+-- migration: 073_channel_code_funnel.sql sha256:e5070d0a816d7f561d8cec6a599bce3990d97827b510b5375ededf88d23cfb85
 
 SET NAMES utf8mb4;
 SET time_zone = '+08:00';
@@ -350,6 +351,74 @@ CREATE TABLE `channel_definition` (
   KEY `idx_channel_definition_campaign_status` (`campaign_id`,`status`,`start_at`,`end_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- table: channel_funnel_event
+CREATE TABLE `channel_funnel_event` (
+  `channel_funnel_event_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `channel_funnel_visit_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `channel_qr_code_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `channel_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `campaign_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `root_user_id` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `assessment_id` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `stage` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `occurred_at` datetime(3) NOT NULL,
+  `created_at` datetime(3) NOT NULL,
+  PRIMARY KEY (`channel_funnel_event_id`),
+  UNIQUE KEY `uk_channel_funnel_event_stage` (`channel_funnel_visit_id`,`stage`,`assessment_id`),
+  KEY `idx_channel_funnel_event_campaign_stage_time` (`campaign_id`,`channel_id`,`stage`,`occurred_at`),
+  KEY `idx_channel_funnel_event_code_stage_time` (`channel_qr_code_id`,`stage`,`occurred_at`),
+  KEY `fk_channel_funnel_event_root_user` (`root_user_id`),
+  CONSTRAINT `fk_channel_funnel_event_code` FOREIGN KEY (`channel_qr_code_id`) REFERENCES `channel_qr_code` (`channel_qr_code_id`),
+  CONSTRAINT `fk_channel_funnel_event_root_user` FOREIGN KEY (`root_user_id`) REFERENCES `root_user` (`root_user_id`),
+  CONSTRAINT `fk_channel_funnel_event_visit` FOREIGN KEY (`channel_funnel_visit_id`) REFERENCES `channel_funnel_visit` (`channel_funnel_visit_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- table: channel_funnel_visit
+CREATE TABLE `channel_funnel_visit` (
+  `channel_funnel_visit_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `client_visit_id` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `channel_qr_code_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `short_code` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `channel_definition_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `channel_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `campaign_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `target_page` varchar(240) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `root_user_id` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `assessment_id` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `opened_at` datetime(3) NOT NULL,
+  `created_at` datetime(3) NOT NULL,
+  `updated_at` datetime(3) NOT NULL,
+  PRIMARY KEY (`channel_funnel_visit_id`),
+  UNIQUE KEY `uk_channel_funnel_visit_client` (`client_visit_id`),
+  KEY `idx_channel_funnel_visit_code_time` (`channel_qr_code_id`,`opened_at`),
+  KEY `idx_channel_funnel_visit_user_time` (`root_user_id`,`opened_at`),
+  CONSTRAINT `fk_channel_funnel_visit_code` FOREIGN KEY (`channel_qr_code_id`) REFERENCES `channel_qr_code` (`channel_qr_code_id`),
+  CONSTRAINT `fk_channel_funnel_visit_root_user` FOREIGN KEY (`root_user_id`) REFERENCES `root_user` (`root_user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- table: channel_qr_code
+CREATE TABLE `channel_qr_code` (
+  `channel_qr_code_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `channel_definition_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `channel_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `campaign_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `short_code` varchar(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `label` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `target_page` varchar(240) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `start_at` datetime(3) DEFAULT NULL,
+  `end_at` datetime(3) DEFAULT NULL,
+  `env_version` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime(3) NOT NULL,
+  `updated_at` datetime(3) NOT NULL,
+  PRIMARY KEY (`channel_qr_code_id`),
+  UNIQUE KEY `uk_channel_qr_code_short_code` (`short_code`),
+  KEY `idx_channel_qr_code_campaign_status` (`campaign_id`,`channel_id`,`status`),
+  KEY `fk_channel_qr_code_definition` (`channel_definition_id`),
+  CONSTRAINT `fk_channel_qr_code_definition` FOREIGN KEY (`channel_definition_id`) REFERENCES `channel_definition` (`channel_definition_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- table: command_idempotency
 CREATE TABLE `command_idempotency` (
   `command_idempotency_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -434,6 +503,9 @@ CREATE TABLE `health_assessment_attempt` (
   `result_json` json NOT NULL,
   `result_copy_version` int NOT NULL,
   `source_channel` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `source_campaign_id` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `source_qr_code_id` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `source_visit_id` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `started_at` datetime(3) NOT NULL,
   `completed_at` datetime(3) DEFAULT NULL,
   `health_data_redacted_at` datetime(3) DEFAULT NULL,
@@ -443,6 +515,7 @@ CREATE TABLE `health_assessment_attempt` (
   KEY `idx_health_assessment_attempt_user_type_time` (`root_user_id`,`assessment_type`,`completed_at`),
   KEY `idx_health_assessment_attempt_questionnaire` (`questionnaire_id`,`questionnaire_version`,`status`),
   KEY `fk_health_assessment_attempt_definition` (`assessment_definition_id`),
+  KEY `idx_health_assessment_attempt_channel_source` (`source_campaign_id`,`source_qr_code_id`,`completed_at`),
   CONSTRAINT `fk_health_assessment_attempt_definition` FOREIGN KEY (`assessment_definition_id`) REFERENCES `health_assessment_definition` (`assessment_definition_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

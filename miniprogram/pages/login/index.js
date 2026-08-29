@@ -9,6 +9,7 @@ const { defaultOnShareAppMessage } = require("../../utils/page-share");
 const { writeProfileCache } = require("../../utils/profile-cache");
 const {
   commitPendingFirstChannel,
+  confirmPendingAttribution,
   pendingSourceChannel,
 } = require("../../utils/channel-attribution");
 
@@ -82,6 +83,11 @@ Page({
       startLoginSession(data.session || {});
       if (data.profile) writeProfileCache(data.profile);
       commitPendingFirstChannel();
+      try {
+        await confirmPendingAttribution();
+      } catch (_) {
+        // 首触达归因失败不阻断已完成的用户登录；下一次登录仍可重试。
+      }
       try {
         bindUserScope(data.user && data.user.userId);
       } catch (_) {

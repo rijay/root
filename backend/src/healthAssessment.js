@@ -203,6 +203,7 @@ function attemptPayload(attempt, definition, options = {}) {
     completedAt: attempt.completed_at || "",
     updatedAt: attempt.updated_at,
     resultCopyVersion: Number(attempt.result_copy_version || 0),
+    channelVisitId: text(attempt.source_visit_id),
     result: COMPLETED_STATUSES.has(attempt.status) ? resultPayload(attempt) : null,
     dimensions: COMPLETED_STATUSES.has(attempt.status) ? dimensionPayload(attempt) : [],
   };
@@ -485,6 +486,9 @@ function start(data, rootUserId, input = {}, context = {}) {
     result_json: {},
     result_copy_version: number(definition.result_copy_version || definition.resultCopyVersion, 0),
     source_channel: text(context.sourceChannel || context.source_channel || input.sourceChannel || input.source_channel, "MINIPROGRAM_HEALTH"),
+    source_campaign_id: text(context.sourceCampaignId || context.source_campaign_id || input.sourceCampaignId || input.source_campaign_id),
+    source_qr_code_id: text(context.sourceQrCodeId || context.source_qr_code_id || input.sourceQrCodeId || input.source_qr_code_id),
+    source_visit_id: text(context.sourceVisitId || context.source_visit_id || input.sourceVisitId || input.source_visit_id),
     started_at: now,
     completed_at: "",
     created_at: now,

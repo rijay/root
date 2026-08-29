@@ -32,6 +32,7 @@ global.wx = {
 const {
   ATTRIBUTED_STORAGE_KEY,
   PENDING_STORAGE_KEY,
+  beginChannelVisit,
   captureLaunchAttribution,
   confirmPendingAttribution,
   normalizeTargetPage,
@@ -77,6 +78,27 @@ async function run() {
   assert.equal(storage.has(PENDING_STORAGE_KEY), false);
   assert.equal(storage.get(ATTRIBUTED_STORAGE_KEY), true);
   assert.equal(captureLaunchAttribution({ query: VALID }).reason, "FIRST_TOUCH_ALREADY_SET");
+
+  const calls = [];
+  const visit = await beginChannelVisit({ query: { q: "A1B2C3D4" } }, async (options) => {
+    calls.push(options);
+    if (options.url === "/api/v1/channels/resolve") {
+      return {
+        visitId: "cfv_existing_user_scan",
+        shortCode: "A1B2C3D4",
+        channelId: "ROADSHOW_B",
+        campaignId: "ROOT_GUT_TEST",
+        targetPage: "/subpkg/campaign/pages/root-with-you/index",
+      };
+    }
+    return { accepted: true, result: "EXISTING_KEPT", reason: "FIRST_TOUCH_ALREADY_SET" };
+  });
+  assert.equal(visit.active, true);
+  assert.deepEqual(calls.map((item) => item.url), [
+    "/api/v1/channels/resolve",
+    "/api/v1/channels/attribution",
+  ]);
+  assert.equal(storage.has(PENDING_STORAGE_KEY), false);
 }
 
 run()

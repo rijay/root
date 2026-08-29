@@ -1171,7 +1171,7 @@ test("migration runner accepts guarded structures that 068 already retired", asy
   );
   assert.deepEqual(result.applied, []);
   assert.deepEqual(result.reconciled, []);
-  assert.equal(result.latestVersion, "072_health_advice_snapshot.sql");
+  assert.equal(result.latestVersion, "073_channel_code_funnel.sql");
 });
 
 test("unknown migrations retain the legacy path and are never mistaken for an absent guarded migration", async () => {
@@ -1592,7 +1592,7 @@ test("any RELEASE_LOCK failure retires the session instead of returning a possib
   const result = await applyMysqlMigrations({
     async getConnection() { return connection; },
   }, { migrationsDir: MIGRATIONS_DIR });
-  assert.equal(result.latestVersion, "072_health_advice_snapshot.sql");
+  assert.equal(result.latestVersion, "073_channel_code_funnel.sql");
   assert.equal(releaseLockAttempts, 1);
   assert.equal(destroyedConnections, 1);
   assert.equal(releasedConnections, 0);
@@ -1636,7 +1636,7 @@ test("RELEASE_LOCK zero, NULL, and malformed acknowledgements all retire the ses
     const result = await applyMysqlMigrations({
       async getConnection() { return connection; },
     }, { migrationsDir: MIGRATIONS_DIR });
-    assert.equal(result.latestVersion, "072_health_advice_snapshot.sql");
+    assert.equal(result.latestVersion, "073_channel_code_funnel.sql");
     assert.equal(destroyedConnections, 1, JSON.stringify(releaseRows));
     assert.equal(releasedConnections, 0, JSON.stringify(releaseRows));
   }

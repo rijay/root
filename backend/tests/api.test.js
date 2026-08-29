@@ -459,6 +459,7 @@ test("MySQL migrations and core relational projection cover production Store fac
     "070_growth_engagement.sql",
     "071_product_analytics.sql",
     "072_health_advice_snapshot.sql",
+    "073_channel_code_funnel.sql",
   ]);
   migrationFiles.forEach((fileName) => {
     const sql = fs.readFileSync(path.join(__dirname, "..", "db", "migrations", fileName), "utf8");
@@ -1062,7 +1063,7 @@ test("admin profile Interface exposes operator role and capabilities", async (t)
   assert.equal(viewer.code, 0);
   assert.equal(viewer.data.operatorId, "viewer");
   assert.equal(viewer.data.role, "viewer");
-  assert.deepEqual(viewer.data.capabilities.sort(), ["ADMIN_READ", "AUDIT_READ"]);
+  assert.deepEqual(viewer.data.capabilities.sort(), ["ADMIN_READ", "AUDIT_READ", "CHANNEL_ANALYTICS_READ"]);
   assert.equal(operator.data.capabilities.includes("CONTENT_WRITE"), true);
   assert.equal(operator.data.capabilities.includes("HEALTH_CONTENT_WRITE"), true);
   assert.equal(operator.data.capabilities.includes("ACTIVITY_CONTENT_WRITE"), true);

@@ -120,6 +120,11 @@ function validateSnapshot(snapshot, options = {}) {
     ["activityEnrollmentEvents", "request_id"],
     ["userContactMethods", "contact_method_id"],
     ["userLifecycleEvents", "lifecycle_event_id"],
+    ["channelDefinitions", "channel_definition_id"],
+    ["channelQrCodes", "channel_qr_code_id"],
+    ["channelAttributions", "channel_attribution_id"],
+    ["channelFunnelVisits", "channel_funnel_visit_id"],
+    ["channelFunnelEvents", "channel_funnel_event_id"],
     ["auditLogs", "audit_id"],
     ["commandIdempotencyRecords", "recordId"],
   ];

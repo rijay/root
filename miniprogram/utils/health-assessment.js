@@ -3,6 +3,7 @@ const { track } = require("./analytics");
 const env = require("../config/env");
 const localAssessment = require("./local-health-assessment");
 const { decorateAdvice } = require("./health-advice-ui");
+const { assessmentChannelContext } = require("./channel-attribution");
 const useLocalAssessmentStorage = env.healthAssessmentStorageMode === "LOCAL_DEVICE";
 const inflightAdviceRequests = new Map();
 
@@ -112,7 +113,7 @@ async function startAssessment(assessmentType) {
       idempotencyKey: requestId("assessment-start"),
       data: {
         assessmentType,
-        sourceChannel: "MINIPROGRAM_HEALTH_HOME",
+        ...assessmentChannelContext(),
       },
     });
   const assessment = result.assessment || {};
