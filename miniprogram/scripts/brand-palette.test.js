@@ -46,6 +46,7 @@ const tokens = fs.readFileSync(path.join(root, "styles/tokens.wxss"), "utf8").to
   "--root-sprout: #a1b371",
   "--root-copy: #3a3a3c",
   "--root-muted: #7b7a7e",
+  "--root-media-matte-brand-foundation-02: #9a6848",
 ].forEach((token) => assert.match(tokens, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))));
 
 console.log(`brand palette checks passed across ${walk(root).length} WXML/WXSS files`);

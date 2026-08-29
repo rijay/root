@@ -26,6 +26,7 @@ const privacyWxss = read("subpkg/profile/pages/privacy-account/index.wxss");
 const privacyScript = read("subpkg/profile/pages/privacy-account/index.js");
 const legalScript = read("pages/legal/index.js");
 const registerScript = read("pages/register/index.js");
+const registerWxml = read("pages/register/index.wxml");
 
 matches(profileWxss, /profile-page__title\s*\{[^}]*top:\s*78px[^}]*left:\s*20px/s, "MY-01/02 标题坐标");
 matches(profileWxss, /profile-identity\s*\{[^}]*top:\s*130px[^}]*width:\s*calc\(100% - 40px\)[^}]*height:\s*72px/s, "身份区坐标与宽屏边距");
@@ -43,8 +44,13 @@ matches(profileScript, /navigateToMiniProgram\(\{[\s\S]*shortLink,/s, "订单与
 excludes(profileScript, /rootMemberCenterOrdersPath|rootMemberCenterCouponsPath/, "不得把微信短链接当作内部页面路径");
 matches(profileScript, /success:[\s\S]*memberLinkFailure:\s*false/, "成功后清除失败状态");
 matches(profileScript, /fail:[\s\S]*memberLinkFailure:\s*true/, "跳转失败保留当前页面");
-matches(profileScript, /clearTransientHealthData\(\)/, "退出登录清除内存健康状态");
-matches(profileScript, /ROOT4U_INITIAL_SUBMIT_KEY_V1/, "退出登录清除健康提交键");
+excludes(profileWxml, /退出登录/, "我的首页不再放置退出登录按钮");
+matches(registerWxml, /保存资料<\/button>\s*<button wx:if="\{\{editing\}\}" class="register-page__logout"[^>]*>退出登录<\/button>/s, "退出登录紧跟编辑资料保存按钮");
+matches(registerScript, /clearTransientHealthData\(\)/, "退出登录清除内存健康状态");
+matches(registerScript, /ROOT4U_INITIAL_SUBMIT_KEY_V1/, "退出登录清除健康提交键");
+matches(registerScript, /clearToken\(\)/, "退出登录清除登录态和资料缓存");
+matches(registerScript, /clearSessionPageCache\(\)/, "退出登录清除会话页面缓存");
+matches(registerScript, /router\.go\("\/pages\/profile\/index"\)/, "退出后返回我的首页");
 excludes(profileWxml, /会员等级|积分|余额/, "不得恢复会员资产摘要");
 
 matches(aboutWxml, /<page-navigation show-home="\{\{false\}\}"/, "关于页复用统一返回控件");

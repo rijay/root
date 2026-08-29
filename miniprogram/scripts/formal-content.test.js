@@ -36,6 +36,7 @@ assert.match(brandScript, /onShareAppMessage/);
 assert.match(brandWxml, /<swiper/);
 assert.match(brandWxml, /mode="aspectFit"/);
 assert.match(brandWxml, /brand-foundation__progress/);
+assert.match(brandWxss, /brand-foundation__slide--2\s*\{\s*background:\s*var\(--root-media-matte-brand-foundation-02\);\s*\}/);
 assert.match(brandWxss, /safe-area-inset-bottom/);
 assert.match(phggScript, /showTimelineShareMenu/);
 assert.match(phggScript, /setClipboardData/);

@@ -14,6 +14,9 @@ page {
   --root-warning: #b7791f;
   --root-danger: #b5523c;
 
+  /* 内容图片的延展色，只用于 aspectFit 留白，不参与全局界面配色。 */
+  --root-media-matte-brand-foundation-02: #9a6848;
+
   /* 旧名称仅为保留页面兼容，不再代表暖棕或米色。 */
   --root-clay: #6b7c3a;
 

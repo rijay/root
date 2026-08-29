@@ -44,7 +44,6 @@
       <view class="profile-row" bindtap="openAbout"><text class="profile-row__label">关于 Root</text><view class="profile-row__arrow"></view></view>
     </view>
 
-    <button wx:if="{{loggedIn}}" class="profile-logout" style="width: 350px;" bindtap="logout">退出登录</button>
     <text class="profile-version">myRoot v{{version}}</text>
   </view>
 </scroll-view>

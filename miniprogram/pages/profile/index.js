@@ -1,33 +1,19 @@
 const env = require("../../config/env");
 const { appVersion } = require("../../config/version");
 const router = require("../../utils/router");
-const { clearToken, getToken } = require("../../utils/request");
+const { getToken } = require("../../utils/request");
 const { syncTabBar } = require("../../utils/tab-bar");
-const { clearLegacyTransientHealthStorage, clearTransientHealthData } = require("../../utils/transient-health-state");
 const { FORMAL_ACCESS_STATE, inspectFormalAccess } = require("../../utils/formal-access");
-const { unbindUserScope } = require("../../utils/local-health-assessment");
 const { defaultOnShareAppMessage } = require("../../utils/page-share");
 const { readProfileCache, writeProfileCache } = require("../../utils/profile-cache");
 const { currentLoginSession, ensureLoginSession } = require("../../utils/login-session");
 const { getMemberCommerceSummary, readMemberCommerceSummary } = require("../../utils/member-commerce");
-const { clearSessionPageCache } = require("../../utils/page-cache");
 const { performanceMonitor } = require("../../utils/performance-monitor");
 
 const PROFILE_ROUTE = "/pages/profile/index";
 const PENDING_MEMBER_TARGET_KEY = "ROOT_PROFILE_MEMBER_TARGET_V1";
 const DEFAULT_PROFILE = Object.freeze({ nickname: "Root用户", avatarUrl: "" });
 const GUEST_PROFILE = Object.freeze({ nickname: "未登录", avatarUrl: "" });
-const LOCAL_SESSION_KEYS = [
-  "ROOT_AUTH_INTENT_V1",
-  "ROOT_REGISTRATION_CONTEXT_V1",
-  "ROOT_PROFILE_SUBMIT_KEY_V1",
-  "ROOT4U_START_PENDING_V1",
-  "ROOT4U_INITIAL_SUBMIT_KEY_V1",
-  "MYROOT_ACTIVITY_ROUTE_INTENT_V1",
-  "MYROOT_ACTIVITY_PENDING_COMMANDS_V1",
-  PENDING_MEMBER_TARGET_KEY,
-];
-
 function runtimeVersion() {
   try {
     const info = wx.getAccountInfoSync();
@@ -258,26 +244,6 @@ Page({
 
   openAbout() {
     router.open("/subpkg/profile/pages/about/index");
-  },
-
-  logout() {
-    unbindUserScope();
-    clearToken();
-    LOCAL_SESSION_KEYS.forEach((key) => wx.removeStorageSync(key));
-    clearTransientHealthData();
-    clearLegacyTransientHealthStorage(wx);
-    clearSessionPageCache();
-    this.setData({
-      loggedIn: false,
-      sessionChecking: false,
-      profile: GUEST_PROFILE,
-      memberLinkFailure: false,
-      failedMemberKey: "",
-      profileRefreshFailed: false,
-      profileImageFailed: false,
-      memberCommerce: { ready: false, orderHint: "会员中心", couponHint: "会员中心" },
-    });
-    wx.showToast({ title: "已退出登录", icon: "success" });
   },
 
   onShareAppMessage: defaultOnShareAppMessage,

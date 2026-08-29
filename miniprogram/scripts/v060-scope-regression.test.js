@@ -4,8 +4,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-// v0.7.0 明确允许全局品牌色语义化、图片加载优化和「我的」首屏缓存；
-// 这些受保护页面的校验值只接受上述范围内经复核后的变化，继续阻止无关漂移。
+// v0.7.1 在 0.7.0 基线上仅允许资料编辑按钮自适应、退出入口迁移与对应首页收口；
+// 这些受保护页面的校验值继续阻止范围外漂移。
 const baselineHashes = Object.freeze({
   "pages/welcome/index.wxml": "9c11d9a567593751bb889b28ee42da9d68d3cd973eebe1bbeb57b14c2c9ba378",
   "pages/welcome/index.wxss": "c13648bd26d1d8808a27620da334a3ed9f9e988f4c3321d8dae7180b6c5627ac",
@@ -19,10 +19,10 @@ const baselineHashes = Object.freeze({
   "subpkg/activity/pages/enrollments/index.wxss": "4ef4ad3ad7366e041d0cbfc6bdf06ffbc6bc7849a1fd291fc710d2ff3544d03f",
   "pages/login/index.wxml": "6784bc99cdff14d6e7691c774a978a6006fe220035d368f10eec46cee16361c3",
   "pages/login/index.wxss": "0f1e5044abe90631bcdd368f0071747fbe3171f820407b9c7829814d1807a59d",
-  "pages/register/index.wxml": "e5d9a8ec1cb836680373d333f15ff0cbd69227a0da13607540044de7701c059f",
-  "pages/register/index.wxss": "2526017a545c6dd1b7fdbd8138cf738d659933e83878fae284e2530e19dd5b8b",
-  "pages/profile/index.wxml": "6b46e91e30f24a7e28e1c833b937685cfb9ed898663e445b42c4ff21bc71c176",
-  "pages/profile/index.wxss": "9098589ff531039922c1b177d21bc5eb740b7a63c7914f77681cc5f398941755",
+  "pages/register/index.wxml": "12c7f23ba35a4aecb2f76a25c11bccbbf19c05d97a5a94de6c0c021e688a4aec",
+  "pages/register/index.wxss": "6314aa4690af35c7e324aee267f1099ffc08a77c7ad49fbe795074a0b19fd59d",
+  "pages/profile/index.wxml": "7f318983c06ef428557a552982e9f99f227d955d876808932e034d76913be28e",
+  "pages/profile/index.wxss": "1306d9bb48ec54fef94e93498f8f7bfd4d2d7ad5d82baa715f3c17c1f24306b7",
 });
 
 function sha256(relativePath) {
@@ -46,4 +46,4 @@ const homeWxml = fs.readFileSync(path.join(root, "pages/home/index.wxml"), "utf8
 assert.match(homeWxml, /home-carousel/);
 assert.doesNotMatch(homeWxml, /home-product-banner/);
 
-console.log("v0.7.0 protected page regression checks passed");
+console.log("v0.7.1 protected page regression checks passed");

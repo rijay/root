@@ -46,11 +46,13 @@ const registerWxss = read("pages/register/index.wxss");
 assert.match(registerWxml, /register-page__avatar-wordmark/);
 assert.match(registerWxml, /register-page__avatar" style="width: 72px;"/);
 assert.match(registerWxml, /register-gender__option[^>]+style="width: 142px;"/);
-assert.match(registerWxml, /register-page__submit" style="width: 350px;"/);
+assert.match(registerWxml, /register-page__submit" style="width: 100%;"/);
+assert.match(registerWxml, /保存资料<\/button>\s*<button wx:if="\{\{editing\}\}" class="register-page__logout"[^>]*>退出登录<\/button>/s);
 assert.match(registerWxml, /!phone \|\| !birthDate \|\| !gender/);
 assert.match(registerWxml, /正在核验会员状态/);
 assert.match(registerWxss, /register-page__avatar-row[\s\S]*margin:\s*26px 4px 0/);
 assert.match(registerWxss, /register-page__submit[\s\S]*width:\s*100% !important/);
+assert.match(registerWxss, /register-page__logout[\s\S]*width:\s*100% !important[\s\S]*margin:\s*12px 0 0/);
 assert.match(registerWxss, /register-page__submit[\s\S]*margin:\s*40px 0 0/);
 assert.match(registerWxss, /register-gender__option[\s\S]*width:\s*142px/);
 
@@ -75,4 +77,4 @@ platformPrivacyHandler((result) => { platformResolution = result; }, { referrer:
 assert.deepEqual(platformResolution, { event: "disagree" });
 resetPrivacyAuthorizationForTests();
 
-console.log("auth high-fidelity contract: 30/30 PASS");
+console.log("auth high-fidelity contract: 32/32 PASS");

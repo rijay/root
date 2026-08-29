@@ -21,7 +21,7 @@ assert.match(registerScript, /const saved = await request\([\s\S]*writeProfileCa
 assert.match(profileScript, /function initialProfileState\(\)/);
 assert.match(profileScript, /ensureLoginSession\(\);[\s\S]*const cached = readProfileCache\(\)/);
 assert.match(profileScript, /readMemberCommerceSummary\(\)/);
-assert.match(profileScript, /clearSessionPageCache\(\)/);
+assert.match(registerScript, /clearSessionPageCache\(\)/);
 assert.match(profileScript, /expectedSessionId = currentLoginSession\(\)\.sessionId/);
 assert.match(profileScript, /currentLoginSession\(\)\.sessionId !== expectedSessionId/);
 assert.match(profileScript, /loggedIn: true, sessionChecking: true, profile: DEFAULT_PROFILE/);

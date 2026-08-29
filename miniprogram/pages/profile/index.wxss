@@ -112,7 +112,6 @@ page,
 }
 
 .profile-login::after,
-.profile-logout::after,
 .profile-member-failure__retry::after {
   border: 0;
 }
@@ -263,31 +262,6 @@ page,
   line-height: 34px;
 }
 
-.profile-logout {
-  position: absolute;
-  left: 20px;
-  height: 44px;
-  min-height: 44px;
-  margin: 0 !important;
-  padding: 0;
-  color: var(--color-danger);
-  background: var(--color-brand-white);
-  border: 1px solid var(--color-ui-line-solid);
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 42px;
-  width: calc(100% - 40px) !important;
-}
-
-.profile-page__content--member .profile-logout {
-  top: 574px;
-}
-
-.profile-page__content--failure .profile-logout {
-  top: 656px;
-}
-
 .profile-version {
   position: absolute;
   left: 20px;
@@ -304,9 +278,9 @@ page,
 }
 
 .profile-page__content--member .profile-version {
-  top: 628px;
+  top: 578px;
 }
 
 .profile-page__content--failure .profile-version {
-  top: 710px;
+  top: 656px;
 }

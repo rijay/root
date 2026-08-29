@@ -1,13 +1,26 @@
-const { request, stringifyError } = require("../../utils/request");
+const { clearToken, request, stringifyError } = require("../../utils/request");
 const { consume: consumeAuthIntent } = require("../../utils/auth-intent");
 const { isPersistedAvatar, uploadCloudAvatar } = require("../../utils/avatar-upload");
 const { FORMAL_ACCESS_STATE, inspectFormalAccess, loginRoute } = require("../../utils/formal-access");
 const router = require("../../utils/router");
 const { defaultOnShareAppMessage } = require("../../utils/page-share");
 const { writeProfileCache } = require("../../utils/profile-cache");
+const { unbindUserScope } = require("../../utils/local-health-assessment");
+const { clearLegacyTransientHealthStorage, clearTransientHealthData } = require("../../utils/transient-health-state");
+const { clearSessionPageCache } = require("../../utils/page-cache");
 
 const REGISTRATION_CONTEXT_STORAGE_KEY = "ROOT_REGISTRATION_CONTEXT_V1";
 const PROFILE_SUBMIT_KEY_STORAGE = "ROOT_PROFILE_SUBMIT_KEY_V1";
+const LOCAL_SESSION_KEYS = [
+  "ROOT_AUTH_INTENT_V1",
+  REGISTRATION_CONTEXT_STORAGE_KEY,
+  PROFILE_SUBMIT_KEY_STORAGE,
+  "ROOT4U_START_PENDING_V1",
+  "ROOT4U_INITIAL_SUBMIT_KEY_V1",
+  "MYROOT_ACTIVITY_ROUTE_INTENT_V1",
+  "MYROOT_ACTIVITY_PENDING_COMMANDS_V1",
+  "ROOT_PROFILE_MEMBER_TARGET_V1",
+];
 
 function today() {
   const date = new Date();
@@ -148,6 +161,18 @@ Page({
     } finally {
       this.setData({ loading: false });
     }
+  },
+
+  logout() {
+    if (this.data.loading || this.data.profileChecking) return;
+    unbindUserScope();
+    clearToken();
+    LOCAL_SESSION_KEYS.forEach((key) => wx.removeStorageSync(key));
+    clearTransientHealthData();
+    clearLegacyTransientHealthStorage(wx);
+    clearSessionPageCache();
+    wx.showToast({ title: "已退出登录", icon: "success" });
+    router.go("/pages/profile/index");
   },
 
   onShareAppMessage: defaultOnShareAppMessage,

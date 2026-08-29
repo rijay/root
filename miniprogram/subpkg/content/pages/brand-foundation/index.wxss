@@ -19,7 +19,7 @@ page {
 }
 
 .brand-foundation__slide--1 { background: var(--color-olive-soft); }
-.brand-foundation__slide--2 { background: var(--color-olive-mid); }
+.brand-foundation__slide--2 { background: var(--root-media-matte-brand-foundation-02); }
 .brand-foundation__slide--3 { background: var(--color-brand-black); }
 .brand-foundation__slide--4 { background: var(--color-neutral-grey); }
 .brand-foundation__slide--5 { background: var(--color-neutral-grey); }
