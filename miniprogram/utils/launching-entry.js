@@ -25,6 +25,7 @@ const QUERY_KEYS = Object.freeze({
   "/pages/legal/index": ["type"],
   "/pages/health-consent/index": ["mode"],
   "/pages/channel-error/index": ["reason"],
+  "/subpkg/campaign/pages/root-with-you/index": ["q"],
   "/subpkg/content/pages/detail/index": ["contentId"],
   "/subpkg/health/pages/assessment/index": ["assessmentType", "assessment_type", "assessmentId", "assessment_id"],
   "/subpkg/health/pages/result/index": ["assessmentId", "assessment_id"],
@@ -50,7 +51,13 @@ function sanitizeOptions(route, source = {}) {
   const keys = QUERY_KEYS[route] || [];
   return keys.reduce((result, key) => {
     const value = safeValue(source[key]);
-    if (value) result[key] = value;
+    if (!value) return result;
+    if (key === "q") {
+      const normalized = value.toUpperCase();
+      if (/^[A-Z0-9]{4,16}$/.test(normalized)) result[key] = normalized;
+      return result;
+    }
+    result[key] = value;
     return result;
   }, {});
 }

@@ -64,6 +64,7 @@ async function run() {
     path: `pages/products/index?cid=${VALID.channelId}&camp=${VALID.campaignId}&target=${encodeURIComponent(VALID.targetPage)}&exp=${VALID.expiresAt}&kid=${VALID.keyId}&sig=${VALID.signature}`,
   });
   assert.equal(scanned.payload.targetPage, VALID.targetPage);
+  assert.equal(parseScannedAttribution({ scene: "q=Z6GRY3RF" }).shortCode, "Z6GRY3RF");
 
   const captured = captureLaunchAttribution({ query: VALID });
   assert.equal(captured.captured, true);

@@ -109,7 +109,7 @@ function parseScannedAttribution(options = {}) {
   const query = options.query || {};
   const path = String(options.path || "");
   const pathQuery = path.includes("?") ? parseQueryText(path.slice(path.indexOf("?") + 1)) : {};
-  const scene = parseScene(query.scene || options.scenePayload || "");
+  const scene = parseScene(query.scene || options.scene || options.scenePayload || "");
   const source = { ...pathQuery, ...scene, ...query };
   const code = shortCode(source.q || source.shortCode || source.short_code);
   if (code) return { present: true, kind: "SHORT_CODE", shortCode: code, payload: { shortCode: code }, reason: "" };

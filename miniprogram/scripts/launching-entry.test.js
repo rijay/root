@@ -17,6 +17,23 @@ assert.deepEqual(launching.resolveEntryTarget({ path: "pages/product-detail/inde
   options: { productId: "4749049439" },
 });
 
+assert.deepEqual(launching.resolveEntryTarget({
+  __rootChannelEntry: true,
+  path: "subpkg/campaign/pages/root-with-you/index",
+  query: { q: "z6gry3rf", answers: "must-not-follow-target" },
+}, []), {
+  route: "/subpkg/campaign/pages/root-with-you/index",
+  options: { q: "Z6GRY3RF" },
+});
+assert.equal(launching.serializeTarget({
+  route: "/subpkg/campaign/pages/root-with-you/index",
+  options: { q: "1A2OGWPR", token: "must-not-follow-target" },
+}), "/subpkg/campaign/pages/root-with-you/index?q=1A2OGWPR");
+assert.deepEqual(launching.sanitizeOptions(
+  "/subpkg/campaign/pages/root-with-you/index",
+  { q: "invalid-code!" },
+), {});
+
 const app = { globalData: {} };
 const entry = launching.prepareLaunchingEntry(app, {}, [
   { route: "pages/products/index", options: { productId: "4875324599", source: "member_return" } },
