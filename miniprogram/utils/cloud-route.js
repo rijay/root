@@ -3,8 +3,9 @@ const CANARY_VALUE_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 // Keep the online trial's v0.7 data surfaces isolated until the same routes
 // are promoted to the default service. Login stays on the stable service, and
 // release builds always bypass this value.
-const TRIAL_CANDIDATE_ROUTE_VALUE = "v070c45d7adidentity057";
+const TRIAL_CANDIDATE_ROUTE_VALUE = "v071817c99fchannel069";
 const TRIAL_CANDIDATE_PATH_PREFIXES = Object.freeze([
+  "/api/v1/channels/",
   "/api/v1/health/",
   "/api/v1/privacy/health-consent",
   "/api/v1/member-commerce/",

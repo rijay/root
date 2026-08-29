@@ -7,10 +7,18 @@ const {
 } = require("../utils/cloud-route");
 
 const validValue = "preview_route_12345678";
-const trialCandidateValue = "v070c45d7adidentity057";
+const trialCandidateValue = "v071817c99fchannel069";
 
 clearCloudRoute();
 assert.equal(appendCloudRoute("/health", "trial"), "/health");
+assert.equal(
+  appendCloudRoute("/api/v1/channels/resolve", "trial"),
+  `/api/v1/channels/resolve?myroot_canary=${trialCandidateValue}`
+);
+assert.equal(
+  appendCloudRoute("/api/v1/channels/funnel", "trial"),
+  `/api/v1/channels/funnel?myroot_canary=${trialCandidateValue}`
+);
 assert.equal(
   appendCloudRoute("/api/v1/health/assessments/catalog", "trial"),
   `/api/v1/health/assessments/catalog?myroot_canary=${trialCandidateValue}`
