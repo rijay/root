@@ -972,8 +972,8 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.doesNotMatch(notice.data.modelProcessingText, /AI|模型|CloudBase|hy3/);
   assert.equal(notice.data.dataManagement.runtimeModelPersonalDataTransfer, false);
   assert.equal(notice.data.dataManagement.backupRetentionDays, 30);
-  assert.equal(notice.data.version, "0.7.0");
-  assert.equal(notice.data.releaseId, "0.7.0");
+  assert.equal(notice.data.version, "0.7.1");
+  assert.equal(notice.data.releaseId, "0.7.1");
 });
 
 test("formal home content HTTP Interface is public and detail uses the same published item", async (t) => {
