@@ -97,6 +97,8 @@ function resolveEntryTarget(showOptions = {}, pages = []) {
 
 function prepareLaunchingEntry(app, showOptions = {}, pages = []) {
   const currentRoute = normalizeRoute(pages.length && pages[pages.length - 1].route);
+  const welcomeVisible = currentRoute === WELCOME_PATH
+    || (!currentRoute && normalizeRoute(showOptions.path) === WELCOME_PATH);
   const target = resolveEntryTarget(showOptions, pages);
   const state = app && app.globalData;
   if (state && state.launchingHandledThisSession) {
@@ -122,10 +124,10 @@ function prepareLaunchingEntry(app, showOptions = {}, pages = []) {
 
   if (state) state.launchingTarget = target;
   return {
-    relaunch: currentRoute !== WELCOME_PATH,
+    relaunch: !welcomeVisible,
     navigateDirect: false,
     target,
-    reason: currentRoute === WELCOME_PATH ? "LAUNCHING_ALREADY_VISIBLE" : "FIRST_SESSION_ENTRY",
+    reason: welcomeVisible ? "LAUNCHING_ALREADY_VISIBLE" : "FIRST_SESSION_ENTRY",
   };
 }
 

@@ -87,6 +87,17 @@ assert.equal(naturalLaunch.navigateDirect, false);
 assert.equal(naturalLaunch.reason, "LAUNCHING_ALREADY_VISIBLE");
 assert.equal(naturalLaunchApp.globalData.launchingTarget.route, "/pages/home/index");
 
+const coldLaunchBeforePageReadyApp = { globalData: {} };
+const coldLaunchBeforePageReady = launching.prepareLaunchingEntry(
+  coldLaunchBeforePageReadyApp,
+  { path: "pages/welcome/index" },
+  [],
+);
+assert.equal(coldLaunchBeforePageReady.relaunch, false, "页面栈尚未建立时不得重复 reLaunch 欢迎页");
+assert.equal(coldLaunchBeforePageReady.navigateDirect, false);
+assert.equal(coldLaunchBeforePageReady.reason, "LAUNCHING_ALREADY_VISIBLE");
+assert.equal(coldLaunchBeforePageReadyApp.globalData.launchingTarget.route, "/pages/home/index");
+
 assert.deepEqual(launching.resolveEntryTarget({ path: "pages/unknown/index" }, []), {
   route: "/pages/home/index",
   options: {},
