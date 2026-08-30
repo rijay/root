@@ -39,20 +39,22 @@
 
     <view class="consent-link" bindtap="openPrivacyPolicy">查看完整隐私保护指引</view>
 
-    <checkbox-group wx:if="{{!active}}" class="consent-confirm" bindchange="toggleConfirmed">
-      <label class="consent-confirm-label">
-        <checkbox value="confirmed" checked="{{confirmed}}" color="#242a0b" />
-        <text>我已阅读，并单独同意处理上述敏感个人信息</text>
-      </label>
-    </checkbox-group>
+    <view class="consent-dock">
+      <checkbox-group wx:if="{{!active}}" class="consent-confirm" bindchange="toggleConfirmed">
+        <label class="consent-confirm-label">
+          <checkbox value="confirmed" checked="{{confirmed}}" color="#242a0b" />
+          <text>我已阅读，并单独同意处理上述敏感个人信息</text>
+        </label>
+      </checkbox-group>
 
-    <view wx:if="{{active}}" class="consent-actions">
-      <button class="btn-secondary" bindtap="goBack">返回</button>
-      <button class="btn-primary consent-withdraw" loading="{{submitting}}" bindtap="withdraw">撤回同意</button>
-    </view>
-    <view wx:else class="consent-actions">
-      <button class="btn-secondary" bindtap="decline">暂不同意，返回健康首页</button>
-      <button class="btn-primary" loading="{{submitting}}" disabled="{{!confirmed || submitting}}" bindtap="agree">单独同意并继续</button>
+      <view wx:if="{{active}}" class="consent-actions">
+        <button class="btn-secondary" bindtap="goBack">返回</button>
+        <button class="btn-primary consent-withdraw" loading="{{submitting}}" bindtap="withdraw">撤回同意</button>
+      </view>
+      <view wx:else class="consent-actions">
+        <button class="btn-secondary" bindtap="decline">暂不同意，返回健康首页</button>
+        <button class="btn-primary" loading="{{submitting}}" disabled="{{!confirmed || submitting}}" bindtap="agree">单独同意并继续</button>
+      </view>
     </view>
   </block>
 

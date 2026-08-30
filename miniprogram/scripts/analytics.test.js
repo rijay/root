@@ -17,6 +17,16 @@ assert.equal(JSON.stringify(safe).includes("secret"), false);
 assert.equal(analytics.sanitizePayload("unknown_event", {}), null);
 assert.equal(analytics.failureReason({ code: "CAPACITY_FULL" }), "CAPACITY_FULL");
 assert.equal(analytics.failureReason({ message: "private details" }), "REQUEST_FAILED");
+assert.deepEqual(analytics.sanitizePayload("assessment_source_confirm", {
+  assessmentType: "GUT_REGULARITY",
+  optionId: "OFFLINE_EVENT",
+  configVersion: 2,
+  answers: { private: true },
+}), {
+  assessmentType: "GUT_REGULARITY",
+  optionId: "OFFLINE_EVENT",
+  configVersion: 2,
+});
 
 assert.deepEqual(analytics.sanitizePayload("home_banner_click", {
   contentId: "ROOT_WITH_YOU_V060",

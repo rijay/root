@@ -41,3 +41,16 @@ test("unknown events and incomplete payloads fail closed", () => {
     productId: "4749049439",
   }), /字段不完整/);
 });
+
+test("assessment source analytics keep only the configured option identity", () => {
+  assert.deepEqual(productAnalytics.sanitizePayload("assessment_source_confirm", {
+    assessmentType: "GUT_REGULARITY",
+    optionId: "OFFLINE_EVENT",
+    configVersion: 2,
+    answers: { private: true },
+  }), {
+    assessmentType: "GUT_REGULARITY",
+    optionId: "OFFLINE_EVENT",
+    configVersion: 2,
+  });
+});

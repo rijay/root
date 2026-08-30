@@ -4,10 +4,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-// v0.7.1 在 0.7.0 基线上仅允许资料编辑按钮自适应、退出入口迁移与对应首页收口；
-// 这些受保护页面的校验值继续阻止范围外漂移。
+// v0.7.2 只放开已明确提出的启动图防闪；其余受保护页面继续阻止范围外漂移。
 const baselineHashes = Object.freeze({
-  "pages/welcome/index.wxml": "9c11d9a567593751bb889b28ee42da9d68d3cd973eebe1bbeb57b14c2c9ba378",
+  "pages/welcome/index.wxml": "a8e8de1e4e7558171dc36f9ab0e39959d0e925afd4741083bc7c9eb13fdfddc0",
   "pages/welcome/index.wxss": "c13648bd26d1d8808a27620da334a3ed9f9e988f4c3321d8dae7180b6c5627ac",
   "pages/welcome/index.json": "93d132db2005aeb2ce1745eb556e61e85aeb2ab9f576369267fa3cb493d4b699",
   "pages/activities/index.wxml": "4f6e48a7c6633f04afb103e649e6989ca930b126ccb964d4d3dade248e91dd5b",
@@ -46,4 +45,4 @@ const homeWxml = fs.readFileSync(path.join(root, "pages/home/index.wxml"), "utf8
 assert.match(homeWxml, /home-carousel/);
 assert.doesNotMatch(homeWxml, /home-product-banner/);
 
-console.log("v0.7.1 protected page regression checks passed");
+console.log("v0.7.2 protected page regression checks passed");

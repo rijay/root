@@ -1,5 +1,6 @@
 const { sessionTokenDigest } = require("./credentialProtection");
 const { createClientError } = require("./clientError");
+const assessmentSourceSurvey = require("./assessmentSourceSurvey");
 const channelFunnel = require("./channelFunnel");
 const growthEngagement = require("./growthEngagement");
 const healthAssessment = require("./healthAssessment");
@@ -107,6 +108,16 @@ function completeAssessment(data, token, assessmentId, body = {}, context = {}) 
   return result;
 }
 
+function assessmentSourceGate(data, token, assessmentId) {
+  const actor = principal(data, token);
+  return assessmentSourceSurvey.gate(data, actor.rootUserId, assessmentId);
+}
+
+function confirmAssessmentSource(data, token, assessmentId, body = {}, context = {}) {
+  const actor = principal(data, token);
+  return assessmentSourceSurvey.confirm(data, actor.rootUserId, assessmentId, body, context);
+}
+
 function assessmentHistory(data, token, query = {}) {
   const actor = principal(data, token);
   return healthAssessment.history(data, actor.rootUserId, query);
@@ -209,12 +220,14 @@ function recordAnalytics(data, token, body = {}, context = {}) {
 }
 
 module.exports = Object.freeze({
+  assessmentSourceGate,
   assessmentCatalog,
   assessmentHistory,
   attributeChannel,
   claimPopup,
   compareAssessments,
   completeAssessment,
+  confirmAssessmentSource,
   deleteAssessment,
   firstAttribution,
   getAssessment,

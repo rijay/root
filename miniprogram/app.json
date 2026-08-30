@@ -33,6 +33,7 @@
       "root": "subpkg/health",
       "pages": [
         "pages/assessment/index",
+        "pages/source-confirmation/index",
         "pages/result/index",
         "pages/history/index",
         "pages/compare/index"

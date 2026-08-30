@@ -14,6 +14,7 @@ const {
 } = require("../../../../utils/assessment-flow");
 const router = require("../../../../utils/router");
 const { defaultOnShareAppMessage } = require("../../../../utils/page-share");
+const { nextPathAfterAssessment } = require("../../../../utils/assessment-source-survey");
 const {
   GUT_INTRO_SOURCE,
   GUT_INTRO_PATH,
@@ -287,8 +288,9 @@ Page({
       const result = await completeAssessment(this.data.assessmentId, answers);
       const assessmentId = result.assessment && result.assessment.assessmentId;
       if (!assessmentId) throw new Error("结果生成失败");
-      this.setData({ dirty: false, saveStatusText: "结果已生成。", saveStatusTone: "saved" });
-      wx.redirectTo({ url: `/subpkg/health/pages/result/index?assessmentId=${assessmentId}` });
+      this.setData({ dirty: false, saveStatusText: "结果已生成，正在确认下一步…", saveStatusTone: "saved" });
+      const nextPath = await nextPathAfterAssessment(result.assessment);
+      wx.redirectTo({ url: nextPath });
     } catch (error) {
       this.setData({
         dirty: true,

@@ -7,6 +7,9 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "u
 
 assert.match(read("pages/home/index.wxml"), /lazy-load="\{\{index > 0\}\}"/);
 assert.match(read("pages/welcome/index.wxml"), /screens\[1\][\s\S]*lazy-load="\{\{true\}\}"/);
+assert.match(read("pages/welcome/index.wxml"), /screens\[0\][\s\S]*fade-in="\{\{false\}\}"/);
+assert.doesNotMatch(read("pages/welcome/index.js"), /setData\(\{ screens \}\)/);
+assert.match(read("pages/welcome/index.js"), /const INITIAL_SCREENS = initialScreens\(\)/);
 assert.match(read("pages/products/index.wxml"), /lazy-load="\{\{index > 0\}\}"[\s\S]*binderror="productImageFailed"/);
 assert.match(read("pages/products/index.js"), /productImageFailed\(event\)/);
 assert.match(read("subpkg/content/pages/detail/index.wxml"), /lazy-load="\{\{assetIndex > 0\}\}"/);

@@ -26,8 +26,18 @@ export function fetchChannelFunnel(filters = {}, options = {}) {
   return adminRequest(`/api/v1/admin/channel-funnel${query ? `?${query}` : ""}`, options);
 }
 
+export function fetchAssessmentSourceSurvey(options = {}) {
+  return adminRequest("/api/v1/admin/assessment-source-survey?assessmentType=GUT_REGULARITY", options);
+}
+
 export function saveChannel(input) {
   return postAdminJson("/api/v1/admin/channels", input, { headers: commandHeaders("channel-upsert") });
+}
+
+export function saveAssessmentSourceSurvey(input) {
+  return postAdminJson("/api/v1/admin/assessment-source-survey", input, {
+    headers: commandHeaders("assessment-source-survey-upsert"),
+  });
 }
 
 export function createChannelCode(input) {

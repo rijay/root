@@ -11,6 +11,7 @@ const EVENT_FIELDS = Object.freeze({
   channel_attribution_attempt: ["channelId", "result", "failureReason"],
   assessment_start: ["assessmentType", "questionnaireVersion", "isRetest"],
   assessment_complete: ["assessmentType", "questionnaireVersion", "isRetest"],
+  assessment_source_confirm: ["assessmentType", "optionId", "configVersion"],
   assessment_compare_view: ["leftVersion", "rightVersion", "comparable"],
   page_share: ["pageType", "mappingType"],
   activity_signup: ["activityId", "action", "result", "failureReason"],
@@ -47,7 +48,7 @@ function sanitizePayload(eventName, payload = {}) {
     if (!Object.prototype.hasOwnProperty.call(payload, key)) return result;
     const value = payload[key];
     if (["loggedIn", "isRetest", "comparable"].includes(key)) result[key] = value === true;
-    else if (["questionnaireVersion", "leftVersion", "rightVersion", "bannerPosition"].includes(key)) {
+    else if (["questionnaireVersion", "leftVersion", "rightVersion", "bannerPosition", "configVersion"].includes(key)) {
       const number = Number(value);
       result[key] = Number.isSafeInteger(number) && number >= 0 ? number : 0;
     } else result[key] = safeText(value, key === "sourcePage" || key === "pageType" ? 120 : 96);

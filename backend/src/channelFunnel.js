@@ -142,7 +142,7 @@ function adminAudit(data, action, targetType, targetId, input, after) {
     targetType,
     targetId,
     operatorId: input.operatorId || input.operator_id || "",
-    reason: input.reason || "维护 0.7.1 渠道归因配置",
+    reason: input.reason || "维护渠道归因配置",
     after,
     metadata: {
       requestId: input.requestId || input.request_id || "",

@@ -8,6 +8,7 @@ const EVENT_SCHEMAS = Object.freeze({
   member_center_handoff: Object.freeze(["productId", "result", "failureReason", "sourcePage"]),
   assessment_start: Object.freeze(["assessmentType", "questionnaireVersion", "isRetest"]),
   assessment_complete: Object.freeze(["assessmentType", "questionnaireVersion", "isRetest"]),
+  assessment_source_confirm: Object.freeze(["assessmentType", "optionId", "configVersion"]),
   assessment_compare_view: Object.freeze(["leftVersion", "rightVersion", "comparable"]),
   page_share: Object.freeze(["pageType", "mappingType"]),
   activity_signup: Object.freeze(["activityId", "action", "result", "failureReason"]),
@@ -32,6 +33,7 @@ const REQUIRED_FIELDS = Object.freeze({
   member_center_handoff: ["productId", "result", "sourcePage"],
   assessment_start: ["assessmentType", "questionnaireVersion", "isRetest"],
   assessment_complete: ["assessmentType", "questionnaireVersion", "isRetest"],
+  assessment_source_confirm: ["assessmentType", "optionId", "configVersion"],
   assessment_compare_view: ["leftVersion", "rightVersion", "comparable"],
   page_share: ["pageType", "mappingType"],
   activity_signup: ["activityId", "action", "result"],
@@ -58,7 +60,7 @@ function integer(value) {
 
 function normalizedValue(key, value) {
   if (["loggedIn", "isRetest", "comparable"].includes(key)) return value === true;
-  if (["questionnaireVersion", "leftVersion", "rightVersion", "streak", "totalDays"].includes(key)) {
+  if (["questionnaireVersion", "leftVersion", "rightVersion", "streak", "totalDays", "configVersion"].includes(key)) {
     return integer(value);
   }
   if (key === "sourcePage" || key === "pageType") {

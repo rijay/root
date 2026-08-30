@@ -1,5 +1,6 @@
 .health-consent-page {
   padding-top: 48rpx;
+  padding-bottom: calc(360rpx + env(safe-area-inset-bottom));
 }
 
 .consent-header {
@@ -46,7 +47,7 @@
 }
 
 .consent-confirm {
-  padding: 24rpx 0;
+  padding: 0 0 16rpx;
 }
 
 .consent-confirm-label {
@@ -67,7 +68,19 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 16rpx;
-  padding-top: 24rpx;
+  padding-top: 0;
+}
+
+.consent-dock {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.98);
+  border-top: 1rpx solid var(--color-border);
+  box-shadow: 0 -8rpx 24rpx rgba(0, 0, 0, 0.06);
 }
 
 .consent-actions button,

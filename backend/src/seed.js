@@ -76,6 +76,7 @@ function createSeedData() {
     questionnaireAnswers: [],
     healthAssessmentDefinitions: [],
     healthAssessmentAttempts: [],
+    assessmentSourceSurveyConfigs: [],
     healthAdviceSnapshots: [],
     healthScaleResponses: [],
     healthContentVersions: [],

@@ -135,6 +135,7 @@ const v060MigrationNames = Object.freeze([
   "071_product_analytics.sql",
   "072_health_advice_snapshot.sql",
   "073_channel_code_funnel.sql",
+  "074_assessment_source_survey.sql",
 ]);
 const ACTIVITY_TASK_SOURCE_CHECKSUMS = Object.freeze({
   "040_activity_p0_content_and_session_policy.sql": "47957cd009b26ce848e9635f17d5e29b73e57bb956ffbff077a22a5d0ad03e59",
@@ -330,7 +331,7 @@ test("historical migrations remain immutable while 067 retires unused runtime st
   const sql = migrationSql();
   assert.equal(splitSqlStatements(sql).length, 5);
   const manifest = JSON.parse(fs.readFileSync(path.join(migrationsDir, "checksums.json"), "utf8"));
-  assert.equal(Object.keys(manifest.files).length, 73);
+  assert.equal(Object.keys(manifest.files).length, 74);
   v060MigrationNames.forEach((fileName) => {
     const sql = fs.readFileSync(path.join(migrationsDir, fileName), "utf8");
     assert.equal(manifest.files[fileName], migrationChecksum(sql));
@@ -631,7 +632,7 @@ test("historical migrations remain immutable while 067 retires unused runtime st
   assert.match(taskSourceInvalidationMigration, /source_event_type = 'activity\.enrollment\.canceled\.v1'/);
 
   const storeSource = fs.readFileSync(path.join(__dirname, "..", "src", "store.js"), "utf8");
-  assert.match(storeSource, /const MYSQL_SCHEMA_VERSION = 28;/);
+  assert.match(storeSource, /const MYSQL_SCHEMA_VERSION = 29;/);
 });
 
 test("runtime alert delivery schema is privacy-minimized, fenced, and terminally fail-closed", () => {

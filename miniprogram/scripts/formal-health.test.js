@@ -9,6 +9,7 @@ const healthPackage = app.subPackages.find((item) => item.root === "subpkg/healt
 
 assert.deepEqual(healthPackage.pages, [
   "pages/assessment/index",
+  "pages/source-confirmation/index",
   "pages/result/index",
   "pages/history/index",
   "pages/compare/index",
@@ -80,6 +81,8 @@ const consentWxml = read("pages/health-consent/index.wxml");
 assert.match(consentWxml, /首页、活动和会员支持不以同意为前提/);
 assert.match(consentWxml, /健康建议说明/);
 assert.match(consentWxml, /notice\.modelProcessingText/);
+assert.match(consentWxml, /class="consent-dock"/);
+assert.match(read("pages/health-consent/index.wxss"), /\.consent-dock\s*\{[^}]*position:\s*fixed/s);
 assert.doesNotMatch(consentWxml, /任务|奖励|打卡/);
 assert.doesNotMatch(consentWxml, /Gate/);
 

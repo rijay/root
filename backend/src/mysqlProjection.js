@@ -35,6 +35,7 @@ const JSON_COLUMNS = new Set([
   "external_status_json",
   "metadata",
   "metadata_json",
+  "options_json",
   "payload_json",
   "purposes_json",
   "questions_json",
@@ -214,7 +215,18 @@ const PROJECTIONS = [
       "questionnaire_id", "questionnaire_version", "status", "safety_state", "is_retest",
       "answers_json", "dimensions_json", "result_json", "result_copy_version", "source_channel",
       "source_campaign_id", "source_qr_code_id", "source_visit_id",
+      "discovery_channel_option_id", "discovery_channel_option_label",
+      "discovery_channel_config_version", "discovery_channel_confirmed_at",
       "started_at", "completed_at", "health_data_redacted_at", "created_at", "updated_at",
+    ],
+  },
+  {
+    table: "assessment_source_survey_config",
+    source: "assessmentSourceSurveyConfigs",
+    id: "assessment_source_config_id",
+    columns: [
+      "assessment_source_config_id", "assessment_type", "status", "title", "subtitle",
+      "options_json", "config_version", "created_by", "updated_by", "created_at", "updated_at",
     ],
   },
   {

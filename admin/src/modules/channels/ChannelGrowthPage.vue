@@ -179,6 +179,52 @@
           </el-table>
         </el-card>
       </el-tab-pane>
+
+      <el-tab-pane label="来源确认配置" name="source-survey">
+        <el-alert
+          :closable="false"
+          title="该配置只影响肠道五题完成后的来源确认页；停用或不配置选项时，小程序直接进入结果页。"
+          type="info"
+        />
+        <el-card class="source-survey-card" shadow="never">
+          <template #header>
+            <div class="card-heading">
+              <strong>评测来源确认</strong>
+              <span>当前配置版本：{{ surveyForm.configVersion || '尚未配置' }}</span>
+            </div>
+          </template>
+          <el-form label-position="top" :model="surveyForm">
+            <el-form-item label="状态">
+              <el-select v-model="surveyForm.status">
+                <el-option v-for="item in surveyStatuses" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="页面标题">
+              <el-input v-model="surveyForm.title" maxlength="80" show-word-limit />
+            </el-form-item>
+            <el-form-item label="补充说明">
+              <el-input v-model="surveyForm.subtitle" maxlength="180" show-word-limit type="textarea" :rows="2" />
+            </el-form-item>
+            <el-form-item label="渠道选项（最多 30 项）">
+              <div class="survey-options">
+                <div v-for="(option, index) in surveyForm.options" :key="index" class="survey-option-row">
+                  <el-input v-model="option.optionId" placeholder="唯一 ID，如 OFFLINE_EVENT" maxlength="48" />
+                  <el-input v-model="option.label" placeholder="用户看到的名称，如 线下活动" maxlength="40" />
+                  <el-button link type="danger" @click="removeSurveyOption(index)">删除</el-button>
+                </div>
+                <el-button :disabled="surveyForm.options.length >= 30" plain @click="addSurveyOption">添加渠道选项</el-button>
+              </div>
+            </el-form-item>
+            <el-button
+              :disabled="access.disabled(ADMIN_CAPABILITIES.CHANNEL_MANAGE)"
+              :loading="savingSurvey"
+              :title="access.reason(ADMIN_CAPABILITIES.CHANNEL_MANAGE)"
+              type="primary"
+              @click="submitSurvey"
+            >保存来源确认配置</el-button>
+          </el-form>
+        </el-card>
+      </el-tab-pane>
     </el-tabs>
   </section>
 </template>
@@ -191,8 +237,10 @@ import {
   changeChannelCodeStatus,
   createChannelCode,
   downloadChannelCode,
+  fetchAssessmentSourceSurvey,
   fetchChannelConfiguration,
   fetchChannelFunnel,
+  saveAssessmentSourceSurvey,
   saveChannel,
 } from "./adminChannelApi";
 
@@ -202,6 +250,7 @@ const loading = ref(false);
 const funnelLoading = ref(false);
 const savingChannel = ref(false);
 const creatingCode = ref(false);
+const savingSurvey = ref(false);
 const downloadingCodeId = ref("");
 const errorMessage = ref("");
 const dateRange = ref([]);
@@ -212,11 +261,20 @@ const funnel = reactive({ totals: {}, rows: [] });
 const filters = reactive({ channelId: "", campaignId: "", shortCode: "" });
 const channelForm = reactive({ channelId: "", campaignId: "", status: "ACTIVE" });
 const codeForm = reactive({ channelId: "", label: "", envVersion: "release" });
+const surveyForm = reactive({
+  assessmentType: "GUT_REGULARITY",
+  status: "PAUSED",
+  title: "你是从哪里知道 ROOT 的？",
+  subtitle: "请选择最接近的一项，帮助我们优化后续活动与服务。",
+  configVersion: 0,
+  options: [],
+});
 const statuses = [
   { label: "启用", value: "ACTIVE" },
   { label: "暂停", value: "PAUSED" },
   { label: "归档", value: "ARCHIVED" },
 ];
+const surveyStatuses = statuses.filter((item) => item.value !== "ARCHIVED");
 const stages = [
   { key: "SCAN_OPEN", label: "扫码打开", short: "打开" },
   { key: "INTRO_VIEW", label: "到达介绍", short: "介绍" },
@@ -242,6 +300,18 @@ async function loadConfiguration() {
   configuration.codes = result.codes || [];
 }
 
+async function loadSurveyConfiguration() {
+  const result = await fetchAssessmentSourceSurvey();
+  Object.assign(surveyForm, {
+    assessmentType: result.assessmentType || "GUT_REGULARITY",
+    status: result.status || "PAUSED",
+    title: result.title || "你是从哪里知道 ROOT 的？",
+    subtitle: result.subtitle || "请选择最接近的一项，帮助我们优化后续活动与服务。",
+    configVersion: Number(result.configVersion || 0),
+    options: (result.options || []).map((item) => ({ optionId: item.optionId, label: item.label })),
+  });
+}
+
 async function loadFunnel() {
   funnelLoading.value = true;
   errorMessage.value = "";
@@ -259,9 +329,43 @@ async function loadFunnel() {
 async function load() {
   loading.value = true;
   errorMessage.value = "";
-  try { await Promise.all([loadConfiguration(), loadFunnel()]); }
+  try { await Promise.all([loadConfiguration(), loadFunnel(), loadSurveyConfiguration()]); }
   catch (error) { errorMessage.value = error.message; }
   finally { loading.value = false; }
+}
+
+function addSurveyOption() {
+  if (surveyForm.options.length >= 30) return;
+  surveyForm.options.push({ optionId: "", label: "" });
+}
+
+function removeSurveyOption(index) {
+  surveyForm.options.splice(index, 1);
+}
+
+async function submitSurvey() {
+  const options = surveyForm.options.map((item) => ({
+    optionId: String(item.optionId || "").trim().toUpperCase(),
+    label: String(item.label || "").trim(),
+  }));
+  if (!surveyForm.title.trim()) return ElMessage.warning("请填写页面标题");
+  if (options.some((item) => !/^[A-Z0-9][A-Z0-9_-]{0,47}$/.test(item.optionId) || !item.label)) {
+    return ElMessage.warning("请补全渠道选项，ID 仅支持大写字母、数字、下划线和短横线");
+  }
+  if (surveyForm.status === "ACTIVE" && !options.length) return ElMessage.warning("启用前至少配置一个渠道选项");
+  savingSurvey.value = true;
+  try {
+    await saveAssessmentSourceSurvey({
+      assessmentType: "GUT_REGULARITY",
+      status: surveyForm.status,
+      title: surveyForm.title.trim(),
+      subtitle: surveyForm.subtitle.trim(),
+      options,
+    });
+    ElMessage.success(surveyForm.status === "ACTIVE" ? "来源确认页已启用" : "来源确认页已停用");
+    await loadSurveyConfiguration();
+  } catch (error) { errorMessage.value = error.message; }
+  finally { savingSurvey.value = false; }
 }
 
 async function submitChannel() {
@@ -333,4 +437,10 @@ defineExpose({ load });
 .metric-value { margin-top: 8px; font-size: 30px; font-weight: 650; }
 .management-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
 .management-grid :deep(.el-select), .management-grid :deep(.el-date-editor) { width: 100%; }
+.source-survey-card { margin-top: 14px; }
+.source-survey-card :deep(.el-select) { width: 100%; }
+.card-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.card-heading span { color: var(--root-muted); font-size: 12px; }
+.survey-options { display: grid; width: 100%; gap: 10px; }
+.survey-option-row { display: grid; grid-template-columns: minmax(180px, 0.8fr) minmax(240px, 1.2fr) auto; gap: 10px; align-items: center; }
 </style>

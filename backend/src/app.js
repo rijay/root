@@ -20,6 +20,7 @@ const { isAtomicWriteError } = require("./atomicWriteError");
 const { clientErrorResponse, createClientError } = require("./clientError");
 const sessionModule = require("./sessionModule");
 const adminFormalUserQuery = require("./adminFormalUserQuery");
+const assessmentSourceSurvey = require("./assessmentSourceSurvey");
 const channelFunnel = require("./channelFunnel");
 const { generateChannelCodeImage } = require("./wechatMiniProgramCode");
 const v060Api = require("./v060Api");
@@ -776,6 +777,18 @@ function createApp(options = {}) {
           req.headers["x-idempotency-key"] || ""
         ));
       }
+      const assessmentSourceMatch = url.pathname.match(/^\/api\/v1\/health\/assessments\/([A-Za-z0-9_-]{1,64})\/source-confirmation$/);
+      if (method === "GET" && assessmentSourceMatch) {
+        return apiOk(res, v060Api.assessmentSourceGate(data, token, assessmentSourceMatch[1]));
+      }
+      if (method === "POST" && assessmentSourceMatch) {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => v060Api.confirmAssessmentSource(data, token, assessmentSourceMatch[1], body, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
       const assessmentDetailMatch = url.pathname.match(/^\/api\/v1\/health\/assessments\/([A-Za-z0-9_-]{1,64})$/);
       if (method === "GET" && assessmentDetailMatch) {
         return apiOk(res, v060Api.getAssessment(data, token, assessmentDetailMatch[1]));
@@ -921,6 +934,10 @@ function createApp(options = {}) {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_ANALYTICS_READ);
         return apiOk(res, channelFunnel.listConfiguration(data, Object.fromEntries(url.searchParams)));
       }
+      if (route === "GET /api/v1/admin/assessment-source-survey") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_ANALYTICS_READ);
+        return apiOk(res, assessmentSourceSurvey.listConfiguration(data, Object.fromEntries(url.searchParams)));
+      }
       if (route === "GET /api/v1/admin/channel-funnel") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_ANALYTICS_READ);
         return apiOk(res, channelFunnel.report(data, Object.fromEntries(url.searchParams)));
@@ -1022,6 +1039,15 @@ function createApp(options = {}) {
           data,
           req,
           () => channelFunnel.upsertChannel(data, command, runtimeContext)
+        ));
+      }
+      if (route === "POST /api/v1/admin/assessment-source-survey") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_MANAGE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "评测来源确认配置", "ASSESSMENT_SOURCE_CONFIG_UPSERT");
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => assessmentSourceSurvey.saveConfiguration(data, command, runtimeContext)
         ));
       }
       if (route === "POST /api/v1/admin/channel-codes") {

@@ -4,9 +4,9 @@
 -- This inspection snapshot is not proof that migrations ran in any candidate or production environment.
 -- snapshot_format: myroot-mysql-schema-snapshot:v1
 -- mysql_engine_family: 8.0
--- migration_set_sha256: 23adfe30cd04dc84d0e415b0fb2c1832a14ae2f2fd564aa93314b1d38b8ef8bc
--- schema_body_sha256: a79b0b41c7102750a81af10d94a44c31e33ba5d8a82b4edcbd79d5da93f57ddc
--- table_count: 25
+-- migration_set_sha256: 6fe58eb59385b41ed9c4bf2b66875e1b760cf4ce6d5e14bbc9991ee9ca5f909b
+-- schema_body_sha256: 11c941399be57b7b349c8c7720406018eebde9ec55ae7e62b58465960e4178b0
+-- table_count: 26
 -- migration: 001_store_snapshot.sql sha256:57f0c3032dea218ad010f41ee4e9af6667ea4ae8f13c76096bc67f56763792e0
 -- migration: 002_core_relational.sql sha256:62362767da1748f1aa7e2ec974677b410f123b1c002f2f1519102f19ff905821
 -- migration: 003_privacy_consent.sql sha256:5758b1040533ef411361c8a2aad251497dfad7fb353348d6c887d3856bd68631
@@ -80,6 +80,7 @@
 -- migration: 071_product_analytics.sql sha256:646f786fde31acbf3f2009a2dfb27f01e80fa35dc12d3e7e15138cd8722d1f35
 -- migration: 072_health_advice_snapshot.sql sha256:7af77293b5d63f31c54fd33a8817f85bbc895b66c569e7e8bf76e642f9132fb8
 -- migration: 073_channel_code_funnel.sql sha256:e5070d0a816d7f561d8cec6a599bce3990d97827b510b5375ededf88d23cfb85
+-- migration: 074_assessment_source_survey.sql sha256:017e86e1103a63a73c04efd5ece580cd19fc9bd612e9db80c25d2a40bdc21a25
 
 SET NAMES utf8mb4;
 SET time_zone = '+08:00';
@@ -261,6 +262,24 @@ CREATE TABLE `activity_session_event` (
   CONSTRAINT `chk_activity_session_event_reason` CHECK ((`reason_code` in (_utf8mb4'OPERATOR_CANCELED',_utf8mb4'WEATHER',_utf8mb4'VENUE',_utf8mb4'FORCE_MAJEURE',_utf8mb4'OTHER'))),
   CONSTRAINT `chk_activity_session_event_sequence` CHECK ((`event_sequence` > 0)),
   CONSTRAINT `chk_activity_session_event_to_status` CHECK ((`to_status` = _utf8mb4'CANCELED'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- table: assessment_source_survey_config
+CREATE TABLE `assessment_source_survey_config` (
+  `assessment_source_config_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `assessment_type` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `title` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subtitle` varchar(180) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `options_json` json NOT NULL,
+  `config_version` int NOT NULL,
+  `created_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `updated_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime(3) NOT NULL,
+  `updated_at` datetime(3) NOT NULL,
+  PRIMARY KEY (`assessment_source_config_id`),
+  UNIQUE KEY `uk_assessment_source_survey_type` (`assessment_type`),
+  KEY `idx_assessment_source_survey_status` (`status`,`updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- table: analytics_event
@@ -506,6 +525,10 @@ CREATE TABLE `health_assessment_attempt` (
   `source_campaign_id` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `source_qr_code_id` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `source_visit_id` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `discovery_channel_option_id` varchar(48) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `discovery_channel_option_label` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `discovery_channel_config_version` int DEFAULT NULL,
+  `discovery_channel_confirmed_at` datetime(3) DEFAULT NULL,
   `started_at` datetime(3) NOT NULL,
   `completed_at` datetime(3) DEFAULT NULL,
   `health_data_redacted_at` datetime(3) DEFAULT NULL,
@@ -516,6 +539,7 @@ CREATE TABLE `health_assessment_attempt` (
   KEY `idx_health_assessment_attempt_questionnaire` (`questionnaire_id`,`questionnaire_version`,`status`),
   KEY `fk_health_assessment_attempt_definition` (`assessment_definition_id`),
   KEY `idx_health_assessment_attempt_channel_source` (`source_campaign_id`,`source_qr_code_id`,`completed_at`),
+  KEY `idx_health_assessment_discovery_channel` (`discovery_channel_option_id`,`discovery_channel_confirmed_at`),
   CONSTRAINT `fk_health_assessment_attempt_definition` FOREIGN KEY (`assessment_definition_id`) REFERENCES `health_assessment_definition` (`assessment_definition_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

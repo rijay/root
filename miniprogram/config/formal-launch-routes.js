@@ -27,6 +27,7 @@ const SUBPACKAGE_ROUTES = Object.freeze([
   "subpkg/content/pages/webview/index",
   "subpkg/campaign/pages/root-with-you/index",
   "subpkg/health/pages/assessment/index",
+  "subpkg/health/pages/source-confirmation/index",
   "subpkg/health/pages/result/index",
   "subpkg/health/pages/history/index",
   "subpkg/health/pages/compare/index",
