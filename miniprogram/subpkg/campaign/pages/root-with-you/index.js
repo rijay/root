@@ -38,7 +38,11 @@ Page({
     if (this.data.opening) return;
     this.setData({ opening: true });
     try {
-      await recordFunnelStage("START_CLICK");
+      try {
+        await recordFunnelStage("START_CLICK");
+      } catch (_) {
+        // 渠道漏斗记录是辅助数据，失败时仍需允许用户进入核心评测流程。
+      }
       const target = GUT_ASSESSMENT_CONTINUE_PATH;
       const allowed = await router.routeGuard(target);
       track("campaign_assessment_start", {
