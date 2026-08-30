@@ -4,6 +4,7 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
+const appConfig = JSON.parse(read("app.json"));
 const welcomeConfig = JSON.parse(read("pages/welcome/index.json"));
 
 assert.match(read("pages/home/index.wxml"), /lazy-load="\{\{index > 0\}\}"/);
@@ -11,6 +12,9 @@ assert.match(read("pages/welcome/index.wxml"), /screens\[1\][\s\S]*lazy-load="\{
 assert.match(read("pages/welcome/index.wxml"), /screens\[0\][\s\S]*fade-in="\{\{false\}\}"/);
 assert.doesNotMatch(read("pages/welcome/index.js"), /setData\(\{ screens \}\)/);
 assert.match(read("pages/welcome/index.js"), /const INITIAL_SCREENS = initialScreens\(\)/);
+assert.equal(appConfig.window.backgroundColor, "#000000");
+assert.equal(appConfig.window.backgroundColorTop, "#000000");
+assert.equal(appConfig.window.backgroundColorBottom, "#000000");
 assert.equal(welcomeConfig.backgroundColor, "#000000");
 assert.equal(welcomeConfig.backgroundColorTop, "#000000");
 assert.equal(welcomeConfig.backgroundColorBottom, "#000000");

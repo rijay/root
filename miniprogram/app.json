@@ -59,7 +59,9 @@
     "navigationBarTitleText": "myRoot",
     "navigationBarBackgroundColor": "#FFFFFF",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#F5F5F7"
+    "backgroundColor": "#000000",
+    "backgroundColorTop": "#000000",
+    "backgroundColorBottom": "#000000"
   },
   "usingComponents": {},
   "tabBar": {
