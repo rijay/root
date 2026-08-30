@@ -59,12 +59,25 @@ test("trusted phone clients accept only the documented client source and platfor
   assert.equal(result.openid, "openid_verified");
 });
 
-test("environment, AppID, source, openid and resource-sharing mismatches fail closed", async () => {
+test("unknown or missing source/platform pairs fall back without trusting CloudBase headers", async () => {
+  const adapter = createCloudbaseTrustedWechatIdentityAdapter(ACTIVE_ENV);
+  const cases = [
+    trustedHeaders({ "x-wx-source": "wx_client", "x-wx-platform": "harmonyos" }),
+    trustedHeaders({ "x-wx-source": "wx_client", "x-wx-platform": "" }),
+    trustedHeaders({ "x-wx-source": "", "x-wx-platform": "android" }),
+    trustedHeaders({ "x-wx-source": "unknown_client", "x-wx-platform": "android" }),
+  ];
+
+  for (const headers of cases) {
+    assert.equal(await adapter({ request: request(headers) }), null);
+  }
+});
+
+test("environment, AppID, openid and resource-sharing mismatches fail closed", async () => {
   const adapter = createCloudbaseTrustedWechatIdentityAdapter(ACTIVE_ENV);
   const cases = [
     [trustedHeaders({ "x-wx-env": "other-env" }), "CLOUDBASE_IDENTITY_ENV_MISMATCH"],
     [trustedHeaders({ "x-wx-appid": "wx_other_app" }), "CLOUDBASE_IDENTITY_APPID_MISMATCH"],
-    [trustedHeaders({ "x-wx-source": "wx_client", "x-wx-platform": "devtools" }), "CLOUDBASE_IDENTITY_SOURCE_INVALID"],
     [trustedHeaders({ "x-wx-openid": "" }), "CLOUDBASE_IDENTITY_OPENID_MISSING"],
     [trustedHeaders({ "x-wx-from-openid": "shared_openid" }), "CLOUDBASE_IDENTITY_RESOURCE_SHARING_UNSUPPORTED"],
   ];

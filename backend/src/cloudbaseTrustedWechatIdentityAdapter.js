@@ -76,7 +76,11 @@ function createCloudbaseTrustedWechatIdentityAdapter(env = {}) {
     }
     const allowedPlatforms = ALLOWED_SOURCE_PLATFORM_PAIRS[source];
     if (!allowedPlatforms || !allowedPlatforms.has(platform)) {
-      throw assertionError("CLOUDBASE_IDENTITY_SOURCE_INVALID", "CloudBase identity source is not trusted");
+      // An unknown source/platform pair must never be trusted as a CloudBase
+      // identity assertion. Returning null keeps that fail-closed boundary
+      // while allowing the login flow to verify the supplied wxCode through
+      // WeChat code2session instead of rejecting the user outright.
+      return null;
     }
     if (!openid) {
       throw assertionError("CLOUDBASE_IDENTITY_OPENID_MISSING", "CloudBase identity openid is missing");
