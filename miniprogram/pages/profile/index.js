@@ -7,14 +7,18 @@ const { FORMAL_ACCESS_STATE, inspectFormalAccess } = require("../../utils/formal
 const { defaultOnShareAppMessage } = require("../../utils/page-share");
 const { readProfileCache, writeProfileCache } = require("../../utils/profile-cache");
 const { currentLoginSession, ensureLoginSession } = require("../../utils/login-session");
-const { getMemberCommerceSummary, presentSummary, readMemberCommerceSummary } = require("../../utils/member-commerce");
+const { getMemberCommerceSummary, presentSummary, readMemberCommerceSummaryEntry } = require("../../utils/member-commerce");
 const { performanceMonitor } = require("../../utils/performance-monitor");
+const { cachedImageUrl, prewarmSessionImage } = require("../../utils/session-image-cache");
 const { failureReason, track } = require("../../utils/analytics");
 
 const PROFILE_ROUTE = "/pages/profile/index";
 const PENDING_MEMBER_TARGET_KEY = "ROOT_PROFILE_MEMBER_TARGET_V1";
 const DEFAULT_PROFILE = Object.freeze({ nickname: "Root用户", avatarUrl: "" });
 const GUEST_PROFILE = Object.freeze({ nickname: "未登录", avatarUrl: "" });
+function displayProfile(profile = {}) {
+  return { ...profile, displayAvatarUrl: cachedImageUrl(profile.avatarUrl) };
+}
 function runtimeVersion() {
   try {
     const info = wx.getAccountInfoSync();
@@ -31,12 +35,12 @@ function initialProfileState() {
   ensureLoginSession();
   const cached = readProfileCache();
   return cached
-    ? { loggedIn: true, sessionChecking: false, profile: cached.profile, profileRefreshFailed: false }
-    : { loggedIn: true, sessionChecking: true, profile: DEFAULT_PROFILE, profileRefreshFailed: false };
+    ? { loggedIn: true, sessionChecking: false, profile: displayProfile(cached.profile), profileRefreshFailed: false }
+    : { loggedIn: true, sessionChecking: true, profile: displayProfile(DEFAULT_PROFILE), profileRefreshFailed: false };
 }
 
 const firstProfileState = initialProfileState();
-const firstMemberCommerce = firstProfileState.loggedIn ? readMemberCommerceSummary() : null;
+const firstMemberCommerceEntry = firstProfileState.loggedIn ? readMemberCommerceSummaryEntry() : null;
 
 Page({
   data: {
@@ -46,11 +50,12 @@ Page({
     failedMemberKey: "",
     profileRefreshFailed: false,
     profileImageFailed: false,
-    memberCommerce: firstMemberCommerce || presentSummary(),
+    memberCommerce: firstMemberCommerceEntry ? firstMemberCommerceEntry.value : presentSummary(),
   },
 
   onLoad() {
     this._pageStartedAt = Date.now();
+    this._avatarStartedAt = Date.now();
     this.setData({ version: runtimeVersion() }, () => this.recordUsableContent());
   },
 
@@ -59,15 +64,17 @@ Page({
     const hasSession = Boolean(getToken());
     if (hasSession) ensureLoginSession();
     const cached = hasSession ? readProfileCache() : null;
-    const memberCommerce = hasSession ? readMemberCommerceSummary() : null;
+    const memberCommerceEntry = hasSession ? readMemberCommerceSummaryEntry() : null;
+    const memberCommerce = memberCommerceEntry && memberCommerceEntry.value;
+    this._avatarStartedAt = Date.now();
     this.setData(hasSession
       ? cached
-        ? { loggedIn: true, sessionChecking: false, profile: cached.profile, profileRefreshFailed: false, profileImageFailed: false, ...(memberCommerce ? { memberCommerce } : {}) }
-        : { loggedIn: true, sessionChecking: true, profile: DEFAULT_PROFILE, profileRefreshFailed: false, profileImageFailed: false, ...(memberCommerce ? { memberCommerce } : {}) }
+        ? { loggedIn: true, sessionChecking: false, profile: displayProfile(cached.profile), profileRefreshFailed: false, profileImageFailed: false, ...(memberCommerce ? { memberCommerce } : {}) }
+        : { loggedIn: true, sessionChecking: true, profile: displayProfile(DEFAULT_PROFILE), profileRefreshFailed: false, profileImageFailed: false, ...(memberCommerce ? { memberCommerce } : {}) }
       : {
         loggedIn: false,
         sessionChecking: false,
-        profile: GUEST_PROFILE,
+        profile: displayProfile(GUEST_PROFILE),
         memberLinkFailure: false,
         failedMemberKey: "",
         profileRefreshFailed: false,
@@ -75,8 +82,9 @@ Page({
         memberCommerce: presentSummary(),
       });
     if (hasSession) {
-      this.loadProfile({ preserveCached: Boolean(cached) });
-      this.loadMemberCommerce();
+      if (!cached || !cached.fresh) this.loadProfile({ preserveCached: Boolean(cached) });
+      if (!memberCommerceEntry || !memberCommerceEntry.fresh) this.loadMemberCommerce({ preserveCached: Boolean(memberCommerceEntry) });
+      if (cached && cached.profile.avatarUrl) this.prewarmAvatar(cached.profile.avatarUrl);
     }
   },
 
@@ -96,13 +104,15 @@ Page({
         const profile = access.profile || { nickname: loggedIn ? "Root用户" : "未登录", avatarUrl: "" };
         refreshStatus = loggedIn ? "REFRESH_SUCCESS" : "REFRESH_GUEST";
         if (loggedIn) writeProfileCache(profile);
+        this._avatarStartedAt = Date.now();
         this.setData({
           loggedIn,
           sessionChecking: false,
-          profile,
+          profile: displayProfile(profile),
           profileRefreshFailed: false,
           profileImageFailed: false,
         });
+        if (loggedIn && profile.avatarUrl) this.prewarmAvatar(profile.avatarUrl);
         if (loggedIn) this.resumeMemberTarget();
       } catch (error) {
         if (!getToken() || currentLoginSession().sessionId !== expectedSessionId) {
@@ -117,7 +127,7 @@ Page({
         this.setData({
           loggedIn: false,
           sessionChecking: false,
-          profile: GUEST_PROFILE,
+          profile: displayProfile(GUEST_PROFILE),
           profileRefreshFailed: false,
           profileImageFailed: false,
         });
@@ -146,10 +156,19 @@ Page({
     });
   },
 
+  prewarmAvatar(avatarUrl) {
+    prewarmSessionImage(avatarUrl).then((displayAvatarUrl) => {
+      if (!displayAvatarUrl || this.data.profile.avatarUrl !== avatarUrl || this.data.profile.displayAvatarUrl === displayAvatarUrl) return;
+      this._avatarStartedAt = Date.now();
+      this.setData({ profile: { ...this.data.profile, displayAvatarUrl }, profileImageFailed: false });
+    });
+  },
+
   profileImageLoaded() {
     performanceMonitor.recordImageResult({
       page: "pages/profile/index",
       entry: "profile_avatar",
+      durationMs: Date.now() - this._avatarStartedAt,
       status: "LOAD_SUCCESS",
     });
   },
@@ -159,12 +178,13 @@ Page({
     performanceMonitor.recordImageResult({
       page: "pages/profile/index",
       entry: "profile_avatar",
+      durationMs: Date.now() - this._avatarStartedAt,
       status: "LOAD_FAILED",
       errorCode: "IMAGE_LOAD_FAILED",
     });
   },
 
-  loadMemberCommerce() {
+  loadMemberCommerce(options = {}) {
     if (this._memberCommercePromise || !getToken()) return this._memberCommercePromise;
     const expectedSessionId = currentLoginSession().sessionId;
     const pending = getMemberCommerceSummary()
@@ -172,7 +192,7 @@ Page({
         if (getToken() && currentLoginSession().sessionId === expectedSessionId) this.setData({ memberCommerce });
       })
       .catch(() => {
-        if (getToken() && currentLoginSession().sessionId === expectedSessionId) this.setData({
+        if (!options.preserveCached && getToken() && currentLoginSession().sessionId === expectedSessionId) this.setData({
           memberCommerce: presentSummary(),
         });
       });

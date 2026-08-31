@@ -29,11 +29,11 @@
   },
   "packages": {
     "main": {
-      "bytes": 1468925,
-      "fileCount": 152,
+      "bytes": 1483108,
+      "fileCount": 156,
       "budget": {
         "status": "WARN",
-        "value": 1468925,
+        "value": 1483108,
         "target": 1363148.8,
         "hardLimit": 1572864
       }
@@ -63,11 +63,11 @@
       },
       {
         "root": "subpkg/health",
-        "bytes": 121761,
+        "bytes": 122889,
         "fileCount": 21,
         "budget": {
           "status": "PASS",
-          "value": 121761,
+          "value": 122889,
           "target": 819200,
           "hardLimit": 1258291.2
         }
@@ -96,11 +96,11 @@
       }
     ],
     "total": {
-      "bytes": 2791305,
-      "fileCount": 220,
+      "bytes": 2806616,
+      "fileCount": 224,
       "budget": {
         "status": "PASS",
-        "value": 2791305,
+        "value": 2806616,
         "target": 6291456,
         "hardLimit": 8388608
       }

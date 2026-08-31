@@ -2,6 +2,7 @@ const { currentLoginSession } = require("./login-session");
 
 const PROFILE_CACHE_KEY = "ROOT_PROFILE_CACHE_V1";
 const PROFILE_CACHE_VERSION = 1;
+const FRESH_FOR_MS = 5 * 60 * 1000;
 const MAX_CACHE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 function safeStorage(method, value) {
@@ -38,7 +39,9 @@ function readProfileCache(now = Date.now()) {
     || Math.max(0, Number(now) - Number(entry.updatedAt)) > MAX_CACHE_AGE_MS) {
     return null;
   }
-  return { profile: present(entry.profile), updatedAt: Number(entry.updatedAt) };
+  const updatedAt = Number(entry.updatedAt);
+  const ageMs = Math.max(0, Number(now) - updatedAt);
+  return { profile: present(entry.profile), updatedAt, ageMs, fresh: ageMs <= FRESH_FOR_MS };
 }
 
 function writeProfileCache(profile, now = Date.now()) {
@@ -59,6 +62,7 @@ function clearProfileCache() {
 
 module.exports = Object.freeze({
   MAX_CACHE_AGE_MS,
+  FRESH_FOR_MS,
   PROFILE_CACHE_KEY,
   PROFILE_CACHE_VERSION,
   clearProfileCache,

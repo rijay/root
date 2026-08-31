@@ -51,10 +51,11 @@
         <image
           wx:if="{{item.heroReady}}"
           class="activity-card__image"
-          src="{{item.heroAssetUrl}}"
+          src="{{item.displayHeroUrl}}"
           mode="aspectFill"
           lazy-load="{{!item.featured}}"
           data-session-id="{{item.sessionId}}"
+          bindload="activityImageLoaded"
           binderror="handleImageError"
         />
         <text wx:if="{{!item.heroReady}}" class="activity-card__visual-mark">ROOT OFFLINE</text>

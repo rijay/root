@@ -13,8 +13,10 @@ const PENDING_ORDER_STATUSES = Object.freeze([
   "TRADE_PAID",
 ]);
 const DEFAULT_TIMEOUT_MS = 8000;
-const DEFAULT_SUMMARY_CACHE_TTL_MS = 60 * 1000;
+const DEFAULT_SUMMARY_CACHE_TTL_MS = 5 * 60 * 1000;
+const DEFAULT_IDENTITY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_PRODUCT_CACHE_TTL_MS = 60 * 1000;
+const DEFAULT_MAX_CONCURRENT_REQUESTS = 2;
 const EXPIRING_SOON_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 function adapterError(code) {
@@ -77,6 +79,32 @@ function createCache(nowMs = () => Date.now()) {
       .finally(() => inflight.delete(key));
     inflight.set(key, promise);
     return promise;
+  };
+}
+
+function createConcurrencyLimiter(maxConcurrent) {
+  let active = 0;
+  const queued = [];
+
+  function startNext() {
+    while (active < maxConcurrent && queued.length) {
+      const entry = queued.shift();
+      active += 1;
+      Promise.resolve()
+        .then(entry.task)
+        .then(entry.resolve, entry.reject)
+        .finally(() => {
+          active -= 1;
+          startNext();
+        });
+    }
+  }
+
+  return function limit(task) {
+    return new Promise((resolve, reject) => {
+      queued.push({ task, resolve, reject });
+      startNext();
+    });
   };
 }
 
@@ -235,6 +263,12 @@ function createEnvironmentYouzanCommerceAdapter(env = process.env, options = {})
     0,
     10 * 60 * 1000,
   );
+  const identityCacheTtlMs = boundedNumber(
+    options.identityCacheTtlMs ?? env.ROOT_YOUZAN_IDENTITY_CACHE_TTL_MS,
+    DEFAULT_IDENTITY_CACHE_TTL_MS,
+    60 * 1000,
+    7 * 24 * 60 * 60 * 1000,
+  );
   const productCacheTtlMs = boundedNumber(
     options.productCacheTtlMs ?? env.ROOT_YOUZAN_PRODUCT_CACHE_TTL_MS,
     DEFAULT_PRODUCT_CACHE_TTL_MS,
@@ -245,7 +279,13 @@ function createEnvironmentYouzanCommerceAdapter(env = process.env, options = {})
   const nowMs = options.nowMs || (() => Date.now());
   const kdtId = String(options.kdtId ?? env.ROOT_YOUZAN_KDT_ID ?? env.YOUZAN_GRANT_ID ?? "").trim();
   const cached = createCache(nowMs);
-  let requestTail = Promise.resolve();
+  const maxConcurrentRequests = boundedNumber(
+    options.maxConcurrentRequests ?? env.ROOT_YOUZAN_MAX_CONCURRENT_REQUESTS,
+    DEFAULT_MAX_CONCURRENT_REQUESTS,
+    1,
+    4,
+  );
+  const limitRequest = createConcurrencyLimiter(maxConcurrentRequests);
 
   async function call(endpoint, body) {
     if (!configured) throw adapterError("YOUZAN_NOT_CONFIGURED");
@@ -284,19 +324,19 @@ function createEnvironmentYouzanCommerceAdapter(env = process.env, options = {})
         clearTimeout(timeout);
       }
     };
-    const result = requestTail.then(execute, execute);
-    requestTail = result.catch(() => {});
-    return result;
+    return limitRequest(execute);
   }
 
   async function resolveYzOpenId(unionid) {
     const normalized = String(unionid || "").trim();
     if (!normalized) throw adapterError("YOUZAN_UNIONID_REQUIRED");
-    const result = await call(API.userByUnionId, {
-      weixin_union_id: normalized,
-      result_type_list: [0, 1, 2, 9],
+    return cached(`identity:${digest(normalized)}`, identityCacheTtlMs, async () => {
+      const result = await call(API.userByUnionId, {
+        weixin_union_id: normalized,
+        result_type_list: [0, 1, 2, 9],
+      });
+      return extractYzOpenId(result);
     });
-    return extractYzOpenId(result);
   }
 
   async function readOrders(yzOpenId) {

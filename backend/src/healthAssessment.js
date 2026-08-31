@@ -105,13 +105,14 @@ function publicOption(option) {
   return { value: option, label: String(option || "") };
 }
 
-function publicQuestion(question) {
+function publicQuestion(question, saveBarrierFields = new Set()) {
   return {
     field: text(question.field),
     type: text(question.type, "single").toLowerCase(),
     title: text(question.title),
     description: text(question.description),
     required: question.required !== false,
+    saveBarrier: saveBarrierFields.has(text(question.field)),
     min: number(question.min),
     max: number(question.max),
     minLabel: text(question.min_label || question.minLabel),
@@ -137,7 +138,12 @@ function definitionPayload(definition, options = {}) {
     unavailableReason: review.reason,
   };
   if (options.includeQuestions && review.available) {
-    payload.questions = definition.questions.map(publicQuestion);
+    const saveBarrierFields = new Set(
+      (Array.isArray(definition.safety_rules) ? definition.safety_rules : [])
+        .map((rule) => text(rule.field))
+        .filter(Boolean)
+    );
+    payload.questions = definition.questions.map((question) => publicQuestion(question, saveBarrierFields));
   }
   return payload;
 }

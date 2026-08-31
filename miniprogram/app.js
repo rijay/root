@@ -12,6 +12,9 @@ const { readProfileCache, writeProfileCache } = require("./utils/profile-cache")
 const { ensureLoginSession } = require("./utils/login-session");
 const { getToken } = require("./utils/request");
 const { resolveRuntimeRequestConfig } = require("./utils/runtime-request-adapter");
+const { prewarmActivityFeed } = require("./utils/activity-feed-cache");
+const { getMemberCommerceSummary, readMemberCommerceSummaryEntry } = require("./utils/member-commerce");
+const { prewarmSessionImage } = require("./utils/session-image-cache");
 
 installGlobalSharePolicy(globalThis);
 
@@ -20,16 +23,29 @@ const appModuleStartedAt = Date.now();
 function prewarmProfileCache() {
   if (!getToken()) return;
   ensureLoginSession();
-  if (readProfileCache()) return;
+  const cached = readProfileCache();
+  if (cached && cached.profile.avatarUrl) prewarmSessionImage(cached.profile.avatarUrl);
+  if (cached && cached.fresh) return;
   inspectFormalAccess("profile-home")
     .then((access) => {
       if (access.state !== FORMAL_ACCESS_STATE.PHONE_REQUIRED && access.profile) {
         writeProfileCache(access.profile);
+        if (access.profile.avatarUrl) prewarmSessionImage(access.profile.avatarUrl);
       }
     })
     .catch(() => {
       // 预热失败不阻断启动；进入“我的”页时仍会按原流程刷新。
     });
+}
+
+function prewarmMemberCommerceSummary() {
+  if (!getToken()) return;
+  ensureLoginSession();
+  const cached = readMemberCommerceSummaryEntry();
+  if (cached && cached.fresh) return;
+  getMemberCommerceSummary().catch(() => {
+    // 会员摘要预热失败不影响启动；进入“我的”页时仍会保留可用旧摘要。
+  });
 }
 
 function performanceContext() {
@@ -74,6 +90,10 @@ App({
     }
     this.globalData.bootstrapped = true;
     prewarmProfileCache();
+    prewarmMemberCommerceSummary();
+    prewarmActivityFeed().catch(() => {
+      // 活动预热失败不影响启动；进入活动页时会继续沿用正常加载流程。
+    });
   },
 
   onShow(options = {}) {

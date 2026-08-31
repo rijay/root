@@ -201,6 +201,8 @@ test("health assessment safety branch can stop before ordinary required question
   const data = createSeedData();
   data.healthAssessmentDefinitions.push(approvedGutDefinition());
   const started = assessment.start(data, "root-3", { assessmentType: "GUT_REGULARITY" });
+  assert.equal(started.assessment.definition.questions[0].saveBarrier, true);
+  assert.equal(started.assessment.definition.questions[1].saveBarrier, false);
   const saved = assessment.saveDraft(data, "root-3", started.assessment.assessmentId, {
     answers: { safety: true },
   });

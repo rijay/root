@@ -190,7 +190,7 @@ test("Youzan Adapter exposes live price and SKU snapshots without trusting remot
   assert.equal(calls, 2);
 });
 
-test("Youzan Adapter serializes multi-product live reads to avoid gateway bursts", async () => {
+test("Youzan Adapter limits concurrent upstream reads without serializing independent work", async () => {
   let active = 0;
   let maximumActive = 0;
   const adapter = createEnvironmentYouzanCommerceAdapter({}, {
@@ -207,7 +207,36 @@ test("Youzan Adapter serializes multi-product live reads to avoid gateway bursts
   });
   const result = await adapter.readProductSnapshots({ productIds: ["4749049439", "4875324599"] });
   assert.equal(result.products.length, 2);
-  assert.equal(maximumActive, 1);
+  assert.equal(maximumActive, 2);
+});
+
+test("Youzan Adapter keeps the summary for five minutes and reuses the resolved member identity", async () => {
+  let clock = NOW_MS;
+  const calls = [];
+  const adapter = createEnvironmentYouzanCommerceAdapter({}, {
+    accessTokenProvider: async () => TOKEN,
+    nowMs: () => clock,
+    async fetchImpl(url) {
+      const pathname = new URL(url).pathname;
+      calls.push(pathname);
+      if (pathname.includes("youzan.users.info.query")) {
+        return success({ data: { user_list: [{ primitive_info: { yz_open_id: "yz-open-member" } }] } });
+      }
+      if (pathname.includes("youzan.trades.sold.get")) {
+        return success({ data: { total_results: 0, full_order_info_list: [] } });
+      }
+      return success({ total: 0, data: [] });
+    },
+  });
+
+  await adapter.readSummary({ unionid: "unionid-member" });
+  clock += 60_001;
+  await adapter.readSummary({ unionid: "unionid-member" });
+  assert.equal(calls.length, 3, "五分钟内不得重复请求有赞摘要");
+  clock += 4 * 60 * 1000;
+  await adapter.readSummary({ unionid: "unionid-member" });
+  assert.equal(calls.filter((path) => path.includes("youzan.users.info.query")).length, 1);
+  assert.equal(calls.length, 5, "摘要过期后只重拉订单与优惠券");
 });
 
 test("Youzan Adapter never forwards credential-bearing upstream errors", async () => {

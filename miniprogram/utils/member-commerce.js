@@ -1,11 +1,9 @@
 const { request } = require("./request");
-const { readSessionPageCache, writeSessionPageCache } = require("./page-cache");
-const { currentLoginSession } = require("./login-session");
+const {
+  readMemberCommerceCache,
+  writeMemberCommerceCache,
+} = require("./member-commerce-cache");
 const { formatProductSyncedAt } = require("./product-display");
-
-function memberCommerceCacheKey() {
-  return `profile:member-commerce:${currentLoginSession().sessionId || "guest"}`;
-}
 
 function presentSummary(data = {}) {
   const ready = data.status === "READY";
@@ -37,15 +35,24 @@ function presentSummary(data = {}) {
 }
 
 async function getMemberCommerceSummary() {
-  const cacheKey = memberCommerceCacheKey();
-  const summary = presentSummary(await request({ url: "/api/v1/member-commerce/summary" }));
-  if (cacheKey === memberCommerceCacheKey()) writeSessionPageCache(cacheKey, summary);
-  return summary;
+  const raw = await request({ url: "/api/v1/member-commerce/summary" });
+  writeMemberCommerceCache(raw);
+  return presentSummary(raw);
 }
 
 function readMemberCommerceSummary() {
-  const cached = readSessionPageCache(memberCommerceCacheKey());
-  return cached ? cached.value : null;
+  const cached = readMemberCommerceCache();
+  return cached ? presentSummary(cached.value) : null;
 }
 
-module.exports = { getMemberCommerceSummary, presentSummary, readMemberCommerceSummary };
+function readMemberCommerceSummaryEntry() {
+  const cached = readMemberCommerceCache();
+  return cached ? { ...cached, value: presentSummary(cached.value) } : null;
+}
+
+module.exports = {
+  getMemberCommerceSummary,
+  presentSummary,
+  readMemberCommerceSummary,
+  readMemberCommerceSummaryEntry,
+};

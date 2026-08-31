@@ -22,6 +22,8 @@ assert.deepEqual(readProfileCache(1001).profile, {
   nickname: "小树",
   avatarUrl: "https://cdn.example.com/avatar.jpg",
 });
+assert.equal(readProfileCache(1001).fresh, true);
+assert.equal(readProfileCache(5 * 60 * 1000 + 1001).fresh, false);
 assert.equal(Object.prototype.hasOwnProperty.call(storage.get(PROFILE_CACHE_KEY).profile, "phone"), false);
 
 clearLoginSession();

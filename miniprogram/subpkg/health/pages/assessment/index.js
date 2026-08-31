@@ -1,4 +1,5 @@
 const { ensureHealthConsent } = require("../../../../utils/health-consent");
+const { createDraftSyncQueue } = require("../../../../utils/draft-sync-queue");
 const {
   completeAssessment,
   getAssessment,
@@ -50,6 +51,7 @@ Page({
   },
 
   onLoad(options = {}) {
+    this._destroyed = false;
     this.routeOptions = { ...options };
     if (shouldRedirectToIntro(this.routeOptions)) {
       wx.redirectTo({ url: GUT_INTRO_PATH });
@@ -92,6 +94,12 @@ Page({
       if (!assessmentId) {
         const started = await startAssessment(requestedType);
         assessmentId = started.assessment && started.assessment.assessmentId;
+        if (started.assessment && started.assessment.status === "IN_PROGRESS" && started.assessment.definition) {
+          this.pendingInitialize = false;
+          this.setData({ assessmentId });
+          this.hydrate(started.assessment);
+          return;
+        }
       }
       if (!assessmentId) throw new Error("评测记录未创建");
       this.pendingInitialize = false;
@@ -122,6 +130,35 @@ Page({
     const visible = visibleQuestions(questions, answers);
     const currentIndex = firstIncompleteIndex(visible, answers);
     this.answerRevision = 0;
+    if (this.draftSyncQueue) this.draftSyncQueue.destroy();
+    this.draftSyncQueue = createDraftSyncQueue({
+      save: (job) => saveDraft(assessment.assessmentId, job.answers),
+      onState: (state) => {
+        if (this._destroyed || state.failed) return;
+        if (state.syncing || state.pending) {
+          this.setData({ saveStatusText: "正在后台保存当前进度…", saveStatusTone: "pending" });
+        }
+      },
+      onSaved: (_result, job) => {
+        if (this._destroyed) return;
+        const unchanged = Number(this.answerRevision || 0) === Number(job.revision || 0);
+        this.setData({
+          dirty: !unchanged,
+          saveFailed: false,
+          saveStatusText: unchanged ? "当前进度已保存到账号。" : "新修改将在后台继续保存。",
+          saveStatusTone: unchanged ? "saved" : "pending",
+        });
+      },
+      onError: () => {
+        if (this._destroyed) return;
+        this.setData({
+          dirty: true,
+          saveFailed: true,
+          saveStatusText: "后台保存失败，答案仍保留在当前页面，请重试。",
+          saveStatusTone: "error",
+        });
+      },
+    });
     this.setData({
       assessment,
       questions,
@@ -214,10 +251,10 @@ Page({
     this.setAnswer(event.detail.value || "");
   },
 
-  async previous() {
+  previous() {
     if (this.data.saving || this.data.currentIndex <= 0) return;
-    if (this.data.dirty && !(await this.persistDraft(true))) return;
-    this.setData({ currentIndex: this.data.currentIndex - 1 }, () => this.refreshQuestion());
+    this.queueDraftSnapshot();
+    this.advanceQuestion(-1);
   },
 
   async next() {
@@ -228,52 +265,61 @@ Page({
       wx.showToast({ title: "请先完成当前题目", icon: "none" });
       return;
     }
-    const saved = await this.persistDraft(true);
-    if (!saved) return;
-    if (saved.safetyTriggered || this.data.currentIndex >= this.data.visibleQuestions.length - 1) {
+    const isFinalQuestion = this.data.currentIndex >= this.data.visibleQuestions.length - 1;
+    if (isFinalQuestion) {
       await this.finish();
       return;
     }
-    this.setData({ currentIndex: this.data.currentIndex + 1 }, () => this.refreshQuestion());
+    if (this.data.currentQuestion.saveBarrier) {
+      this.setData({ saving: true });
+      const saved = await this.flushDraft(true);
+      this.setData({ saving: false });
+      if (!saved) return;
+      if (saved.safetyTriggered) {
+        await this.finish();
+        return;
+      }
+      this.advanceQuestion();
+      return;
+    }
+    this.queueDraftSnapshot();
+    this.advanceQuestion();
   },
 
-  async persistDraft(showError) {
-    if (!this.data.assessmentId) return null;
-    const answers = pruneHiddenAnswers(this.data.questions, this.data.answers);
-    const revision = Number(this.answerRevision || 0);
-    this.setData({
-      saving: true,
-      saveFailed: false,
-      saveStatusText: "正在将当前进度保存到账号…",
-      saveStatusTone: "pending",
-    });
+  draftSnapshot() {
+    return {
+      answers: pruneHiddenAnswers(this.data.questions, this.data.answers),
+      revision: Number(this.answerRevision || 0),
+    };
+  },
+
+  queueDraftSnapshot() {
+    if (!this.data.assessmentId || !this.data.dirty || !this.draftSyncQueue) return;
+    this.draftSyncQueue.enqueue(this.draftSnapshot());
+  },
+
+  async flushDraft(showError) {
+    if (!this.data.assessmentId || !this.draftSyncQueue) return null;
+    this.queueDraftSnapshot();
     try {
-      const result = await saveDraft(this.data.assessmentId, answers);
-      const unchanged = Number(this.answerRevision || 0) === revision;
-      this.setData({
-        dirty: !unchanged,
-        saveFailed: false,
-        saveStatusText: unchanged ? "当前进度已保存到账号。" : "保存期间有新修改，进入下一步前会再次保存。",
-        saveStatusTone: unchanged ? "saved" : "pending",
-      });
-      return result;
+      return await this.draftSyncQueue.flush();
     } catch (error) {
-      this.setData({
-        dirty: true,
-        saveFailed: true,
-        saveStatusText: "保存失败，答案仍保留在当前页面，请重试。",
-        saveStatusTone: "error",
-      });
       if (showError) wx.showToast({ title: error.message || "答案保存失败", icon: "none" });
       return null;
-    } finally {
-      this.setData({ saving: false });
     }
   },
 
-  retryDraft() {
+  async retryDraft() {
     if (this.data.saving) return;
-    this.persistDraft(true);
+    try {
+      await this.draftSyncQueue.retry();
+    } catch (error) {
+      wx.showToast({ title: error.message || "答案保存失败", icon: "none" });
+    }
+  },
+
+  advanceQuestion(delta = 1) {
+    this.setData({ currentIndex: this.data.currentIndex + delta }, () => this.refreshQuestion());
   },
 
   async finish() {
@@ -285,6 +331,7 @@ Page({
       saveStatusTone: "pending",
     });
     try {
+      if (this.draftSyncQueue) await this.draftSyncQueue.flush().catch(() => null);
       const result = await completeAssessment(this.data.assessmentId, answers);
       const assessmentId = result.assessment && result.assessment.assessmentId;
       if (!assessmentId) throw new Error("结果生成失败");
@@ -304,19 +351,12 @@ Page({
   },
 
   onHide() {
-    if (this.data.dirty && !this.data.saving && this.data.assessmentId) {
-      const answers = pruneHiddenAnswers(this.data.questions, this.data.answers);
-      const revision = Number(this.answerRevision || 0);
-      saveDraft(this.data.assessmentId, answers)
-        .then(() => {
-          if (Number(this.answerRevision || 0) === revision) {
-            this.setData({ dirty: false, saveFailed: false });
-          }
-        })
-        .catch(() => {
-          this.setData({ saveFailed: true });
-        });
-    }
+    if (!this.data.saving) this.queueDraftSnapshot();
+  },
+
+  onUnload() {
+    this._destroyed = true;
+    if (this.draftSyncQueue) this.draftSyncQueue.destroy();
   },
 
   onShareAppMessage: defaultOnShareAppMessage,
