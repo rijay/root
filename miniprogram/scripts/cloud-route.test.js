@@ -7,7 +7,7 @@ const {
 } = require("../utils/cloud-route");
 
 const validValue = "preview_route_12345678";
-const trialCandidateValue = "v071817c99fchannel069";
+const trialCandidateValue = "5a9f237e88948739367da8cc29ab79332f9ddf358bcb1694";
 
 clearCloudRoute();
 assert.equal(appendCloudRoute("/health", "trial"), "/health");
@@ -100,4 +100,4 @@ assert.equal(initializeCloudRoute({ query: { myroot_canary: validValue } }, "tri
 assert.equal(refreshCloudRoute({}, "release"), false);
 assert.equal(appendCloudRoute("/health", "trial"), "/health");
 
-console.log("cloud route scenarios: trial v0.7 data binding and release isolation PASS");
+console.log("cloud route scenarios: trial v0.8.0 data binding and release isolation PASS");
