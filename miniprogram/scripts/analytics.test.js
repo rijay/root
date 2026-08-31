@@ -50,18 +50,30 @@ assert.deepEqual(analytics.sanitizePayload("trial_pack_action", {
   result: "OPENED",
   failureReason: "",
 });
+assert.deepEqual(analytics.sanitizePayload("member_center_entry", {
+  entryKey: "orders",
+  result: "SUCCESS",
+  failureReason: "",
+  sourcePage: "/pages/profile/index",
+  shortLink: "private",
+}), {
+  entryKey: "orders",
+  result: "SUCCESS",
+  failureReason: "",
+  sourcePage: "/pages/profile/index",
+});
 
 async function main() {
   assert.deepEqual(await analytics.track("assessment_complete", {
     assessmentType: "GUT_REGULARITY",
     questionnaireVersion: 2,
     isRetest: false,
-  }), { sent: false, reason: "LOCAL_V060_COMPAT" });
+  }), { sent: false, reason: "DEVELOPMENT_ANALYTICS_DISABLED" });
   assert.deepEqual(await analytics.track("assessment_result_view", {
     assessmentType: "GUT_REGULARITY",
     questionnaireVersion: 2,
     resultCode: "HEALTHY",
-  }), { sent: false, reason: "LOCAL_V060_COMPAT" });
+  }), { sent: false, reason: "DEVELOPMENT_ANALYTICS_DISABLED" });
   console.log("analytics tests passed");
 }
 

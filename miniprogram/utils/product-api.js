@@ -1,5 +1,7 @@
-const { request } = require("./request");
+const { getToken, request } = require("./request");
 const { getLocalProduct, listLocalProducts } = require("./local-product-catalog");
+
+const LIVE_PRICE_DEGRADED_TEXT = "商品实时价格暂未同步，当前显示基础信息；最终价格、库存与优惠以 Root 会员中心为准。";
 
 function mergeProduct(serverProduct = {}, localProduct = {}) {
   return {
@@ -33,11 +35,13 @@ function initialProduct(productId) {
 async function listProducts() {
   try {
     const data = await request({ url: "/api/v1/products" });
+    const live = data.priceSync && data.priceSync.status === "LIVE";
     return {
       ...data,
       products: (data.products || []).map((item) => mergeProduct(item, getLocalProduct(item.productId) || {})),
-      source: "SERVER_SNAPSHOT",
-      degraded: false,
+      source: live ? "YOUZAN_LIVE" : "SERVER_CATALOG",
+      degraded: !live,
+      degradedText: live ? "" : LIVE_PRICE_DEGRADED_TEXT,
     };
   } catch (error) {
     const fallback = listLocalProducts();
@@ -52,10 +56,13 @@ async function listProducts() {
 async function getProduct(productId) {
   try {
     const data = await request({ url: `/api/v1/products/${productId}` });
+    const live = data.priceSync && data.priceSync.status === "LIVE";
     return {
       product: mergeProduct(data.product || {}, getLocalProduct(productId) || {}),
-      source: "SERVER_SNAPSHOT",
-      degraded: false,
+      priceSync: data.priceSync || null,
+      source: live ? "YOUZAN_LIVE" : "SERVER_CATALOG",
+      degraded: !live,
+      degradedText: live ? "" : LIVE_PRICE_DEGRADED_TEXT,
     };
   } catch (error) {
     const product = getLocalProduct(productId);
@@ -68,4 +75,38 @@ async function getProduct(productId) {
   }
 }
 
-module.exports = { getProduct, initialProduct, initialProductCatalog, listProducts, mergeProduct };
+async function prepareProductJump(product = {}, sourceChannel = "MINIPROGRAM_PRODUCT") {
+  const fallback = {
+    jumpTarget: product.youzan || {},
+    targetSource: "CATALOG",
+    recorded: false,
+  };
+  if (!product.productId || !getToken()) return fallback;
+  try {
+    const data = await request({
+      url: "/api/v1/products/jump",
+      method: "POST",
+      data: { productId: product.productId, sourceChannel },
+      idempotencyKey: `product-jump:${product.productId}:${Date.now()}`,
+    });
+    return {
+      ...data,
+      targetSource: "SERVER",
+      recorded: true,
+    };
+  } catch (error) {
+    return {
+      ...fallback,
+      recordStatus: error && error.resultUnknown ? "UNKNOWN" : "FAILED",
+    };
+  }
+}
+
+module.exports = {
+  getProduct,
+  initialProduct,
+  initialProductCatalog,
+  listProducts,
+  mergeProduct,
+  prepareProductJump,
+};

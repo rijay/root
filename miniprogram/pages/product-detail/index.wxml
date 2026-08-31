@@ -51,7 +51,8 @@
         </view>
       </view>
       <view wx:else class="detail-description">规格、价格、库存与优惠以 Root 会员中心实时页面为准。</view>
-      <view wx:if="{{product.syncedAtText}}" class="detail-config-date">商品信息同步于 {{product.syncedAtText}}</view>
+      <view wx:if="{{product.priceLive && product.syncedAtText}}" class="detail-config-date">有赞价格同步于 {{product.syncedAtText}}</view>
+      <view wx:else class="detail-config-date">当前为基础商品信息，最终价格以 Root 会员中心为准。</view>
     </view>
 
     <view class="detail-action-shell">

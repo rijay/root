@@ -66,10 +66,6 @@
         "type": "folder"
       },
       {
-        "value": "pages/dev-identity-probe",
-        "type": "folder"
-      },
-      {
         "value": "package.json",
         "type": "file"
       },

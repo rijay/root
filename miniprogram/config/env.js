@@ -6,8 +6,6 @@ const envVersion = detectRuntimeEnvVersion(runtimeWx, runtimeWxConfig);
 
 const productionCloudServiceName = "myroot-api";
 const internalTestCloudServiceName = "myroot-api";
-const SERVER_ASSESSMENT_STORAGE = "SERVER";
-const LOCAL_DEVICE_ASSESSMENT_RETENTION_DAYS = 180;
 const LOCAL_DEVTOOLS_API_BASE_URL = "http://127.0.0.1:8787";
 
 const developmentCloudContainerConfig = {
@@ -15,8 +13,7 @@ const developmentCloudContainerConfig = {
   cloudEnvId: "myroot-prod-d5gl3gzg7115f149a",
   cloudServiceName: internalTestCloudServiceName,
   localDevtoolsApiBaseUrl: LOCAL_DEVTOOLS_API_BASE_URL,
-  localV060CompatMode: true,
-  healthAssessmentStorageMode: SERVER_ASSESSMENT_STORAGE,
+  analyticsEnabled: false,
 };
 
 const productionLikeCloudContainerConfig = {
@@ -24,8 +21,7 @@ const productionLikeCloudContainerConfig = {
   cloudEnvId: "myroot-prod-d5gl3gzg7115f149a",
   cloudServiceName: productionCloudServiceName,
   localDevtoolsApiBaseUrl: "",
-  localV060CompatMode: false,
-  healthAssessmentStorageMode: SERVER_ASSESSMENT_STORAGE,
+  analyticsEnabled: true,
 };
 
 const configs = {
@@ -37,7 +33,6 @@ const configs = {
 module.exports = {
   envVersion,
   ...(configs[envVersion] || configs.develop),
-  healthAssessmentRetentionDays: LOCAL_DEVICE_ASSESSMENT_RETENTION_DAYS,
   youzanAppId: "wxfb75c0b432670215",
   youzanProductPath: "",
   rootMemberCenterAppId: "wxfb75c0b432670215",

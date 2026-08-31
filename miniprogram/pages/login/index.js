@@ -3,7 +3,6 @@ const { consume: consumeAuthIntent, remember: rememberAuthIntent } = require("..
 const router = require("../../utils/router");
 const { openLegalPage } = require("../../utils/legal");
 const { authenticateWechat, showLoginFailure } = require("../../utils/wechat-login-flow");
-const { bindUserScope } = require("../../utils/local-health-assessment");
 const { startLoginSession } = require("../../utils/login-session");
 const { defaultOnShareAppMessage } = require("../../utils/page-share");
 const { writeProfileCache } = require("../../utils/profile-cache");
@@ -87,11 +86,6 @@ Page({
         await confirmPendingAttribution();
       } catch (_) {
         // 首触达归因失败不阻断已完成的用户登录；下一次登录仍可重试。
-      }
-      try {
-        bindUserScope(data.user && data.user.userId);
-      } catch (_) {
-        // 本机评测迁移失败不应阻断已经完成的微信登录。
       }
       const outcome = data.sessionOutcome || (data.nextRoute === "/pages/register/index" ? "NEW_USER" : "REGISTERED");
       if (["NEW_USER", "PROFILE_REQUIRED"].includes(outcome)) {

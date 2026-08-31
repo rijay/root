@@ -59,7 +59,7 @@ function listLocalProducts() {
   return {
     products: clone(PRODUCTS),
     syncedAt: "2026-08-25T21:28:24+08:00",
-    source: "LOCAL_V060_COMPAT",
+    source: "LOCAL_BUNDLED",
   };
 }
 

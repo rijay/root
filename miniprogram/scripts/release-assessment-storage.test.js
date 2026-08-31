@@ -45,8 +45,7 @@ const assessment = require("../utils/health-assessment");
 
 async function main() {
   assert.equal(env.envVersion, "release");
-  assert.equal(env.localV060CompatMode, false, "正式环境的其他能力不得退回全局兼容模式");
-  assert.equal(env.healthAssessmentStorageMode, "SERVER");
+  assert.equal(env.analyticsEnabled, true);
 
   const catalog = await assessment.getCatalog();
   assert.equal(catalog.storageMode, "SERVER");

@@ -4,7 +4,7 @@ const API = Object.freeze({
   userByUnionId: "https://open.youzanyun.com/api/youzan.users.info.query/1.0.1",
   orders: "https://open.youzanyun.com/api/youzan.trades.sold.get/4.0.4",
   coupons: "https://open.youzanyun.com/api/youzan.ump.voucher.query/3.0.0",
-  product: "https://open.youzanyun.com/api/youzan.item.get/3.0.0",
+  product: "https://open.youzanyun.com/api/youzan.item.detail.get/1.0.0",
 });
 const PENDING_ORDER_STATUSES = Object.freeze([
   "WAIT_BUYER_PAY",
@@ -14,7 +14,7 @@ const PENDING_ORDER_STATUSES = Object.freeze([
 ]);
 const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_SUMMARY_CACHE_TTL_MS = 60 * 1000;
-const DEFAULT_PRODUCT_CACHE_TTL_MS = 5 * 60 * 1000;
+const DEFAULT_PRODUCT_CACHE_TTL_MS = 60 * 1000;
 const EXPIRING_SOON_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 function adapterError(code) {
@@ -164,7 +164,7 @@ function stockStatus(sku) {
 }
 
 function skuName(source) {
-  const direct = String(source.properties_name || source.propertiesName || source.title || source.name || "").trim();
+  const direct = String(source.properties_name || source.propertiesName || source.sku_name || source.skuName || source.title || source.name || "").trim();
   if (direct) return direct;
   let properties = source.properties_name_json || source.propertiesNameJson;
   if (typeof properties === "string") {
@@ -174,13 +174,24 @@ function skuName(source) {
       properties = null;
     }
   }
-  const values = asArray(properties).map((item) => String(asObject(item).v || "").trim()).filter(Boolean);
+  const values = asArray(properties).map((item) => String(
+    asObject(item).v
+      || asObject(item).prop_value_name
+      || asObject(item).propValueName
+      || asObject(item).value_name
+      || "",
+  ).trim()).filter(Boolean);
+  if (values.length) return values.join(" / ");
+  const skuValues = asArray(source.sku_value_props || source.skuValueProps)
+    .map((item) => String(asObject(item).prop_value_name || asObject(item).propValueName || "").trim())
+    .filter(Boolean);
+  if (skuValues.length) return skuValues.join(" / ");
   return values.join(" / ") || "默认规格";
 }
 
 function normalizedSku(sku, index) {
   const source = asObject(sku);
-  const rawPrice = source.price;
+  const rawPrice = source.price ?? asObject(source.item_price_param || source.itemPriceParam).price;
   return {
     skuId: String(source.sku_id || source.skuId || `sku-${index + 1}`),
     skuName: skuName(source),
@@ -191,15 +202,18 @@ function normalizedSku(sku, index) {
 }
 
 function normalizedProduct(body, requestedProductId, syncedAt) {
-  const item = asObject(asObject(asObject(body).data).item || asObject(body).item || asObject(body).data);
+  const data = asObject(asObject(body).data);
+  const item = asObject(data.item || asObject(body).item || data);
   const productId = String(item.item_id || item.itemId || "").trim();
   if (!productId || productId !== String(requestedProductId)) throw adapterError("YOUZAN_PRODUCT_MISMATCH");
   const skus = asArray(item.skus || item.sku_list || item.skuList).map(normalizedSku);
+  const itemPrice = item.price ?? asObject(item.item_price_param || item.itemPriceParam).price;
+  const firstImage = asObject(asArray(item.images || item.image_list || item.imageList)[0]);
   return {
     productId,
-    imageUrl: imageUrl(item.pic_url || item.picUrl || item.pic_thumb_url || item.image_url),
-    price: cents(item.price),
-    priceText: priceText(item.price) || (skus[0] && skus[0].priceText) || "会员中心实时价格",
+    imageUrl: imageUrl(item.pic_url || item.picUrl || item.pic_thumb_url || item.image_url || firstImage.image_url || firstImage.imageUrl),
+    price: cents(itemPrice),
+    priceText: priceText(itemPrice) || (skus[0] && skus[0].priceText) || "会员中心实时价格",
     skus,
     syncedAt,
   };
@@ -229,6 +243,7 @@ function createEnvironmentYouzanCommerceAdapter(env = process.env, options = {})
   );
   const now = options.now || (() => new Date());
   const nowMs = options.nowMs || (() => Date.now());
+  const kdtId = String(options.kdtId ?? env.ROOT_YOUZAN_KDT_ID ?? env.YOUZAN_GRANT_ID ?? "").trim();
   const cached = createCache(nowMs);
   let requestTail = Promise.resolve();
 
@@ -330,11 +345,12 @@ function createEnvironmentYouzanCommerceAdapter(env = process.env, options = {})
   async function readProductSnapshots({ productIds } = {}) {
     const ids = [...new Set(asArray(productIds).map((value) => String(value || "").trim()).filter(Boolean))];
     if (ids.length === 0) return { products: [], syncedAt: "" };
+    if (!/^\d{1,20}$/.test(kdtId)) throw adapterError("YOUZAN_KDT_ID_REQUIRED");
     const cacheKey = `products:${digest(ids.slice().sort().join(","))}`;
     return cached(cacheKey, productCacheTtlMs, async () => {
       const syncedAt = safeNowISO(now);
       const products = await Promise.all(ids.map(async (productId) => normalizedProduct(
-        await call(API.product, { item_id: Number(productId) || productId }),
+        await call(API.product, { kdt_id: Number(kdtId), item_id: Number(productId) || productId }),
         productId,
         syncedAt,
       )));

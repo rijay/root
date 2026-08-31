@@ -835,6 +835,8 @@ test("production environment matrix validates the formal launch runtime", () => 
     MYSQL_USERNAME: "root",
     MYSQL_PASSWORD: "mysql-secret",
     MYSQL_DATABASE: "root_checkin",
+    ROOT_YOUZAN_ACCESS_TOKEN: "youzan-read-token-with-strong-entropy-2026",
+    ROOT_YOUZAN_KDT_ID: "140980410",
     ROOT_CLOUDBASE_STORE_DECISION: "MYSQL_ON_CLOUDBASE",
     ROOT_CLOUDBASE_ENV_ID: "root-prod-env",
     ROOT_CLOUDBASE_REGION: "ap-shanghai",
@@ -864,6 +866,7 @@ test("production environment matrix validates the formal launch runtime", () => 
   });
   assert.equal(ready.status, "READY");
   assert.equal(ready.groups.some((group) => group.id === "v1_runtime_control"), false);
+  assert.equal(ready.groups.find((group) => group.id === "member_commerce").status, "PASS");
   assert.equal(ready.groups.every((group) => ["PASS", "OPTIONAL"].includes(group.status)), true);
 
   const poolReviewed = buildProductionEnvMatrix({
@@ -874,6 +877,8 @@ test("production environment matrix validates the formal launch runtime", () => 
 
   const blocked = buildProductionEnvMatrix({}, { target: "production" });
   assert.equal(blocked.status, "BLOCKED");
+  assert.ok(blocked.groups.find((group) => group.id === "member_commerce")
+    .missingRequired.includes("ROOT_YOUZAN_ACCESS_TOKEN"));
   const gray = buildProductionEnvMatrix({}, { target: "gray" });
   assert.equal(gray.status, "NEEDS_REVIEW");
 
@@ -973,8 +978,8 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.doesNotMatch(notice.data.modelProcessingText, /AI|模型|CloudBase|hy3/);
   assert.equal(notice.data.dataManagement.runtimeModelPersonalDataTransfer, false);
   assert.equal(notice.data.dataManagement.backupRetentionDays, 30);
-  assert.equal(notice.data.version, "0.7.2");
-  assert.equal(notice.data.releaseId, "0.7.2");
+  assert.equal(notice.data.version, "0.8.0");
+  assert.equal(notice.data.releaseId, "0.8.0");
 });
 
 test("formal home content HTTP Interface is public and detail uses the same published item", async (t) => {

@@ -23,7 +23,7 @@ const adminFormalUserQuery = require("./adminFormalUserQuery");
 const assessmentSourceSurvey = require("./assessmentSourceSurvey");
 const channelFunnel = require("./channelFunnel");
 const { generateChannelCodeImage } = require("./wechatMiniProgramCode");
-const v060Api = require("./v060Api");
+const myrootApi = require("./myrootApi");
 const { createEnvironmentYouzanCommerceAdapter } = require("./youzanCommerceAdapter");
 
 const {
@@ -713,37 +713,37 @@ function createApp(options = {}) {
       }
       if (route === "GET /api/v1/user/state") return ok(res, getUserState(data, token, runtimeContext));
       if (route === "GET /api/v1/products") {
-        return apiOk(res, await v060Api.listProducts(data, Object.fromEntries(url.searchParams), runtimeContext));
+        return apiOk(res, await myrootApi.listProducts(data, Object.fromEntries(url.searchParams), runtimeContext));
       }
       if (route === "GET /api/v1/member-commerce/summary") {
-        return apiOk(res, await v060Api.memberCommerceSummary(data, token, runtimeContext));
+        return apiOk(res, await myrootApi.memberCommerceSummary(data, token, runtimeContext));
       }
       if (route === "POST /api/v1/products/jump") {
         return apiOk(res, await withIdempotency(
           data,
           req,
-          () => v060Api.recordProductJump(data, token, body, runtimeContext),
+          () => myrootApi.recordProductJump(data, token, body, runtimeContext),
           req.headers["x-idempotency-key"] || ""
         ));
       }
       const productDetailMatch = url.pathname.match(/^\/api\/v1\/products\/([A-Za-z0-9_-]{1,64})$/);
       if (method === "GET" && productDetailMatch) {
-        return apiOk(res, await v060Api.getProduct(data, productDetailMatch[1], runtimeContext));
+        return apiOk(res, await myrootApi.getProduct(data, productDetailMatch[1], runtimeContext));
       }
       if (route === "GET /api/v1/health/assessments/catalog") {
-        return apiOk(res, v060Api.assessmentCatalog(data, token));
+        return apiOk(res, myrootApi.assessmentCatalog(data, token));
       }
       if (route === "GET /api/v1/health/assessments/history") {
-        return apiOk(res, v060Api.assessmentHistory(data, token, Object.fromEntries(url.searchParams)));
+        return apiOk(res, myrootApi.assessmentHistory(data, token, Object.fromEntries(url.searchParams)));
       }
       if (route === "GET /api/v1/health/overview") {
-        return apiOk(res, v060Api.healthOverview(data, token));
+        return apiOk(res, myrootApi.healthOverview(data, token));
       }
       if (route === "POST /api/v1/health/advice/generate") {
         return apiOk(res, await withIdempotency(
           data,
           req,
-          () => v060Api.generateHealthAdvice(data, token, runtimeContext),
+          () => myrootApi.generateHealthAdvice(data, token, runtimeContext),
           req.headers["x-idempotency-key"] || ""
         ));
       }
@@ -751,16 +751,16 @@ function createApp(options = {}) {
         return apiOk(res, await withIdempotency(
           data,
           req,
-          () => v060Api.startAssessment(data, token, body, runtimeContext),
+          () => myrootApi.startAssessment(data, token, body, runtimeContext),
           req.headers["x-idempotency-key"] || ""
         ));
       }
       if (route === "POST /api/v1/health/assessments/compare") {
-        return apiOk(res, v060Api.compareAssessments(data, token, body));
+        return apiOk(res, myrootApi.compareAssessments(data, token, body));
       }
       const assessmentDraftMatch = url.pathname.match(/^\/api\/v1\/health\/assessments\/([A-Za-z0-9_-]{1,64})\/draft$/);
       if (method === "POST" && assessmentDraftMatch) {
-        return apiOk(res, v060Api.saveAssessmentDraft(
+        return apiOk(res, myrootApi.saveAssessmentDraft(
           data,
           token,
           assessmentDraftMatch[1],
@@ -773,34 +773,34 @@ function createApp(options = {}) {
         return apiOk(res, await withIdempotency(
           data,
           req,
-          () => v060Api.completeAssessment(data, token, assessmentCompleteMatch[1], body, runtimeContext),
+          () => myrootApi.completeAssessment(data, token, assessmentCompleteMatch[1], body, runtimeContext),
           req.headers["x-idempotency-key"] || ""
         ));
       }
       const assessmentSourceMatch = url.pathname.match(/^\/api\/v1\/health\/assessments\/([A-Za-z0-9_-]{1,64})\/source-confirmation$/);
       if (method === "GET" && assessmentSourceMatch) {
-        return apiOk(res, v060Api.assessmentSourceGate(data, token, assessmentSourceMatch[1]));
+        return apiOk(res, myrootApi.assessmentSourceGate(data, token, assessmentSourceMatch[1]));
       }
       if (method === "POST" && assessmentSourceMatch) {
         return apiOk(res, await withIdempotency(
           data,
           req,
-          () => v060Api.confirmAssessmentSource(data, token, assessmentSourceMatch[1], body, runtimeContext),
+          () => myrootApi.confirmAssessmentSource(data, token, assessmentSourceMatch[1], body, runtimeContext),
           req.headers["x-idempotency-key"] || ""
         ));
       }
       const assessmentDetailMatch = url.pathname.match(/^\/api\/v1\/health\/assessments\/([A-Za-z0-9_-]{1,64})$/);
       if (method === "GET" && assessmentDetailMatch) {
-        return apiOk(res, v060Api.getAssessment(data, token, assessmentDetailMatch[1]));
+        return apiOk(res, myrootApi.getAssessment(data, token, assessmentDetailMatch[1]));
       }
       if (method === "DELETE" && assessmentDetailMatch) {
-        return apiOk(res, v060Api.deleteAssessment(data, token, assessmentDetailMatch[1]));
+        return apiOk(res, myrootApi.deleteAssessment(data, token, assessmentDetailMatch[1]));
       }
       if (route === "POST /api/v1/operations/popup/claim") {
         return apiOk(res, await withIdempotency(
           data,
           req,
-          () => v060Api.claimPopup(data, token, runtimeContext),
+          () => myrootApi.claimPopup(data, token, runtimeContext),
           req.headers["x-idempotency-key"] || ""
         ));
       }
@@ -808,18 +808,18 @@ function createApp(options = {}) {
         return apiOk(res, await withIdempotency(
           data,
           req,
-          () => v060Api.recordPopupAction(data, token, body, runtimeContext),
+          () => myrootApi.recordPopupAction(data, token, body, runtimeContext),
           req.headers["x-idempotency-key"] || ""
         ));
       }
       if (route === "GET /api/v1/channels/attribution") {
-        return apiOk(res, v060Api.firstAttribution(data, token));
+        return apiOk(res, myrootApi.firstAttribution(data, token));
       }
       if (route === "POST /api/v1/channels/attribution") {
         return apiOk(res, await withIdempotency(
           data,
           req,
-          () => v060Api.attributeChannel(data, token, body, runtimeContext),
+          () => myrootApi.attributeChannel(data, token, body, runtimeContext),
           req.headers["x-idempotency-key"] || ""
         ));
       }
@@ -827,7 +827,7 @@ function createApp(options = {}) {
         return apiOk(res, await withIdempotency(
           data,
           req,
-          () => v060Api.resolveChannelCode(data, body, runtimeContext),
+          () => myrootApi.resolveChannelCode(data, body, runtimeContext),
           req.headers["x-idempotency-key"] || body.clientVisitId || body.client_visit_id || ""
         ));
       }
@@ -835,12 +835,12 @@ function createApp(options = {}) {
         return apiOk(res, await withIdempotency(
           data,
           req,
-          () => v060Api.recordChannelFunnelStage(data, token, body, runtimeContext),
+          () => myrootApi.recordChannelFunnelStage(data, token, body, runtimeContext),
           req.headers["x-idempotency-key"] || ""
         ));
       }
       if (route === "POST /api/v1/event/track") {
-        return apiOk(res, v060Api.recordAnalytics(data, token, body, runtimeContext));
+        return apiOk(res, myrootApi.recordAnalytics(data, token, body, runtimeContext));
       }
       if (route === "GET /api/v1/privacy/health-consent") return ok(res, getHealthConsentStatus(data, token, runtimeContext));
       if (route === "POST /api/v1/privacy/health-consent") return ok(res, withIdempotency(data, req, () => recordHealthConsentDecision(data, token, body, runtimeContext)));

@@ -29,6 +29,7 @@
   </view>
 
   <view wx:else class="products-content">
+    <view wx:if="{{catalogNotice}}" class="product-catalog-notice" role="status">{{catalogNotice}}</view>
     <view wx:if="{{focusNotice}}" class="product-focus-notice" role="status" aria-live="polite">{{focusNotice}}</view>
     <scroll-view
       wx:if="{{carouselVisible}}"
@@ -73,7 +74,7 @@
             <view class="product-name">{{item.title}}</view>
             <view class="product-summary">{{item.summary}}</view>
             <view class="product-spec">{{item.specText}}</view>
-            <view class="product-price">{{item.priceText || '会员中心实时价格'}}</view>
+            <view class="product-price">{{item.priceText || '会员中心实时价格'}}<text class="product-price-source">{{item.priceLive ? (' · 有赞同步 ' + item.syncedAtText) : ' · 最终价格以会员中心为准'}}</text></view>
           </view>
           <view class="product-actions">
             <button

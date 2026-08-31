@@ -132,6 +132,26 @@ const ENV_GROUPS = [
     action: "正式环境使用 MySQL Store Adapter，运行时固定 verify_only 并以独立迁移 Adapter 升级 schema；运行时账号只保留数据读写权限，再确认快照、备份和回滚路径。",
   },
   {
+    id: "member_commerce",
+    label: "Root 会员商城只读接入",
+    ownerRole: "研发/商城运营",
+    required: ["ROOT_YOUZAN_ACCESS_TOKEN"],
+    requiredRules: {
+      ROOT_YOUZAN_ACCESS_TOKEN: "nonblank_secret",
+    },
+    anyOf: [["ROOT_YOUZAN_KDT_ID", "YOUZAN_GRANT_ID"]],
+    anyOfRules: {
+      ROOT_YOUZAN_KDT_ID: "positive_integer",
+      YOUZAN_GRANT_ID: "positive_integer",
+    },
+    optional: [
+      "ROOT_YOUZAN_TIMEOUT_MS",
+      "ROOT_YOUZAN_SUMMARY_CACHE_TTL_MS",
+      "ROOT_YOUZAN_PRODUCT_CACHE_TTL_MS",
+    ],
+    action: "在服务端密钥配置中注入 ROOT 店铺只读 token 和店铺 kdt/grant id，确认商品详情、订单、用户与优惠券读取权限；不得把 token 或会员原始数据下发到小程序。",
+  },
+  {
     id: "cloudbase_store",
     label: "CloudBase Store 决策",
     ownerRole: "研发",
@@ -486,6 +506,8 @@ function envRows(env, names = [], requiredValues = {}, requiredRules = {}) {
         ? isMysqlAddress(raw)
       : rule === "nonblank_value"
         ? isNonblankValue(raw)
+      : rule === "nonblank_secret"
+        ? isNonblankSecret(raw)
       : rule === "mysql_role_username"
         ? isMysqlRoleUsername(raw)
       : rule === "mysql_role_password"
@@ -547,6 +569,7 @@ function envRows(env, names = [], requiredValues = {}, requiredRules = {}) {
         : rule === "opaque_ascii_255" ? "1 至 255 位稳定 ASCII 标识"
         : rule === "mysql_address" ? "host:port（端口为 1 至 65535）"
         : rule === "nonblank_value" ? "非空、无控制字符且不超过 4096 位"
+        : rule === "nonblank_secret" ? "至少 16 位、无首尾空白或控制字符的服务端密钥"
         : rule === "mysql_role_username" ? "1 至 128 位、无首尾空白或控制字符的 MySQL 角色用户名"
         : rule === "mysql_role_password" ? "16 至 4096 位、无首尾空白或控制字符的 MySQL 角色凭据"
         : rule === "mysql_current_user" ? "3 至 288 位、含 @ 且仅含非空白可打印 ASCII 的 CURRENT_USER"
@@ -578,6 +601,7 @@ function anyOfRows(env, groups = [], rules = {}) {
       if (rule === "job_token_rotation") return isJobTokenRotation(env[name]);
       if (rule === "admin_token_rotation") return isAdminTokenRotation(env[name]);
       if (rule === "https_endpoint") return isHttpsEndpoint(env[name]);
+      if (rule === "positive_integer") return /^\d+$/.test(String(env[name] || "")) && Number(env[name]) > 0;
       if (rule === "opaque_ascii_128") return isOpaqueAscii(env[name], 128);
       if (rule === "sha256_digest") return /^[0-9a-f]{64}$/.test(String(env[name] || ""));
       return true;
@@ -703,7 +727,7 @@ function buildProductionEnvMatrix(env = process.env, options = {}) {
       return group && group.status !== "OPTIONAL";
     }),
     sequence: [
-      "先配置运行、隐私、数据仓库和 CloudBase Store 决策。",
+      "先配置运行、隐私、数据仓库、Root 会员商城只读凭据和 CloudBase Store 决策。",
       "再配置对象存储与健康数据清理 Job，并完成 scoped token 校验。",
       "最后通过正式接口、性能和 Candidate 证据门禁，不以本地配置替代真实发布证明。",
     ],

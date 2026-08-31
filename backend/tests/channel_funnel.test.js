@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const channelFunnel = require("../src/channelFunnel");
-const v060Api = require("../src/v060Api");
+const myrootApi = require("../src/myrootApi");
 const { createStore } = require("../src/domain");
 
 function command(overrides = {}) {
@@ -105,7 +105,7 @@ test("an owned assessment result cannot be attached to a different scan visit", 
   });
 
   assert.throws(
-    () => v060Api.recordChannelFunnelStage(data, "channel-source-token", {
+    () => myrootApi.recordChannelFunnelStage(data, "channel-source-token", {
       visitId: visitB.visitId,
       assessmentId: "assessment_channel_source",
       stage: "RESULT_VIEWED",

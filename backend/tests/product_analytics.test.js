@@ -35,6 +35,35 @@ test("guest analytics is limited to public browsing and sharing events", () => {
   }), /需要登录/);
 });
 
+test("member center analytics keeps only canonical route and bounded outcome fields", () => {
+  assert.deepEqual(productAnalytics.sanitizePayload("member_center_handoff", {
+    productId: "4749049439",
+    result: "success",
+    failureReason: "",
+    sourcePage: "/pages/products/index?source=home",
+    targetSource: "server",
+    unionid: "must-not-survive",
+  }), {
+    productId: "4749049439",
+    result: "SUCCESS",
+    failureReason: "",
+    sourcePage: "/pages/products/index",
+    targetSource: "SERVER",
+  });
+  assert.deepEqual(productAnalytics.sanitizePayload("member_center_entry", {
+    entryKey: "coupons",
+    result: "failed",
+    failureReason: "miniprogram_jump_failed",
+    sourcePage: "/pages/profile/index",
+    shortLink: "must-not-survive",
+  }), {
+    entryKey: "COUPONS",
+    result: "FAILED",
+    failureReason: "MINIPROGRAM_JUMP_FAILED",
+    sourcePage: "/pages/profile/index",
+  });
+});
+
 test("unknown events and incomplete payloads fail closed", () => {
   assert.throws(() => productAnalytics.sanitizePayload("unknown_event", {}), /分析事件无效/);
   assert.throws(() => productAnalytics.sanitizePayload("product_impression", {

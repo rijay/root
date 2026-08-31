@@ -5,7 +5,8 @@ const EVENT_SCHEMAS = Object.freeze({
   home_product_banner_click: Object.freeze(["productId", "bannerPosition", "loggedIn"]),
   product_impression: Object.freeze(["productId", "skuId", "sourcePage"]),
   product_detail_view: Object.freeze(["productId", "skuId", "sourcePage"]),
-  member_center_handoff: Object.freeze(["productId", "result", "failureReason", "sourcePage"]),
+  member_center_handoff: Object.freeze(["productId", "result", "failureReason", "sourcePage", "targetSource"]),
+  member_center_entry: Object.freeze(["entryKey", "result", "failureReason", "sourcePage"]),
   assessment_start: Object.freeze(["assessmentType", "questionnaireVersion", "isRetest"]),
   assessment_complete: Object.freeze(["assessmentType", "questionnaireVersion", "isRetest"]),
   assessment_source_confirm: Object.freeze(["assessmentType", "optionId", "configVersion"]),
@@ -23,6 +24,7 @@ const GUEST_EVENTS = new Set([
   "product_impression",
   "product_detail_view",
   "member_center_handoff",
+  "member_center_entry",
   "page_share",
 ]);
 
@@ -31,6 +33,7 @@ const REQUIRED_FIELDS = Object.freeze({
   product_impression: ["productId", "sourcePage"],
   product_detail_view: ["productId", "sourcePage"],
   member_center_handoff: ["productId", "result", "sourcePage"],
+  member_center_entry: ["entryKey", "result", "sourcePage"],
   assessment_start: ["assessmentType", "questionnaireVersion", "isRetest"],
   assessment_complete: ["assessmentType", "questionnaireVersion", "isRetest"],
   assessment_source_confirm: ["assessmentType", "optionId", "configVersion"],
@@ -67,7 +70,7 @@ function normalizedValue(key, value) {
     const route = text(value, 120).split("?")[0];
     return /^\/[A-Za-z0-9_./-]{1,119}$/.test(route) ? route : "";
   }
-  if (["result", "action", "mappingType", "assessmentType", "failureReason", "bannerPosition"].includes(key)) {
+  if (["result", "action", "mappingType", "assessmentType", "failureReason", "bannerPosition", "targetSource", "entryKey"].includes(key)) {
     return text(value, 64).toUpperCase().replace(/[^A-Z0-9_:-]/g, "_");
   }
   return text(value, 96);

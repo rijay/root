@@ -4,9 +4,11 @@ const { OFFICIAL_PRODUCTS } = require("../src/productCatalog");
 
 async function main(options = {}) {
   const token = (options.readToken || readLocalYouzanAccessToken)();
-  const adapter = createEnvironmentYouzanCommerceAdapter({}, {
+  const env = options.env || process.env;
+  const adapter = createEnvironmentYouzanCommerceAdapter(env, {
     accessTokenProvider: token ? async () => token : null,
     fetchImpl: options.fetchImpl,
+    kdtId: options.kdtId,
   });
   if (!adapter.configured) {
     console.log(JSON.stringify({ configured: false, ok: false, reason: "KEYCHAIN_TOKEN_UNAVAILABLE" }));

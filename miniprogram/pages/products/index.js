@@ -8,15 +8,17 @@ const {
   scrollLeftForProduct,
   setPendingProductFocus,
 } = require("../../utils/product-navigation");
-const { initialProductCatalog, listProducts } = require("../../utils/product-api");
+const { initialProductCatalog, listProducts, prepareProductJump } = require("../../utils/product-api");
 const { jumpToYouzanProduct, mergeJumpTarget } = require("../../utils/youzan-jump");
 const { failureReason, track } = require("../../utils/analytics");
 const { showFriendShareMenu } = require("../../utils/page-share");
 const { performanceMonitor } = require("../../utils/performance-monitor");
+const { formatProductSyncedAt } = require("../../utils/product-display");
 
 function decorateProducts(products = []) {
   return products.map((product, index) => ({
     ...product,
+    syncedAtText: formatProductSyncedAt(product.syncedAt),
     visualTone: index % 2 === 0 ? "sprout" : "graphite",
     productCode: product.title && product.title.includes("RT-PrB-")
       ? `RT-PrB-${product.title.split("RT-PrB-")[1].split(/\s/)[0]}`
@@ -38,6 +40,7 @@ Page({
     carouselScrollLeft: 0,
     carouselVisible: true,
     focusNotice: "",
+    catalogNotice: "",
     failedProductImages: {},
   },
 
@@ -110,6 +113,7 @@ Page({
         focusNotice: focus.requestedUnavailable
           ? "指定商品暂不可见，已为你展示当前可用产品。"
           : "",
+        catalogNotice: data.degradedText || "",
         loading: false,
       }, () => {
         this.recordUsableContent(products.length ? "CONTENT_READY" : "EMPTY_READY");
@@ -192,7 +196,7 @@ Page({
   recordProductImpression(productId) {
     if (!productId || this.impressedProductIds.has(productId)) return;
     this.impressedProductIds.add(productId);
-    track("product_impression", { productId, skuId: "", sourcePage: "products" });
+    track("product_impression", { productId, skuId: "", sourcePage: "/pages/products/index" });
   },
 
   productImageFailed(event) {
@@ -253,16 +257,32 @@ Page({
     if (!product) return;
     this.persistViewState();
     this.setData({ jumpLoadingProductId: productId });
-    track("member_center_handoff", { productId, result: "STARTED", failureReason: "", sourcePage: "products" });
+    let targetSource = "PENDING";
+    track("member_center_handoff", {
+      productId,
+      result: "STARTED",
+      failureReason: "",
+      sourcePage: "/pages/products/index",
+      targetSource,
+    });
     try {
-      await jumpToYouzanProduct(mergeJumpTarget(product));
-      track("member_center_handoff", { productId, result: "SUCCESS", failureReason: "", sourcePage: "products" });
+      const prepared = await prepareProductJump(product, "PRODUCT_LIST");
+      targetSource = prepared.targetSource;
+      await jumpToYouzanProduct(mergeJumpTarget(product, prepared));
+      track("member_center_handoff", {
+        productId,
+        result: "SUCCESS",
+        failureReason: "",
+        sourcePage: "/pages/products/index",
+        targetSource,
+      });
     } catch (error) {
       track("member_center_handoff", {
         productId,
         result: "FAILED",
         failureReason: failureReason(error),
-        sourcePage: "products",
+        sourcePage: "/pages/products/index",
+        targetSource,
       });
       this.presentPurchaseFailure(productId, error.message || "暂时无法跳转");
     } finally {

@@ -5,7 +5,8 @@ const EVENT_FIELDS = Object.freeze({
   home_product_banner_click: ["productId", "bannerPosition", "loggedIn"],
   product_impression: ["productId", "skuId", "sourcePage"],
   product_detail_view: ["productId", "skuId", "sourcePage"],
-  member_center_handoff: ["productId", "result", "failureReason", "sourcePage"],
+  member_center_handoff: ["productId", "result", "failureReason", "sourcePage", "targetSource"],
+  member_center_entry: ["entryKey", "result", "failureReason", "sourcePage"],
   campaign_popup_view: ["campaignId", "loginSessionId", "sourcePage"],
   campaign_popup_action: ["campaignId", "loginSessionId", "action", "sourcePage"],
   channel_attribution_attempt: ["channelId", "result", "failureReason"],
@@ -24,15 +25,6 @@ const EVENT_FIELDS = Object.freeze({
   activity_detail_view: ["activityId", "sourcePage"],
   share_menu_setup: ["pageType", "result", "failureReason"],
 });
-
-const LOCAL_HEALTH_EVENTS = new Set([
-  "assessment_start",
-  "assessment_complete",
-  "assessment_compare_view",
-  "campaign_assessment_start",
-  "assessment_result_view",
-  "trial_pack_action",
-]);
 
 function safeText(value, maxLength = 96) {
   return String(value === undefined || value === null ? "" : value)
@@ -64,10 +56,7 @@ function failureReason(error) {
 async function track(eventName, payload = {}) {
   const sanitized = sanitizePayload(eventName, payload);
   if (!sanitized) return { sent: false, reason: "EVENT_NOT_ALLOWED" };
-  if (env.healthAssessmentStorageMode === "LOCAL_DEVICE" && LOCAL_HEALTH_EVENTS.has(eventName)) {
-    return { sent: false, reason: "LOCAL_HEALTH_STORAGE" };
-  }
-  if (env.localV060CompatMode) return { sent: false, reason: "LOCAL_V060_COMPAT" };
+  if (!env.analyticsEnabled) return { sent: false, reason: "DEVELOPMENT_ANALYTICS_DISABLED" };
   try {
     await request({
       url: "/api/v1/event/track",

@@ -136,27 +136,30 @@ test("Youzan Adapter exposes live price and SKU snapshots without trusting remot
   let calls = 0;
   let active = 0;
   let maximumActive = 0;
+  let clock = NOW_MS;
   const adapter = createEnvironmentYouzanCommerceAdapter({}, {
     accessTokenProvider: async () => TOKEN,
+    kdtId: "140980410",
     now: () => new Date(NOW),
+    nowMs: () => clock,
     async fetchImpl(url, options) {
       calls += 1;
       active += 1;
       maximumActive = Math.max(maximumActive, active);
       assert.equal(new URL(url).origin, "https://open.youzanyun.com");
       assert.equal(new URL(url).pathname, new URL(API.product).pathname);
-      assert.deepEqual(JSON.parse(options.body), { item_id: 4749049439 });
-      const result = success({ data: { item: {
+      assert.deepEqual(JSON.parse(options.body), { kdt_id: 140980410, item_id: 4749049439 });
+      const result = success({ data: {
         item_id: 4749049439,
         title: "远端标题不得覆盖官方标题",
         detail_url: "https://example.invalid/不得使用",
-        pic_url: "https://img01.yzcdn.cn/product.jpg",
-        price: 19900,
-        skus: [
-          { sku_id: 101, properties_name_json: JSON.stringify([{ k: "规格", v: "14袋" }]), price: 19900, quantity: 8 },
-          { sku_id: 102, properties_name: "28袋", price: 36900, quantity: 0 },
+        images: [{ image_url: "https://img01.yzcdn.cn/product.jpg" }],
+        item_price_param: { price: 19900 },
+        sku_list: [
+          { sku_id: 101, sku_value_props: [{ prop_value_name: "14袋" }], item_price_param: { price: 19900 }, quantity: 8 },
+          { sku_id: 102, sku_name: "28袋", item_price_param: { price: 36900 }, quantity: 0 },
         ],
-      } } });
+      } });
       await Promise.resolve();
       active -= 1;
       return result;
@@ -182,6 +185,9 @@ test("Youzan Adapter exposes live price and SKU snapshots without trusting remot
     }],
     syncedAt: NOW,
   });
+  clock += 60_001;
+  await adapter.readProductSnapshots({ productIds: ["4749049439"] });
+  assert.equal(calls, 2);
 });
 
 test("Youzan Adapter serializes multi-product live reads to avoid gateway bursts", async () => {
@@ -189,13 +195,14 @@ test("Youzan Adapter serializes multi-product live reads to avoid gateway bursts
   let maximumActive = 0;
   const adapter = createEnvironmentYouzanCommerceAdapter({}, {
     accessTokenProvider: async () => TOKEN,
+    kdtId: "140980410",
     async fetchImpl(_url, options) {
       active += 1;
       maximumActive = Math.max(maximumActive, active);
       await Promise.resolve();
       active -= 1;
       const itemId = JSON.parse(options.body).item_id;
-      return success({ data: { item: { item_id: itemId, price: 19900, skus: [] } } });
+      return success({ data: { item_id: itemId, item_price_param: { price: 19900 }, sku_list: [] } });
     },
   });
   const result = await adapter.readProductSnapshots({ productIds: ["4749049439", "4875324599"] });
@@ -219,12 +226,26 @@ test("Youzan Adapter never forwards credential-bearing upstream errors", async (
 test("Youzan Adapter rejects gateway error envelopes even when HTTP status is 200", async () => {
   const adapter = createEnvironmentYouzanCommerceAdapter({}, {
     accessTokenProvider: async () => TOKEN,
+    kdtId: "140980410",
     fetchImpl: async () => response({ gw_err_resp: { err_code: 4007, err_msg: "gateway rejected" } }),
   });
   await assert.rejects(
     adapter.readProductSnapshots({ productIds: ["4749049439"] }),
     (error) => error.code === "YOUZAN_BUSINESS_FAILED",
   );
+});
+
+test("Youzan Adapter fails closed before network when the shop kdt id is missing", async () => {
+  let calls = 0;
+  const adapter = createEnvironmentYouzanCommerceAdapter({}, {
+    accessTokenProvider: async () => TOKEN,
+    fetchImpl: async () => { calls += 1; return success(); },
+  });
+  await assert.rejects(
+    adapter.readProductSnapshots({ productIds: ["4749049439"] }),
+    (error) => error.code === "YOUZAN_KDT_ID_REQUIRED",
+  );
+  assert.equal(calls, 0);
 });
 
 test("Youzan price formatter treats API amounts as cents", () => {

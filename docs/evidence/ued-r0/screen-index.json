@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-30T06:53:15.616Z",
+  "generatedAt": "2026-08-31T03:08:57.099Z",
   "evidenceClass": "LOCAL_IMPLEMENTATION_MAPPING",
   "releaseGateEligible": false,
   "designSource": {
@@ -113,7 +113,7 @@
       "viewport": "390x844",
       "implementationPaths": [
         "miniprogram/pages/health/index.wxml",
-        "miniprogram/subpkg/health/pages/initial-assessment/index.wxml"
+        "miniprogram/subpkg/health/pages/assessment/index.wxml"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",
@@ -141,7 +141,7 @@
       "implementationPaths": [
         "miniprogram/pages/health/index.wxml",
         "miniprogram/pages/health-consent/index.wxml",
-        "miniprogram/subpkg/health/pages/scale-assessment/index.wxml"
+        "miniprogram/subpkg/health/pages/result/index.wxml"
       ],
       "implementationStatus": "MAPPED_LOCAL_SOURCE",
       "screenshotStatus": "CONTROLLED_CAPTURE_COMPLETE",

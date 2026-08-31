@@ -106,12 +106,13 @@ function relationForProduct(data, productId, campaignId = DEFAULT_CAMPAIGN_ID) {
 
 function jumpTarget(product, context = {}) {
   const env = context.env || {};
-  const path = text(product.youzan_path || env.ROOT_MEMBER_CENTER_PRODUCT_PATH);
+  const path = text(product.youzan_path);
+  const requestedEnvVersion = text(env.ROOT_MEMBER_CENTER_ENV_VERSION, "release");
   return {
-    appId: text(env.ROOT_MEMBER_CENTER_APPID || product.youzan_app_id),
+    appId: text(product.youzan_app_id, MEMBER_CENTER_APP_ID),
     path: /^#小程序:\/\//.test(path) ? "" : path,
     shortLink: /^#小程序:\/\//.test(path) ? path : "",
-    envVersion: text(env.ROOT_MEMBER_CENTER_ENV_VERSION, "release"),
+    envVersion: ["develop", "trial", "release"].includes(requestedEnvVersion) ? requestedEnvVersion : "release",
     extraData: { from: "myroot_product", productId: product.youzan_product_id },
   };
 }
@@ -146,6 +147,9 @@ function publicProduct(data, product, context = {}) {
       stockStatus: item.stock_status || "UNKNOWN",
     }));
   const skus = live && Array.isArray(live.skus) ? live.skus.map(liveSku) : persistedSkus;
+  const priceSource = live
+    ? "YOUZAN_LIVE"
+    : (product.synced_at || product.updated_at) ? "PERSISTED_SNAPSHOT" : "CATALOG_DEFAULT";
   return {
     productId: product.youzan_product_id,
     youzanProductId: product.youzan_product_id,
@@ -157,6 +161,8 @@ function publicProduct(data, product, context = {}) {
     status: product.status,
     badge: (relation && relation.badge) || product.badge || "",
     priceText: (live && live.priceText) || product.price_text || "会员中心实时价格",
+    priceLive: priceSource === "YOUZAN_LIVE",
+    priceSource,
     skuCount: skus.length,
     skus,
     campaignId: relation ? relation.campaign_id : "",

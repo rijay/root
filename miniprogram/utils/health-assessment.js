@@ -1,10 +1,7 @@
 const { request } = require("./request");
 const { track } = require("./analytics");
-const env = require("../config/env");
-const localAssessment = require("./local-health-assessment");
 const { decorateAdvice } = require("./health-advice-ui");
 const { assessmentChannelContext } = require("./channel-attribution");
-const useLocalAssessmentStorage = env.healthAssessmentStorageMode === "LOCAL_DEVICE";
 const inflightAdviceRequests = new Map();
 
 const TYPE_LABELS = {
@@ -19,6 +16,11 @@ const UNAVAILABLE_COPY = {
   QUESTIONNAIRE_NOT_CONFIGURED: "题目配置中",
   RESULT_COPY_NOT_CONFIGURED: "结果说明配置中",
 };
+
+const CATALOG_PLACEHOLDERS = Object.freeze([
+  Object.freeze({ assessmentType: "INITIAL", title: "健康起点评测", description: "了解近期状态，为后续复测留下可比较基线。", estimatedMinutes: 5 }),
+  Object.freeze({ assessmentType: "GUT_REGULARITY", title: "肠道健康 5 道题自测", description: "用于近期肠道规律状态观察。", estimatedMinutes: 2 }),
+]);
 
 function requestId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -69,20 +71,17 @@ function decorateCatalogItem(item = {}) {
 
 function initialCatalog() {
   return {
-    storageMode: useLocalAssessmentStorage ? "LOCAL_DEVICE" : "SERVER",
-    assessments: Object.values(localAssessment.DEFINITIONS).map((definition) => decorateCatalogItem({
+    storageMode: "SERVER",
+    assessments: CATALOG_PLACEHOLDERS.map((definition) => decorateCatalogItem({
       assessmentType: definition.assessmentType,
       definition: {
-        assessmentDefinitionId: definition.assessmentDefinitionId,
         assessmentType: definition.assessmentType,
-        questionnaireId: definition.questionnaireId,
-        questionnaireVersion: definition.questionnaireVersion,
         title: definition.title,
         description: definition.description,
         estimatedMinutes: definition.estimatedMinutes,
-        available: definition.available,
+        available: true,
       },
-      available: definition.available !== false,
+      available: true,
       unavailableReason: "",
       historyCount: 0,
       latest: null,
@@ -94,28 +93,24 @@ function initialCatalog() {
 }
 
 async function getCatalog() {
-  const data = useLocalAssessmentStorage
-    ? localAssessment.catalog()
-    : await request({ url: "/api/v1/health/assessments/catalog" });
+  const data = await request({ url: "/api/v1/health/assessments/catalog" });
   return {
     ...data,
-    storageMode: useLocalAssessmentStorage ? data.storageMode : "SERVER",
+    storageMode: "SERVER",
     assessments: (data.assessments || []).map(decorateCatalogItem),
   };
 }
 
 async function startAssessment(assessmentType) {
-  const result = useLocalAssessmentStorage
-    ? localAssessment.start(assessmentType)
-    : await request({
-      url: "/api/v1/health/assessments/start",
-      method: "POST",
-      idempotencyKey: requestId("assessment-start"),
-      data: {
-        assessmentType,
-        ...assessmentChannelContext(),
-      },
-    });
+  const result = await request({
+    url: "/api/v1/health/assessments/start",
+    method: "POST",
+    idempotencyKey: requestId("assessment-start"),
+    data: {
+      assessmentType,
+      ...assessmentChannelContext(),
+    },
+  });
   const assessment = result.assessment || {};
   track("assessment_start", {
     assessmentType: assessment.assessmentType || assessmentType,
@@ -126,14 +121,11 @@ async function startAssessment(assessmentType) {
 }
 
 async function getAssessment(assessmentId) {
-  const data = useLocalAssessmentStorage
-    ? localAssessment.get(assessmentId)
-    : await request({ url: `/api/v1/health/assessments/${assessmentId}` });
+  const data = await request({ url: `/api/v1/health/assessments/${assessmentId}` });
   return { ...data, assessment: decorateAssessment(data.assessment) };
 }
 
 async function saveDraft(assessmentId, answers) {
-  if (useLocalAssessmentStorage) return localAssessment.saveDraft(assessmentId, answers);
   return request({
     url: `/api/v1/health/assessments/${assessmentId}/draft`,
     method: "POST",
@@ -142,14 +134,12 @@ async function saveDraft(assessmentId, answers) {
 }
 
 async function completeAssessment(assessmentId, answers) {
-  const result = useLocalAssessmentStorage
-    ? localAssessment.complete(assessmentId, answers)
-    : await request({
-      url: `/api/v1/health/assessments/${assessmentId}/complete`,
-      method: "POST",
-      idempotencyKey: `assessment-complete:${assessmentId}`,
-      data: { answers, sourceChannel: "MINIPROGRAM_HEALTH_ASSESSMENT" },
-    });
+  const result = await request({
+    url: `/api/v1/health/assessments/${assessmentId}/complete`,
+    method: "POST",
+    idempotencyKey: `assessment-complete:${assessmentId}`,
+    data: { answers, sourceChannel: "MINIPROGRAM_HEALTH_ASSESSMENT" },
+  });
   const assessment = result.assessment || {};
   track("assessment_complete", {
     assessmentType: assessment.assessmentType || "",
@@ -161,9 +151,7 @@ async function completeAssessment(assessmentId, answers) {
 
 async function getHistory(assessmentType = "") {
   const query = assessmentType ? `?assessmentType=${encodeURIComponent(assessmentType)}` : "";
-  const data = useLocalAssessmentStorage
-    ? localAssessment.history(assessmentType)
-    : await request({ url: `/api/v1/health/assessments/history${query}` });
+  const data = await request({ url: `/api/v1/health/assessments/history${query}` });
   return {
     ...data,
     assessments: (data.assessments || []).map(decorateAssessment),
@@ -171,9 +159,6 @@ async function getHistory(assessmentType = "") {
 }
 
 async function deleteAssessment(assessmentId) {
-  if (useLocalAssessmentStorage) {
-    throw new Error("当前本地兼容模式不支持单条删除");
-  }
   const result = await request({
     url: `/api/v1/health/assessments/${assessmentId}`,
     method: "DELETE",
@@ -218,13 +203,11 @@ async function generateHealthAdvice(currentOverview = {}) {
 }
 
 async function compareAssessments(leftAssessmentId, rightAssessmentId) {
-  const data = useLocalAssessmentStorage
-    ? localAssessment.compare(leftAssessmentId, rightAssessmentId)
-    : await request({
-      url: "/api/v1/health/assessments/compare",
-      method: "POST",
-      data: { leftAssessmentId, rightAssessmentId },
-    });
+  const data = await request({
+    url: "/api/v1/health/assessments/compare",
+    method: "POST",
+    data: { leftAssessmentId, rightAssessmentId },
+  });
   track("assessment_compare_view", {
     leftVersion: data.left && data.left.questionnaireVersion || 0,
     rightVersion: data.right && data.right.questionnaireVersion || 0,

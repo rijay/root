@@ -1,8 +1,0 @@
-<view class="launching-page">
-  <view class="launching-center">
-    <image class="launching-logo" src="/static/brand/root-logo-horizontal-light.png" mode="aspectFit" />
-    <view class="launching-line"></view>
-    <view class="launching-title">身体，自有其序</view>
-  </view>
-  <view class="launching-foot">ROOT</view>
-</view>

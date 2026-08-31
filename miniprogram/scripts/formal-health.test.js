@@ -16,6 +16,8 @@ assert.deepEqual(healthPackage.pages, [
 ]);
 assert.equal(healthPackage.pages.includes("pages/scale-assessment/index"), false);
 assert.equal(healthPackage.pages.includes("pages/initial-assessment/index"), false);
+assert.equal(fs.existsSync(path.join(root, "subpkg/health/pages/scale-assessment")), false);
+assert.equal(fs.existsSync(path.join(root, "subpkg/health/pages/initial-assessment")), false);
 
 const healthScript = read("pages/health/index.js");
 const healthWxml = read("pages/health/index.wxml");
@@ -48,23 +50,9 @@ assert.match(assessmentWxml, /提交评测/);
 assert.match(assessmentWxml, /bristol-stool-scale\.jpg/);
 assert.match(assessmentWxml, /不构成诊断、治疗或用药建议/);
 
-const localAssessment = read("utils/local-health-assessment.js");
-const localRetention = read("utils/local-health-retention.js");
-assert.match(localAssessment, /GUT_REGULARITY/);
-assert.match(localAssessment, /ROOT_GUT_5Q/);
-assert.match(localAssessment, /questionnaireVersion:\s*2/);
-assert.match(localAssessment, /resultCopyVersion:\s*5/);
-assert.match(localAssessment, /REQUIRED_GUT_PRIORITY_ACTIONS\s*=\s*Object\.freeze/);
-assert.match(localAssessment, /CONSTIPATION:\s*"补充益生元纤维，帮助软化便便促蠕动"/);
-assert.match(localAssessment, /LOOSE:\s*"补充可溶性纤维，帮助吸水让便便成形"/);
-assert.match(localAssessment, /ALTERNATING:\s*"补充益生元纤维，双向调节排便节奏"/);
-assert.match(localAssessment, /SENSITIVE:\s*"补充低FODMAP益生元，温和滋养不胀气"/);
-assert.match(localAssessment, /HEALTHY:\s*"日常补充益生元，持续滋养肠道有益菌"/);
-assert.match(localAssessment, /answers\.Q2 === "D"/);
-assert.doesNotMatch(localAssessment, /\["C", "D"\]\.includes\(answers\.Q2\)/);
-assert.match(localAssessment, /以上建议仅供日常健康管理参考/);
-assert.match(localRetention, /pruneExpiredAttempts/);
-assert.match(localRetention, /cleanupExpiredLocalHealthData/);
+const healthAssessmentClient = read("utils/health-assessment.js");
+assert.doesNotMatch(healthAssessmentClient, /LOCAL_DEVICE|local-health-assessment|local-health-retention/);
+assert.match(healthAssessmentClient, /storageMode:\s*"SERVER"/);
 
 const historyScript = read("subpkg/health/pages/history/index.js");
 const resultScript = read("subpkg/health/pages/result/index.js");
@@ -95,4 +83,4 @@ assert.match(legalScript, /不使用任何真实用户/);
 assert.match(legalScript, /不对外提供用户身份/);
 assert.doesNotMatch(legalScript, /AI 辅助|模型辅助|CloudBase AI|实时模型/);
 
-console.log("v0.6.0 formal health tests ok");
+console.log("v0.8.0 formal health tests ok");

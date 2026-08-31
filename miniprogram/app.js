@@ -8,7 +8,6 @@ const { installGlobalSharePolicy } = require("./utils/page-share");
 const { navigateToLaunchingTarget, prepareLaunchingEntry } = require("./utils/launching-entry");
 const { captureFirstChannel, channelEntryOptions } = require("./utils/channel-attribution");
 const { FORMAL_ACCESS_STATE, inspectFormalAccess } = require("./utils/formal-access");
-const { cleanupExpiredLocalHealthData } = require("./utils/local-health-retention");
 const { readProfileCache, writeProfileCache } = require("./utils/profile-cache");
 const { ensureLoginSession } = require("./utils/login-session");
 const { getToken } = require("./utils/request");
@@ -54,13 +53,6 @@ App({
   },
 
   onLaunch(options = {}) {
-    if (env.healthAssessmentStorageMode === "LOCAL_DEVICE") {
-      try {
-        cleanupExpiredLocalHealthData(wx);
-      } catch (_) {
-        // 本机存储异常不得阻断小程序启动；进入健康页时会再次提示。
-      }
-    }
     performanceMonitor.startNativeObservation(wx);
     performanceMonitor.record({
       name: "app_launch",

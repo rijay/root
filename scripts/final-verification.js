@@ -148,6 +148,7 @@ function verifyFormalRouteSurface() {
     "/api/v1/jobs/health-data-retention-cleanup",
     "/api/v1/products",
     "/api/v1/products/jump",
+    "/api/v1/member-commerce/summary",
     "/api/v1/health/assessments/catalog",
     "/api/v1/health/assessments/history",
     "/api/v1/health/assessments/start",

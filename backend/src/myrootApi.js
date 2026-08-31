@@ -32,33 +32,57 @@ function principal(data, token, required = true) {
   };
 }
 
-async function liveProductSnapshots(context, productIds) {
+async function liveProductSnapshotState(context, productIds) {
   const adapter = context.productCommerceAdapter;
-  if (!adapter || adapter.configured !== true || typeof adapter.readProductSnapshots !== "function") return [];
+  if (!adapter || adapter.configured !== true || typeof adapter.readProductSnapshots !== "function") {
+    return { status: "UNAVAILABLE", reason: "LIVE_READ_NOT_CONFIGURED", products: [], syncedAt: "" };
+  }
   try {
     const result = await adapter.readProductSnapshots({ productIds });
-    return Array.isArray(result && result.products) ? result.products : [];
+    const products = Array.isArray(result && result.products) ? result.products : [];
+    const receivedIds = new Set(products.map((item) => String(item && item.productId || "")).filter(Boolean));
+    const complete = productIds.every((productId) => receivedIds.has(String(productId)));
+    return {
+      status: complete ? "LIVE" : products.length ? "PARTIAL" : "UNAVAILABLE",
+      reason: complete ? "" : "LIVE_READ_INCOMPLETE",
+      products,
+      syncedAt: String(result && result.syncedAt || "").trim(),
+    };
   } catch (error) {
-    return [];
+    return {
+      status: "UNAVAILABLE",
+      reason: error && error.code === "YOUZAN_KDT_ID_REQUIRED"
+        ? "LIVE_READ_NOT_CONFIGURED"
+        : "LIVE_READ_UNAVAILABLE",
+      products: [],
+      syncedAt: "",
+    };
   }
 }
 
 async function listProducts(data, query = {}, context = {}) {
-  const snapshots = await liveProductSnapshots(
+  const live = await liveProductSnapshotState(
     context,
     productCatalog.OFFICIAL_PRODUCTS.map((item) => item.youzan_product_id),
   );
-  return productCatalog.listProducts(data, {
+  const catalog = productCatalog.listProducts(data, {
     ...context,
     campaignId: query.campaignId || query.campaign_id || productCatalog.DEFAULT_CAMPAIGN_ID,
-    liveProductSnapshots: snapshots,
+    liveProductSnapshots: live.products,
   });
+  return {
+    ...catalog,
+    priceSync: { status: live.status, reason: live.reason, syncedAt: live.syncedAt },
+  };
 }
 
 async function getProduct(data, productId, context = {}) {
   productCatalog.getProduct(data, productId, context);
-  const snapshots = await liveProductSnapshots(context, [productId]);
-  return { product: productCatalog.getProduct(data, productId, { ...context, liveProductSnapshots: snapshots }) };
+  const live = await liveProductSnapshotState(context, [productId]);
+  return {
+    product: productCatalog.getProduct(data, productId, { ...context, liveProductSnapshots: live.products }),
+    priceSync: { status: live.status, reason: live.reason, syncedAt: live.syncedAt },
+  };
 }
 
 function recordProductJump(data, token, body = {}, context = {}) {

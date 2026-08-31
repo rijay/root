@@ -12,8 +12,9 @@ const healthView = read("pages/health/index.wxml");
 
 assert.equal(healthPackage.pages.includes("pages/scale-assessment/index"), false);
 assert.equal(routes.REGISTERED_FORMAL_ROUTES.includes("subpkg/health/pages/scale-assessment/index"), false);
+assert.equal(fs.existsSync(path.join(root, "subpkg/health/pages/scale-assessment")), false);
 assert.doesNotMatch(healthScript, /openRecommendedScale|scaleVersionId/);
 assert.doesNotMatch(healthView, /bindtap="openRecommendedScale"/);
 assert.match(healthScript, /getCatalog/);
 
-console.log("legacy scale assessment is excluded from v0.6.0");
+console.log("legacy scale assessment code is absent from v0.8.0");

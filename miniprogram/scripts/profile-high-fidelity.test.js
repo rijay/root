@@ -47,7 +47,7 @@ matches(profileScript, /fail:[\s\S]*memberLinkFailure:\s*true/, "跳转失败保
 excludes(profileWxml, /退出登录/, "我的首页不再放置退出登录按钮");
 matches(registerWxml, /保存资料<\/button>\s*<button wx:if="\{\{editing\}\}" class="register-page__logout"[^>]*>退出登录<\/button>/s, "退出登录紧跟编辑资料保存按钮");
 matches(registerScript, /clearTransientHealthData\(\)/, "退出登录清除内存健康状态");
-matches(registerScript, /ROOT4U_INITIAL_SUBMIT_KEY_V1/, "退出登录清除健康提交键");
+excludes(registerScript, /ROOT4U_INITIAL_SUBMIT_KEY_V1|ROOT4U_START_PENDING_V1/, "退出登录不再维护已下线健康提交键");
 matches(registerScript, /clearToken\(\)/, "退出登录清除登录态和资料缓存");
 matches(registerScript, /clearSessionPageCache\(\)/, "退出登录清除会话页面缓存");
 matches(registerScript, /router\.go\("\/pages\/profile\/index"\)/, "退出后返回我的首页");

@@ -1,31 +1,9 @@
 const { request } = require("./request");
-const env = require("../config/env");
-
-const LOCAL_DEVICE_PURPOSES = Object.freeze([
-  "在当前设备完成 Root4U 健康起点评测与肠道规律自测",
-  "在当前设备生成生活方式观察结果、复测历史与同版对比",
-  "记录你对本说明的同意或撤回审计事实",
-]);
-
-function presentHealthPrivacyNotice(notice = {}) {
-  if (env.healthAssessmentStorageMode !== "LOCAL_DEVICE") return notice;
-  const retentionDays = Number(env.healthAssessmentRetentionDays) || 180;
-  return {
-    ...notice,
-    storageMode: "LOCAL_DEVICE",
-    purposes: LOCAL_DEVICE_PURPOSES.slice(),
-    necessity: "问卷答案、评测结果和回测记录仅在当前设备处理，不上传至 myRoot 服务器；服务器仅保存同意或撤回的审计记录，以及保障接口安全所必需的最少技术记录，不包含问卷答案和评测结果。",
-    modelProcessingText: "当前设备模式不调用模型服务，仅展示经审核的固定生活方式建议。",
-    retentionDays,
-    retentionText: `问卷答案、评测结果和回测记录自最后保存起最长保留 ${retentionDays} 天，到期自动从本机删除；你也可通过微信清理小程序数据提前删除。更换设备或清理数据后无法恢复。同意或撤回审计记录按法律与安全所需的最短期限保存。`,
-  };
-}
 
 let navigating = false;
 
 async function getHealthConsentStatus() {
-  const status = await request({ url: "/api/v1/privacy/health-consent" });
-  return { ...status, notice: presentHealthPrivacyNotice(status && status.notice) };
+  return request({ url: "/api/v1/privacy/health-consent" });
 }
 
 async function ensureHealthConsent(options = {}) {
@@ -60,5 +38,4 @@ async function ensureHealthConsent(options = {}) {
 module.exports = {
   ensureHealthConsent,
   getHealthConsentStatus,
-  presentHealthPrivacyNotice,
 };

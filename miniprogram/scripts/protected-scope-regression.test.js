@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-// v0.7.2 只放开已明确提出的启动图防闪；其余受保护页面继续阻止范围外漂移。
+// v0.8.0 保留已复核页面外观，只收口废弃运行时与不可达代码。
 const baselineHashes = Object.freeze({
   "pages/welcome/index.wxml": "a8e8de1e4e7558171dc36f9ab0e39959d0e925afd4741083bc7c9eb13fdfddc0",
   "pages/welcome/index.wxss": "2a87090275ef94668ece9eee4e5f38be8fbeaf42b6ec5921432d8b4dafe56fb6",
@@ -45,4 +45,4 @@ const homeWxml = fs.readFileSync(path.join(root, "pages/home/index.wxml"), "utf8
 assert.match(homeWxml, /home-carousel/);
 assert.doesNotMatch(homeWxml, /home-product-banner/);
 
-console.log("v0.7.2 protected page regression checks passed");
+console.log("v0.8.0 protected page regression checks passed");

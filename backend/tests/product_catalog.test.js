@@ -39,12 +39,19 @@ test("persisted dynamic price and image remain available while the official jump
     youzan_app_id: "wrong",
     youzan_path: "packages/wrong",
   }];
-  const product = productCatalog.getProduct(data, "4749049439");
+  const product = productCatalog.getProduct(data, "4749049439", {
+    env: {
+      ROOT_MEMBER_CENTER_APPID: "wx-wrong-env-override",
+      ROOT_MEMBER_CENTER_PRODUCT_PATH: "packages/wrong-env",
+      ROOT_MEMBER_CENTER_ENV_VERSION: "invalid",
+    },
+  });
   assert.equal(product.title, "ROOT 低敏畅享·每日衡养益生元饮料 RT-PrB-01");
   assert.equal(product.imageUrl, "https://example.invalid/product.png");
   assert.equal(product.priceText, "¥299");
   assert.equal(product.youzan.appId, "wxfb75c0b432670215");
   assert.equal(product.youzan.path, "packages/goods/detail/index?alias=36ep2dcgnia7nf0&shopAutoEnter=1");
+  assert.equal(product.youzan.envVersion, "release");
 });
 
 test("live Youzan snapshots override only dynamic price, image and SKU fields", () => {

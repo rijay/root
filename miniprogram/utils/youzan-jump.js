@@ -10,6 +10,15 @@ function isMiniProgramShortLink(value) {
   return /^#小程序:\/\//.test(String(value || "").trim());
 }
 
+function isAllowedMemberCenterShortLink(value) {
+  const normalized = String(value || "").trim();
+  if (!isMiniProgramShortLink(normalized)) return false;
+  return new Set([
+    env.rootMemberCenterOrdersShortLink,
+    env.rootMemberCenterCouponsShortLink,
+  ].map((item) => String(item || "").trim()).filter(Boolean)).has(normalized);
+}
+
 function isConfiguredProductPath(value, allowedQueryKeys = ["alias", "shopAutoEnter"]) {
   const path = String(value || "").trim();
   if (!path || isMiniProgramShortLink(path)) return false;
@@ -63,6 +72,10 @@ function jumpToYouzanProduct(target) {
       return;
     }
     if (target.shortLink) {
+      if (!isAllowedMemberCenterShortLink(target.shortLink)) {
+        reject(jumpError("MEMBER_SHORT_LINK_MISMATCH", "Root 会员中心目标校验失败"));
+        return;
+      }
       wx.navigateToMiniProgram({
         shortLink: target.shortLink,
         envVersion: target.envVersion || "release",
@@ -75,6 +88,11 @@ function jumpToYouzanProduct(target) {
     }
     if (!isConfiguredAppId(target.appId)) {
       reject(jumpError("MEMBER_APP_UNCONFIGURED", "Root 会员中心暂未配置"));
+      return;
+    }
+    const allowedAppId = String(env.rootMemberCenterAppId || env.youzanAppId || "").trim();
+    if (allowedAppId && String(target.appId || "").trim() !== allowedAppId) {
+      reject(jumpError("MEMBER_APP_MISMATCH", "Root 会员中心目标校验失败"));
       return;
     }
     if (!isConfiguredProductPath(target.path, target.allowedQueryKeys)) {
@@ -95,6 +113,7 @@ function jumpToYouzanProduct(target) {
 }
 
 module.exports = {
+  isAllowedMemberCenterShortLink,
   isConfiguredAppId,
   isConfiguredProductPath,
   isMiniProgramShortLink,

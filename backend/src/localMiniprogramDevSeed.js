@@ -174,8 +174,8 @@ function gutDefinition(source) {
 }
 
 function localDefinitions() {
-  // This dependency is intentionally loaded only after the local-only guard passes.
-  const { DEFINITIONS } = require("../../miniprogram/utils/local-health-assessment");
+  // Development fixtures live server-side so the mini-program has one assessment implementation.
+  const { DEFINITIONS } = require("./healthAssessmentDevelopmentFixtures");
   return [initialDefinition(DEFINITIONS.INITIAL), gutDefinition(DEFINITIONS.GUT_REGULARITY)];
 }
 

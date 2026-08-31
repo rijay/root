@@ -1,4 +1,4 @@
-const { getProduct, initialProduct } = require("../../utils/product-api");
+const { getProduct, initialProduct, prepareProductJump } = require("../../utils/product-api");
 const { setPendingProductFocus } = require("../../utils/product-navigation");
 const { jumpToYouzanProduct, mergeJumpTarget } = require("../../utils/youzan-jump");
 const { failureReason, track } = require("../../utils/analytics");
@@ -67,7 +67,7 @@ Page({
         track("product_detail_view", {
           productId: product.productId,
           skuId: "",
-          sourcePage: this.data.sourcePage,
+          sourcePage: "/pages/product-detail/index",
         });
       }
     } catch (error) {
@@ -89,16 +89,32 @@ Page({
     if (this.data.jumpLoading || !this.data.product) return;
     const productId = this.data.product.productId;
     this.setData({ jumpLoading: true });
-    track("member_center_handoff", { productId, result: "STARTED", failureReason: "", sourcePage: "product_detail" });
+    let targetSource = "PENDING";
+    track("member_center_handoff", {
+      productId,
+      result: "STARTED",
+      failureReason: "",
+      sourcePage: "/pages/product-detail/index",
+      targetSource,
+    });
     try {
-      await jumpToYouzanProduct(mergeJumpTarget(this.data.product));
-      track("member_center_handoff", { productId, result: "SUCCESS", failureReason: "", sourcePage: "product_detail" });
+      const prepared = await prepareProductJump(this.data.product, "PRODUCT_DETAIL");
+      targetSource = prepared.targetSource;
+      await jumpToYouzanProduct(mergeJumpTarget(this.data.product, prepared));
+      track("member_center_handoff", {
+        productId,
+        result: "SUCCESS",
+        failureReason: "",
+        sourcePage: "/pages/product-detail/index",
+        targetSource,
+      });
     } catch (error) {
       track("member_center_handoff", {
         productId,
         result: "FAILED",
         failureReason: failureReason(error),
-        sourcePage: "product_detail",
+        sourcePage: "/pages/product-detail/index",
+        targetSource,
       });
       wx.showModal({
         title: "未能打开 Root 会员中心",

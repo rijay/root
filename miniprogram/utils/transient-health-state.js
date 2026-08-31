@@ -3,7 +3,6 @@ const TRANSIENT_HEALTH_KEYS = Object.freeze({
   SHARE_POSTER: "SHARE_POSTER",
 });
 
-const legacyStorageKeys = ["ROOT_LAST_RESULT", "ROOT_SHARE_POSTER_PAYLOAD"];
 const values = new Map();
 
 function assertKey(key) {
@@ -34,16 +33,8 @@ function clearTransientHealthData() {
   values.clear();
 }
 
-function clearLegacyTransientHealthStorage(apiValue) {
-  const api = apiValue || (typeof wx !== "undefined" ? wx : null);
-  if (!api || typeof api.removeStorageSync !== "function") return false;
-  legacyStorageKeys.forEach((key) => api.removeStorageSync(key));
-  return true;
-}
-
 module.exports = {
   TRANSIENT_HEALTH_KEYS,
-  clearLegacyTransientHealthStorage,
   clearTransientHealthData,
   consumeTransientHealthData,
   setTransientHealthData,

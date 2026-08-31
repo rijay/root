@@ -7,8 +7,9 @@ const { FORMAL_ACCESS_STATE, inspectFormalAccess } = require("../../utils/formal
 const { defaultOnShareAppMessage } = require("../../utils/page-share");
 const { readProfileCache, writeProfileCache } = require("../../utils/profile-cache");
 const { currentLoginSession, ensureLoginSession } = require("../../utils/login-session");
-const { getMemberCommerceSummary, readMemberCommerceSummary } = require("../../utils/member-commerce");
+const { getMemberCommerceSummary, presentSummary, readMemberCommerceSummary } = require("../../utils/member-commerce");
 const { performanceMonitor } = require("../../utils/performance-monitor");
+const { failureReason, track } = require("../../utils/analytics");
 
 const PROFILE_ROUTE = "/pages/profile/index";
 const PENDING_MEMBER_TARGET_KEY = "ROOT_PROFILE_MEMBER_TARGET_V1";
@@ -45,7 +46,7 @@ Page({
     failedMemberKey: "",
     profileRefreshFailed: false,
     profileImageFailed: false,
-    memberCommerce: firstMemberCommerce || { ready: false, orderHint: "会员中心", couponHint: "会员中心" },
+    memberCommerce: firstMemberCommerce || presentSummary(),
   },
 
   onLoad() {
@@ -71,7 +72,7 @@ Page({
         failedMemberKey: "",
         profileRefreshFailed: false,
         profileImageFailed: false,
-        memberCommerce: { ready: false, orderHint: "会员中心", couponHint: "会员中心" },
+        memberCommerce: presentSummary(),
       });
     if (hasSession) {
       this.loadProfile({ preserveCached: Boolean(cached) });
@@ -172,7 +173,7 @@ Page({
       })
       .catch(() => {
         if (getToken() && currentLoginSession().sessionId === expectedSessionId) this.setData({
-          memberCommerce: { ready: false, orderHint: "会员中心", couponHint: "会员中心" },
+          memberCommerce: presentSummary(),
         });
       });
     this._memberCommercePromise = pending;
@@ -206,6 +207,12 @@ Page({
     if (this.data.sessionChecking) return;
     const key = event.currentTarget.dataset.key;
     if (!this.data.loggedIn) {
+      track("member_center_entry", {
+        entryKey: key,
+        result: "LOGIN_REQUIRED",
+        failureReason: "",
+        sourcePage: PROFILE_ROUTE,
+      });
       wx.setStorageSync(PENDING_MEMBER_TARGET_KEY, key);
       this.openLogin();
       return;
@@ -214,17 +221,56 @@ Page({
   },
 
   openMemberPath(key) {
+    if (!["orders", "coupons"].includes(key)) {
+      this.setData({ memberLinkFailure: true, failedMemberKey: "orders" });
+      track("member_center_entry", {
+        entryKey: "UNKNOWN",
+        result: "FAILED",
+        failureReason: "MEMBER_ENTRY_INVALID",
+        sourcePage: PROFILE_ROUTE,
+      });
+      return;
+    }
+    track("member_center_entry", {
+      entryKey: key,
+      result: "STARTED",
+      failureReason: "",
+      sourcePage: PROFILE_ROUTE,
+    });
     const shortLink = key === "orders"
       ? env.rootMemberCenterOrdersShortLink
       : env.rootMemberCenterCouponsShortLink;
     if (!shortLink) {
       this.setData({ memberLinkFailure: true, failedMemberKey: key });
+      track("member_center_entry", {
+        entryKey: key,
+        result: "FAILED",
+        failureReason: "MEMBER_SHORT_LINK_UNCONFIGURED",
+        sourcePage: PROFILE_ROUTE,
+      });
       return;
     }
     wx.navigateToMiniProgram({
       shortLink,
-      success: () => this.setData({ memberLinkFailure: false, failedMemberKey: "" }),
-      fail: () => this.setData({ memberLinkFailure: true, failedMemberKey: key }),
+      success: () => {
+        this.setData({ memberLinkFailure: false, failedMemberKey: "" });
+        track("member_center_entry", {
+          entryKey: key,
+          result: "SUCCESS",
+          failureReason: "",
+          sourcePage: PROFILE_ROUTE,
+        });
+      },
+      fail: (error) => {
+        const reason = failureReason(error);
+        this.setData({ memberLinkFailure: true, failedMemberKey: key });
+        track("member_center_entry", {
+          entryKey: key,
+          result: "FAILED",
+          failureReason: reason === "REQUEST_FAILED" ? "MINIPROGRAM_JUMP_FAILED" : reason,
+          sourcePage: PROFILE_ROUTE,
+        });
+      },
     });
   },
 

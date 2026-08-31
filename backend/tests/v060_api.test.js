@@ -5,12 +5,17 @@ const { createApp } = require("../src/app");
 const { sessionTokenDigest } = require("../src/credentialProtection");
 const { signChannelAttribution } = require("../src/growthEngagement");
 const { createEmptyData, createMemoryStore } = require("../src/store");
+const { stampVerifiedWechatUnionId } = require("../src/wechatIdentityAuthority");
 
 const TOKEN = "root_v060_api_test_token";
 const ROOT_USER_ID = "root_v060_api_user";
 const SESSION_ID = "ses_v060_api_test";
 const CHANNEL_KEY_ID = "channel-key-v1";
 const CHANNEL_SECRET = "channel-attribution-test-secret-at-least-32-characters";
+const IDENTITY_ENV = Object.freeze({
+  ROOT_COMMAND_REQUEST_DIGEST_KEY: "v080-commerce-unionid-authority-secret-2026",
+  ROOT_COMMAND_REQUEST_DIGEST_KEY_ID: "v080-commerce-unionid-v1",
+});
 
 function approvedInitialDefinition() {
   return {
@@ -134,10 +139,32 @@ function authenticatedHeaders(extra = {}) {
 }
 
 test("v0.6 public product and authenticated assessment Interfaces work end to end", async (t) => {
-  const storeAdapter = createMemoryStore(fixture(), { seedSampleData: false });
+  const data = fixture();
+  data.wechatIdentities.push(stampVerifiedWechatUnionId({
+    wechat_identity_id: "wxi-v080-commerce",
+    root_user_id: ROOT_USER_ID,
+    app_code: "MYROOT",
+    openid: "openid-v080-commerce",
+    unionid: "unionid-v080-commerce",
+  }, {
+    source: "CLOUDBASE",
+    verifiedAt: "2026-08-25T10:00:00.000Z",
+  }, { env: IDENTITY_ENV }));
+  const storeAdapter = createMemoryStore(data, { seedSampleData: false });
   const server = createApp({
     storeAdapter,
-    env: {},
+    env: IDENTITY_ENV,
+    memberCommerceAdapter: {
+      configured: true,
+      async readSummary({ unionid }) {
+        assert.equal(unionid, "unionid-v080-commerce");
+        return {
+          orders: { totalCount: 4, pendingCount: 1, rawOrders: ["must-not-survive"] },
+          coupons: { availableCount: 2, expiringSoonCount: 1 },
+          priceSync: { syncedAt: "2026-08-25T12:00:00.000Z" },
+        };
+      },
+    },
     productCommerceAdapter: {
       configured: true,
       async readProductSnapshots({ productIds }) {
@@ -165,6 +192,9 @@ test("v0.6 public product and authenticated assessment Interfaces work end to en
   ]);
   assert.equal(products.payload.data.products[0].priceText, "¥199");
   assert.equal(products.payload.data.products[0].imageUrl, "https://img01.yzcdn.cn/4749049439.jpg");
+  assert.equal(products.payload.data.products[0].priceLive, true);
+  assert.equal(products.payload.data.products[0].priceSource, "YOUZAN_LIVE");
+  assert.equal(products.payload.data.priceSync.status, "LIVE");
 
   const product = await request(baseUrl, "/api/v1/products/4875324599");
   assert.equal(product.payload.data.product.priceText, "¥369");
@@ -181,6 +211,19 @@ test("v0.6 public product and authenticated assessment Interfaces work end to en
   });
   assert.equal(jump.payload.code, 0);
   assert.equal(jump.payload.data.jumpTarget.path, product.payload.data.product.youzan.path);
+
+  const memberSummary = await request(baseUrl, "/api/v1/member-commerce/summary", {
+    headers: authenticatedHeaders(),
+  });
+  assert.equal(memberSummary.payload.code, 0);
+  assert.deepEqual(memberSummary.payload.data, {
+    status: "READY",
+    reason: "",
+    orders: { totalCount: 4, pendingCount: 1 },
+    coupons: { availableCount: 2, expiringSoonCount: 1 },
+    priceSync: { syncedAt: "2026-08-25T12:00:00.000Z" },
+  });
+  assert.equal(JSON.stringify(memberSummary.payload.data).includes("must-not-survive"), false);
 
   const state = await request(baseUrl, "/api/v1/user/state", { headers: authenticatedHeaders() });
   assert.equal(state.payload.data.session.loginSessionId, SESSION_ID);
