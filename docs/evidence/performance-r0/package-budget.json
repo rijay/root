@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-31T08:43:08.937Z",
+  "generatedAt": "2026-08-31T10:14:11.820Z",
   "evidenceClass": "LOCAL_FORMAL_SOURCE_ESTIMATE",
   "releaseGateEligible": false,
   "packageState": "LOCAL_SOURCE_ESTIMATE",
@@ -29,11 +29,11 @@
   },
   "packages": {
     "main": {
-      "bytes": 1468819,
+      "bytes": 1468925,
       "fileCount": 152,
       "budget": {
         "status": "WARN",
-        "value": 1468819,
+        "value": 1468925,
         "target": 1363148.8,
         "hardLimit": 1572864
       }
@@ -96,11 +96,11 @@
       }
     ],
     "total": {
-      "bytes": 2791199,
+      "bytes": 2791305,
       "fileCount": 220,
       "budget": {
         "status": "PASS",
-        "value": 2791199,
+        "value": 2791305,
         "target": 6291456,
         "hardLimit": 8388608
       }
