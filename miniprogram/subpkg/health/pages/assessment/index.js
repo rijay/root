@@ -172,7 +172,7 @@ Page({
     }, () => this.refreshQuestion());
   },
 
-  refreshQuestion() {
+  refreshQuestion(refreshOptions = {}) {
     const question = this.data.visibleQuestions[this.data.currentIndex] || null;
     const currentValue = question ? this.data.answers[question.field] : null;
     const selectedValues = Array.isArray(currentValue) ? currentValue : [];
@@ -192,7 +192,14 @@ Page({
       scaleOptions,
       progressPercent: Math.round(((this.data.currentIndex + 1) / total) * 100),
       progressText: `${Math.min(this.data.currentIndex + 1, total)} / ${total}`,
+    }, () => {
+      if (refreshOptions.resetScroll) this.scrollQuestionToTop();
     });
+  },
+
+  scrollQuestionToTop() {
+    if (typeof wx.pageScrollTo !== "function") return;
+    wx.pageScrollTo({ scrollTop: 0, duration: 0 });
   },
 
   previewBristol() {
@@ -319,7 +326,10 @@ Page({
   },
 
   advanceQuestion(delta = 1) {
-    this.setData({ currentIndex: this.data.currentIndex + delta }, () => this.refreshQuestion());
+    this.setData(
+      { currentIndex: this.data.currentIndex + delta },
+      () => this.refreshQuestion({ resetScroll: true })
+    );
   },
 
   async finish() {

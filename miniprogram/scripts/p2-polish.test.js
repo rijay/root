@@ -11,6 +11,8 @@ function read(relativePath) {
 
 const products = read("pages/products/index.wxml");
 const productsConfig = JSON.parse(read("pages/products/index.json"));
+const activitiesConfig = JSON.parse(read("pages/activities/index.json"));
+const profileConfig = JSON.parse(read("pages/profile/index.json"));
 const productDetail = read("pages/product-detail/index.wxml");
 const productDetailStyles = read("pages/product-detail/index.wxss");
 const productScript = read("pages/products/index.js");
@@ -42,6 +44,13 @@ assert.equal(productsConfig.backgroundColorBottom, "#FFFFFF");
 assert.equal(productsConfig.backgroundTextStyle, "dark");
 assert.equal(productsConfig.enablePullDownRefresh, true);
 assert.match(productScript, /onPullDownRefresh\(\)[\s\S]*loadProducts[\s\S]*wx\.stopPullDownRefresh\(\)/);
+for (const [page, config] of [["activities", activitiesConfig], ["profile", profileConfig]]) {
+  assert.equal(config.backgroundColor, "#FFFFFF", `${page} 页面背景应为白色`);
+  assert.equal(config.backgroundColorTop, "#FFFFFF", `${page} iOS 顶部回弹背景应为白色`);
+  assert.equal(config.backgroundColorBottom, "#FFFFFF", `${page} 底部回弹背景应为白色`);
+  assert.equal(config.backgroundTextStyle, "dark", `${page} 下拉提示应适配白色背景`);
+  assert.equal(config.enablePullDownRefresh, undefined, `${page} 不应仅为修复回弹背景而开启下拉刷新`);
+}
 assert.match(products, /class="products-tab-title">产品<\/view>/);
 assert.match(productStyles, /\.products-page\s*\{[^}]*background:\s*var\(--color-root-nav\)/s);
 assert.match(productStyles, /\.products-hero\s*\{[^}]*padding-top:\s*78px/s);
