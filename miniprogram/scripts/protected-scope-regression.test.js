@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-// v0.8.0 保留已复核页面外观，只收口废弃运行时与不可达代码。
+// v0.8.0 保留已复核页面外观；用户明确授权调整的页面以调整后的复核版本为基线。
 const baselineHashes = Object.freeze({
   "pages/welcome/index.wxml": "a8e8de1e4e7558171dc36f9ab0e39959d0e925afd4741083bc7c9eb13fdfddc0",
   "pages/welcome/index.wxss": "2a87090275ef94668ece9eee4e5f38be8fbeaf42b6ec5921432d8b4dafe56fb6",
@@ -21,7 +21,7 @@ const baselineHashes = Object.freeze({
   "pages/register/index.wxml": "12c7f23ba35a4aecb2f76a25c11bccbbf19c05d97a5a94de6c0c021e688a4aec",
   "pages/register/index.wxss": "6314aa4690af35c7e324aee267f1099ffc08a77c7ad49fbe795074a0b19fd59d",
   "pages/profile/index.wxml": "7f318983c06ef428557a552982e9f99f227d955d876808932e034d76913be28e",
-  "pages/profile/index.wxss": "1306d9bb48ec54fef94e93498f8f7bfd4d2d7ad5d82baa715f3c17c1f24306b7",
+  "pages/profile/index.wxss": "b2b7693ca463022f6341736c2d8a24b02a3534899b9e30d79f2cf6a7915d5b85",
 });
 
 function sha256(relativePath) {

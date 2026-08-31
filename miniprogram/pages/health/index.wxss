@@ -93,17 +93,6 @@ page {
   white-space: pre-line;
 }
 
-.health-entry__description {
-  position: absolute;
-  top: 256px;
-  left: 20px;
-  width: calc(100% - 40px);
-  color: var(--color-neutral-grey);
-  font-size: 13px;
-  line-height: 21px;
-  white-space: pre-line;
-}
-
 .health-entry__step {
   position: absolute;
   left: 20px;
@@ -465,25 +454,23 @@ page {
 /* v0.7.0 健康入口、账号记录与综合建议。 */
 .health-entry--v060 {
   min-height: calc(100vh - 52px - env(safe-area-inset-bottom));
-  padding-top: 338px;
+  padding-top: 260px;
   padding-bottom: 160px;
-}
-
-.health-entry--v060 .health-entry__description {
-  white-space: normal;
 }
 
 .health-assessment-list {
   position: static;
+  display: flex;
   width: auto;
+  flex-direction: column;
+  gap: 12px;
   margin: 0 20px;
 }
 
 .health-assessment-card {
-  margin-bottom: 12px;
-  padding: 17px 16px;
-  background: var(--color-brand-white);
-  border-radius: 12px;
+  padding: 18px 16px;
+  background: var(--color-ui-grouped);
+  border-radius: 14px;
 }
 
 .health-assessment-card__top,
@@ -569,7 +556,7 @@ page {
   width: calc(100% - 40px) !important;
   height: 50px;
   min-height: 50px;
-  margin: 8px 20px 0;
+  margin: 16px 20px 0;
   padding: 0 16px;
   box-sizing: border-box;
   color: var(--color-graphite);
@@ -584,8 +571,8 @@ page {
 .health-local-note {
   position: static;
   display: block;
-  width: calc(100% - 56px);
-  margin: 14px 28px 0;
+  width: calc(100% - 40px);
+  margin: 12px 20px 0;
   box-sizing: border-box;
   color: var(--color-neutral-grey);
   font-size: 11px;
@@ -598,7 +585,7 @@ page {
 .health-overview-card {
   position: static;
   width: auto;
-  margin: 22px 20px 0;
+  margin: 20px 20px 0;
   padding: 20px 16px;
   box-sizing: border-box;
   background: var(--color-olive-tint);

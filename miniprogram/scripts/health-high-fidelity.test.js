@@ -13,11 +13,12 @@ assert.match(healthWxml, /health-entry__tab-header/);
 assert.match(healthWxml, /health-entry__wordmark/);
 assert.match(healthWxml, /health-assessment-list/);
 assert.match(healthWxml, /health-assessment-card__start/);
+assert.doesNotMatch(healthWxml, /保留现有健康起点体验|health-entry__description/);
 assert.match(healthWxss, /health-entry__tab-header\s*\{[^}]*top:\s*78px[^}]*align-items:\s*center[^}]*height:\s*38px/s);
 assert.match(healthWxss, /health-entry__wordmark\s*\{[^}]*width:\s*84px[^}]*height:\s*22px/s);
 assert.match(healthWxss, /health-entry__title\s*\{[^}]*top:\s*168px/s);
-assert.match(healthWxss, /health-entry--v060\s*\{[^}]*padding-top:\s*338px/s);
-assert.match(healthWxss, /health-assessment-list\s*\{[^}]*position:\s*static[^}]*margin:\s*0 20px/s);
+assert.match(healthWxss, /health-entry--v060\s*\{[^}]*padding-top:\s*260px/s);
+assert.match(healthWxss, /health-assessment-list\s*\{[^}]*position:\s*static[^}]*display:\s*flex[^}]*gap:\s*12px[^}]*margin:\s*0 20px/s);
 assert.match(healthWxss, /health-history-entry\s*\{[^}]*position:\s*static/s);
 assert.match(healthWxss, /health-assessment-card__start\s*\{[^}]*flex:\s*1[^}]*width:\s*auto\s*!important[^}]*min-width:\s*0/s);
 assert.match(healthWxss, /health-assessment-card__start\s*\{[^}]*height:\s*44px/s);
@@ -25,9 +26,9 @@ assert.match(healthWxss, /health-assessment-card__latest\s*\{[^}]*min-height:\s*
 assert.match(healthWxss, /health-history-entry\s*\{[^}]*width:\s*calc\(100% - 40px\)\s*!important/s);
 assert.match(healthWxss, /health-history-entry\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*justify-content:\s*center/s);
 assert.match(healthWxss, /health-history-entry\s*\{[^}]*padding:\s*0 16px[^}]*line-height:\s*20px[^}]*text-align:\s*center/s);
-assert.match(healthWxss, /health-local-note\s*\{[^}]*display:\s*block[^}]*width:\s*calc\(100% - 56px\)[^}]*margin:\s*14px 28px 0[^}]*box-sizing:\s*border-box/s);
+assert.match(healthWxss, /health-local-note\s*\{[^}]*display:\s*block[^}]*width:\s*calc\(100% - 40px\)[^}]*margin:\s*12px 20px 0[^}]*box-sizing:\s*border-box/s);
 assert.match(healthWxss, /health-local-note\s*\{[^}]*white-space:\s*normal[^}]*word-break:\s*break-all/s);
-assert.match(healthWxss, /health-overview-card\s*\{[^}]*position:\s*static[^}]*margin:\s*22px 20px 0/s);
+assert.match(healthWxss, /health-overview-card\s*\{[^}]*position:\s*static[^}]*margin:\s*20px 20px 0/s);
 
 const assessmentWxml = read("subpkg/health/pages/assessment/index.wxml");
 const assessmentWxss = read("subpkg/health/pages/assessment/index.wxss");

@@ -2,7 +2,6 @@
   <view class="products-hero root-page">
     <view class="products-tab-title">产品</view>
     <view class="products-kicker">ROOT PRODUCTS</view>
-    <view class="products-copy">浏览 ROOT 的日常补给方案，购买将在 Root 会员中心完成。</view>
     <view class="products-science-entry" bindtap="openPhggReference" role="link" aria-label="查看 ROOT 核心原料 PHGG 科学参考文献集">
       <view>
         <view class="products-science-entry__eyebrow">INGREDIENT SCIENCE</view>
@@ -73,9 +72,9 @@
             <view class="product-subtitle">{{item.subtitle}}</view>
             <view class="product-name">{{item.title}}</view>
             <view class="product-summary">{{item.summary}}</view>
-            <view class="product-price">{{item.priceText || '会员中心实时价格'}}<text wx:if="{{!item.priceLive}}" class="product-price-source"> · 最终价格以会员中心为准</text></view>
           </view>
-          <view class="product-actions">
+          <view class="product-purchase">
+            <view class="product-price">{{item.priceText || '会员中心实时价格'}}<text wx:if="{{!item.priceLive}}" class="product-price-source">最终价格以会员中心为准</text></view>
             <button
               class="product-buy"
               data-product-id="{{item.productId}}"

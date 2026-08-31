@@ -14,7 +14,6 @@
     </view>
     <text class="health-entry__eyebrow">ROOT4U</text>
     <text class="health-entry__title">从此刻开始，\n理解自己的健康起点</text>
-    <text class="health-entry__description">保留现有健康起点体验，增加可回测的初始评测与肠道规律自测。结果用于日常状态观察，不构成医疗诊断。</text>
 
     <view class="health-assessment-list">
       <view wx:for="{{assessments}}" wx:key="assessmentType" class="health-assessment-card" role="group" aria-label="{{item.title}}">
