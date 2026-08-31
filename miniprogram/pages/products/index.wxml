@@ -73,8 +73,7 @@
             <view class="product-subtitle">{{item.subtitle}}</view>
             <view class="product-name">{{item.title}}</view>
             <view class="product-summary">{{item.summary}}</view>
-            <view class="product-spec">{{item.specText}}</view>
-            <view class="product-price">{{item.priceText || '会员中心实时价格'}}<text class="product-price-source">{{item.priceLive ? (' · 有赞同步 ' + item.syncedAtText) : ' · 最终价格以会员中心为准'}}</text></view>
+            <view class="product-price">{{item.priceText || '会员中心实时价格'}}<text wx:if="{{!item.priceLive}}" class="product-price-source"> · 最终价格以会员中心为准</text></view>
           </view>
           <view class="product-actions">
             <button

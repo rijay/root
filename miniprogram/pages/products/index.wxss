@@ -294,13 +294,6 @@ page {
   line-height: 1.5;
 }
 
-.product-spec {
-  margin-top: 10rpx;
-  color: var(--color-neutral-grey);
-  font-size: 22rpx;
-  line-height: 1.45;
-}
-
 .product-price {
   margin-top: 12rpx;
   color: var(--color-brand-black);
