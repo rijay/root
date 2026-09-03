@@ -25,7 +25,7 @@ require.cache[analyticsPath] = {
 };
 require.cache[attributionPath] = {
   exports: {
-    async beginChannelVisit() { return { active: false }; },
+    async beginGeneralGutVisit() { return { active: false }; },
     async recordFunnelStage() {
       const error = new Error("渠道访问记录不存在");
       error.code = "CHANNEL_VISIT_NOT_FOUND";

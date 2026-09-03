@@ -201,6 +201,18 @@ async function beginChannelVisit(options = {}, requestImpl = request) {
   return { active: true, reason: "", visit: activatedVisit };
 }
 
+async function beginGeneralGutVisit(options = {}, requestImpl = request) {
+  const hasExplicitCode = ["q", "shortCode", "short_code"]
+    .some((key) => Object.prototype.hasOwnProperty.call(options, key));
+  if (hasExplicitCode) return beginChannelVisit(options, requestImpl);
+  const generalCode = shortCode(attributionConfig.generalGutShortCode);
+  if (!generalCode) {
+    safeRemove(ACTIVE_VISIT_STORAGE_KEY);
+    return { active: false, reason: "GENERAL_SHORT_CODE_NOT_CONFIGURED", visit: null };
+  }
+  return beginChannelVisit({ ...options, q: generalCode }, requestImpl);
+}
+
 function activeChannelVisit(now = Date.now()) {
   const value = safeRead(ACTIVE_VISIT_STORAGE_KEY);
   if (!value || !value.visitId) return null;
@@ -336,6 +348,7 @@ module.exports = Object.freeze({
   activeChannelVisit,
   assessmentChannelContext,
   beginChannelVisit,
+  beginGeneralGutVisit,
   captureFirstChannel,
   captureLaunchAttribution,
   channelCandidate,

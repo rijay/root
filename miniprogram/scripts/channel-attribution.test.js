@@ -34,6 +34,7 @@ const {
   PENDING_STORAGE_KEY,
   activeChannelVisit,
   beginChannelVisit,
+  beginGeneralGutVisit,
   captureLaunchAttribution,
   channelEntryOptions,
   confirmPendingAttribution,
@@ -169,6 +170,30 @@ async function run() {
   });
   assert.deepEqual(directEntry, { active: false, reason: "NO_SHORT_CODE", visit: null });
   assert.equal(activeChannelVisit(), null, "无短码介绍页必须清除历史渠道访问，避免串归因");
+
+  const generalCalls = [];
+  const generalVisit = await beginGeneralGutVisit({}, async (options) => {
+    generalCalls.push(options);
+    if (options.url === "/api/v1/channels/resolve") {
+      return {
+        visitId: "cfv_general_entry",
+        shortCode: "O78NQGAX",
+        channelId: "GUT_GENERAL",
+        campaignId: "GUT_5Q_20260902",
+        targetPage: "/subpkg/campaign/pages/root-with-you/index",
+      };
+    }
+    return { accepted: true, result: "EXISTING_KEPT", reason: "FIRST_TOUCH_ALREADY_SET" };
+  });
+  assert.equal(generalVisit.active, true);
+  assert.equal(generalCalls[0].data.shortCode, "O78NQGAX", "无短码介绍页必须使用通用短码");
+
+  let invalidCodeRequested = false;
+  const invalidExplicitEntry = await beginGeneralGutVisit({ q: "!invalid" }, async () => {
+    invalidCodeRequested = true;
+  });
+  assert.deepEqual(invalidExplicitEntry, { active: false, reason: "NO_SHORT_CODE", visit: null });
+  assert.equal(invalidCodeRequested, false, "显式但无效的短码不得回退为通用访问");
 
   storage.set("ROOT_ACTIVE_CHANNEL_VISIT_V1", {
     visitId: "cfv_stale",

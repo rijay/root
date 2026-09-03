@@ -1,7 +1,7 @@
 const router = require("../../../../utils/router");
 const { showFriendShareMenu } = require("../../../../utils/page-share");
 const { failureReason, track } = require("../../../../utils/analytics");
-const { beginChannelVisit, recordFunnelStage } = require("../../../../utils/channel-attribution");
+const { beginGeneralGutVisit, recordFunnelStage } = require("../../../../utils/channel-attribution");
 const {
   GUT_ASSESSMENT_CONTINUE_PATH,
   FIXED_GUT_ASSESSMENT_PATH,
@@ -23,7 +23,7 @@ Page({
       sourcePage: options.source || "direct",
     });
     try {
-      await beginChannelVisit(options);
+      await beginGeneralGutVisit(options);
       await recordFunnelStage("INTRO_VIEW");
     } catch (_) {
       // 渠道归因不可用不阻断公开的自测介绍和评测入口。
