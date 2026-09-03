@@ -10,6 +10,7 @@ const LEGACY_PENDING_STORAGE_KEY = "ROOT_PENDING_CHANNEL_V1";
 const LEGACY_FIRST_STORAGE_KEY = "ROOT_FIRST_CHANNEL_V1";
 const CHANNEL_SCENE_PREFIX = "root_channel:";
 const GUT_INTRO_PATH = "subpkg/campaign/pages/root-with-you/index";
+const LEGACY_GUT_ASSESSMENT_PATH = "subpkg/health/pages/assessment/index";
 const ACTIVE_VISIT_TTL_MS = 2 * 60 * 60 * 1000;
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 const QR_ENTRY_SCENES = new Set(attributionConfig.qrEntryScenes);
@@ -115,9 +116,19 @@ function normalizeEntryPath(value) {
 
 function isGeneralGutQrEntry(options = {}) {
   const scene = Number(options.scene);
-  return normalizeEntryPath(options.path) === GUT_INTRO_PATH
-    && Number.isInteger(scene)
-    && QR_ENTRY_SCENES.has(scene);
+  if (!Number.isInteger(scene) || !QR_ENTRY_SCENES.has(scene)) return false;
+  const path = String(options.path || "");
+  const entryPath = normalizeEntryPath(path);
+  if (entryPath === GUT_INTRO_PATH) return true;
+  if (entryPath !== LEGACY_GUT_ASSESSMENT_PATH) return false;
+  const pathQuery = path.includes("?") ? parseQueryText(path.slice(path.indexOf("?") + 1)) : {};
+  const query = { ...pathQuery, ...(options.query || {}) };
+  const allowedQueryKeys = new Set(["assessmentType", "assessment_type"]);
+  if (Object.keys(query).some((key) => !allowedQueryKeys.has(key))) return false;
+  const declaredTypes = [query.assessmentType, query.assessment_type]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+  return declaredTypes.every((value) => value === "GUT_REGULARITY");
 }
 
 function parseScannedAttribution(options = {}) {

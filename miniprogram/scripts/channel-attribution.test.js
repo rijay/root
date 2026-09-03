@@ -35,11 +35,13 @@ const {
   activeChannelVisit,
   beginChannelVisit,
   captureLaunchAttribution,
+  channelEntryOptions,
   confirmPendingAttribution,
   isGeneralGutQrEntry,
   normalizeTargetPage,
   parseAttributionPayload,
   parseScannedAttribution,
+  resolveChannel,
 } = require("../utils/channel-attribution");
 
 const VALID = Object.freeze({
@@ -69,12 +71,57 @@ async function run() {
   assert.equal(parseScannedAttribution({ scene: "q=Z6GRY3RF" }).shortCode, "Z6GRY3RF");
   assert.equal(isGeneralGutQrEntry({ path: "subpkg/campaign/pages/root-with-you/index", scene: 1047 }), true);
   assert.equal(isGeneralGutQrEntry({ path: "/subpkg/campaign/pages/root-with-you/index", scene: "1049" }), true);
+  assert.equal(isGeneralGutQrEntry({ path: "subpkg/health/pages/assessment/index", scene: 1047 }), true);
+  assert.equal(isGeneralGutQrEntry({
+    path: "subpkg/health/pages/assessment/index?assessmentType=GUT_REGULARITY",
+    scene: 1047,
+  }), true);
+  assert.equal(isGeneralGutQrEntry({
+    path: "subpkg/health/pages/assessment/index",
+    scene: 1047,
+    query: { assessmentType: "INITIAL" },
+  }), false);
+  assert.equal(isGeneralGutQrEntry({
+    path: "subpkg/health/pages/assessment/index",
+    scene: 1047,
+    query: { assessmentId: "gut_existing" },
+  }), false);
+  assert.equal(isGeneralGutQrEntry({
+    path: "subpkg/health/pages/assessment/index",
+    scene: 1047,
+    query: { source: "campaign" },
+  }), false);
+  assert.equal(isGeneralGutQrEntry({
+    path: "subpkg/health/pages/assessment/index",
+    scene: 1047,
+    query: { assessmentType: "GUT_REGULARITY", assessment_type: "INITIAL" },
+  }), false);
   assert.equal(isGeneralGutQrEntry({ path: "pages/home/index", scene: 1047 }), false);
   assert.equal(isGeneralGutQrEntry({ path: "subpkg/campaign/pages/root-with-you/index", scene: 1001 }), false);
   assert.equal(parseScannedAttribution({
     path: "subpkg/campaign/pages/root-with-you/index",
     scene: 1047,
   }).shortCode, "O78NQGAX");
+  assert.equal(parseScannedAttribution({
+    path: "subpkg/health/pages/assessment/index",
+    scene: 1047,
+  }).shortCode, "O78NQGAX", "历史无参评测码必须映射到通用码");
+  const legacyGeneralEntry = resolveChannel({
+    path: "subpkg/health/pages/assessment/index",
+    scene: 1047,
+  }, Date.parse("2026-09-03T10:00:00.000Z"));
+  assert.equal(legacyGeneralEntry.result, "VALID_SHORT_CODE");
+  assert.equal(legacyGeneralEntry.shortCode, "O78NQGAX");
+  assert.deepEqual(channelEntryOptions(legacyGeneralEntry), {
+    __rootChannelEntry: true,
+    path: "subpkg/campaign/pages/root-with-you/index",
+    query: { q: "O78NQGAX" },
+  });
+  assert.equal(resolveChannel({
+    path: "subpkg/health/pages/assessment/index",
+    scene: 1047,
+    query: { assessmentType: "INITIAL" },
+  }).result, "NO_CHANNEL");
   assert.equal(parseScannedAttribution({
     path: "subpkg/campaign/pages/root-with-you/index",
     scene: 1047,
