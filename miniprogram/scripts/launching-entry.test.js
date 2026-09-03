@@ -114,6 +114,7 @@ assert.match(appScript, /prepareLaunchingEntry/);
 assert.match(appScript, /wx\.reLaunch\(\{ url: "\/pages\/welcome\/index\?mode=launching" \}\)/);
 assert.match(appScript, /entry\.navigateDirect/);
 assert.match(appScript, /launchingHandledThisSession:\s*false/);
+assert.match(appScript, /channelEntry\.result === "VALID_SHORT_CODE"[\s\S]*launchingHandledThisSession = false/);
 assert.doesNotMatch(welcomeScript, /LAUNCHING_DURATION_MS/);
 assert.doesNotMatch(welcomeScript, /setTimeout\(\(\) => this\.enterTarget/);
 assert.match(welcomeScript, /skipWelcome\(\)[\s\S]*this\.enterTarget\(\)/);

@@ -32,9 +32,11 @@ global.wx = {
 const {
   ATTRIBUTED_STORAGE_KEY,
   PENDING_STORAGE_KEY,
+  activeChannelVisit,
   beginChannelVisit,
   captureLaunchAttribution,
   confirmPendingAttribution,
+  isGeneralGutQrEntry,
   normalizeTargetPage,
   parseAttributionPayload,
   parseScannedAttribution,
@@ -65,6 +67,19 @@ async function run() {
   });
   assert.equal(scanned.payload.targetPage, VALID.targetPage);
   assert.equal(parseScannedAttribution({ scene: "q=Z6GRY3RF" }).shortCode, "Z6GRY3RF");
+  assert.equal(isGeneralGutQrEntry({ path: "subpkg/campaign/pages/root-with-you/index", scene: 1047 }), true);
+  assert.equal(isGeneralGutQrEntry({ path: "/subpkg/campaign/pages/root-with-you/index", scene: "1049" }), true);
+  assert.equal(isGeneralGutQrEntry({ path: "pages/home/index", scene: 1047 }), false);
+  assert.equal(isGeneralGutQrEntry({ path: "subpkg/campaign/pages/root-with-you/index", scene: 1001 }), false);
+  assert.equal(parseScannedAttribution({
+    path: "subpkg/campaign/pages/root-with-you/index",
+    scene: 1047,
+  }).shortCode, "O78NQGAX");
+  assert.equal(parseScannedAttribution({
+    path: "subpkg/campaign/pages/root-with-you/index",
+    scene: 1047,
+    query: { q: "JSVFNCAG" },
+  }).shortCode, "JSVFNCAG", "显式渠道短码必须优先于通用码映射");
 
   const captured = captureLaunchAttribution({ query: VALID });
   assert.equal(captured.captured, true);
@@ -100,6 +115,20 @@ async function run() {
     "/api/v1/channels/attribution",
   ]);
   assert.equal(storage.has(PENDING_STORAGE_KEY), false);
+  assert.equal(activeChannelVisit().shortCode, "A1B2C3D4");
+
+  const directEntry = await beginChannelVisit({}, async () => {
+    throw new Error("无短码入口不应请求服务端");
+  });
+  assert.deepEqual(directEntry, { active: false, reason: "NO_SHORT_CODE", visit: null });
+  assert.equal(activeChannelVisit(), null, "无短码介绍页必须清除历史渠道访问，避免串归因");
+
+  storage.set("ROOT_ACTIVE_CHANNEL_VISIT_V1", {
+    visitId: "cfv_stale",
+    shortCode: "A1B2C3D4",
+    activatedAt: "2026-09-03T00:00:00.000Z",
+  });
+  assert.equal(activeChannelVisit(Date.parse("2026-09-03T02:00:00.001Z")), null, "超过两小时的访问不得继续归因");
 }
 
 run()

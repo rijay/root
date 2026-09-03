@@ -101,6 +101,10 @@ App({
     const capturedChannel = captureFirstChannel(options);
     const channelEntry = this.globalData.pendingChannelEntry || capturedChannel;
     delete this.globalData.pendingChannelEntry;
+    if (channelEntry.result === "VALID_SHORT_CODE") {
+      this.globalData.launchingHandledThisSession = false;
+      delete this.globalData.launchingTarget;
+    }
     const entryOptions = channelEntryOptions(channelEntry, options);
     const pages = typeof getCurrentPages === "function" ? getCurrentPages() : [];
     const entry = prepareLaunchingEntry(this, entryOptions, pages);

@@ -1,4 +1,5 @@
 const marketing = require("../config/marketing");
+const attributionConfig = require("../config/channel-attribution");
 const { request } = require("./request");
 const { track } = require("./analytics");
 
@@ -9,6 +10,9 @@ const LEGACY_PENDING_STORAGE_KEY = "ROOT_PENDING_CHANNEL_V1";
 const LEGACY_FIRST_STORAGE_KEY = "ROOT_FIRST_CHANNEL_V1";
 const CHANNEL_SCENE_PREFIX = "root_channel:";
 const GUT_INTRO_PATH = "subpkg/campaign/pages/root-with-you/index";
+const ACTIVE_VISIT_TTL_MS = 2 * 60 * 60 * 1000;
+const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
+const QR_ENTRY_SCENES = new Set(attributionConfig.qrEntryScenes);
 const SAFE_TARGET_PAGES = new Set([
   "/pages/home/index",
   "/pages/products/index",
@@ -105,6 +109,17 @@ function parseAttributionPayload(source = {}) {
   return { present: true, payload: valid ? payload : null, reason: valid ? "" : "PAYLOAD_INVALID" };
 }
 
+function normalizeEntryPath(value) {
+  return String(value || "").split("?", 1)[0].replace(/^\//, "").trim();
+}
+
+function isGeneralGutQrEntry(options = {}) {
+  const scene = Number(options.scene);
+  return normalizeEntryPath(options.path) === GUT_INTRO_PATH
+    && Number.isInteger(scene)
+    && QR_ENTRY_SCENES.has(scene);
+}
+
 function parseScannedAttribution(options = {}) {
   const query = options.query || {};
   const path = String(options.path || "");
@@ -113,6 +128,18 @@ function parseScannedAttribution(options = {}) {
   const source = { ...pathQuery, ...scene, ...query };
   const code = shortCode(source.q || source.shortCode || source.short_code);
   if (code) return { present: true, kind: "SHORT_CODE", shortCode: code, payload: { shortCode: code }, reason: "" };
+  if (isGeneralGutQrEntry(options)) {
+    const generalCode = shortCode(attributionConfig.generalGutShortCode);
+    if (generalCode) {
+      return {
+        present: true,
+        kind: "SHORT_CODE",
+        shortCode: generalCode,
+        payload: { shortCode: generalCode },
+        reason: "",
+      };
+    }
+  }
   const parsed = parseAttributionPayload(source);
   return { ...parsed, kind: parsed.present ? "SIGNED_LEGACY" : "" };
 }
@@ -141,7 +168,10 @@ function createClientVisitId() {
 async function beginChannelVisit(options = {}, requestImpl = request) {
   const parsed = parseScannedAttribution(options);
   const code = parsed.shortCode || shortCode(options.q || options.shortCode);
-  if (!code) return { active: false, reason: "NO_SHORT_CODE", visit: activeChannelVisit() };
+  if (!code) {
+    safeRemove(ACTIVE_VISIT_STORAGE_KEY);
+    return { active: false, reason: "NO_SHORT_CODE", visit: null };
+  }
   const clientVisitId = createClientVisitId();
   const visit = await requestImpl({
     url: "/api/v1/channels/resolve",
@@ -149,19 +179,28 @@ async function beginChannelVisit(options = {}, requestImpl = request) {
     idempotencyKey: `channel-resolve:${clientVisitId}`,
     data: { shortCode: code, clientVisitId },
   });
-  safeWrite(ACTIVE_VISIT_STORAGE_KEY, visit);
+  const activatedVisit = { ...visit, activatedAt: new Date().toISOString() };
+  safeWrite(ACTIVE_VISIT_STORAGE_KEY, activatedVisit);
   safeWrite(PENDING_STORAGE_KEY, { visitId: visit.visitId, shortCode: visit.shortCode, capturedAt: new Date().toISOString() });
   try {
     await confirmPendingAttribution({ request: requestImpl });
   } catch (_) {
     // 未登录时保留待确认记录；完成登录后会再次提交，不能阻断扫码入口。
   }
-  return { active: true, reason: "", visit };
+  return { active: true, reason: "", visit: activatedVisit };
 }
 
-function activeChannelVisit() {
+function activeChannelVisit(now = Date.now()) {
   const value = safeRead(ACTIVE_VISIT_STORAGE_KEY);
-  return value && value.visitId ? value : null;
+  if (!value || !value.visitId) return null;
+  const activatedAt = Date.parse(value.activatedAt || "");
+  if (!Number.isFinite(activatedAt)
+    || activatedAt > now + MAX_CLOCK_SKEW_MS
+    || now - activatedAt > ACTIVE_VISIT_TTL_MS) {
+    safeRemove(ACTIVE_VISIT_STORAGE_KEY);
+    return null;
+  }
+  return value;
 }
 
 function assessmentChannelContext() {
@@ -296,6 +335,7 @@ module.exports = Object.freeze({
   parseAttributionPayload,
   parseScannedAttribution,
   parseScene,
+  isGeneralGutQrEntry,
   pendingSourceChannel,
   recordFunnelStage,
   resolveChannel,
