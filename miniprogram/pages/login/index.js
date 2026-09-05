@@ -13,6 +13,13 @@ const {
 } = require("../../utils/channel-attribution");
 
 const REGISTRATION_CONTEXT_STORAGE_KEY = "ROOT_REGISTRATION_CONTEXT_V1";
+// Older servers return these as HTTP errors instead of a session outcome.
+const IDENTITY_CONFLICT_CODES = new Set([
+  "WECHAT_APP_OPENID_AMBIGUOUS",
+  "WECHAT_APP_IDENTITY_AMBIGUOUS",
+  "WECHAT_UNIONID_BINDING_AMBIGUOUS",
+  "WECHAT_IDENTITY_BINDING_CONFLICT",
+]);
 
 function decodeIntent(value) {
   try {
@@ -100,7 +107,7 @@ Page({
       wx.showToast({ title: "手机号已验证", icon: "success" });
       router.go(consumeAuthIntent() || "/pages/home/index");
     } catch (error) {
-      if (String(error && error.code || "").includes("IDENTITY") && String(error && error.code || "").includes("CONFLICT")) {
+      if (IDENTITY_CONFLICT_CODES.has(error && error.code)) {
         this.setData({ identityConflict: true, loginStatusText: "" });
         return;
       }

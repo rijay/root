@@ -39,12 +39,23 @@ test("completed profile returns registered outcome", () => {
   assert.equal(sessionModule.classify({ data, user, created: false }), "REGISTERED");
 });
 
-test("trusted identity conflicts are mapped without issuing a false success", () => {
-  const result = sessionModule.fromIdentityError({
-    code: "WECHAT_IDENTITY_BINDING_CONFLICT",
-    message: "conflict",
+for (const code of [
+  "WECHAT_APP_OPENID_AMBIGUOUS",
+  "WECHAT_APP_IDENTITY_AMBIGUOUS",
+  "WECHAT_UNIONID_BINDING_AMBIGUOUS",
+  "WECHAT_IDENTITY_BINDING_CONFLICT",
+]) {
+  test(`${code} is mapped without issuing a false success`, () => {
+    const result = sessionModule.fromIdentityError({ code, message: "conflict" });
+    assert.equal(result.sessionOutcome, "IDENTITY_CONFLICT");
+    assert.equal(result.token, "");
+    assert.equal(result.nextRoute, "/pages/home/index");
+    assert.equal(result.message, "账号绑定冲突");
   });
-  assert.equal(result.sessionOutcome, "IDENTITY_CONFLICT");
-  assert.equal(result.token, "");
-  assert.equal(result.nextRoute, "/pages/home/index");
+}
+
+test("unrelated login failures are not presented as binding conflicts", () => {
+  assert.equal(sessionModule.fromIdentityError(null), null);
+  assert.equal(sessionModule.fromIdentityError({ code: "TRUSTED_WECHAT_IDENTITY_INVALID" }), null);
+  assert.equal(sessionModule.fromIdentityError({ code: 1006 }), null);
 });

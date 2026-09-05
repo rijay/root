@@ -1330,7 +1330,7 @@ function createApp(options = {}) {
         && req.commandIdempotencyContext.request.body || {};
       if (method === "POST" && url.pathname === "/api/v1/auth/login" && failedCommandBody.flowVersion === "FORMAL_LAUNCH_V1") {
         const conflict = sessionModule.fromIdentityError(error);
-        if (conflict) return ok(res, conflict);
+        if (conflict) return apiOk(res, conflict);
       }
       if (req.commandIdempotencyContext && req.commandIdempotencyContext.executor) {
         const response = clientErrorResponse(error, requestCorrelationId(req));

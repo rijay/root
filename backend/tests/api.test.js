@@ -1313,6 +1313,54 @@ test("cloud container login uses WeChat cloud open Interface", async (t) => {
   assert.deepEqual(JSON.parse(requestedBody), { code: "phone_code" });
 });
 
+test("same-phone other-WeChat login reports a conflict without rebinding or issuing a session", async (t) => {
+  const wechatServer = http.createServer((req, res) => {
+    assert.equal(req.url, "/wxa/business/getuserphonenumber");
+    req.resume();
+    req.on("end", () => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ phone_info: { phoneNumber: "13800000987" } }));
+    });
+  });
+  const wechatBaseUrl = await listen(wechatServer);
+  t.after(() => wechatServer.close());
+  const server = createApp({
+    env: { NODE_ENV: "test", ROOT_WECHAT_OPENAPI_BASE_URL: wechatBaseUrl },
+    trustedWechatIdentityAdapter: verifiedCloudbaseHeaderIdentityAdapter,
+  });
+  const baseUrl = await listen(server);
+  t.after(() => server.close());
+  const login = (openid, flowVersion) => fetch(`${baseUrl}/api/v1/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-wx-openid": openid },
+    body: JSON.stringify({ appCode: "MYROOT", phoneCode: "synthetic_phone_code", flowVersion }),
+  });
+  const ownerResponse = await login("binding_conflict_original_owner", "FORMAL_LAUNCH_V1");
+  const owner = await ownerResponse.json();
+  assert.equal(owner.code, 0);
+  assert.ok(owner.data.token);
+  const protectedState = () => structuredClone({
+    identities: server.store.wechatIdentities,
+    sessions: server.store.sessions,
+    tokens: server.store.tokens,
+  });
+  const before = protectedState();
+
+  const formalResponse = await login("binding_conflict_other_wechat", "FORMAL_LAUNCH_V1");
+  const formal = await formalResponse.json();
+  assert.equal(formalResponse.status, 200);
+  assert.equal(formal.code, 0);
+  assert.equal(formal.data.sessionOutcome, "IDENTITY_CONFLICT");
+  assert.equal(formal.data.token, "");
+  assert.equal(formal.data.message, "账号绑定冲突");
+  assert.deepEqual(protectedState(), before);
+
+  const legacyResponse = await login("binding_conflict_other_wechat");
+  assert.equal(legacyResponse.status, 409);
+  assert.equal((await legacyResponse.json()).code, "WECHAT_APP_IDENTITY_AMBIGUOUS");
+  assert.deepEqual(protectedState(), before);
+});
+
 test("WeChat code exchange completes before the serialized Store Interface starts", async (t) => {
   let releaseWechatResponse;
   let markWechatRequestStarted;

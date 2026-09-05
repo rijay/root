@@ -10,8 +10,8 @@
     </view>
 
     <view wx:if="{{identityConflict}}" class="login-page__conflict" role="alert">
-      <text class="login-page__conflict-title">资料核验中</text>
-      <text class="login-page__conflict-copy">当前微信身份与会员资料存在冲突，我们不会自动覆盖。你仍可返回首页浏览公开内容，或联系客服处理。</text>
+      <text class="login-page__conflict-title">账号绑定冲突</text>
+      <text class="login-page__conflict-copy">微信与会员账号绑定冲突，重新授权无法解决。请使用原绑定微信登录、联系客服核实，或返回首页浏览。</text>
     </view>
 
     <button

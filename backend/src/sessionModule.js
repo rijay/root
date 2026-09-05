@@ -9,6 +9,7 @@ const LOGIN_OUTCOMES = Object.freeze({
 
 const IDENTITY_CONFLICT_CODES = new Set([
   "WECHAT_APP_OPENID_AMBIGUOUS",
+  "WECHAT_APP_IDENTITY_AMBIGUOUS",
   "WECHAT_UNIONID_BINDING_AMBIGUOUS",
   "WECHAT_IDENTITY_BINDING_CONFLICT",
 ]);
@@ -39,7 +40,7 @@ function fromIdentityError(error) {
     sessionOutcome: LOGIN_OUTCOMES.IDENTITY_CONFLICT,
     token: "",
     nextRoute: "/pages/home/index",
-    message: "资料核验中",
+    message: "账号绑定冲突",
   };
 }
 
