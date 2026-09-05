@@ -112,6 +112,8 @@ function validateSnapshot(snapshot, options = {}) {
     ["healthContentVersions", "health_content_version_id"],
     ["healthScaleResponses", "health_scale_response_id"],
     ["assessmentSourceSurveyConfigs", "assessment_source_config_id"],
+    ["userLabelMappings", "user_label_mapping_id"],
+    ["userLabelSyncStates", "user_label_sync_state_id"],
     ["activityDefinitionVersions", "activity_version_id"],
     ["activitySessions", "activity_session_id"],
     ["activitySessionEvents", "activity_session_event_id"],

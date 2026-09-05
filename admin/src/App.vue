@@ -88,6 +88,7 @@
           <RecommendationRulesPage v-else-if="currentModuleKey === 'recommendations'" ref="activeWorkbench" />
           <LifestyleAdvicePage v-else-if="currentModuleKey === 'lifestyle'" ref="activeWorkbench" />
           <UserQueryPage v-else-if="currentModuleKey === 'users'" ref="activeWorkbench" />
+          <UserLabelsPage v-else-if="currentModuleKey === 'user-labels'" ref="activeWorkbench" />
           <OperationAuditPage v-else-if="currentModuleKey === 'audit'" ref="activeWorkbench" />
           <ChannelGrowthPage v-else-if="currentModuleKey === 'channels'" ref="activeWorkbench" />
         </div>
@@ -123,6 +124,7 @@ const ADMIN_MODULES = [
   { key: "recommendations", label: "推荐规则", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
   { key: "lifestyle", label: "生活方式建议", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
   { key: "users", label: "用户查询", capabilities: [ADMIN_CAPABILITIES.ADMIN_READ] },
+  { key: "user-labels", label: "用户标签", capabilities: [ADMIN_CAPABILITIES.USER_LABEL_READ] },
   { key: "audit", label: "操作审计", capabilities: [ADMIN_CAPABILITIES.AUDIT_READ] },
   {
     key: "channels",
@@ -166,6 +168,7 @@ const navigationGroups = [
     label: "用户与审计",
     items: [
       { key: "users", label: "用户查询" },
+      { key: "user-labels", label: "用户标签" },
       { key: "audit", label: "操作审计" },
     ],
   },
@@ -183,6 +186,7 @@ const ScaleManagementPage = defineAsyncComponent(() => import("./modules/health/
 const RecommendationRulesPage = defineAsyncComponent(() => import("./modules/health/RecommendationRulesPage.vue"));
 const LifestyleAdvicePage = defineAsyncComponent(() => import("./modules/health/LifestyleAdvicePage.vue"));
 const UserQueryPage = defineAsyncComponent(() => import("./modules/users/UserQueryPage.vue"));
+const UserLabelsPage = defineAsyncComponent(() => import("./modules/users/UserLabelsPage.vue"));
 const OperationAuditPage = defineAsyncComponent(() => import("./modules/audit/OperationAuditPage.vue"));
 const ChannelGrowthPage = defineAsyncComponent(() => import("./modules/channels/ChannelGrowthPage.vue"));
 

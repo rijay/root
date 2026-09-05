@@ -1,0 +1,130 @@
+TAP version 13
+# Subtest: one row per root user; basic view contains no health, contact or login identity
+ok 1 - one row per root user; basic view contains no health, contact or login identity
+  ---
+  duration_ms: 1.755792
+  type: 'test'
+  ...
+# Subtest: multi-select answers and original result are retained; retests do not change the provisional first baseline
+ok 2 - multi-select answers and original result are retained; retests do not change the provisional first baseline
+  ---
+  duration_ms: 4.969666
+  type: 'test'
+  ...
+# Subtest: initial assessment, expired data, withdrawal and safety stop are not normal five-question completions
+ok 3 - initial assessment, expired data, withdrawal and safety stop are not normal five-question completions
+  ---
+  duration_ms: 0.34725
+  type: 'test'
+  ...
+# Subtest: registration time is not presented as first visit; test-channel traffic does not classify the person
+ok 4 - registration time is not presented as first visit; test-channel traffic does not classify the person
+  ---
+  duration_ms: 0.247042
+  type: 'test'
+  ...
+# Subtest: latest safety stop remains visible alongside an earlier historical baseline
+ok 5 - latest safety stop remains visible alongside an earlier historical baseline
+  ---
+  duration_ms: 0.205541
+  type: 'test'
+  ...
+# Subtest: persisted first-touch attribution selects its own visit instead of an unrelated earlier visit
+ok 6 - persisted first-touch attribution selects its own visit instead of an unrelated earlier visit
+  ---
+  duration_ms: 0.198625
+  type: 'test'
+  ...
+# Subtest: conflicting QR and self-report evidence remains visible and unresolved
+ok 7 - conflicting QR and self-report evidence remains visible and unresolved
+  ---
+  duration_ms: 0.125792
+  type: 'test'
+  ...
+# Subtest: mapping updates are versioned, stale saves fail and old visits retain old mappings
+ok 8 - mapping updates are versioned, stale saves fail and old visits retain old mappings
+  ---
+  duration_ms: 0.502625
+  type: 'test'
+  ...
+# Subtest: historical self-reported source versions remain configurable after the survey changes
+ok 9 - historical self-reported source versions remain configurable after the survey changes
+  ---
+  duration_ms: 0.318833
+  type: 'test'
+  ...
+# Subtest: new mapping and sync collections survive store normalization and have MySQL projection coverage
+ok 10 - new mapping and sync collections survive store normalization and have MySQL projection coverage
+  ---
+  duration_ms: 0.905333
+  type: 'test'
+  ...
+# Subtest: preview requires exact schema, contains no health, and rejects duplicates or unsupported select options
+ok 11 - preview requires exact schema, contains no health, and rejects duplicates or unsupported select options
+  ---
+  duration_ms: 1.488958
+  type: 'test'
+  ...
+# Subtest: successful sync verifies readback; retry is a no-op and preserves manual labels and corrected source
+ok 12 - successful sync verifies readback; retry is a no-op and preserves manual labels and corrected source
+  ---
+  duration_ms: 1.096167
+  type: 'test'
+  ...
+# Subtest: ambiguous create stays blocked until readback confirms the saved intent, never creates twice
+ok 13 - ambiguous create stays blocked until readback confirms the saved intent, never creates twice
+  ---
+  duration_ms: 0.656042
+  type: 'test'
+  ...
+# Subtest: changed previews and disabled writes cannot execute
+ok 14 - changed previews and disabled writes cannot execute
+  ---
+  duration_ms: 0.274542
+  type: 'test'
+  ...
+# Subtest: unconfirmed writes stop before the second selected user
+ok 15 - unconfirmed writes stop before the second selected user
+  ---
+  duration_ms: 0.251291
+  type: 'test'
+  ...
+# Subtest: manual edits discovered immediately before an update stop the batch without overwriting
+ok 16 - manual edits discovered immediately before an update stop the batch without overwriting
+  ---
+  duration_ms: 0.44725
+  type: 'test'
+  ...
+# Subtest: adapter follows all pages and fails on repeated cursors; never leaks provider messages or credentials
+ok 17 - adapter follows all pages and fails on repeated cursors; never leaks provider messages or credentials
+  ---
+  duration_ms: 0.671
+  type: 'test'
+  ...
+# Subtest: record readback requires the exact accessible record and excludes unrelated fields
+ok 18 - record readback requires the exact accessible record and excludes unrelated fields
+  ---
+  duration_ms: 0.378917
+  type: 'test'
+  ...
+# Subtest: record search stops on incomplete paging and never requests all columns for an invalid target
+ok 19 - record search stops on incomplete paging and never requests all columns for an invalid target
+  ---
+  duration_ms: 0.159833
+  type: 'test'
+  ...
+# Subtest: labels HTTP Interface isolates health permission, requires export permission and does not cache raw health results
+ok 20 - labels HTTP Interface isolates health permission, requires export permission and does not cache raw health results
+  ---
+  duration_ms: 40.46575
+  type: 'test'
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 101.759417

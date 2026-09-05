@@ -1,0 +1,248 @@
+[
+  {
+    "field": "首次可识别访问日期",
+    "command": "+field-update",
+    "dryRun": true,
+    "api": [
+      {
+        "method": "PUT",
+        "url": "/open-apis/base/v3/bases/XO5sbmYGRa0bALsPKH8ck4ZUnJJ/tables/tbl9PI8eKv6aQE3S/fields/fldtStrkOJ",
+        "body": {
+          "default_value": null,
+          "name": "首次可识别访问日期",
+          "style": {
+            "format": "yyyy/MM/dd"
+          },
+          "type": "datetime"
+        }
+      }
+    ]
+  },
+  {
+    "field": "是否下单1元体验装",
+    "command": "+field-update",
+    "dryRun": true,
+    "api": [
+      {
+        "method": "PUT",
+        "url": "/open-apis/base/v3/bases/XO5sbmYGRa0bALsPKH8ck4ZUnJJ/tables/tbl9PI8eKv6aQE3S/fields/fldkNM19WN",
+        "body": {
+          "default_value": null,
+          "multiple": false,
+          "name": "是否下单1元体验装",
+          "options": [
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "是"
+            },
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "否"
+            },
+            {
+              "hue": "Orange",
+              "lightness": "Lighter",
+              "name": "待核验"
+            }
+          ],
+          "type": "select"
+        }
+      }
+    ]
+  },
+  {
+    "field": "是否添加企业微信",
+    "command": "+field-update",
+    "dryRun": true,
+    "api": [
+      {
+        "method": "PUT",
+        "url": "/open-apis/base/v3/bases/XO5sbmYGRa0bALsPKH8ck4ZUnJJ/tables/tbl9PI8eKv6aQE3S/fields/fld0AnZBLB",
+        "body": {
+          "default_value": null,
+          "multiple": false,
+          "name": "是否添加企业微信",
+          "options": [
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "是"
+            },
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "否"
+            },
+            {
+              "hue": "Orange",
+              "lightness": "Lighter",
+              "name": "待核验"
+            }
+          ],
+          "type": "select"
+        }
+      }
+    ]
+  },
+  {
+    "field": "来源活动",
+    "command": "+field-update",
+    "dryRun": true,
+    "api": [
+      {
+        "method": "PUT",
+        "url": "/open-apis/base/v3/bases/XO5sbmYGRa0bALsPKH8ck4ZUnJJ/tables/tbl9PI8eKv6aQE3S/fields/fldDpgdQav",
+        "body": {
+          "default_value": null,
+          "multiple": false,
+          "name": "来源活动",
+          "options": [
+            {
+              "hue": "Orange",
+              "lightness": "Lighter",
+              "name": "Weekly Sports"
+            },
+            {
+              "hue": "Wathet",
+              "lightness": "Lighter",
+              "name": "CrossFit Hertz"
+            },
+            {
+              "hue": "Blue",
+              "lightness": "Lighter",
+              "name": "斑马·女性综合健身"
+            },
+            {
+              "hue": "Red",
+              "lightness": "Lighter",
+              "name": "小黑裙瑜伽·普拉提"
+            },
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "其他"
+            },
+            {
+              "hue": "Orange",
+              "lightness": "Lighter",
+              "name": "待确认"
+            }
+          ],
+          "type": "select"
+        }
+      }
+    ]
+  },
+  {
+    "field": "用户类型",
+    "command": "+field-update",
+    "dryRun": true,
+    "api": [
+      {
+        "method": "PUT",
+        "url": "/open-apis/base/v3/bases/XO5sbmYGRa0bALsPKH8ck4ZUnJJ/tables/tbl9PI8eKv6aQE3S/fields/fldRwhOpmr",
+        "body": {
+          "default_value": null,
+          "multiple": false,
+          "name": "用户类型",
+          "options": [
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "内部测试"
+            },
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "外部真实用户"
+            },
+            {
+              "hue": "Orange",
+              "lightness": "Lighter",
+              "name": "待确认"
+            }
+          ],
+          "type": "select"
+        }
+      }
+    ]
+  },
+  {
+    "field": "来源依据",
+    "command": "+field-create",
+    "dryRun": true,
+    "api": [
+      {
+        "method": "POST",
+        "url": "/open-apis/base/v3/bases/XO5sbmYGRa0bALsPKH8ck4ZUnJJ/tables/tbl9PI8eKv6aQE3S/fields",
+        "body": {
+          "default_value": null,
+          "name": "来源依据",
+          "style": {
+            "type": "plain"
+          },
+          "type": "text"
+        }
+      }
+    ]
+  },
+  {
+    "field": "来源核验状态",
+    "command": "+field-create",
+    "dryRun": true,
+    "api": [
+      {
+        "method": "POST",
+        "url": "/open-apis/base/v3/bases/XO5sbmYGRa0bALsPKH8ck4ZUnJJ/tables/tbl9PI8eKv6aQE3S/fields",
+        "body": {
+          "default_value": null,
+          "name": "来源核验状态",
+          "style": {
+            "type": "plain"
+          },
+          "type": "text"
+        }
+      }
+    ]
+  },
+  {
+    "field": "系统来源建议",
+    "command": "+field-create",
+    "dryRun": true,
+    "api": [
+      {
+        "method": "POST",
+        "url": "/open-apis/base/v3/bases/XO5sbmYGRa0bALsPKH8ck4ZUnJJ/tables/tbl9PI8eKv6aQE3S/fields",
+        "body": {
+          "default_value": null,
+          "name": "系统来源建议",
+          "style": {
+            "type": "plain"
+          },
+          "type": "text"
+        }
+      }
+    ]
+  },
+  {
+    "field": "数据更新时间",
+    "command": "+field-create",
+    "dryRun": true,
+    "api": [
+      {
+        "method": "POST",
+        "url": "/open-apis/base/v3/bases/XO5sbmYGRa0bALsPKH8ck4ZUnJJ/tables/tbl9PI8eKv6aQE3S/fields",
+        "body": {
+          "default_value": null,
+          "name": "数据更新时间",
+          "style": {
+            "format": "yyyy/MM/dd HH:mm"
+          },
+          "type": "datetime"
+        }
+      }
+    ]
+  }
+]

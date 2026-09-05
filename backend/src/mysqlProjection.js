@@ -22,6 +22,10 @@ function assertSnapshotProjectionRegistrySafe(projections) {
 }
 
 const JSON_COLUMNS = new Set([
+  "attributes_json",
+  "before_json",
+  "after_json",
+  "pending_json",
   "allowed_target_pages_json",
   "answers_json",
   "advice_json",
@@ -63,6 +67,8 @@ const BOOLEAN_COLUMNS = new Set([
   "verified",
 ]);
 const DATE_COLUMNS = new Set([
+  "effective_from",
+  "synced_at",
   "acted_at",
   "attributed_at",
   "authorization_verified_at",
@@ -228,6 +234,16 @@ const PROJECTIONS = [
       "assessment_source_config_id", "assessment_type", "status", "title", "subtitle",
       "options_json", "config_version", "created_by", "updated_by", "created_at", "updated_at",
     ],
+  },
+  {
+    table: "user_label_mapping", source: "userLabelMappings", id: "user_label_mapping_id",
+    columns: ["user_label_mapping_id", "source_type", "source_id", "source_version", "mapping_version",
+      "effective_from", "attributes_json", "reason", "created_by", "created_at"],
+  },
+  {
+    table: "user_label_sync_state", source: "userLabelSyncStates", id: "user_label_sync_state_id",
+    columns: ["user_label_sync_state_id", "target_key", "root_user_id", "record_id", "status",
+      "before_json", "after_json", "pending_json", "last_error_code", "synced_at", "created_at", "updated_at"],
   },
   {
     table: "health_advice_snapshot",

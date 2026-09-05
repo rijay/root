@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-09-04T12:14:15.388268+00:00",
+  "identity": "bot",
+  "apiFamily": "bitable/v1",
+  "exit": 1,
+  "recordWrites": 0,
+  "topLevelKeys": [
+    "ok",
+    "identity",
+    "error",
+    "_notice"
+  ],
+  "ok": false,
+  "code": null,
+  "dataKeys": [],
+  "dataCode": null,
+  "fieldCount": null,
+  "hasMore": null,
+  "error": {
+    "type": "api",
+    "subtype": "unknown",
+    "code": 91403,
+    "message": "Forbidden"
+  }
+}

@@ -11,6 +11,7 @@
     </header>
 
     <el-tabs v-model="activeTab" class="channel-tabs">
+      <el-tab-pane v-if="access.has(ADMIN_CAPABILITIES.USER_LABEL_READ)" label="用户来源映射" name="label-mappings" lazy><LabelMappingPanel /></el-tab-pane>
       <el-tab-pane label="漏斗报表" name="funnel">
         <el-card shadow="never">
           <div class="filter-row">
@@ -230,7 +231,15 @@
 </template>
 
 <script setup>
-import { inject, onMounted, reactive, ref } from "vue";
+import { ElTabs, ElTabPane } from "element-plus/es/components/tabs/index";
+import { ElRow } from "element-plus/es/components/row/index";
+import { ElCol } from "element-plus/es/components/col/index";
+import "element-plus/theme-chalk/el-tabs.css";
+import "element-plus/theme-chalk/el-row.css";
+import "element-plus/theme-chalk/el-col.css";
+import "element-plus/es/components/date-picker/style/css.mjs";
+import { defineAsyncComponent, inject, onMounted, reactive, ref } from "vue";
+const LabelMappingPanel = defineAsyncComponent(() => import("./LabelMappingPanel.vue"));
 import { ElMessage } from "element-plus/es/components/message/index";
 import { ADMIN_ACCESS_KEY, ADMIN_CAPABILITIES } from "../access";
 import {

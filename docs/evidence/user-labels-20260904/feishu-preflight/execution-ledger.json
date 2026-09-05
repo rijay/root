@@ -1,0 +1,876 @@
+{
+  "startedAt": "2026-09-04T10:10:25.517921+00:00",
+  "tableId": "tbl9PI8eKv6aQE3S",
+  "authorization": "User confirmed the nine schema changes; no record import",
+  "status": "VERIFIED",
+  "recordWrites": 0,
+  "actions": [
+    {
+      "index": 1,
+      "kind": "UPDATE",
+      "fieldId": "fldtStrkOJ",
+      "before": {
+        "default_value": null,
+        "name": "首次访问日期",
+        "style": {
+          "format": "yyyy/MM/dd"
+        },
+        "type": "datetime"
+      },
+      "after": {
+        "default_value": null,
+        "name": "首次可识别访问日期",
+        "style": {
+          "format": "yyyy/MM/dd"
+        },
+        "type": "datetime"
+      },
+      "startedAt": "2026-09-04T10:10:26.124558+00:00",
+      "status": "VERIFIED",
+      "response": {
+        "updated": true,
+        "field": {
+          "default_value": null,
+          "id": "fldtStrkOJ",
+          "name": "首次可识别访问日期",
+          "style": {
+            "format": "yyyy/MM/dd"
+          },
+          "type": "datetime"
+        }
+      },
+      "readback": {
+        "default_value": null,
+        "id": "fldtStrkOJ",
+        "name": "首次可识别访问日期",
+        "style": {
+          "format": "yyyy/MM/dd"
+        },
+        "type": "datetime"
+      },
+      "completedAt": "2026-09-04T10:10:28.567458+00:00",
+      "reconciledAt": "2026-09-04T10:11:49.168491+00:00"
+    },
+    {
+      "index": 2,
+      "kind": "UPDATE",
+      "fieldId": "fldkNM19WN",
+      "before": {
+        "name": "是否下单1元体验装",
+        "type": "checkbox"
+      },
+      "after": {
+        "name": "是否下单1元体验装",
+        "type": "select",
+        "multiple": false,
+        "default_value": null,
+        "options": [
+          {
+            "name": "是",
+            "hue": "Gray",
+            "lightness": "Lighter"
+          },
+          {
+            "name": "否",
+            "hue": "Gray",
+            "lightness": "Lighter"
+          },
+          {
+            "name": "待核验",
+            "hue": "Orange",
+            "lightness": "Lighter"
+          }
+        ]
+      },
+      "startedAt": "2026-09-04T10:10:29.878917+00:00",
+      "status": "VERIFIED",
+      "response": {
+        "updated": true,
+        "field": {
+          "default_value": null,
+          "id": "fldkNM19WN",
+          "multiple": false,
+          "name": "是否下单1元体验装",
+          "options": [
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "是"
+            },
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "否"
+            },
+            {
+              "hue": "Orange",
+              "lightness": "Lighter",
+              "name": "待核验"
+            }
+          ],
+          "type": "select"
+        }
+      },
+      "readback": {
+        "default_value": null,
+        "id": "fldkNM19WN",
+        "multiple": false,
+        "name": "是否下单1元体验装",
+        "options": [
+          {
+            "hue": "Gray",
+            "lightness": "Lighter",
+            "name": "是"
+          },
+          {
+            "hue": "Gray",
+            "lightness": "Lighter",
+            "name": "否"
+          },
+          {
+            "hue": "Orange",
+            "lightness": "Lighter",
+            "name": "待核验"
+          }
+        ],
+        "type": "select"
+      },
+      "reconciledAt": "2026-09-04T10:11:49.768150+00:00"
+    },
+    {
+      "index": 3,
+      "kind": "UPDATE",
+      "fieldId": "fld0AnZBLB",
+      "before": {
+        "name": "是否添加企业微信",
+        "type": "checkbox"
+      },
+      "after": {
+        "name": "是否添加企业微信",
+        "type": "select",
+        "multiple": false,
+        "default_value": null,
+        "options": [
+          {
+            "name": "是",
+            "hue": "Gray",
+            "lightness": "Lighter"
+          },
+          {
+            "name": "否",
+            "hue": "Gray",
+            "lightness": "Lighter"
+          },
+          {
+            "name": "待核验",
+            "hue": "Orange",
+            "lightness": "Lighter"
+          }
+        ]
+      },
+      "startedAt": "2026-09-04T10:11:53.336046+00:00",
+      "status": "VERIFIED",
+      "response": {
+        "updated": true,
+        "field": {
+          "default_value": null,
+          "id": "fld0AnZBLB",
+          "multiple": false,
+          "name": "是否添加企业微信",
+          "options": [
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "是"
+            },
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "否"
+            },
+            {
+              "hue": "Orange",
+              "lightness": "Lighter",
+              "name": "待核验"
+            }
+          ],
+          "type": "select"
+        }
+      },
+      "readbackAttempts": [
+        {
+          "at": "2026-09-04T10:11:56.746442+00:00",
+          "field": {
+            "default_value": null,
+            "id": "fld0AnZBLB",
+            "multiple": false,
+            "name": "是否添加企业微信",
+            "options": [
+              {
+                "hue": "Gray",
+                "lightness": "Lighter",
+                "name": "是"
+              },
+              {
+                "hue": "Gray",
+                "lightness": "Lighter",
+                "name": "否"
+              },
+              {
+                "hue": "Orange",
+                "lightness": "Lighter",
+                "name": "待核验"
+              }
+            ],
+            "type": "select"
+          }
+        },
+        {
+          "at": "2026-09-04T10:11:58.983045+00:00",
+          "field": {
+            "default_value": null,
+            "id": "fld0AnZBLB",
+            "multiple": false,
+            "name": "是否添加企业微信",
+            "options": [
+              {
+                "hue": "Gray",
+                "lightness": "Lighter",
+                "name": "是"
+              },
+              {
+                "hue": "Gray",
+                "lightness": "Lighter",
+                "name": "否"
+              },
+              {
+                "hue": "Orange",
+                "lightness": "Lighter",
+                "name": "待核验"
+              }
+            ],
+            "type": "select"
+          }
+        }
+      ],
+      "readback": {
+        "default_value": null,
+        "id": "fld0AnZBLB",
+        "multiple": false,
+        "name": "是否添加企业微信",
+        "options": [
+          {
+            "hue": "Gray",
+            "lightness": "Lighter",
+            "name": "是"
+          },
+          {
+            "hue": "Gray",
+            "lightness": "Lighter",
+            "name": "否"
+          },
+          {
+            "hue": "Orange",
+            "lightness": "Lighter",
+            "name": "待核验"
+          }
+        ],
+        "type": "select"
+      },
+      "completedAt": "2026-09-04T10:11:58.984130+00:00"
+    },
+    {
+      "index": 4,
+      "kind": "UPDATE",
+      "fieldId": "fldDpgdQav",
+      "before": {
+        "default_value": null,
+        "multiple": false,
+        "name": "来源活动",
+        "options": [
+          {
+            "hue": "Orange",
+            "lightness": "Lighter",
+            "name": "Weekly Sports"
+          },
+          {
+            "hue": "Wathet",
+            "lightness": "Lighter",
+            "name": "CrossFit Hertz"
+          },
+          {
+            "hue": "Blue",
+            "lightness": "Lighter",
+            "name": "斑马·女性综合健身"
+          },
+          {
+            "hue": "Red",
+            "lightness": "Lighter",
+            "name": "小黑裙瑜伽·普拉提"
+          },
+          {
+            "hue": "Gray",
+            "lightness": "Lighter",
+            "name": "其他"
+          }
+        ],
+        "type": "select"
+      },
+      "after": {
+        "default_value": null,
+        "multiple": false,
+        "name": "来源活动",
+        "options": [
+          {
+            "hue": "Orange",
+            "lightness": "Lighter",
+            "name": "Weekly Sports"
+          },
+          {
+            "hue": "Wathet",
+            "lightness": "Lighter",
+            "name": "CrossFit Hertz"
+          },
+          {
+            "hue": "Blue",
+            "lightness": "Lighter",
+            "name": "斑马·女性综合健身"
+          },
+          {
+            "hue": "Red",
+            "lightness": "Lighter",
+            "name": "小黑裙瑜伽·普拉提"
+          },
+          {
+            "hue": "Gray",
+            "lightness": "Lighter",
+            "name": "其他"
+          },
+          {
+            "name": "待确认",
+            "hue": "Orange",
+            "lightness": "Lighter"
+          }
+        ],
+        "type": "select"
+      },
+      "startedAt": "2026-09-04T10:11:59.614981+00:00",
+      "status": "VERIFIED",
+      "response": {
+        "updated": true,
+        "field": {
+          "default_value": null,
+          "id": "fldDpgdQav",
+          "multiple": false,
+          "name": "来源活动",
+          "options": [
+            {
+              "hue": "Orange",
+              "lightness": "Lighter",
+              "name": "Weekly Sports"
+            },
+            {
+              "hue": "Wathet",
+              "lightness": "Lighter",
+              "name": "CrossFit Hertz"
+            },
+            {
+              "hue": "Blue",
+              "lightness": "Lighter",
+              "name": "斑马·女性综合健身"
+            },
+            {
+              "hue": "Red",
+              "lightness": "Lighter",
+              "name": "小黑裙瑜伽·普拉提"
+            },
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "其他"
+            },
+            {
+              "hue": "Orange",
+              "lightness": "Lighter",
+              "name": "待确认"
+            }
+          ],
+          "type": "select"
+        }
+      },
+      "readbackAttempts": [
+        {
+          "at": "2026-09-04T10:12:03.137133+00:00",
+          "field": {
+            "default_value": null,
+            "id": "fldDpgdQav",
+            "multiple": false,
+            "name": "来源活动",
+            "options": [
+              {
+                "hue": "Orange",
+                "lightness": "Lighter",
+                "name": "Weekly Sports"
+              },
+              {
+                "hue": "Wathet",
+                "lightness": "Lighter",
+                "name": "CrossFit Hertz"
+              },
+              {
+                "hue": "Blue",
+                "lightness": "Lighter",
+                "name": "斑马·女性综合健身"
+              },
+              {
+                "hue": "Red",
+                "lightness": "Lighter",
+                "name": "小黑裙瑜伽·普拉提"
+              },
+              {
+                "hue": "Gray",
+                "lightness": "Lighter",
+                "name": "其他"
+              },
+              {
+                "hue": "Orange",
+                "lightness": "Lighter",
+                "name": "待确认"
+              }
+            ],
+            "type": "select"
+          }
+        },
+        {
+          "at": "2026-09-04T10:12:05.240479+00:00",
+          "field": {
+            "default_value": null,
+            "id": "fldDpgdQav",
+            "multiple": false,
+            "name": "来源活动",
+            "options": [
+              {
+                "hue": "Orange",
+                "lightness": "Lighter",
+                "name": "Weekly Sports"
+              },
+              {
+                "hue": "Wathet",
+                "lightness": "Lighter",
+                "name": "CrossFit Hertz"
+              },
+              {
+                "hue": "Blue",
+                "lightness": "Lighter",
+                "name": "斑马·女性综合健身"
+              },
+              {
+                "hue": "Red",
+                "lightness": "Lighter",
+                "name": "小黑裙瑜伽·普拉提"
+              },
+              {
+                "hue": "Gray",
+                "lightness": "Lighter",
+                "name": "其他"
+              },
+              {
+                "hue": "Orange",
+                "lightness": "Lighter",
+                "name": "待确认"
+              }
+            ],
+            "type": "select"
+          }
+        }
+      ],
+      "readback": {
+        "default_value": null,
+        "id": "fldDpgdQav",
+        "multiple": false,
+        "name": "来源活动",
+        "options": [
+          {
+            "hue": "Orange",
+            "lightness": "Lighter",
+            "name": "Weekly Sports"
+          },
+          {
+            "hue": "Wathet",
+            "lightness": "Lighter",
+            "name": "CrossFit Hertz"
+          },
+          {
+            "hue": "Blue",
+            "lightness": "Lighter",
+            "name": "斑马·女性综合健身"
+          },
+          {
+            "hue": "Red",
+            "lightness": "Lighter",
+            "name": "小黑裙瑜伽·普拉提"
+          },
+          {
+            "hue": "Gray",
+            "lightness": "Lighter",
+            "name": "其他"
+          },
+          {
+            "hue": "Orange",
+            "lightness": "Lighter",
+            "name": "待确认"
+          }
+        ],
+        "type": "select"
+      },
+      "completedAt": "2026-09-04T10:12:05.241572+00:00"
+    },
+    {
+      "index": 5,
+      "kind": "UPDATE",
+      "fieldId": "fldRwhOpmr",
+      "before": {
+        "default_value": null,
+        "multiple": false,
+        "name": "用户类型",
+        "options": [
+          {
+            "hue": "Gray",
+            "lightness": "Lighter",
+            "name": "内部测试"
+          },
+          {
+            "hue": "Gray",
+            "lightness": "Lighter",
+            "name": "外部真实用户"
+          }
+        ],
+        "type": "select"
+      },
+      "after": {
+        "default_value": null,
+        "multiple": false,
+        "name": "用户类型",
+        "options": [
+          {
+            "hue": "Gray",
+            "lightness": "Lighter",
+            "name": "内部测试"
+          },
+          {
+            "hue": "Gray",
+            "lightness": "Lighter",
+            "name": "外部真实用户"
+          },
+          {
+            "name": "待确认",
+            "hue": "Orange",
+            "lightness": "Lighter"
+          }
+        ],
+        "type": "select"
+      },
+      "startedAt": "2026-09-04T10:12:05.866796+00:00",
+      "status": "VERIFIED",
+      "response": {
+        "updated": true,
+        "field": {
+          "default_value": null,
+          "id": "fldRwhOpmr",
+          "multiple": false,
+          "name": "用户类型",
+          "options": [
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "内部测试"
+            },
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "外部真实用户"
+            },
+            {
+              "hue": "Orange",
+              "lightness": "Lighter",
+              "name": "待确认"
+            }
+          ],
+          "type": "select"
+        }
+      },
+      "readbackAttempts": [
+        {
+          "at": "2026-09-04T10:12:09.399730+00:00",
+          "field": {
+            "default_value": null,
+            "id": "fldRwhOpmr",
+            "multiple": false,
+            "name": "用户类型",
+            "options": [
+              {
+                "hue": "Gray",
+                "lightness": "Lighter",
+                "name": "内部测试"
+              },
+              {
+                "hue": "Gray",
+                "lightness": "Lighter",
+                "name": "外部真实用户"
+              },
+              {
+                "hue": "Orange",
+                "lightness": "Lighter",
+                "name": "待确认"
+              }
+            ],
+            "type": "select"
+          }
+        }
+      ],
+      "readback": {
+        "default_value": null,
+        "id": "fldRwhOpmr",
+        "multiple": false,
+        "name": "用户类型",
+        "options": [
+          {
+            "hue": "Gray",
+            "lightness": "Lighter",
+            "name": "内部测试"
+          },
+          {
+            "hue": "Gray",
+            "lightness": "Lighter",
+            "name": "外部真实用户"
+          },
+          {
+            "hue": "Orange",
+            "lightness": "Lighter",
+            "name": "待确认"
+          }
+        ],
+        "type": "select"
+      },
+      "completedAt": "2026-09-04T10:12:09.401011+00:00"
+    },
+    {
+      "index": 6,
+      "kind": "CREATE",
+      "before": null,
+      "after": {
+        "name": "来源依据",
+        "type": "text",
+        "default_value": null,
+        "style": {
+          "type": "plain"
+        }
+      },
+      "startedAt": "2026-09-04T10:12:10.514989+00:00",
+      "status": "VERIFIED",
+      "response": {
+        "created": true,
+        "field": {
+          "default_value": null,
+          "id": "fldBzURWN1",
+          "name": "来源依据",
+          "style": {
+            "type": "plain"
+          },
+          "type": "text"
+        }
+      },
+      "readbackAttempts": [
+        {
+          "at": "2026-09-04T10:12:14.436800+00:00",
+          "field": {
+            "default_value": null,
+            "id": "fldBzURWN1",
+            "name": "来源依据",
+            "style": {
+              "type": "plain"
+            },
+            "type": "text"
+          }
+        }
+      ],
+      "readback": {
+        "default_value": null,
+        "id": "fldBzURWN1",
+        "name": "来源依据",
+        "style": {
+          "type": "plain"
+        },
+        "type": "text"
+      },
+      "completedAt": "2026-09-04T10:12:14.438083+00:00"
+    },
+    {
+      "index": 7,
+      "kind": "CREATE",
+      "before": null,
+      "after": {
+        "name": "来源核验状态",
+        "type": "text",
+        "default_value": null,
+        "style": {
+          "type": "plain"
+        }
+      },
+      "startedAt": "2026-09-04T10:12:15.023165+00:00",
+      "status": "VERIFIED",
+      "response": {
+        "created": true,
+        "field": {
+          "default_value": null,
+          "id": "fldmCiCH5W",
+          "name": "来源核验状态",
+          "style": {
+            "type": "plain"
+          },
+          "type": "text"
+        }
+      },
+      "readbackAttempts": [
+        {
+          "at": "2026-09-04T10:12:19.018465+00:00",
+          "field": {
+            "default_value": null,
+            "id": "fldmCiCH5W",
+            "name": "来源核验状态",
+            "style": {
+              "type": "plain"
+            },
+            "type": "text"
+          }
+        }
+      ],
+      "readback": {
+        "default_value": null,
+        "id": "fldmCiCH5W",
+        "name": "来源核验状态",
+        "style": {
+          "type": "plain"
+        },
+        "type": "text"
+      },
+      "completedAt": "2026-09-04T10:12:19.019625+00:00"
+    },
+    {
+      "index": 8,
+      "kind": "CREATE",
+      "before": null,
+      "after": {
+        "name": "系统来源建议",
+        "type": "text",
+        "default_value": null,
+        "style": {
+          "type": "plain"
+        }
+      },
+      "startedAt": "2026-09-04T10:12:19.578254+00:00",
+      "status": "VERIFIED",
+      "response": {
+        "created": true,
+        "field": {
+          "default_value": null,
+          "id": "fldXzWMlAA",
+          "name": "系统来源建议",
+          "style": {
+            "type": "plain"
+          },
+          "type": "text"
+        }
+      },
+      "readbackAttempts": [
+        {
+          "at": "2026-09-04T10:12:23.296931+00:00",
+          "field": {
+            "default_value": null,
+            "id": "fldXzWMlAA",
+            "name": "系统来源建议",
+            "style": {
+              "type": "plain"
+            },
+            "type": "text"
+          }
+        }
+      ],
+      "readback": {
+        "default_value": null,
+        "id": "fldXzWMlAA",
+        "name": "系统来源建议",
+        "style": {
+          "type": "plain"
+        },
+        "type": "text"
+      },
+      "completedAt": "2026-09-04T10:12:23.297866+00:00"
+    },
+    {
+      "index": 9,
+      "kind": "CREATE",
+      "before": null,
+      "after": {
+        "name": "数据更新时间",
+        "type": "datetime",
+        "default_value": null,
+        "style": {
+          "format": "yyyy/MM/dd HH:mm"
+        }
+      },
+      "startedAt": "2026-09-04T10:12:23.888252+00:00",
+      "status": "VERIFIED",
+      "response": {
+        "created": true,
+        "field": {
+          "default_value": null,
+          "id": "fldpFoYqpP",
+          "name": "数据更新时间",
+          "style": {
+            "format": "yyyy/MM/dd HH:mm"
+          },
+          "type": "datetime"
+        }
+      },
+      "readbackAttempts": [
+        {
+          "at": "2026-09-04T10:12:27.682645+00:00",
+          "field": {
+            "default_value": null,
+            "id": "fldpFoYqpP",
+            "name": "数据更新时间",
+            "style": {
+              "format": "yyyy/MM/dd HH:mm"
+            },
+            "type": "datetime"
+          }
+        }
+      ],
+      "readback": {
+        "default_value": null,
+        "id": "fldpFoYqpP",
+        "name": "数据更新时间",
+        "style": {
+          "format": "yyyy/MM/dd HH:mm"
+        },
+        "type": "datetime"
+      },
+      "completedAt": "2026-09-04T10:12:27.683820+00:00"
+    }
+  ],
+  "resumeNote": "Fresh readback confirmed earlier successful requests; no mutation repeated",
+  "completedAt": "2026-09-04T10:12:29.879396+00:00",
+  "verification": {
+    "actionsVerified": 9,
+    "fieldsBefore": 18,
+    "fieldsAfter": 22,
+    "unrelatedFieldsUnchanged": true,
+    "existingFieldIdsPreserved": true,
+    "viewSettingsUnchanged": true,
+    "recordCount": 0,
+    "hasMore": false,
+    "recordScope": "all_records",
+    "revision": 25
+  }
+}

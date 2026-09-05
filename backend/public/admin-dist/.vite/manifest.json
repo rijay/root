@@ -1,48 +1,69 @@
 {
+  "_ChannelGrowthPage-DQQEcWcl.js": {
+    "file": "assets/ChannelGrowthPage-DQQEcWcl.js",
+    "name": "ChannelGrowthPage",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_element-BCL4x-Os.js",
+      "__plugin-vue_export-helper-DlAUqK2U.js",
+      "_vue-CikT5lA6.js"
+    ],
+    "dynamicImports": [
+      "src/modules/channels/LabelMappingPanel.vue"
+    ]
+  },
   "__plugin-vue_export-helper-DlAUqK2U.js": {
     "file": "assets/_plugin-vue_export-helper-DlAUqK2U.js",
     "name": "_plugin-vue_export-helper"
   },
-  "_adminActivityApi-B6F9rocq.js": {
-    "file": "assets/adminActivityApi-B6F9rocq.js",
+  "_adminActivityApi-CdU2S8ba.js": {
+    "file": "assets/adminActivityApi-CdU2S8ba.js",
     "name": "adminActivityApi",
     "imports": [
       "index.html"
     ]
   },
-  "_adminContentApi-iqINpfT7.js": {
-    "file": "assets/adminContentApi-iqINpfT7.js",
+  "_adminContentApi-CtfuPY0v.js": {
+    "file": "assets/adminContentApi-CtfuPY0v.js",
     "name": "adminContentApi",
     "imports": [
       "index.html"
     ]
   },
-  "_adminHealthApi-CtqfyWKV.js": {
-    "file": "assets/adminHealthApi-CtqfyWKV.js",
+  "_adminHealthApi-WXQuTpzy.js": {
+    "file": "assets/adminHealthApi-WXQuTpzy.js",
     "name": "adminHealthApi",
     "imports": [
       "index.html"
     ]
   },
-  "_element-Rz6LLM1L.js": {
-    "file": "assets/element-Rz6LLM1L.js",
-    "name": "element",
+  "_adminUserLabelsApi-DCBDLiho.js": {
+    "file": "assets/adminUserLabelsApi-DCBDLiho.js",
+    "name": "adminUserLabelsApi",
     "imports": [
-      "_vue-DBlZkBQZ.js"
+      "index.html"
     ]
   },
-  "_vue-DBlZkBQZ.js": {
-    "file": "assets/vue-DBlZkBQZ.js",
+  "_element-BCL4x-Os.js": {
+    "file": "assets/element-BCL4x-Os.js",
+    "name": "element",
+    "imports": [
+      "_vue-CikT5lA6.js"
+    ]
+  },
+  "_vue-CikT5lA6.js": {
+    "file": "assets/vue-CikT5lA6.js",
     "name": "vue"
   },
   "index.html": {
-    "file": "assets/index-CbDZH_Vu.js",
+    "file": "assets/index-BskyPlyu.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_vue-DBlZkBQZ.js",
-      "_element-Rz6LLM1L.js"
+      "_vue-CikT5lA6.js",
+      "_element-BCL4x-Os.js"
     ],
     "dynamicImports": [
       "src/modules/release/ReleaseWorkbench.vue",
@@ -56,169 +77,185 @@
       "src/modules/health/RecommendationRulesPage.vue",
       "src/modules/health/LifestyleAdvicePage.vue",
       "src/modules/users/UserQueryPage.vue",
+      "src/modules/users/UserLabelsPage.vue",
       "src/modules/audit/OperationAuditPage.vue",
-      "src/modules/channels/ChannelGrowthPage.vue"
+      "_ChannelGrowthPage-DQQEcWcl.js"
     ]
   },
   "src/modules/activities/ActivityManagementPage.vue": {
-    "file": "assets/ActivityManagementPage-DV7KdjHm.js",
+    "file": "assets/ActivityManagementPage-3Y5lAkjU.js",
     "name": "ActivityManagementPage",
     "src": "src/modules/activities/ActivityManagementPage.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue-DBlZkBQZ.js",
-      "_element-Rz6LLM1L.js",
-      "_adminContentApi-iqINpfT7.js",
-      "_adminActivityApi-B6F9rocq.js",
+      "_vue-CikT5lA6.js",
+      "_element-BCL4x-Os.js",
+      "_adminContentApi-CtfuPY0v.js",
+      "_adminActivityApi-CdU2S8ba.js",
       "index.html"
     ]
   },
   "src/modules/activities/ActivityRegistrationsPage.vue": {
-    "file": "assets/ActivityRegistrationsPage-CygDoVPy.js",
+    "file": "assets/ActivityRegistrationsPage-WZRvEDpM.js",
     "name": "ActivityRegistrationsPage",
     "src": "src/modules/activities/ActivityRegistrationsPage.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue-DBlZkBQZ.js",
-      "_element-Rz6LLM1L.js",
-      "_adminActivityApi-B6F9rocq.js",
+      "_vue-CikT5lA6.js",
+      "_element-BCL4x-Os.js",
+      "_adminActivityApi-CdU2S8ba.js",
       "index.html"
     ]
   },
   "src/modules/audit/OperationAuditPage.vue": {
-    "file": "assets/OperationAuditPage-BdiOmJ5q.js",
+    "file": "assets/OperationAuditPage-CAK1Ldip.js",
     "name": "OperationAuditPage",
     "src": "src/modules/audit/OperationAuditPage.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue-DBlZkBQZ.js",
-      "_element-Rz6LLM1L.js",
+      "_vue-CikT5lA6.js",
+      "_element-BCL4x-Os.js",
       "index.html",
       "__plugin-vue_export-helper-DlAUqK2U.js"
     ]
   },
-  "src/modules/channels/ChannelGrowthPage.vue": {
-    "file": "assets/ChannelGrowthPage-B8JrXYRh.js",
-    "name": "ChannelGrowthPage",
-    "src": "src/modules/channels/ChannelGrowthPage.vue",
+  "src/modules/channels/LabelMappingPanel.vue": {
+    "file": "assets/LabelMappingPanel-Dnni4UDp.js",
+    "name": "LabelMappingPanel",
+    "src": "src/modules/channels/LabelMappingPanel.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_element-Rz6LLM1L.js",
+      "_vue-CikT5lA6.js",
+      "_element-BCL4x-Os.js",
       "index.html",
-      "__plugin-vue_export-helper-DlAUqK2U.js",
-      "_vue-DBlZkBQZ.js"
+      "_adminUserLabelsApi-DCBDLiho.js",
+      "_ChannelGrowthPage-DQQEcWcl.js",
+      "__plugin-vue_export-helper-DlAUqK2U.js"
     ]
   },
   "src/modules/content/HomeCarouselPage.vue": {
-    "file": "assets/HomeCarouselPage-DJf-Qgtd.js",
+    "file": "assets/HomeCarouselPage-BUfCIQh5.js",
     "name": "HomeCarouselPage",
     "src": "src/modules/content/HomeCarouselPage.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue-DBlZkBQZ.js",
-      "_element-Rz6LLM1L.js",
-      "_adminContentApi-iqINpfT7.js",
+      "_vue-CikT5lA6.js",
+      "_element-BCL4x-Os.js",
+      "_adminContentApi-CtfuPY0v.js",
       "index.html"
     ]
   },
   "src/modules/content/SharedDetailPage.vue": {
-    "file": "assets/SharedDetailPage-KqL79YoZ.js",
+    "file": "assets/SharedDetailPage-Cs3Gdjw6.js",
     "name": "SharedDetailPage",
     "src": "src/modules/content/SharedDetailPage.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue-DBlZkBQZ.js",
-      "_element-Rz6LLM1L.js",
-      "_adminContentApi-iqINpfT7.js",
+      "_vue-CikT5lA6.js",
+      "_element-BCL4x-Os.js",
+      "_adminContentApi-CtfuPY0v.js",
       "index.html"
     ]
   },
   "src/modules/content/WelcomeContentPage.vue": {
-    "file": "assets/WelcomeContentPage-Dfjqowb3.js",
+    "file": "assets/WelcomeContentPage-uqOkQa8L.js",
     "name": "WelcomeContentPage",
     "src": "src/modules/content/WelcomeContentPage.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_element-Rz6LLM1L.js",
-      "_adminContentApi-iqINpfT7.js",
-      "_vue-DBlZkBQZ.js",
+      "_element-BCL4x-Os.js",
+      "_adminContentApi-CtfuPY0v.js",
+      "_vue-CikT5lA6.js",
       "index.html"
     ]
   },
   "src/modules/health/InitializationPage.vue": {
-    "file": "assets/InitializationPage-BZK0Ao3x.js",
+    "file": "assets/InitializationPage-BBP6wtTW.js",
     "name": "InitializationPage",
     "src": "src/modules/health/InitializationPage.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue-DBlZkBQZ.js",
-      "_element-Rz6LLM1L.js",
-      "_adminHealthApi-CtqfyWKV.js",
+      "_vue-CikT5lA6.js",
+      "_element-BCL4x-Os.js",
+      "_adminHealthApi-WXQuTpzy.js",
       "index.html"
     ]
   },
   "src/modules/health/LifestyleAdvicePage.vue": {
-    "file": "assets/LifestyleAdvicePage-Doyju16w.js",
+    "file": "assets/LifestyleAdvicePage-5Chc0cDh.js",
     "name": "LifestyleAdvicePage",
     "src": "src/modules/health/LifestyleAdvicePage.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue-DBlZkBQZ.js",
-      "_element-Rz6LLM1L.js",
-      "_adminHealthApi-CtqfyWKV.js",
+      "_vue-CikT5lA6.js",
+      "_element-BCL4x-Os.js",
+      "_adminHealthApi-WXQuTpzy.js",
       "index.html"
     ]
   },
   "src/modules/health/RecommendationRulesPage.vue": {
-    "file": "assets/RecommendationRulesPage-B6C98Yi8.js",
+    "file": "assets/RecommendationRulesPage-ClmXpr4t.js",
     "name": "RecommendationRulesPage",
     "src": "src/modules/health/RecommendationRulesPage.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue-DBlZkBQZ.js",
-      "_element-Rz6LLM1L.js",
-      "_adminHealthApi-CtqfyWKV.js",
+      "_vue-CikT5lA6.js",
+      "_element-BCL4x-Os.js",
+      "_adminHealthApi-WXQuTpzy.js",
       "index.html"
     ]
   },
   "src/modules/health/ScaleManagementPage.vue": {
-    "file": "assets/ScaleManagementPage-DfrkVpfQ.js",
+    "file": "assets/ScaleManagementPage-Dx5_QxQ5.js",
     "name": "ScaleManagementPage",
     "src": "src/modules/health/ScaleManagementPage.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue-DBlZkBQZ.js",
-      "_element-Rz6LLM1L.js",
-      "_adminHealthApi-CtqfyWKV.js",
+      "_vue-CikT5lA6.js",
+      "_element-BCL4x-Os.js",
+      "_adminHealthApi-WXQuTpzy.js",
       "__plugin-vue_export-helper-DlAUqK2U.js",
       "index.html"
     ]
   },
   "src/modules/release/ReleaseWorkbench.vue": {
-    "file": "assets/ReleaseWorkbench-D6MeI78T.js",
+    "file": "assets/ReleaseWorkbench-ChGv1JDA.js",
     "name": "ReleaseWorkbench",
     "src": "src/modules/release/ReleaseWorkbench.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_element-Rz6LLM1L.js",
-      "_vue-DBlZkBQZ.js",
+      "_element-BCL4x-Os.js",
+      "_vue-CikT5lA6.js",
       "index.html"
     ]
   },
+  "src/modules/users/UserLabelsPage.vue": {
+    "file": "assets/UserLabelsPage-BLxPN8KD.js",
+    "name": "UserLabelsPage",
+    "src": "src/modules/users/UserLabelsPage.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vue-CikT5lA6.js",
+      "_element-BCL4x-Os.js",
+      "index.html",
+      "_adminUserLabelsApi-DCBDLiho.js",
+      "__plugin-vue_export-helper-DlAUqK2U.js"
+    ]
+  },
   "src/modules/users/UserQueryPage.vue": {
-    "file": "assets/UserQueryPage-BBLzHK78.js",
+    "file": "assets/UserQueryPage-CbuY4DZe.js",
     "name": "UserQueryPage",
     "src": "src/modules/users/UserQueryPage.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_vue-DBlZkBQZ.js",
-      "_element-Rz6LLM1L.js",
+      "_vue-CikT5lA6.js",
+      "_element-BCL4x-Os.js",
       "index.html",
       "__plugin-vue_export-helper-DlAUqK2U.js"
     ]
   },
   "style.css": {
-    "file": "assets/style-Cxh4TAD6.css",
+    "file": "assets/style-BlWDrH8Q.css",
     "src": "style.css"
   }
 }

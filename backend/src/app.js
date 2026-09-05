@@ -22,6 +22,9 @@ const sessionModule = require("./sessionModule");
 const adminFormalUserQuery = require("./adminFormalUserQuery");
 const assessmentSourceSurvey = require("./assessmentSourceSurvey");
 const channelFunnel = require("./channelFunnel");
+const userLabels = require("./userLabels");
+const feishuUserLabels = require("./feishuUserLabels");
+const { appendAuditLog } = require("./auditLog");
 const { generateChannelCodeImage } = require("./wechatMiniProgramCode");
 const myrootApi = require("./myrootApi");
 const { createEnvironmentYouzanCommerceAdapter } = require("./youzanCommerceAdapter");
@@ -542,6 +545,7 @@ function createApp(options = {}) {
       accessTokenProvider: options.youzanAccessTokenProvider,
     });
   const elementAdminDir = resolveElementAdminDir(options.adminDistDir, runtimeEnv);
+  const labelSyncAdapter = options.labelSyncAdapter || feishuUserLabels.createFeishuLabelAdapter(runtimeEnv, { fetchImpl: options.fetchImpl });
   const runtimeContext = {
     storeAdapter,
     env: runtimeEnv,
@@ -1026,6 +1030,46 @@ function createApp(options = {}) {
           message: "ok",
           data: adminFormalUserQuery.queryByPhone(data, body),
         });
+      }
+      if (route === "POST /api/v1/admin/user-labels/query") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.USER_LABEL_READ);
+        if (body.includeHealth === true) requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.USER_LABEL_HEALTH_READ);
+        const result = userLabels.query(data, body, { includeHealth: body.includeHealth === true });
+        if (body.includeHealth === true) appendAuditLog(data, { action: "USER_LABEL_HEALTH_READ", targetType: "USER_LABEL_QUERY",
+          targetId: "user-labels", operatorId: adminOperatorId(adminPrincipal, body), reason: "后台查看个人健康标签",
+          metadata: { returnedCount: result.rows.length } });
+        return apiOk(res, result);
+      }
+      if (route === "GET /api/v1/admin/user-labels/config") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.USER_LABEL_READ);
+        return apiOk(res, { ...userLabels.configuration(data), fieldSpec: feishuUserLabels.FIELD_SPEC,
+          feishuConfigured: labelSyncAdapter.configured, writesEnabled: labelSyncAdapter.writesEnabled,
+          syncStates: (data.userLabelSyncStates || []).filter((r) => r.target_key === labelSyncAdapter.targetKey)
+            .map((r) => ({ rootUserId: r.root_user_id, status: r.status, syncedAt: r.synced_at, errorCode: r.last_error_code })) });
+      }
+      if (route === "POST /api/v1/admin/user-labels/mappings") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_MANAGE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "用户来源映射", "USER_LABEL_MAPPING_CREATE");
+        return apiOk(res, await withIdempotency(data, req, () => userLabels.saveMapping(data, command)));
+      }
+      if (route === "POST /api/v1/admin/user-labels/sync/preview") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.USER_LABEL_EXPORT);
+        return apiOk(res, await feishuUserLabels.preview(data, body, labelSyncAdapter));
+      }
+      if (route === "POST /api/v1/admin/user-labels/sync/execute") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.USER_LABEL_EXPORT);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "用户标签飞书同步", "USER_LABEL_SYNC_EXECUTE");
+        const result = await feishuUserLabels.execute(data, command, labelSyncAdapter, {
+          checkpoint: requestContext.transactionCheckpoint, resume: requestContext.transactionResume,
+        });
+        appendAuditLog(data, { action: "USER_LABEL_SYNC_EXECUTE", targetType: "USER_LABEL_SYNC", targetId: labelSyncAdapter.targetKey,
+          operatorId: command.operatorId, reason: "按已预览范围同步非健康字段", metadata: { requestId: command.requestId,
+            status: result.status === "SYNCED" ? "SUCCESS" : "PARTIAL_FAILURE", outcomeUnknown: result.status === "NEEDS_RECONCILIATION", count: result.results.length } });
+        return apiOk(res, result);
+      }
+      if (route === "POST /api/v1/admin/user-labels/sync/reconcile") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.USER_LABEL_EXPORT);
+        return apiOk(res, await feishuUserLabels.reconcile(data, body, labelSyncAdapter));
       }
       if (route === "POST /api/v1/admin/formal-health/initialization/draft") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_CONTENT_WRITE);

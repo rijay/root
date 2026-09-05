@@ -75,6 +75,7 @@
     "071_product_analytics.sql": "646f786fde31acbf3f2009a2dfb27f01e80fa35dc12d3e7e15138cd8722d1f35",
     "072_health_advice_snapshot.sql": "7af77293b5d63f31c54fd33a8817f85bbc895b66c569e7e8bf76e642f9132fb8",
     "073_channel_code_funnel.sql": "e5070d0a816d7f561d8cec6a599bce3990d97827b510b5375ededf88d23cfb85",
-    "074_assessment_source_survey.sql": "017e86e1103a63a73c04efd5ece580cd19fc9bd612e9db80c25d2a40bdc21a25"
+    "074_assessment_source_survey.sql": "017e86e1103a63a73c04efd5ece580cd19fc9bd612e9db80c25d2a40bdc21a25",
+    "075_user_labels.sql": "b4d92a712c2ca6da2445dbc332377c21d1454aa25284a3925138c560e9949212"
   }
 }

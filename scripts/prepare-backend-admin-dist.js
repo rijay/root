@@ -17,6 +17,7 @@ const REQUIRED_ADMIN_MODULES = Object.freeze([
   { key: "recommendations", label: "推荐规则", file: "modules/health/RecommendationRulesPage.vue" },
   { key: "lifestyle", label: "生活方式建议", file: "modules/health/LifestyleAdvicePage.vue" },
   { key: "users", label: "用户查询", file: "modules/users/UserQueryPage.vue" },
+  { key: "user-labels", label: "用户标签", file: "modules/users/UserLabelsPage.vue" },
   { key: "audit", label: "操作审计", file: "modules/audit/OperationAuditPage.vue" },
 ]);
 

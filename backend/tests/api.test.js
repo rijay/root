@@ -461,6 +461,7 @@ test("MySQL migrations and core relational projection cover production Store fac
     "072_health_advice_snapshot.sql",
     "073_channel_code_funnel.sql",
     "074_assessment_source_survey.sql",
+    "075_user_labels.sql",
   ]);
   migrationFiles.forEach((fileName) => {
     const sql = fs.readFileSync(path.join(__dirname, "..", "db", "migrations", fileName), "utf8");
@@ -670,6 +671,7 @@ test("prepare backend admin dist copies Element Plus build for backend-only depl
     "recommendations",
     "lifestyle",
     "users",
+    "user-labels",
     "audit",
   ]);
   assert.equal(buildManifest.modules.find((item) => item.key === "audit").file, "modules/audit/OperationAuditPage.vue");

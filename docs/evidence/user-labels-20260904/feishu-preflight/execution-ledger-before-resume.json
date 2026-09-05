@@ -1,0 +1,121 @@
+{
+  "startedAt": "2026-09-04T10:10:25.517921+00:00",
+  "tableId": "tbl9PI8eKv6aQE3S",
+  "authorization": "User confirmed the nine schema changes; no record import",
+  "status": "STOPPED_REQUIRES_READBACK",
+  "recordWrites": 0,
+  "actions": [
+    {
+      "index": 1,
+      "kind": "UPDATE",
+      "fieldId": "fldtStrkOJ",
+      "before": {
+        "default_value": null,
+        "name": "首次访问日期",
+        "style": {
+          "format": "yyyy/MM/dd"
+        },
+        "type": "datetime"
+      },
+      "after": {
+        "default_value": null,
+        "name": "首次可识别访问日期",
+        "style": {
+          "format": "yyyy/MM/dd"
+        },
+        "type": "datetime"
+      },
+      "startedAt": "2026-09-04T10:10:26.124558+00:00",
+      "status": "VERIFIED",
+      "response": {
+        "updated": true,
+        "field": {
+          "default_value": null,
+          "id": "fldtStrkOJ",
+          "name": "首次可识别访问日期",
+          "style": {
+            "format": "yyyy/MM/dd"
+          },
+          "type": "datetime"
+        }
+      },
+      "readback": {
+        "default_value": null,
+        "id": "fldtStrkOJ",
+        "name": "首次可识别访问日期",
+        "style": {
+          "format": "yyyy/MM/dd"
+        },
+        "type": "datetime"
+      },
+      "completedAt": "2026-09-04T10:10:28.567458+00:00"
+    },
+    {
+      "index": 2,
+      "kind": "UPDATE",
+      "fieldId": "fldkNM19WN",
+      "before": {
+        "name": "是否下单1元体验装",
+        "type": "checkbox"
+      },
+      "after": {
+        "name": "是否下单1元体验装",
+        "type": "select",
+        "multiple": false,
+        "default_value": null,
+        "options": [
+          {
+            "name": "是",
+            "hue": "Gray",
+            "lightness": "Lighter"
+          },
+          {
+            "name": "否",
+            "hue": "Gray",
+            "lightness": "Lighter"
+          },
+          {
+            "name": "待核验",
+            "hue": "Orange",
+            "lightness": "Lighter"
+          }
+        ]
+      },
+      "startedAt": "2026-09-04T10:10:29.878917+00:00",
+      "status": "REQUEST_SUCCEEDED",
+      "response": {
+        "updated": true,
+        "field": {
+          "default_value": null,
+          "id": "fldkNM19WN",
+          "multiple": false,
+          "name": "是否下单1元体验装",
+          "options": [
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "是"
+            },
+            {
+              "hue": "Gray",
+              "lightness": "Lighter",
+              "name": "否"
+            },
+            {
+              "hue": "Orange",
+              "lightness": "Lighter",
+              "name": "待核验"
+            }
+          ],
+          "type": "select"
+        }
+      },
+      "readback": {
+        "id": "fldkNM19WN",
+        "name": "是否下单1元体验装",
+        "type": "checkbox"
+      }
+    }
+  ],
+  "error": "Field readback differs from approved definition"
+}
