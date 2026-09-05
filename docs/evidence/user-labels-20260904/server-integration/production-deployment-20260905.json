@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "PRODUCTION_DEPLOYMENT_READBACK",
+  "environmentId": "myroot-prod-d5gl3gzg7115f149a",
+  "serviceName": "myroot-api",
+  "source": {
+    "commit": "dcd5726505da3414b5631dddc43f346a970a3076",
+    "artifactSha256": "8ca0e1276ad4ec0d93d8f80f792a1e31fcd262dfcbb320804d2f3e2886bad649",
+    "artifactBytes": 856123,
+    "fileCount": 245
+  },
+  "localGates": {
+    "formalRouteSurface": "PASS",
+    "backendTests": "PASS",
+    "miniprogramRegression": "PASS_NO_MINIPROGRAM_DEPLOYMENT",
+    "adminChecks": "PASS",
+    "adminBuild": "PASS",
+    "formalLocalEvidence": "PASS",
+    "summary": "6/6 PASS"
+  },
+  "migration": {
+    "version": "075_user_labels.sql",
+    "checksum": "b4d92a712c2ca6da2445dbc332377c21d1454aa25284a3925138c560e9949212",
+    "columnCount": 22,
+    "indexCount": 7,
+    "foreignKeyCount": 1,
+    "mappingRowsAfterVerification": 0,
+    "syncRowsAfterVerification": 0,
+    "readback": "PASS"
+  },
+  "candidate": {
+    "stableVersionBeforePromotion": "myroot-api-075",
+    "version": "myroot-api-076",
+    "releaseId": "v0.8.0+dcd5726-user-labels-20260905",
+    "defaultStableHitsBeforePromotion": 15,
+    "defaultCandidateHitsBeforePromotion": 0,
+    "checks": {
+      "health": "PASS",
+      "ready": "PASS",
+      "admin": "PASS",
+      "userLabelConfig": "PASS",
+      "userLabelQuery": "PASS",
+      "syncFailClosed": "PASS"
+    }
+  },
+  "production": {
+    "activeVersion": "myroot-api-076",
+    "rollbackVersion": "myroot-api-075",
+    "trafficType": "FLOW",
+    "flowRatio": 100,
+    "releaseStatus": "success",
+    "isReleasing": false,
+    "publicCanary": "PASS",
+    "migrationVersion": "075_user_labels.sql",
+    "storeKind": "mysql",
+    "leastPrivilegeReady": true,
+    "labelCount": 62
+  },
+  "feishu": {
+    "configuredInCloud": false,
+    "writesEnabled": false,
+    "healthFieldsExcluded": true,
+    "cloudCredentialCopiedFromLocalCli": false,
+    "recordWrites": 0
+  },
+  "remaining": [
+    "Implement refreshable server-side user OAuth credential management before enabling Feishu preview or writes",
+    "Approve an explicit UID batch before any first real record write"
+  ]
+}
