@@ -64,26 +64,28 @@ function saveMapping(data, input = {}) {
   return { mapping: row };
 }
 
-function mappingAt(data, type, id, version, at) {
+function mappingAt(mappings, type, id, version, at) {
   if (!at) return null;
-  return list(data, "userLabelMappings").filter((r) => r.source_type === type && r.source_id === id
-    && Number(r.source_version) === version && r.effective_from <= at)
-    .sort((a, b) => b.effective_from.localeCompare(a.effective_from))[0] || null;
+  return (mappings.get(JSON.stringify([type, id, version])) || []).find((r) => r.effective_from <= at) || null;
 }
 
 function indexBy(rows, key) {
   const result = new Map();
-  for (const row of rows) { const id = row[key]; if (!result.has(id)) result.set(id, []); result.get(id).push(row); }
+  for (const row of rows) {
+    const id = typeof key === "function" ? key(row) : row[key];
+    if (!result.has(id)) result.set(id, []);
+    result.get(id).push(row);
+  }
   return result;
 }
 
-function sourceFor(data, visits, attempts, uid) {
-  const firstTouch = list(data, "channelAttributions").find((a) => a.root_user_id === uid);
+function sourceFor(indexes, visits, attempts, uid) {
+  const firstTouch = indexes.attributions.get(uid)?.[0];
   const sourceVisits = firstTouch ? visits.filter((v) => v.channel_id === firstTouch.channel_id && v.campaign_id === firstTouch.campaign_id) : visits;
   const visit = sourceVisits.slice().filter((v) => date(v.opened_at)).sort(byTime("opened_at"))[0];
   const self = attempts.filter((a) => date(a.discovery_channel_confirmed_at)).sort(byTime("discovery_channel_confirmed_at"))[0];
-  const qrMap = visit && mappingAt(data, "QR_CODE", visit.channel_qr_code_id, 0, date(visit.opened_at));
-  const selfMap = self && mappingAt(data, "SELF_REPORTED", self.discovery_channel_option_id,
+  const qrMap = visit && mappingAt(indexes.mappings, "QR_CODE", visit.channel_qr_code_id, 0, date(visit.opened_at));
+  const selfMap = self && mappingAt(indexes.mappings, "SELF_REPORTED", self.discovery_channel_option_id,
     Number(self.discovery_channel_config_version), date(self.discovery_channel_confirmed_at));
   const conflict = qrMap && selfMap && JSON.stringify(qrMap.attributes_json) !== JSON.stringify(selfMap.attributes_json);
   const selected = conflict ? null : (qrMap || selfMap);
@@ -101,8 +103,8 @@ function sourceFor(data, visits, attempts, uid) {
   };
 }
 
-function healthFor(data, uid, attempts, now) {
-  const consents = list(data, "privacyConsentRecords").filter((c) => c.root_user_id === uid && c.consent_type === "HEALTH_SENSITIVE_INFO")
+function healthFor(indexes, uid, attempts, now) {
+  const consents = (indexes.consents.get(uid) || []).slice()
     .sort(byTime("occurred_at"));
   if (consents.at(-1)?.decision === "WITHDRAWN") return { status: "已撤回", baseline: null };
   const cutoff = Date.parse(now) - HEALTH_AI_DATA_LIMITS.healthContentRetentionDays * 86400000;
@@ -117,8 +119,9 @@ function healthFor(data, uid, attempts, now) {
       || Date.parse(latest.completed_at || latest.updated_at) <= cutoff);
     return { status: expired ? "已失效" : ({ IN_PROGRESS: "进行中", SAFETY_STOPPED: "安全终止" }[latest?.status] || "未开始"), baseline: null };
   }
-  const definition = list(data, "healthAssessmentDefinitions").find((r) => r.assessment_definition_id === baseline.assessment_definition_id
-    && Number(r.questionnaire_version) === Number(baseline.questionnaire_version));
+  const definition = indexes.definitions.get(JSON.stringify([
+    baseline.assessment_definition_id, Number(baseline.questionnaire_version),
+  ]))?.[0];
   const result = baseline.result_json || {};
   const resultCode = text(result.resultCode || result.result_code);
   const copies = definition?.result_copies || definition?.result_copies_json || [];
@@ -149,6 +152,16 @@ function rows(data, options = {}) {
   const roots = new Map(list(data, "rootUsers").map((r) => [r.root_user_id, r]));
   const visitIndex = indexBy(list(data, "channelFunnelVisits"), "root_user_id");
   const attemptsIndex = indexBy(list(data, "healthAssessmentAttempts").filter((a) => a.questionnaire_id === QUESTIONNAIRE), "root_user_id");
+  // Request-scoped indexes preserve snapshot freshness and first-match semantics.
+  const indexes = {
+    attributions: indexBy(list(data, "channelAttributions"), "root_user_id"),
+    mappings: indexBy(list(data, "userLabelMappings"), (r) => JSON.stringify([r.source_type, r.source_id, Number(r.source_version)])),
+  };
+  for (const versions of indexes.mappings.values()) versions.sort((a, b) => b.effective_from.localeCompare(a.effective_from));
+  if (options.includeHealth) {
+    indexes.consents = indexBy(list(data, "privacyConsentRecords").filter((c) => c.consent_type === "HEALTH_SENSITIVE_INFO"), "root_user_id");
+    indexes.definitions = indexBy(list(data, "healthAssessmentDefinitions"), (r) => JSON.stringify([r.assessment_definition_id, Number(r.questionnaire_version)]));
+  }
   const selectedIds = options.userIds ? new Set(options.userIds) : null;
   return [...users.entries()].sort(([a], [b]) => a.localeCompare(b)).filter(([id]) => !selectedIds || selectedIds.has(id)).map(([uid, user]) => {
     const root = roots.get(uid);
@@ -159,9 +172,9 @@ function rows(data, options = {}) {
     const firstVisitAt = visits.map((v) => date(v.opened_at)).filter(Boolean).sort()[0] || "";
     const row = { rootUserId: uid, accountStatus: deleted ? "已注销或注销中" : "有效",
       firstVisitAt, firstVisitBasis: firstVisitAt ? "已关联账号的渠道访问" : "未记录",
-      source: sourceFor(data, visits, attempts, uid), userType: "待确认", trialOrder: "待核验",
+      source: sourceFor(indexes, visits, attempts, uid), userType: "待确认", trialOrder: "待核验",
       wecomAdded: "待核验", repurchase: "待观察", note: "", updatedAt: now };
-    if (options.includeHealth) row.health = deleted ? { status: "已失效", baseline: null } : healthFor(data, uid, attempts, now);
+    if (options.includeHealth) row.health = deleted ? { status: "已失效", baseline: null } : healthFor(indexes, uid, attempts, now);
     return row;
   });
 }
@@ -170,7 +183,9 @@ function query(data, input = {}, options = {}) {
   const page = Number(input.page || 1), pageSize = Number(input.pageSize || 50);
   if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 100) fail("分页参数无效");
   if (input.healthStatus && !options.includeHealth) fail("筛选测评状态需要个人健康标签读取权限", 403);
-  const all = rows(data, options).filter((r) => (!input.userId || r.rootUserId === input.userId)
+  const rowOptions = input.userId ? { ...options, userIds: options.userIds
+    ? [...options.userIds].filter((id) => id === input.userId) : [input.userId] } : options;
+  const all = rows(data, rowOptions).filter((r) => (!input.userId || r.rootUserId === input.userId)
     && (!input.sourceStatus || r.source.status === input.sourceStatus)
     && (!input.healthStatus || r.health?.status === input.healthStatus));
   return { rows: all.slice((page - 1) * pageSize, page * pageSize), total: all.length, page, pageSize,

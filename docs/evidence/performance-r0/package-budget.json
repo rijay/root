@@ -29,11 +29,11 @@
   },
   "packages": {
     "main": {
-      "bytes": 1483108,
+      "bytes": 1488277,
       "fileCount": 156,
       "budget": {
         "status": "WARN",
-        "value": 1483108,
+        "value": 1488277,
         "target": 1363148.8,
         "hardLimit": 1572864
       }
@@ -52,22 +52,22 @@
       },
       {
         "root": "subpkg/campaign",
-        "bytes": 301306,
+        "bytes": 301415,
         "fileCount": 5,
         "budget": {
           "status": "PASS",
-          "value": 301306,
+          "value": 301415,
           "target": 819200,
           "hardLimit": 1258291.2
         }
       },
       {
         "root": "subpkg/health",
-        "bytes": 122889,
+        "bytes": 123167,
         "fileCount": 21,
         "budget": {
           "status": "PASS",
-          "value": 122889,
+          "value": 123167,
           "target": 819200,
           "hardLimit": 1258291.2
         }
@@ -96,11 +96,11 @@
       }
     ],
     "total": {
-      "bytes": 2806616,
+      "bytes": 2812172,
       "fileCount": 224,
       "budget": {
         "status": "PASS",
-        "value": 2806616,
+        "value": 2812172,
         "target": 6291456,
         "hardLimit": 8388608
       }

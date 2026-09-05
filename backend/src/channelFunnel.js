@@ -434,11 +434,12 @@ function report(data, query = {}) {
   const channelId = text(query.channelId || query.channel_id, 64);
   const campaignId = text(query.campaignId || query.campaign_id, 64);
   const short = text(query.shortCode || query.short_code, 16).toUpperCase();
+  const filteredCodeId = short ? codeByShortCode(data, short)?.channel_qr_code_id : undefined;
   const events = ensureList(data, "channelFunnelEvents").filter((event) => {
     const occurred = timestamp(event.occurred_at) || 0;
     return (!channelId || event.channel_id === channelId)
       && (!campaignId || event.campaign_id === campaignId)
-      && (!short || codeByShortCode(data, short)?.channel_qr_code_id === event.channel_qr_code_id)
+      && (!short || filteredCodeId === event.channel_qr_code_id)
       && (startTime === null || occurred >= startTime)
       && (endTime === null || occurred <= endTime);
   });
