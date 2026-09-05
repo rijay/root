@@ -81,6 +81,7 @@ test("Content HTTP Interface saves, previews and publishes without exposing draf
   await command(baseUrl, "/api/v1/admin/content/home-carousel/draft", "content-operator-secret", "content-home", {
     order: 1,
     internalName: "首屏品牌内容",
+    kicker: "ROOT WITH YOU",
     copy: "把每天的选择，\n还给身体自己的节奏",
     assetId: homeAsset.assetId,
     lineCount: 2,
@@ -106,6 +107,7 @@ test("Content HTTP Interface saves, previews and publishes without exposing draf
 
   const home = await json(baseUrl, "/api/v1/public/content/home");
   assert.equal(home.body.data.items.length, 1);
+  assert.equal(home.body.data.items[0].kicker, "ROOT WITH YOU");
   const welcome = await json(baseUrl, "/api/v1/public/content/welcome");
   assert.equal(welcome.body.data.screens.length, 2);
   assert.equal(server.store.auditLogs.some((entry) => entry.action === "CONTENT_RELEASE_PUBLISH"), true);

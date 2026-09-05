@@ -1,3 +1,7 @@
 {
-  "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "backgroundColor": "#FFFFFF",
+  "backgroundColorTop": "#FFFFFF",
+  "backgroundColorBottom": "#FFFFFF",
+  "backgroundTextStyle": "dark"
 }

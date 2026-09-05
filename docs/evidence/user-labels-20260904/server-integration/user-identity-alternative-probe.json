@@ -1,0 +1,39 @@
+{
+  "checkedAt": "2026-09-04T14:48:30.669Z",
+  "mode": "READ_ONLY_ADAPTER_WITH_CLI_USER_TRANSPORT",
+  "recordWrites": 0,
+  "liveUserSyncTested": false,
+  "status": "BLOCKED",
+  "code": "LABEL_FEISHU_REQUEST_FAILED",
+  "identity": "user",
+  "calls": [
+    {
+      "method": "GET",
+      "endpoint": "/fields",
+      "ok": true,
+      "identity": "user",
+      "errorCode": null,
+      "hasMore": false
+    },
+    {
+      "method": "POST",
+      "endpoint": "/records/search",
+      "ok": false,
+      "identity": "user",
+      "errorCode": 99991679,
+      "hasMore": null
+    }
+  ],
+  "applicationIdentityPassed": false,
+  "cloudServiceDeployed": false,
+  "credentialHandling": "Existing CLI user authorization; no token exported or configured in cloud.",
+  "userScopeReadback": {
+    "base:field:read": true,
+    "base:record:retrieve": false,
+    "base:record:read": true,
+    "bitable:app": false,
+    "bitable:app:readonly": false
+  },
+  "knownNextAuthorization": "base:record:retrieve as user",
+  "additionalAuthorizationSubmitted": false
+}

@@ -1,0 +1,19 @@
+<view wx:if="{{visible && popup}}" class="campaign-overlay" catchtouchmove="preventTouchMove">
+  <view class="campaign-dialog" role="dialog" aria-label="ROOT 运营活动">
+    <view class="campaign-accent"></view>
+    <view class="campaign-content">
+      <view wx:if="{{popup.eyebrow}}" class="campaign-eyebrow">{{popup.eyebrow}}</view>
+      <view class="campaign-title">{{popup.title}}</view>
+      <view class="campaign-body">{{popup.body}}</view>
+      <view class="campaign-actions {{popup.action.type === 'NONE' ? 'campaign-actions--single' : ''}}">
+        <button wx:if="{{popup.action.type !== 'NONE'}}" class="campaign-secondary" bindtap="dismiss">{{popup.secondaryLabel}}</button>
+        <button
+          class="campaign-primary"
+          bindtap="primaryAction"
+          loading="{{actionLoading}}"
+          disabled="{{actionLoading}}"
+        >{{popup.action.label}}</button>
+      </view>
+    </view>
+  </view>
+</view>

@@ -2,7 +2,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { spawnSync } = require("node:child_process");
+const { spawn } = require("node:child_process");
 
 const projectRoot = path.resolve(__dirname, "..");
 
@@ -87,7 +87,6 @@ const RETIRED_USER_ROUTES = Object.freeze([
   "/api/v1/user/display-profile",
   "/api/v1/user/consultations",
   "/api/v1/campaigns/",
-  "/api/v1/products",
   "/api/v1/order/match",
   "/api/v1/checkin/",
   "/api/v1/questionnaire",
@@ -95,7 +94,6 @@ const RETIRED_USER_ROUTES = Object.freeze([
   "/api/v1/coupon/",
   "/api/v1/user/continue-daily",
   "/api/v1/daily/",
-  "/api/v1/event/track",
   "/api/v1/upload/image",
 ]);
 
@@ -123,25 +121,7 @@ const RETIRED_SOURCE_FILES = Object.freeze([
   "miniprogram/utils/date-display.js",
   "miniprogram/utils/questionnaire-branching.js",
   "miniprogram/utils/task-presenter.js",
-  "miniprogram/utils/youzan-jump.js",
 ]);
-
-function runCommand(label, command, args, cwd = projectRoot) {
-  const startedAt = Date.now();
-  const result = spawnSync(command, args, {
-    cwd,
-    env: process.env,
-    encoding: "utf8",
-    maxBuffer: 1024 * 1024 * 32,
-  });
-  return {
-    label,
-    status: result.status === 0 ? "PASS" : "FAIL",
-    durationMs: Date.now() - startedAt,
-    stdout: result.stdout || "",
-    stderr: result.stderr || "",
-  };
-}
 
 function verifyFormalRouteSurface() {
   const startedAt = Date.now();
@@ -149,6 +129,17 @@ function verifyFormalRouteSurface() {
   const backendPackage = JSON.parse(fs.readFileSync(path.join(projectRoot, "backend", "package.json"), "utf8"));
   const missingRequiredRoutes = [
     "/api/v1/jobs/health-data-retention-cleanup",
+    "/api/v1/products",
+    "/api/v1/products/jump",
+    "/api/v1/member-commerce/summary",
+    "/api/v1/health/assessments/catalog",
+    "/api/v1/health/assessments/history",
+    "/api/v1/health/assessments/start",
+    "/api/v1/health/assessments/compare",
+    "/api/v1/operations/popup/claim",
+    "/api/v1/operations/popup/action",
+    "/api/v1/channels/attribution",
+    "/api/v1/event/track",
   ].filter((route) => !appSource.includes(route));
   const remainingRetiredRoutes = [...RETIRED_JOB_ROUTES, ...RETIRED_ADMIN_ROUTES, ...RETIRED_USER_ROUTES, ...RETIRED_STATIC_ROUTES]
     .filter((route) => appSource.includes(route));
@@ -170,31 +161,115 @@ function verifyFormalRouteSurface() {
   };
 }
 
-function tail(value, lineCount = 30) {
-  return String(value || "").trim().split("\n").slice(-lineCount).join("\n");
-}
+const CHECKS = Object.freeze([
+  { id: "routes", label: "formal route surface" },
+  { id: "backend", label: "backend tests", args: ["test", "--prefix", "backend"] },
+  { id: "miniprogram", label: "miniprogram checks", args: ["run", "check", "--prefix", "miniprogram"] },
+  { id: "admin", label: "admin checks", args: ["run", "check", "--prefix", "admin"] },
+  { id: "build", label: "admin build and performance", args: ["run", "build:verify", "--prefix", "admin"] },
+  { id: "tooling", label: "tooling and local QA", command: process.execPath,
+    args: ["--test", "--test-reporter=spec", ...fs.readdirSync(__dirname).filter((name) => name.endsWith(".test.js")).sort().map((name) => `scripts/${name}`)] },
+  { id: "evidence", label: "local evidence snapshot", args: ["run", "evidence:local:check"] },
+]);
 
-function main() {
-  const checks = [
-    verifyFormalRouteSurface(),
-    runCommand("backend tests", "npm", ["test", "--prefix", "backend"]),
-    runCommand("miniprogram formal scope and performance", "npm", ["run", "check", "--prefix", "miniprogram"]),
-    runCommand("admin checks", "npm", ["run", "check", "--prefix", "admin"]),
-    runCommand("admin production build and performance gate", "npm", ["run", "build:verify", "--prefix", "admin"]),
-    runCommand("formal launch local evidence", "npm", ["run", "evidence:local:check"]),
-  ];
-
-  for (const check of checks) {
-    console.log(`[${check.status}] ${check.label} (${check.durationMs}ms)`);
-    if (check.status === "FAIL") {
-      const evidence = [tail(check.stdout), tail(check.stderr)].filter(Boolean).join("\n");
-      if (evidence) console.error(evidence);
-    }
+function parseOptions(args) {
+  let only = CHECKS.map((check) => check.id);
+  let timeoutMs = 180000;
+  for (const arg of args) {
+    if (arg === "--help") return { help: true };
+    if (arg.startsWith("--only=")) only = arg.slice(7).split(",");
+    else if (arg.startsWith("--timeout-ms=")) timeoutMs = Number(arg.slice(13));
+    else throw new Error(`Unknown option: ${arg}. Run npm run verify -- --help`);
   }
-
-  const failed = checks.filter((check) => check.status !== "PASS");
-  console.log(`正式上线本地门禁：${checks.length - failed.length}/${checks.length} PASS`);
-  if (failed.length) process.exitCode = 1;
+  if (!only.length || only.some((id) => !CHECKS.some((check) => check.id === id))) throw new Error("Unknown check in --only");
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) throw new Error("--timeout-ms must be a positive integer");
+  return { only: new Set(only), timeoutMs };
 }
 
-main();
+function runCommand(check, { cwd = projectRoot, logRoot, timeoutMs = 180000 } = {}) {
+  const startedAt = Date.now();
+  const logPath = path.join(logRoot, `${check.id}.log`);
+  const fd = fs.openSync(logPath, "w", 0o600);
+  return new Promise((resolve) => {
+    let tail = "", error = "", timedOut = false, interrupted = "", cleanup;
+    const child = spawn(check.command || "npm", check.args, {
+      cwd, env: process.env, detached: process.platform !== "win32", stdio: ["ignore", "pipe", "pipe"],
+    });
+    const capture = (chunk) => {
+      fs.writeSync(fd, chunk);
+      tail = (tail + chunk.toString()).slice(-65536);
+    };
+    child.stdout.on("data", capture);
+    child.stderr.on("data", capture);
+    const kill = (signal) => {
+      if (!child.pid) return;
+      try {
+        if (process.platform === "win32") child.kill(signal);
+        else process.kill(-child.pid, signal);
+      } catch (failure) { if (failure.code !== "ESRCH") error = failure.message; }
+    };
+    const terminate = () => {
+      if (cleanup) return;
+      // Descendants may close stdio and outlive their parent; finish group cleanup independently.
+      cleanup = new Promise((done) => setTimeout(() => { kill("SIGKILL"); done(); }, 1000));
+      kill("SIGTERM");
+    };
+    const onInterrupt = () => { interrupted = "SIGINT"; terminate(); };
+    const onTerminate = () => { interrupted = "SIGTERM"; terminate(); };
+    process.once("SIGINT", onInterrupt);
+    process.once("SIGTERM", onTerminate);
+    const timer = setTimeout(() => {
+      timedOut = true;
+      terminate();
+    }, timeoutMs);
+    child.on("error", (failure) => { error = failure.message; });
+    child.on("close", async (exitCode, signal) => {
+      clearTimeout(timer);
+      if (cleanup) await cleanup;
+      process.removeListener("SIGINT", onInterrupt);
+      process.removeListener("SIGTERM", onTerminate);
+      fs.closeSync(fd);
+      const failureLines = tail.split("\n").filter((line) => /not ok|error:|Error:|EPERM|EADDRINUSE|evidence stale/.test(line));
+      resolve({ id: check.id, label: check.label, status: exitCode === 0 && !timedOut && !interrupted && !error ? "PASS" : "FAIL",
+        durationMs: Date.now() - startedAt, exitCode, signal, timedOut, interrupted, error, logPath,
+        details: failureLines.slice(0, 12).join("\n"),
+        testSummary: tail.split("\n").filter((line) => /^(#|ℹ) (tests|suites|pass|fail|cancelled|skipped|todo) /.test(line)),
+      });
+    });
+  });
+}
+
+async function main(args = process.argv.slice(2)) {
+  const options = parseOptions(args);
+  if (options.help) {
+    console.log(`Usage: npm run verify -- [--only=${CHECKS.map((check) => check.id).join(",")}] [--timeout-ms=180000]`);
+    console.log("Each stage writes a full log and a summary under .local-state/verification. Evidence requires a current admin build.");
+    return;
+  }
+  const runRoot = path.join(projectRoot, ".local-state", "verification");
+  fs.mkdirSync(runRoot, { recursive: true });
+  const logRoot = fs.mkdtempSync(path.join(runRoot, "run-"));
+  console.log(`Verification logs: ${logRoot}`);
+  const results = [];
+  for (const check of CHECKS.filter((item) => options.only.has(item.id))) {
+    console.log(`[RUN] ${check.label}`);
+    const result = check.id === "routes" ? { id: check.id, ...verifyFormalRouteSurface() }
+      : await runCommand(check, { logRoot, timeoutMs: options.timeoutMs });
+    results.push(result);
+    fs.writeFileSync(path.join(logRoot, "summary.json"), `${JSON.stringify(results, null, 2)}\n`);
+    console.log(`[${result.status}] ${result.label} (${result.durationMs}ms)`);
+    if (result.testSummary?.length) console.log(result.testSummary.join("\n"));
+    if (result.status === "FAIL") {
+      if (result.timedOut) console.error(`Timed out after ${options.timeoutMs}ms; stage process group terminated.`);
+      console.error(result.error || result.details || result.stdout || "See the complete stage log.");
+      if (result.logPath) console.error(`Full log: ${result.logPath}`);
+    }
+    if (result.interrupted) { process.exitCode = result.interrupted === "SIGINT" ? 130 : 143; break; }
+  }
+  const passed = results.filter((result) => result.status === "PASS").length;
+  console.log(`Local verification: ${passed}/${results.length} PASS (scope: ${[...options.only].join(",")})`);
+  if (passed !== results.length && !process.exitCode) process.exitCode = 1;
+}
+
+if (require.main === module) main().catch((error) => { console.error(error.message); process.exitCode = 1; });
+module.exports = { CHECKS, main, parseOptions, runCommand };

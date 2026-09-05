@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "结果对比",
+  "navigationBarBackgroundColor": "#FFFFFF",
+  "navigationBarTextStyle": "black",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark"
+}

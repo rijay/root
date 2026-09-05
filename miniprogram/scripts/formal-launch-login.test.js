@@ -68,8 +68,8 @@ assert.match(registerScript, /请先完成手机号验证/);
 
 const customTabScript = read("custom-tab-bar/index.js");
 assert.match(customTabScript, /PROTECTED_TAB_INDEXES/);
-assert.match(customTabScript, /new Set\(\[3\]\)/);
-assert.doesNotMatch(customTabScript, /new Set\(\[1,\s*3\]\)/);
+assert.match(customTabScript, /new Set\(\[4\]\)/);
+assert.doesNotMatch(customTabScript, /new Set\(\[1,\s*4\]\)/);
 assert.match(customTabScript, /rememberAuthIntent/);
 assert.match(customTabScript, /wx\.navigateTo/);
 
@@ -78,10 +78,9 @@ assert.match(routerScript, /publicRoutes[\s\S]*"\/pages\/health\/index"/);
 
 const healthScript = read("pages/health/index.js");
 const profileScript = read("pages/profile/index.js");
-assert.match(healthScript, /\/pages\/health\/index/);
-assert.match(healthScript, /if \(!getToken\(\)\)[\s\S]*\/pages\/login\/index/);
-assert.match(healthScript, /inspectFormalAccess\("root4u-start-access"\)/);
-assert.match(healthScript, /FORMAL_ACCESS_STATE\.PHONE_REQUIRED/);
+assert.match(healthScript, /getCatalog/);
+assert.match(healthScript, /\/subpkg\/health\/pages\/assessment\/index\?assessmentType=/);
+assert.doesNotMatch(healthScript, /scale-assessment/);
 assert.match(profileScript, /\/pages\/profile\/index/);
 assert.match(profileScript, /inspectFormalAccess\("profile-home"\)/);
 assert.doesNotMatch(healthScript, /health-start/);

@@ -111,6 +111,8 @@ test("content drafts remain private until one immutable candidate is previewed a
   assert.equal(home.items[0].lines.length, 2);
   const shared = contentModule.getDetail(data, detail.logicalId, context());
   assert.equal(shared.item.assets[0].hotspots[0].action.type, "MINIPROGRAM_PAGE");
+  assert.equal(shared.item.assets[0].width, 1);
+  assert.equal(shared.item.assets[0].height, 1);
 });
 
 test("publication validates complete welcome content, immutable references and controlled targets", () => {

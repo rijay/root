@@ -20,6 +20,14 @@ const { isAtomicWriteError } = require("./atomicWriteError");
 const { clientErrorResponse, createClientError } = require("./clientError");
 const sessionModule = require("./sessionModule");
 const adminFormalUserQuery = require("./adminFormalUserQuery");
+const assessmentSourceSurvey = require("./assessmentSourceSurvey");
+const channelFunnel = require("./channelFunnel");
+const userLabels = require("./userLabels");
+const feishuUserLabels = require("./feishuUserLabels");
+const { appendAuditLog } = require("./auditLog");
+const { generateChannelCodeImage } = require("./wechatMiniProgramCode");
+const myrootApi = require("./myrootApi");
+const { createEnvironmentYouzanCommerceAdapter } = require("./youzanCommerceAdapter");
 
 const {
   ADMIN_CAPABILITIES,
@@ -145,6 +153,10 @@ function send(res, status, payload, headers = {}) {
 
 function ok(res, payload) {
   send(res, 200, payload);
+}
+
+function apiOk(res, data) {
+  return ok(res, { code: 0, message: "ok", data });
 }
 
 function sendBinary(res, status, body, contentType, headers = {}) {
@@ -527,7 +539,13 @@ function createApp(options = {}) {
   const performanceMetricsModule = options.performanceMetricsModule || createPerformanceMetricsModule({
     logger: options.performanceLogger || console,
   });
+  const youzanCommerceAdapter = options.youzanCommerceAdapter
+    || createEnvironmentYouzanCommerceAdapter(runtimeEnv, {
+      fetchImpl: options.fetchImpl,
+      accessTokenProvider: options.youzanAccessTokenProvider,
+    });
   const elementAdminDir = resolveElementAdminDir(options.adminDistDir, runtimeEnv);
+  const labelSyncAdapter = options.labelSyncAdapter || feishuUserLabels.createFeishuLabelAdapter(runtimeEnv, { fetchImpl: options.fetchImpl });
   const runtimeContext = {
     storeAdapter,
     env: runtimeEnv,
@@ -538,6 +556,10 @@ function createApp(options = {}) {
     trustedWechatIdentityAdapter: options.trustedWechatIdentityAdapter,
     activityPublicationAuthorizationAdapter: options.activityPublicationAuthorizationAdapter,
     activityAssetAdapter: options.activityAssetAdapter,
+    healthAdvicePool: options.healthAdvicePool,
+    wechatCodeGenerator: options.wechatCodeGenerator,
+    memberCommerceAdapter: options.memberCommerceAdapter || youzanCommerceAdapter,
+    productCommerceAdapter: options.productCommerceAdapter || youzanCommerceAdapter,
     runtimeMetadata,
   };
   const initialPersistPromise = Promise.resolve();
@@ -694,6 +716,136 @@ function createApp(options = {}) {
         });
       }
       if (route === "GET /api/v1/user/state") return ok(res, getUserState(data, token, runtimeContext));
+      if (route === "GET /api/v1/products") {
+        return apiOk(res, await myrootApi.listProducts(data, Object.fromEntries(url.searchParams), runtimeContext));
+      }
+      if (route === "GET /api/v1/member-commerce/summary") {
+        return apiOk(res, await myrootApi.memberCommerceSummary(data, token, runtimeContext));
+      }
+      if (route === "POST /api/v1/products/jump") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => myrootApi.recordProductJump(data, token, body, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      const productDetailMatch = url.pathname.match(/^\/api\/v1\/products\/([A-Za-z0-9_-]{1,64})$/);
+      if (method === "GET" && productDetailMatch) {
+        return apiOk(res, await myrootApi.getProduct(data, productDetailMatch[1], runtimeContext));
+      }
+      if (route === "GET /api/v1/health/assessments/catalog") {
+        return apiOk(res, myrootApi.assessmentCatalog(data, token));
+      }
+      if (route === "GET /api/v1/health/assessments/history") {
+        return apiOk(res, myrootApi.assessmentHistory(data, token, Object.fromEntries(url.searchParams)));
+      }
+      if (route === "GET /api/v1/health/overview") {
+        return apiOk(res, myrootApi.healthOverview(data, token));
+      }
+      if (route === "POST /api/v1/health/advice/generate") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => myrootApi.generateHealthAdvice(data, token, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      if (route === "POST /api/v1/health/assessments/start") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => myrootApi.startAssessment(data, token, body, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      if (route === "POST /api/v1/health/assessments/compare") {
+        return apiOk(res, myrootApi.compareAssessments(data, token, body));
+      }
+      const assessmentDraftMatch = url.pathname.match(/^\/api\/v1\/health\/assessments\/([A-Za-z0-9_-]{1,64})\/draft$/);
+      if (method === "POST" && assessmentDraftMatch) {
+        return apiOk(res, myrootApi.saveAssessmentDraft(
+          data,
+          token,
+          assessmentDraftMatch[1],
+          body,
+          runtimeContext
+        ));
+      }
+      const assessmentCompleteMatch = url.pathname.match(/^\/api\/v1\/health\/assessments\/([A-Za-z0-9_-]{1,64})\/complete$/);
+      if (method === "POST" && assessmentCompleteMatch) {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => myrootApi.completeAssessment(data, token, assessmentCompleteMatch[1], body, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      const assessmentSourceMatch = url.pathname.match(/^\/api\/v1\/health\/assessments\/([A-Za-z0-9_-]{1,64})\/source-confirmation$/);
+      if (method === "GET" && assessmentSourceMatch) {
+        return apiOk(res, myrootApi.assessmentSourceGate(data, token, assessmentSourceMatch[1]));
+      }
+      if (method === "POST" && assessmentSourceMatch) {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => myrootApi.confirmAssessmentSource(data, token, assessmentSourceMatch[1], body, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      const assessmentDetailMatch = url.pathname.match(/^\/api\/v1\/health\/assessments\/([A-Za-z0-9_-]{1,64})$/);
+      if (method === "GET" && assessmentDetailMatch) {
+        return apiOk(res, myrootApi.getAssessment(data, token, assessmentDetailMatch[1]));
+      }
+      if (method === "DELETE" && assessmentDetailMatch) {
+        return apiOk(res, myrootApi.deleteAssessment(data, token, assessmentDetailMatch[1]));
+      }
+      if (route === "POST /api/v1/operations/popup/claim") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => myrootApi.claimPopup(data, token, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      if (route === "POST /api/v1/operations/popup/action") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => myrootApi.recordPopupAction(data, token, body, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      if (route === "GET /api/v1/channels/attribution") {
+        return apiOk(res, myrootApi.firstAttribution(data, token));
+      }
+      if (route === "POST /api/v1/channels/attribution") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => myrootApi.attributeChannel(data, token, body, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      if (route === "POST /api/v1/channels/resolve") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => myrootApi.resolveChannelCode(data, body, runtimeContext),
+          req.headers["x-idempotency-key"] || body.clientVisitId || body.client_visit_id || ""
+        ));
+      }
+      if (route === "POST /api/v1/channels/funnel") {
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => myrootApi.recordChannelFunnelStage(data, token, body, runtimeContext),
+          req.headers["x-idempotency-key"] || ""
+        ));
+      }
+      if (route === "POST /api/v1/event/track") {
+        return apiOk(res, myrootApi.recordAnalytics(data, token, body, runtimeContext));
+      }
       if (route === "GET /api/v1/privacy/health-consent") return ok(res, getHealthConsentStatus(data, token, runtimeContext));
       if (route === "POST /api/v1/privacy/health-consent") return ok(res, withIdempotency(data, req, () => recordHealthConsentDecision(data, token, body, runtimeContext)));
       if (route === "GET /api/v1/user/formal-profile") return ok(res, getFormalProfile(data, token));
@@ -782,6 +934,28 @@ function createApp(options = {}) {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
         return ok(res, listAdminActivityDefinitions(data, Object.fromEntries(url.searchParams), runtimeContext));
       }
+      if (route === "GET /api/v1/admin/channels") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_ANALYTICS_READ);
+        return apiOk(res, channelFunnel.listConfiguration(data, Object.fromEntries(url.searchParams)));
+      }
+      if (route === "GET /api/v1/admin/assessment-source-survey") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_ANALYTICS_READ);
+        return apiOk(res, assessmentSourceSurvey.listConfiguration(data, Object.fromEntries(url.searchParams)));
+      }
+      if (route === "GET /api/v1/admin/channel-funnel") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_ANALYTICS_READ);
+        return apiOk(res, channelFunnel.report(data, Object.fromEntries(url.searchParams)));
+      }
+      const channelCodeImageMatch = url.pathname.match(/^\/api\/v1\/admin\/channel-codes\/([A-Za-z0-9_-]{1,64})\/image$/);
+      if (method === "GET" && channelCodeImageMatch) {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_MANAGE);
+        const code = channelFunnel.getCode(data, channelCodeImageMatch[1]);
+        const image = await generateChannelCodeImage(code, runtimeContext);
+        return sendBinary(res, 200, image.body, image.contentType, {
+          "Cache-Control": "no-store",
+          "Content-Disposition": `attachment; filename=ROOT-${code.shortCode}.png`,
+        });
+      }
       if (route === "GET /api/v1/admin/activity-sessions") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.ADMIN_READ);
         return ok(res, listAdminActivitySessions(data, Object.fromEntries(url.searchParams), runtimeContext));
@@ -857,10 +1031,87 @@ function createApp(options = {}) {
           data: adminFormalUserQuery.queryByPhone(data, body),
         });
       }
+      if (route === "POST /api/v1/admin/user-labels/query") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.USER_LABEL_READ);
+        if (body.includeHealth === true) requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.USER_LABEL_HEALTH_READ);
+        const result = userLabels.query(data, body, { includeHealth: body.includeHealth === true });
+        if (body.includeHealth === true) appendAuditLog(data, { action: "USER_LABEL_HEALTH_READ", targetType: "USER_LABEL_QUERY",
+          targetId: "user-labels", operatorId: adminOperatorId(adminPrincipal, body), reason: "后台查看个人健康标签",
+          metadata: { returnedCount: result.rows.length } });
+        return apiOk(res, result);
+      }
+      if (route === "GET /api/v1/admin/user-labels/config") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.USER_LABEL_READ);
+        return apiOk(res, { ...userLabels.configuration(data), fieldSpec: feishuUserLabels.FIELD_SPEC,
+          feishuConfigured: labelSyncAdapter.configured, writesEnabled: labelSyncAdapter.writesEnabled,
+          syncStates: (data.userLabelSyncStates || []).filter((r) => r.target_key === labelSyncAdapter.targetKey)
+            .map((r) => ({ rootUserId: r.root_user_id, status: r.status, syncedAt: r.synced_at, errorCode: r.last_error_code })) });
+      }
+      if (route === "POST /api/v1/admin/user-labels/mappings") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_MANAGE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "用户来源映射", "USER_LABEL_MAPPING_CREATE");
+        return apiOk(res, await withIdempotency(data, req, () => userLabels.saveMapping(data, command)));
+      }
+      if (route === "POST /api/v1/admin/user-labels/sync/preview") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.USER_LABEL_EXPORT);
+        return apiOk(res, await feishuUserLabels.preview(data, body, labelSyncAdapter));
+      }
+      if (route === "POST /api/v1/admin/user-labels/sync/execute") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.USER_LABEL_EXPORT);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "用户标签飞书同步", "USER_LABEL_SYNC_EXECUTE");
+        const result = await feishuUserLabels.execute(data, command, labelSyncAdapter, {
+          checkpoint: requestContext.transactionCheckpoint, resume: requestContext.transactionResume,
+        });
+        appendAuditLog(data, { action: "USER_LABEL_SYNC_EXECUTE", targetType: "USER_LABEL_SYNC", targetId: labelSyncAdapter.targetKey,
+          operatorId: command.operatorId, reason: "按已预览范围同步非健康字段", metadata: { requestId: command.requestId,
+            status: result.status === "SYNCED" ? "SUCCESS" : "PARTIAL_FAILURE", outcomeUnknown: result.status === "NEEDS_RECONCILIATION", count: result.results.length } });
+        return apiOk(res, result);
+      }
+      if (route === "POST /api/v1/admin/user-labels/sync/reconcile") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.USER_LABEL_EXPORT);
+        return apiOk(res, await feishuUserLabels.reconcile(data, body, labelSyncAdapter));
+      }
       if (route === "POST /api/v1/admin/formal-health/initialization/draft") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_CONTENT_WRITE);
         const command = prepareAdminCommandBody(req, adminPrincipal, body, "初始化建档草稿", "HEALTH_INITIALIZATION_DRAFT_SAVE");
         return ok(res, await withIdempotency(data, req, () => saveAdminFormalHealthInitializationDraft(data, command, runtimeContext)));
+      }
+      if (route === "POST /api/v1/admin/channels") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_MANAGE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "渠道配置", "CHANNEL_UPSERT");
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => channelFunnel.upsertChannel(data, command, runtimeContext)
+        ));
+      }
+      if (route === "POST /api/v1/admin/assessment-source-survey") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_MANAGE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "评测来源确认配置", "ASSESSMENT_SOURCE_CONFIG_UPSERT");
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => assessmentSourceSurvey.saveConfiguration(data, command, runtimeContext)
+        ));
+      }
+      if (route === "POST /api/v1/admin/channel-codes") {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_MANAGE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "渠道码创建", "CHANNEL_CODE_CREATE");
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => channelFunnel.createCode(data, command, runtimeContext)
+        ));
+      }
+      const channelCodeStatusMatch = url.pathname.match(/^\/api\/v1\/admin\/channel-codes\/([A-Za-z0-9_-]{1,64})\/status$/);
+      if (method === "POST" && channelCodeStatusMatch) {
+        requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.CHANNEL_MANAGE);
+        const command = prepareAdminCommandBody(req, adminPrincipal, body, "渠道码状态更新", "CHANNEL_CODE_STATUS_UPDATE");
+        return apiOk(res, await withIdempotency(
+          data,
+          req,
+          () => channelFunnel.updateCodeStatus(data, channelCodeStatusMatch[1], command, runtimeContext)
+        ));
       }
       if (route === "POST /api/v1/admin/formal-health/initialization/publish") {
         requireAdminCapability(adminPrincipal, ADMIN_CAPABILITIES.HEALTH_PUBLISH);
@@ -1079,7 +1330,7 @@ function createApp(options = {}) {
         && req.commandIdempotencyContext.request.body || {};
       if (method === "POST" && url.pathname === "/api/v1/auth/login" && failedCommandBody.flowVersion === "FORMAL_LAUNCH_V1") {
         const conflict = sessionModule.fromIdentityError(error);
-        if (conflict) return ok(res, conflict);
+        if (conflict) return apiOk(res, conflict);
       }
       if (req.commandIdempotencyContext && req.commandIdempotencyContext.executor) {
         const response = clientErrorResponse(error, requestCorrelationId(req));

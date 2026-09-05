@@ -42,6 +42,9 @@ test("health consent records grant and withdrawal as append-only decisions", () 
   }, context);
   assert.equal(granted.active, true);
   assert.equal(granted.recorded, true);
+  assert.match(privacyConsent.HEALTH_CONSENT_POLICY_VERSION, /2026-08-27-v9$/);
+  assert.ok(data.privacyConsentRecords[0].purposes_json.some((item) => item.includes("通用建议池")));
+  assert.ok(data.privacyConsentRecords[0].data_categories_json.some((item) => item.includes("不对外提供")));
 
   const unchanged = privacyConsent.recordHealthConsentDecision(data, rootUserId, {
     decision: "GRANTED",
@@ -82,4 +85,43 @@ test("health consent rejects a non-actionable privacy contact", () => {
   assert.equal(status.required, true);
   assert.equal(status.configured, false);
   assert.equal(status.active, false);
+});
+
+test("health consent rejects a health-content retention period above the fixed 180-day maximum", () => {
+  const data = createSeedData();
+  const status = privacyConsent.getHealthConsentStatus(data, "root-user-retention", {
+    env: { ...consentEnv, ROOT_HEALTH_DATA_RETENTION_DAYS: "181" },
+  });
+
+  assert.equal(status.required, true);
+  assert.equal(status.configured, false);
+});
+
+test("health consent notice discloses reviewed pool processing and invalidates the previous policy version", () => {
+  const data = createSeedData();
+  data.privacyConsentRecords.push({
+    privacy_consent_record_id: "old-model-policy-consent",
+    root_user_id: "root-user-model-policy",
+    consent_type: privacyConsent.HEALTH_CONSENT_TYPE,
+    policy_version: "root4u-health-sensitive-2026-08-25-v2",
+    decision: "GRANTED",
+  });
+
+  const status = privacyConsent.getHealthConsentStatus(data, "root-user-model-policy", { env: consentEnv });
+  assert.equal(status.active, false, "建议池处理方式变更后必须重新单独同意");
+  assert.match(status.notice.modelProcessingText, /预先起草并经人工审核/);
+  assert.match(status.notice.modelProcessingText, /6 类健康起点/);
+  assert.match(status.notice.modelProcessingText, /5 类肠道状态/);
+  assert.match(status.notice.modelProcessingText, /不使用任何真实用户/);
+  assert.match(status.notice.modelProcessingText, /自动使用经审核固定建议/);
+  assert.match(status.notice.modelProcessingText, /不会对外发送用户健康数据/);
+  assert.doesNotMatch(status.notice.modelProcessingText, /AI|模型|CloudBase|hy3/);
+  assert.match(status.notice.retentionText, /问卷答案、评测结果、回测记录和健康建议/);
+  assert.match(status.notice.retentionText, /24 小时内删除/);
+  assert.equal(status.notice.dataManagement.providerLogRetentionDays, undefined);
+  assert.equal(status.notice.dataManagement.providerCacheRetentionMinutes, undefined);
+  assert.equal(status.notice.dataManagement.runtimeModelPersonalDataTransfer, false);
+  assert.equal(status.notice.dataManagement.backupRetentionDays, 30);
+  assert.equal(status.notice.dataManagement.securityLogRetentionDays, 180);
+  assert.equal(status.notice.dataManagement.privacyEvidenceRetentionDays, 1095);
 });

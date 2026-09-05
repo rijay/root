@@ -216,9 +216,6 @@ test("retired task, settlement, reward, order, check-in and legacy operations HT
     ["GET", "/api/v1/user/consultations"],
     ["GET", "/api/v1/campaigns/active"],
     ["POST", "/api/v1/campaigns/join"],
-    ["GET", "/api/v1/products"],
-    ["GET", "/api/v1/products/retired-product"],
-    ["POST", "/api/v1/products/jump"],
     ["POST", "/api/v1/order/match"],
     ["POST", "/api/v1/checkin/start"],
     ["GET", "/api/v1/checkin/session"],
@@ -240,7 +237,6 @@ test("retired task, settlement, reward, order, check-in and legacy operations HT
     ["POST", "/api/v1/daily/submit"],
     ["GET", "/api/v1/daily/history"],
     ["GET", "/api/v1/daily/trend"],
-    ["POST", "/api/v1/event/track"],
     ["POST", "/api/v1/upload/image"],
     ["GET", "/api/v1/admin/tasks"],
     ["POST", "/api/v1/admin/tasks/retired-task/complete"],
@@ -459,6 +455,13 @@ test("MySQL migrations and core relational projection cover production Store fac
     "066_v1_runtime_alert_delivery_severity_slo_authority.sql",
     "067_formal_launch_retired_runtime_cleanup.sql",
     "068_formal_launch_confirmed_prelaunch_cleanup.sql",
+    "069_health_assessment.sql",
+    "070_growth_engagement.sql",
+    "071_product_analytics.sql",
+    "072_health_advice_snapshot.sql",
+    "073_channel_code_funnel.sql",
+    "074_assessment_source_survey.sql",
+    "075_user_labels.sql",
   ]);
   migrationFiles.forEach((fileName) => {
     const sql = fs.readFileSync(path.join(__dirname, "..", "db", "migrations", fileName), "utf8");
@@ -668,6 +671,7 @@ test("prepare backend admin dist copies Element Plus build for backend-only depl
     "recommendations",
     "lifestyle",
     "users",
+    "user-labels",
     "audit",
   ]);
   assert.equal(buildManifest.modules.find((item) => item.key === "audit").file, "modules/audit/OperationAuditPage.vue");
@@ -679,6 +683,8 @@ test("production cutover readiness gates live external proof", () => {
     ROOT_CUTOVER_CLOUDBASE_UNIONID_VERIFIED: "verified",
     ROOT_CUTOVER_ROOT_MEMBER_CENTER_APPID_CONFIRMED: "yes",
     ROOT_CUTOVER_YOUZAN_FIELDS_CALIBRATED: "done",
+    ROOT_CUTOVER_YOUZAN_CREDENTIALS_ROTATED: "done",
+    ROOT_CUTOVER_HEALTH_ADVICE_POOL_VERIFIED: "done",
     ROOT_CUTOVER_YOUZAN_REWARD_FIELDS_CALIBRATED: "done",
     ROOT_CUTOVER_WEWORK_FIELDS_CALIBRATED: "done",
     ROOT_CUTOVER_CLOUDBASE_JOBS_CREATED: "done",
@@ -696,8 +702,12 @@ test("production cutover readiness gates live external proof", () => {
     ROOT_MEMBER_CENTER_APPID: "wx-root-member",
     YOUZAN_ORDER_LIST_URL: "https://youzan.example.com/orders",
     YOUZAN_CUSTOMER_LIST_URL: "https://youzan.example.com/customers",
+    YOUZAN_CLIENT_ID: "youzan-client-id",
+    YOUZAN_CLIENT_SECRET: "youzan-client-secret",
     YOUZAN_COUPON_SEND_URL: "https://youzan.example.com/coupons/send",
     YOUZAN_COUPON_STATUS_URL: "https://youzan.example.com/coupons/status",
+    ROOT_HEALTH_ADVICE_POOL_VERSION: "root4u-health-advice-pool-v1",
+    ROOT_HEALTH_ADVICE_POOL_REVIEWED: "true",
     WEWORK_CONTACT_LIST_URL: "https://wework.example.com/contacts",
     WEWORK_TAG_APPLY_URL: "https://wework.example.com/tags",
     WEWORK_CONTACT_WRITEBACK_URL: "https://wework.example.com/writeback",
@@ -762,18 +772,18 @@ test("production cutover readiness gates live external proof", () => {
   });
 
   assert.equal(blocked.status, "BLOCKED");
-  assert.equal(blocked.summary.requiredProofCount, 13);
-  assert.equal(blocked.summary.blockerCount, 13);
+  assert.equal(blocked.summary.requiredProofCount, 15);
+  assert.equal(blocked.summary.blockerCount, 15);
   assert.ok(blocked.blockers.some((item) => item.includes("微信开放平台")));
   assert.equal(gray.status, "NEEDS_REVIEW");
-  assert.equal(gray.summary.warningCount, 13);
+  assert.equal(gray.summary.warningCount, 15);
   assert.equal(grayReady.status, "READY");
   assert.equal(grayReady.items[0].proofSource, "ENV");
   assert.equal(envOnlyProduction.status, "BLOCKED");
   assert.equal(envOnlyProduction.summary.readyProofCount, 0);
   assert.ok(envOnlyProduction.blockers.every((item) => item.includes("后台 VERIFIED 记录")));
   assert.equal(ready.status, "READY");
-  assert.equal(ready.summary.readyProofCount, 13);
+  assert.equal(ready.summary.readyProofCount, 15);
   assert.equal(ready.summary.releaseScopedProofCount, 4);
   assert.equal(ready.summary.releaseBoundReadyCount, 4);
   assert.ok(ready.items.every((item) => item.proofSource === "RECORD"));
@@ -788,16 +798,16 @@ test("production cutover readiness gates live external proof", () => {
   assert.equal(partial.status, "BLOCKED");
   assert.ok(partial.blockers.some((item) => item.includes("Root 会员中心 appId")));
   assert.equal(legacyProofWithoutEvidence.status, "BLOCKED");
-  assert.equal(legacyProofWithoutEvidence.summary.readyProofCount, 12);
+  assert.equal(legacyProofWithoutEvidence.summary.readyProofCount, 14);
   assert.ok(legacyProofWithoutEvidence.blockers.some((item) => item.includes("缺少 evidenceRef")));
   assert.equal(staleRelease.status, "BLOCKED");
-  assert.equal(staleRelease.summary.readyProofCount, 9);
+  assert.equal(staleRelease.summary.readyProofCount, 11);
   assert.equal(staleRelease.summary.releaseBoundReadyCount, 0);
   assert.equal(staleRelease.items.find((item) => item.id === "cloudbase_unionid").status, "READY");
   assert.equal(staleRelease.items.find((item) => item.id === "cloudrun_candidate_runtime").status, "BLOCKED");
   assert.ok(staleRelease.blockers.some((item) => item.includes("与当前候选 0.5.13/myroot-api-test-053 不一致")));
   assert.equal(fallbackReleaseId.status, "BLOCKED");
-  assert.equal(fallbackReleaseId.summary.readyProofCount, 9);
+  assert.equal(fallbackReleaseId.summary.readyProofCount, 11);
   assert.ok(fallbackReleaseId.blockers.some((item) => item.includes("显式 ROOT_RELEASE_ID")));
 });
 
@@ -819,12 +829,16 @@ test("production environment matrix validates the formal launch runtime", () => 
     ROOT_PRIVACY_CONTACT: "privacy@example.com",
     ROOT_HEALTH_DATA_RETENTION_DAYS: "180",
     ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED: "true",
+    ROOT_HEALTH_ADVICE_POOL_VERSION: "root4u-health-advice-pool-v1",
+    ROOT_HEALTH_ADVICE_POOL_REVIEWED: "true",
     ROOT_STORE_ADAPTER: "mysql",
     ROOT_MYSQL_MIGRATION_MODE: "verify_only",
     MYSQL_ADDRESS: "10.11.103.164:3306",
     MYSQL_USERNAME: "root",
     MYSQL_PASSWORD: "mysql-secret",
     MYSQL_DATABASE: "root_checkin",
+    ROOT_YOUZAN_ACCESS_TOKEN: "youzan-read-token-with-strong-entropy-2026",
+    ROOT_YOUZAN_KDT_ID: "140980410",
     ROOT_CLOUDBASE_STORE_DECISION: "MYSQL_ON_CLOUDBASE",
     ROOT_CLOUDBASE_ENV_ID: "root-prod-env",
     ROOT_CLOUDBASE_REGION: "ap-shanghai",
@@ -839,13 +853,34 @@ test("production environment matrix validates the formal launch runtime", () => 
       [retentionRoute]: ["retention-route-secret-with-strong-entropy-2026"],
     }),
   };
-  const ready = buildProductionEnvMatrix(readyEnv, { target: "production" });
+  const approvedHealthAdvicePool = { configured: true, pendingReviewCount: 0 };
+  const unreviewedPool = buildProductionEnvMatrix(readyEnv, {
+    target: "production",
+    healthAdvicePool: { configured: false, pendingReviewCount: 88 },
+  });
+  assert.equal(unreviewedPool.status, "BLOCKED");
+  assert.ok(unreviewedPool.groups.find((group) => group.id === "health_advice_pool")
+    .missingRequired.some((item) => item.includes("当前 0/88")));
+
+  const ready = buildProductionEnvMatrix(readyEnv, {
+    target: "production",
+    healthAdvicePool: approvedHealthAdvicePool,
+  });
   assert.equal(ready.status, "READY");
   assert.equal(ready.groups.some((group) => group.id === "v1_runtime_control"), false);
+  assert.equal(ready.groups.find((group) => group.id === "member_commerce").status, "PASS");
   assert.equal(ready.groups.every((group) => ["PASS", "OPTIONAL"].includes(group.status)), true);
+
+  const poolReviewed = buildProductionEnvMatrix({
+    ...readyEnv,
+    ROOT_HEALTH_ADVICE_POOL_REVIEWED: "true",
+  }, { target: "production", healthAdvicePool: approvedHealthAdvicePool });
+  assert.equal(poolReviewed.status, "READY");
 
   const blocked = buildProductionEnvMatrix({}, { target: "production" });
   assert.equal(blocked.status, "BLOCKED");
+  assert.ok(blocked.groups.find((group) => group.id === "member_commerce")
+    .missingRequired.includes("ROOT_YOUZAN_ACCESS_TOKEN"));
   const gray = buildProductionEnvMatrix({}, { target: "gray" });
   assert.equal(gray.status, "NEEDS_REVIEW");
 
@@ -860,6 +895,28 @@ test("production environment matrix validates the formal launch runtime", () => 
     ROOT_HEALTH_DATA_RETENTION_DAYS: "0",
   }, { target: "production" });
   assert.equal(invalidRetention.status, "BLOCKED");
+
+  const poolReviewMissing = buildProductionEnvMatrix({
+    ...readyEnv,
+    ROOT_HEALTH_ADVICE_POOL_REVIEWED: "false",
+  }, { target: "production" });
+  assert.equal(poolReviewMissing.status, "BLOCKED");
+  assert.ok(poolReviewMissing.groups.find((group) => group.id === "health_advice_pool")
+    .missingRequired.includes("ROOT_HEALTH_ADVICE_POOL_REVIEWED=true"));
+
+  const poolVersionMismatch = buildProductionEnvMatrix({
+    ...readyEnv,
+    ROOT_HEALTH_ADVICE_POOL_VERSION: "root4u-health-advice-pool-v0",
+  }, { target: "production" });
+  assert.equal(poolVersionMismatch.status, "BLOCKED");
+
+  const forbiddenRuntimeModelCredential = buildProductionEnvMatrix({
+    ...readyEnv,
+    ROOT_HEALTH_ADVICE_MODEL_API_KEY: "must-not-exist-in-runtime",
+  }, { target: "production", healthAdvicePool: approvedHealthAdvicePool });
+  assert.equal(forbiddenRuntimeModelCredential.status, "BLOCKED");
+  assert.ok(forbiddenRuntimeModelCredential.groups.find((group) => group.id === "health_advice_pool")
+    .missingRequired.some((item) => item.includes("必须移除 ROOT_HEALTH_ADVICE_MODEL_API_KEY")));
 
   const invalidPrivacyContact = buildProductionEnvMatrix({
     ...readyEnv,
@@ -916,8 +973,15 @@ test("public privacy notice exposes approved controller metadata without login",
   assert.equal(notice.data.contact, "privacy@example.com");
   assert.equal(notice.data.retentionDays, 180);
   assert.match(notice.data.retentionText, /180 天/);
-  assert.equal(notice.data.version, "0.5.13");
-  assert.equal(notice.data.releaseId, "0.5.13");
+  assert.match(notice.data.retentionText, /24 小时内删除/);
+  assert.match(notice.data.modelProcessingText, /预先起草并经人工审核的通用建议池/);
+  assert.match(notice.data.modelProcessingText, /不使用任何真实用户的身份、问卷答案、评测结果、健康状态、请求日志或其他个人信息/);
+  assert.match(notice.data.modelProcessingText, /不会对外发送用户健康数据/);
+  assert.doesNotMatch(notice.data.modelProcessingText, /AI|模型|CloudBase|hy3/);
+  assert.equal(notice.data.dataManagement.runtimeModelPersonalDataTransfer, false);
+  assert.equal(notice.data.dataManagement.backupRetentionDays, 30);
+  assert.equal(notice.data.version, "0.8.0");
+  assert.equal(notice.data.releaseId, "0.8.0");
 });
 
 test("formal home content HTTP Interface is public and detail uses the same published item", async (t) => {
@@ -1007,7 +1071,7 @@ test("admin profile Interface exposes operator role and capabilities", async (t)
   assert.equal(viewer.code, 0);
   assert.equal(viewer.data.operatorId, "viewer");
   assert.equal(viewer.data.role, "viewer");
-  assert.deepEqual(viewer.data.capabilities.sort(), ["ADMIN_READ", "AUDIT_READ"]);
+  assert.deepEqual(viewer.data.capabilities.sort(), ["ADMIN_READ", "AUDIT_READ", "CHANNEL_ANALYTICS_READ"]);
   assert.equal(operator.data.capabilities.includes("CONTENT_WRITE"), true);
   assert.equal(operator.data.capabilities.includes("HEALTH_CONTENT_WRITE"), true);
   assert.equal(operator.data.capabilities.includes("ACTIVITY_CONTENT_WRITE"), true);
@@ -1247,6 +1311,54 @@ test("cloud container login uses WeChat cloud open Interface", async (t) => {
   assert.equal(login.data.user.phone, "138****0009");
   assert.equal(requestedPath, "/wxa/business/getuserphonenumber");
   assert.deepEqual(JSON.parse(requestedBody), { code: "phone_code" });
+});
+
+test("same-phone other-WeChat login reports a conflict without rebinding or issuing a session", async (t) => {
+  const wechatServer = http.createServer((req, res) => {
+    assert.equal(req.url, "/wxa/business/getuserphonenumber");
+    req.resume();
+    req.on("end", () => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ phone_info: { phoneNumber: "13800000987" } }));
+    });
+  });
+  const wechatBaseUrl = await listen(wechatServer);
+  t.after(() => wechatServer.close());
+  const server = createApp({
+    env: { NODE_ENV: "test", ROOT_WECHAT_OPENAPI_BASE_URL: wechatBaseUrl },
+    trustedWechatIdentityAdapter: verifiedCloudbaseHeaderIdentityAdapter,
+  });
+  const baseUrl = await listen(server);
+  t.after(() => server.close());
+  const login = (openid, flowVersion) => fetch(`${baseUrl}/api/v1/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-wx-openid": openid },
+    body: JSON.stringify({ appCode: "MYROOT", phoneCode: "synthetic_phone_code", flowVersion }),
+  });
+  const ownerResponse = await login("binding_conflict_original_owner", "FORMAL_LAUNCH_V1");
+  const owner = await ownerResponse.json();
+  assert.equal(owner.code, 0);
+  assert.ok(owner.data.token);
+  const protectedState = () => structuredClone({
+    identities: server.store.wechatIdentities,
+    sessions: server.store.sessions,
+    tokens: server.store.tokens,
+  });
+  const before = protectedState();
+
+  const formalResponse = await login("binding_conflict_other_wechat", "FORMAL_LAUNCH_V1");
+  const formal = await formalResponse.json();
+  assert.equal(formalResponse.status, 200);
+  assert.equal(formal.code, 0);
+  assert.equal(formal.data.sessionOutcome, "IDENTITY_CONFLICT");
+  assert.equal(formal.data.token, "");
+  assert.equal(formal.data.message, "账号绑定冲突");
+  assert.deepEqual(protectedState(), before);
+
+  const legacyResponse = await login("binding_conflict_other_wechat");
+  assert.equal(legacyResponse.status, 409);
+  assert.equal((await legacyResponse.json()).code, "WECHAT_APP_IDENTITY_AMBIGUOUS");
+  assert.deepEqual(protectedState(), before);
 });
 
 test("WeChat code exchange completes before the serialized Store Interface starts", async (t) => {

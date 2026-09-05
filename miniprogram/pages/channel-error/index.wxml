@@ -1,0 +1,7 @@
+<view class="channel-error root-page" role="alert">
+  <view class="channel-error__mark">!</view>
+  <view class="channel-error__title">{{title}}</view>
+  <view class="channel-error__detail">{{detail}}</view>
+  <button class="root-button" bindtap="goHome">返回首页</button>
+  <button class="root-button root-button--secondary" bindtap="scanAgain">返回微信重新扫码</button>
+</view>

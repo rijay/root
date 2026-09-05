@@ -1,6 +1,6 @@
 <view class="activity-page">
   <view class="activity-head">
-    <text class="activity-head__title">活动</text>
+    <text class="activity-head__title">线下活动</text>
     <text class="activity-head__subtitle">与 Root 一起，把理解带回真实生活</text>
   </view>
 
@@ -16,7 +16,7 @@
     >{{item.label}}</button>
   </view>
 
-  <view wx:if="{{state === 'loading'}}" class="activity-state">
+  <view wx:if="{{state === 'loading'}}" class="activity-state activity-state--loading">
     <view class="activity-state__line activity-state__line--wide"></view>
     <view class="activity-state__line"></view>
     <text>正在读取近期活动…</text>
@@ -51,10 +51,11 @@
         <image
           wx:if="{{item.heroReady}}"
           class="activity-card__image"
-          src="{{item.heroAssetUrl}}"
+          src="{{item.displayHeroUrl}}"
           mode="aspectFill"
           lazy-load="{{!item.featured}}"
           data-session-id="{{item.sessionId}}"
+          bindload="activityImageLoaded"
           binderror="handleImageError"
         />
         <text wx:if="{{!item.heroReady}}" class="activity-card__visual-mark">ROOT OFFLINE</text>

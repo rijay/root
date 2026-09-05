@@ -142,8 +142,29 @@ jobs:
       - name: Verify v1 local Foundation contracts
         run: npm run v1:foundation:check
 
+      - name: Verify user labels against real MySQL with zero skips
+        shell: bash
+        run: |
+          set -o pipefail
+          result="$RUNNER_TEMP/user-labels-mysql.tap"
+          npm run v1:user-labels-mysql:check 2>&1 | tee "$result"
+          node -e 'const fs=require("node:fs"); const {parseNodeTestSummary}=require("./backend/src/mysqlLocalAuthorizedRunner"); parseNodeTestSummary(fs.readFileSync(process.argv[1], "utf8"), 1);' "$result"
+        env:
+          USER_LABELS_MYSQL_INTEGRATION: "true"
+
       - name: Run repository verification gate
         run: npm run verify
+
+      - name: Preserve verification logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verification-${{ github.sha }}
+          path: |
+            .local-state/verification/
+            ${{ runner.temp }}/mysql-001-068.tap
+            ${{ runner.temp }}/user-labels-mysql.tap
+          retention-days: 14
 
   cloudfunctions-node18:
     name: Cloud Functions Node.js 18 compatibility

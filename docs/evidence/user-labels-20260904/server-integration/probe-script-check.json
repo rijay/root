@@ -1,0 +1,10 @@
+{
+  "mode": "LOCAL_MOCK_VERIFICATION_ONLY",
+  "missingCredentialsFailClosed": true,
+  "writeFlagForcedOff": true,
+  "requests": [
+    "GET",
+    "GET"
+  ],
+  "liveServerAdapterTested": false
+}

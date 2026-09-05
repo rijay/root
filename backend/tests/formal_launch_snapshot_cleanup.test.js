@@ -119,7 +119,10 @@ test("confirmed pre-launch collections are removed from the cleanup candidate", 
     CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS.map((key) => [key, [{ old: true }]])
   );
   const report = buildFormalLaunchSnapshotCleanupPlan(snapshot);
-  assert.equal(report.confirmedPrelaunchRetirement.length, 11);
+  assert.equal(
+    report.confirmedPrelaunchRetirement.length,
+    CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS.length
+  );
   assert.equal(report.confirmedPrelaunchRetirement.every(({ itemCount }) => itemCount === 1), true);
   assert.equal(report.blockers.some((item) => item.includes("pre-launch business records")), false);
 });
@@ -180,7 +183,10 @@ test("068 removes only the confirmed pre-launch tables and snapshot collections"
   assert.equal(statements.length, 29);
   assert.deepEqual(tableCalls.sort(), [...CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES].sort());
   assert.deepEqual(tableDrops.sort(), [...CONFIRMED_PRELAUNCH_RETIREMENT_RELATIONAL_TABLES].sort());
-  assert.deepEqual(snapshotPaths, [...CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS].sort());
+  assert.deepEqual(snapshotPaths, [
+    ...CONFIRMED_PRELAUNCH_RETIREMENT_SNAPSHOT_KEYS,
+    "campaignDefinitions",
+  ].sort());
   assert.match(sql, /@actual_row_count NOT IN \(0, confirmed_row_count\)/);
   assert.match(sql, /@actual_last_at > confirmed_last_at/);
   assert.match(sql, /snapshot inventory drifted/);

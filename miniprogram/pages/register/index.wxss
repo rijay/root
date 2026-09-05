@@ -202,14 +202,15 @@ page {
 }
 
 .register-page__submit {
-  width: 100%;
+  width: 100% !important;
+  box-sizing: border-box;
   height: 56px;
   min-height: 56px;
   margin: 40px 0 0;
   margin-right: 0 !important;
   margin-left: 0 !important;
   padding: 0;
-  color: #fff;
+  color: var(--color-brand-white);
   background: var(--root-moss);
   border: 0;
   border-radius: 12px;
@@ -224,6 +225,32 @@ page {
 
 .register-page__submit[disabled] {
   color: rgba(255, 255, 255, 0.78);
+  opacity: 0.46;
+}
+
+.register-page__logout {
+  width: 100% !important;
+  height: 52px;
+  min-height: 52px;
+  margin: 12px 0 0;
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+  padding: 0;
+  box-sizing: border-box;
+  color: var(--color-danger);
+  background: var(--color-brand-white);
+  border: 1px solid var(--color-ui-line-solid);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 50px;
+}
+
+.register-page__logout::after {
+  border: 0;
+}
+
+.register-page__logout[disabled] {
   opacity: 0.46;
 }
 

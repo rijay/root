@@ -33,8 +33,12 @@ if (expectedVersion && appVersion !== expectedVersion) {
 }
 if (env.requestAdapter !== "cloudContainer") problems.push("默认请求 Adapter 必须为 cloudContainer");
 if (!env.cloudEnvId || !env.cloudServiceName) problems.push("CloudBase 环境和云托管名称必须配置");
+if (env.envVersion !== "develop" && env.analyticsEnabled !== true) problems.push("体验版和正式版必须启用产品分析事件");
 if (env.apiBaseUrl && /\.sh\.run\.tcloudbase\.com/i.test(env.apiBaseUrl)) {
   problems.push("正式包不得包含 CloudBase 默认公网域名");
+}
+if (env.localDevtoolsApiBaseUrl !== "http://127.0.0.1:8787") {
+  problems.push("开发者工具本地联调地址必须固定为 127.0.0.1:8787");
 }
 
 const requiredSettings = {
@@ -50,7 +54,11 @@ Object.entries(requiredSettings).forEach(([key, expected]) => {
   if (!project.setting || project.setting[key] !== expected) {
     problems.push(`project.config.json setting.${key} 必须为 ${expected}`);
   }
-  if (privateProject.setting && privateProject.setting[key] !== undefined && privateProject.setting[key] !== expected) {
+  const localDevtoolsUrlCheckOverride = key === "urlCheck"
+    && privateProject.setting
+    && privateProject.setting.urlCheck === false
+    && env.localDevtoolsApiBaseUrl === "http://127.0.0.1:8787";
+  if (!localDevtoolsUrlCheckOverride && privateProject.setting && privateProject.setting[key] !== undefined && privateProject.setting[key] !== expected) {
     problems.push(`project.private.config.json 不得覆盖 setting.${key}`);
   }
 });

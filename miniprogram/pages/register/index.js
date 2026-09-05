@@ -1,11 +1,23 @@
-const { request, stringifyError } = require("../../utils/request");
+const { clearToken, request, stringifyError } = require("../../utils/request");
 const { consume: consumeAuthIntent } = require("../../utils/auth-intent");
 const { isPersistedAvatar, uploadCloudAvatar } = require("../../utils/avatar-upload");
 const { FORMAL_ACCESS_STATE, inspectFormalAccess, loginRoute } = require("../../utils/formal-access");
 const router = require("../../utils/router");
+const { defaultOnShareAppMessage } = require("../../utils/page-share");
+const { writeProfileCache } = require("../../utils/profile-cache");
+const { clearTransientHealthData } = require("../../utils/transient-health-state");
+const { clearSessionPageCache } = require("../../utils/page-cache");
 
 const REGISTRATION_CONTEXT_STORAGE_KEY = "ROOT_REGISTRATION_CONTEXT_V1";
 const PROFILE_SUBMIT_KEY_STORAGE = "ROOT_PROFILE_SUBMIT_KEY_V1";
+const LOCAL_SESSION_KEYS = [
+  "ROOT_AUTH_INTENT_V1",
+  REGISTRATION_CONTEXT_STORAGE_KEY,
+  PROFILE_SUBMIT_KEY_STORAGE,
+  "MYROOT_ACTIVITY_ROUTE_INTENT_V1",
+  "MYROOT_ACTIVITY_PENDING_COMMANDS_V1",
+  "ROOT_PROFILE_MEMBER_TARGET_V1",
+];
 
 function today() {
   const date = new Date();
@@ -121,7 +133,7 @@ Page({
     }
     this.setData({ loading: true });
     try {
-      await request({
+      const saved = await request({
         url: "/api/v1/user/formal-profile",
         method: "POST",
         idempotencyKey: submitKey(),
@@ -132,6 +144,7 @@ Page({
           gender: this.data.gender,
         },
       });
+      if (saved && saved.profile) writeProfileCache(saved.profile);
       wx.removeStorageSync(PROFILE_SUBMIT_KEY_STORAGE);
       wx.removeStorageSync(REGISTRATION_CONTEXT_STORAGE_KEY);
       wx.showToast({ title: this.data.editing ? "资料已更新" : (this.data.newUser ? "成功注册" : "资料已完善"), icon: "success" });
@@ -146,4 +159,16 @@ Page({
       this.setData({ loading: false });
     }
   },
+
+  logout() {
+    if (this.data.loading || this.data.profileChecking) return;
+    clearToken();
+    LOCAL_SESSION_KEYS.forEach((key) => wx.removeStorageSync(key));
+    clearTransientHealthData();
+    clearSessionPageCache();
+    wx.showToast({ title: "已退出登录", icon: "success" });
+    router.go("/pages/profile/index");
+  },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

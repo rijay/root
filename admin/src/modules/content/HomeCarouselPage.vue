@@ -133,6 +133,10 @@
           <el-input v-model="draft.copy" :maxlength="72" :rows="3" resize="none" show-word-limit type="textarea" />
         </el-form-item>
 
+        <el-form-item label="英文眉题 *">
+          <el-input v-model="draft.kicker" :maxlength="40" placeholder="例如 ROOT FOUNDATION" />
+        </el-form-item>
+
         <el-form-item label="文字预设">
           <div class="typography-controls">
             <el-select v-model="draft.lineCount">
@@ -198,6 +202,7 @@ const emptyDraft = () => ({
   expectedRevision: 0,
   order: 1,
   internalName: "",
+  kicker: "ROOT FOUNDATION",
   copy: "",
   assetId: "",
   assetName: "",
@@ -303,7 +308,7 @@ async function handleImageChange(uploadFile) {
 }
 
 async function saveDraft() {
-  if (!draft.internalName.trim() || !draft.copy.trim() || !draft.sharedDetailVersionId || (!draft.assetId && !selectedFile.value)) {
+  if (!draft.internalName.trim() || !draft.kicker.trim() || !draft.copy.trim() || !draft.sharedDetailVersionId || (!draft.assetId && !selectedFile.value)) {
     ElMessage.warning("请完成所有必填项");
     return;
   }

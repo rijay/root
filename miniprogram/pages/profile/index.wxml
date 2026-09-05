@@ -4,12 +4,12 @@
 
     <view class="profile-identity" bindtap="handleIdentityTap">
       <view class="profile-identity__avatar">
-        <image wx:if="{{loggedIn && profile.avatarUrl}}" src="{{profile.avatarUrl}}" mode="aspectFill" />
+        <image wx:if="{{loggedIn && profile.displayAvatarUrl && !profileImageFailed}}" src="{{profile.displayAvatarUrl}}" mode="aspectFill" lazy-load="{{false}}" bindload="profileImageLoaded" binderror="profileImageFailed" />
         <view wx:else class="profile-identity__default"><root-wordmark tone="light" /></view>
       </view>
       <view class="profile-identity__copy">
-        <text class="profile-identity__name">{{sessionChecking ? '正在核验' : (loggedIn ? (profile.nickname || 'Root用户') : '未登录')}}</text>
-        <text class="profile-identity__hint">{{sessionChecking ? '正在确认会员身份' : (loggedIn ? '已登录' : '登录后管理个人资料')}}</text>
+        <text class="profile-identity__name">{{loggedIn ? (profile.nickname || 'Root用户') : '未登录'}}</text>
+        <text class="profile-identity__hint">{{profileRefreshFailed ? '资料刷新失败，显示上次资料' : (loggedIn ? '已登录' : '登录后管理个人资料')}}</text>
       </view>
       <view wx:if="{{loggedIn}}" class="profile-identity__edit">
         <text>编辑资料</text><view class="profile-row__arrow"></view>
@@ -21,12 +21,12 @@
     <view class="profile-card profile-card--member">
       <view class="profile-row" data-key="orders" bindtap="openMemberEntry">
         <text class="profile-row__label">我的订单</text>
-        <text class="profile-row__hint">{{loggedIn ? '会员中心' : '登录后前往'}}</text>
+        <text class="profile-row__hint">{{loggedIn ? memberCommerce.orderHint : '登录后前往'}}</text>
         <view class="profile-row__arrow"></view>
       </view>
       <view class="profile-row" data-key="coupons" bindtap="openMemberEntry">
         <text class="profile-row__label">优惠券</text>
-        <text class="profile-row__hint">{{loggedIn ? '会员中心' : '登录后前往'}}</text>
+        <text class="profile-row__hint">{{loggedIn ? memberCommerce.couponHint : '登录后前往'}}</text>
         <view class="profile-row__arrow"></view>
       </view>
     </view>
@@ -44,7 +44,6 @@
       <view class="profile-row" bindtap="openAbout"><text class="profile-row__label">关于 Root</text><view class="profile-row__arrow"></view></view>
     </view>
 
-    <button wx:if="{{loggedIn}}" class="profile-logout" style="width: 350px;" bindtap="logout">退出登录</button>
     <text class="profile-version">myRoot v{{version}}</text>
   </view>
 </scroll-view>

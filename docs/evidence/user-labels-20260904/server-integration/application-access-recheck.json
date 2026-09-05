@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-09-04T14:38:02.090952+00:00",
+  "applicationId": "cli_aa904d2635b8dbd7",
+  "identity": "bot",
+  "apiFamily": "bitable/v1",
+  "exitCode": 1,
+  "ok": false,
+  "fieldCount": null,
+  "hasMore": null,
+  "recordWrites": 0,
+  "error": {
+    "type": "api",
+    "subtype": "unknown",
+    "code": 91403,
+    "message": "Forbidden"
+  },
+  "configVerification": {
+    "configExitCode": 0,
+    "configuredApplicationIds": [
+      "cli_aa904d2635b8dbd7"
+    ],
+    "matchesConfirmedApp": true
+  },
+  "collaboratorReadback": {
+    "collaboratorCount": 4,
+    "newVisibleEntryName": "王晖-rijay's Feishu Assistant",
+    "newVisibleEntryRole": "可编辑",
+    "confirmedApplicationNameVisible": false,
+    "currentUserRole": "可管理",
+    "newEntryAppIdVerified": false
+  }
+}

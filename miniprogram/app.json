@@ -2,27 +2,41 @@
   "pages": [
     "pages/welcome/index",
     "pages/home/index",
+    "pages/products/index",
     "pages/health/index",
     "pages/activities/index",
     "pages/profile/index",
     "pages/login/index",
     "pages/register/index",
+    "pages/product-detail/index",
     "pages/legal/index",
-    "pages/health-consent/index"
+    "pages/health-consent/index",
+    "pages/channel-error/index"
   ],
   "subPackages": [
     {
       "root": "subpkg/content",
       "pages": [
+        "pages/brand-foundation/index",
+        "pages/phgg-reference/index",
         "pages/detail/index",
         "pages/webview/index"
       ]
     },
     {
+      "root": "subpkg/campaign",
+      "pages": [
+        "pages/root-with-you/index"
+      ]
+    },
+    {
       "root": "subpkg/health",
       "pages": [
-        "pages/initial-assessment/index",
-        "pages/scale-assessment/index"
+        "pages/assessment/index",
+        "pages/source-confirmation/index",
+        "pages/result/index",
+        "pages/history/index",
+        "pages/compare/index"
       ]
     },
     {
@@ -43,21 +57,27 @@
   ],
   "window": {
     "navigationBarTitleText": "myRoot",
-    "navigationBarBackgroundColor": "#FDFBF6",
+    "navigationBarBackgroundColor": "#FFFFFF",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#F7F4EC"
+    "backgroundColor": "#000000",
+    "backgroundColorTop": "#000000",
+    "backgroundColorBottom": "#000000"
   },
   "usingComponents": {},
   "tabBar": {
     "custom": true,
-    "color": "#8A8172",
-    "selectedColor": "#586B3F",
-    "backgroundColor": "#FDFBF6",
+    "color": "#7B7A7E",
+    "selectedColor": "#242A0B",
+    "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/home/index",
         "text": "首页"
+      },
+      {
+        "pagePath": "pages/products/index",
+        "text": "产品"
       },
       {
         "pagePath": "pages/health/index",
@@ -77,6 +97,10 @@
     "pages/home/index": {
       "network": "all",
       "packages": ["subpkg/content"]
+    },
+    "pages/products/index": {
+      "network": "all",
+      "packages": []
     },
     "pages/activities/index": {
       "network": "all",

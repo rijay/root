@@ -79,6 +79,32 @@ async function verifyRetryUsesFreshAttemptIdentity() {
   assert.notEqual(headers[0]["X-Request-Id"], headers[1]["X-Request-Id"]);
 }
 
+async function verifyDevtoolsUsesLoopbackRequest() {
+  resetRequestStateForTests();
+  const calls = [];
+  global.wx = {
+    getDeviceInfo() { return { platform: "devtools" }; },
+    getStorageSync() { return ""; },
+    removeStorageSync() {},
+    request(options) {
+      calls.push(options);
+      options.success({ statusCode: 200, data: { code: 0, data: { local: true } } });
+      return { abort() {} };
+    },
+    cloud: {
+      callContainer() { throw new Error("devtools local requests must not reach cloudContainer"); },
+    },
+  };
+  try {
+    assert.deepEqual(await request({ url: "/health", method: "GET", dedupe: false }), { local: true });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, "http://127.0.0.1:8787/health");
+  } finally {
+    resetRequestStateForTests();
+    delete global.wx;
+  }
+}
+
 function nextTurn() {
   return new Promise((resolve) => setImmediate(resolve));
 }
@@ -195,7 +221,8 @@ async function verifyTimeoutsAndScopeCancellation() {
   }
 }
 
-verifyRetryUsesFreshAttemptIdentity()
+verifyDevtoolsUsesLoopbackRequest()
+  .then(verifyRetryUsesFreshAttemptIdentity)
   .then(verifyReadSchedulingAndDeduplication)
   .then(verifyTimeoutsAndScopeCancellation)
   .then(() => console.log("request tests ok"))

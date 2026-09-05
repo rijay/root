@@ -1,4 +1,5 @@
 const { wecomCustomerService = {} } = require("../../../../config/env");
+const { defaultOnShareAppMessage } = require("../../../../utils/page-share");
 
 const MODES = Object.freeze({
   faq: { eyebrow: "ROOT / FAQ", title: "常见问题", copy: "关于账号、健康评测与会员中心入口的说明。" },
@@ -59,4 +60,6 @@ Page({
   },
 
   onNativeContact() {},
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

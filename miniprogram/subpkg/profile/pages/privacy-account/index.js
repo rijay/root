@@ -1,6 +1,7 @@
 const { appVersion } = require("../../../../config/version");
 const router = require("../../../../utils/router");
 const { getToken } = require("../../../../utils/request");
+const { defaultOnShareAppMessage } = require("../../../../utils/page-share");
 
 const ROUTE = "/subpkg/profile/pages/privacy-account/index";
 
@@ -69,4 +70,6 @@ Page({
   },
 
   preventTouchMove() {},
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

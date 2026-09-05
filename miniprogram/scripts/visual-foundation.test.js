@@ -17,6 +17,7 @@ function assertFiles(relativePaths) {
 
 assertFiles([
   "styles/tokens.wxss",
+  "static/home/banner1.jpg",
   "static/welcome/welcome-01.jpg",
   "static/welcome/welcome-02.jpg",
   "components/root-wordmark/index.js",
@@ -31,10 +32,11 @@ assertFiles([
 
 const tokens = read("styles/tokens.wxss");
 [
-  "--root-ink: #080806",
-  "--root-bg: #f7f4ec",
-  "--root-moss: #586b3f",
-  "--root-sprout: #a6b77a",
+  "--root-ink: #000000",
+  "--root-bg: #f5f5f7",
+  "--root-nav: #ffffff",
+  "--root-moss: #242a0b",
+  "--root-sprout: #a1b371",
   "--root-canvas-width: 390px",
   "--root-canvas-height: 844px",
   "--root-page-padding: 32rpx",
@@ -71,8 +73,8 @@ assert.match(welcomeScript, /\/static\/welcome\/welcome-02\.jpg/);
 assert.match(welcomeScript, /BUILTIN_HIGH_FIDELITY/);
 assert.doesNotMatch(welcomeScript, /DEVELOPMENT_PLACEHOLDER/);
 assert.match(welcomeSource, /欢迎加入/);
-assert.match(welcomeSource, /Root Member Club/);
-assert.match(welcomeSource, /Sustained Foundation Balance/);
+assert.match(welcomeSource, /ROOT Member Club/);
+assert.doesNotMatch(welcomeSource, /Sustained Foundation Balance/);
 assert.match(welcomeSource, /平衡不是控制，而是理解。/);
 assert.match(welcomeSource, /帮你把身体还给身体自己。/);
 assert.match(welcomeWxml, /welcome__dots--\{\{current\}\}/);
@@ -90,9 +92,13 @@ const homeJson = JSON.parse(read("pages/home/index.json"));
 const homeWxml = read("pages/home/index.wxml");
 const homeWxss = read("pages/home/index.wxss");
 assert.equal(homeJson.usingComponents["immersive-header"], "/components/immersive-header/index");
-assert.match(homeWxml, /<immersive-header tone="light"/);
+assert.match(homeWxml, /<immersive-header[^>]*tone="light"/);
+assert.match(homeWxml, /copyMode !== 'asset'/);
 assert.match(homeWxml, /data-release-asset="\{\{item\.assetState\}\}"/);
+assert.match(homeWxml, /wx:if="\{\{item\.kicker\}\}" class="home-slide__kicker"/);
+assert.match(homeWxml, /wx:if="\{\{item\.topCopy\}\}" class="home-slide__top-copy/);
 assert.doesNotMatch(homeWxml, /home-slide__placeholder/);
+assert.match(homeWxss, /\.home-slide__top-copy\s*\{[^}]*top:\s*24%/s);
 assert.match(homeWxss, /\.home-slide__copy\s*\{[^}]*bottom:\s*212rpx/s);
 assert.match(homeWxss, /\.home-slide__kicker\s*\{[^}]*translateY\(-5px\)/s);
 assert.match(homeWxss, /\.home-indicator\s*\{[^}]*bottom:\s*132px/s);
@@ -101,10 +107,14 @@ const tabWxml = read("custom-tab-bar/index.wxml");
 const tabWxss = read("custom-tab-bar/index.wxss");
 assert.match(tabWxml, /root-tab-bar__icon-image/);
 assert.match(tabWxml, /selected === index \? item\.activeIcon : item\.icon/);
-assert.match(tabWxss, /height:\s*84px/);
+assert.match(tabWxss, /height:\s*calc\(52px \+ env\(safe-area-inset-bottom\)\)/);
+assert.match(tabWxss, /padding-bottom:\s*env\(safe-area-inset-bottom\)/);
+assert.match(homeWxss, /height:\s*calc\(100vh - 52px - env\(safe-area-inset-bottom\)\)/);
 [
   "static/icons/tab-home.svg",
   "static/icons/tab-home-active.svg",
+  "static/icons/tab-product.svg",
+  "static/icons/tab-product-active.svg",
   "static/icons/tab-health.svg",
   "static/icons/tab-health-active.svg",
   "static/icons/tab-activity.svg",

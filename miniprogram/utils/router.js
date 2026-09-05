@@ -15,13 +15,17 @@ const stateRoutes = Object.freeze({
 
 const publicRoutes = new Set([
   "/pages/home/index",
+  "/pages/products/index",
+  "/pages/product-detail/index",
   "/pages/health/index",
   "/pages/activities/index",
   "/pages/login/index",
   "/pages/legal/index",
   "/pages/profile/index",
   "/subpkg/activity/pages/detail/index",
+  "/subpkg/content/pages/brand-foundation/index",
   "/subpkg/content/pages/webview/index",
+  "/subpkg/campaign/pages/root-with-you/index",
   "/subpkg/profile/pages/about/index",
   "/subpkg/profile/pages/support/index",
   "/subpkg/profile/pages/privacy-account/index",
@@ -29,6 +33,10 @@ const publicRoutes = new Set([
 const protectedRoutes = new Set([
   "/pages/register/index",
   "/pages/health-consent/index",
+  "/subpkg/health/pages/assessment/index",
+  "/subpkg/health/pages/result/index",
+  "/subpkg/health/pages/history/index",
+  "/subpkg/health/pages/compare/index",
   "/subpkg/activity/pages/enrollments/index",
 ]);
 const registeredRoutes = new Set(REGISTERED_FORMAL_ROUTES.map((route) => `/${route}`));
@@ -84,12 +92,13 @@ async function decideHomeRoute() {
 }
 
 async function routeGuard(route) {
-  const pathOnly = assertRegistered(route);
+  const fullRoute = normalize(route);
+  const pathOnly = assertRegistered(fullRoute);
   if (publicRoutes.has(pathOnly)) return true;
   if (!protectedRoutes.has(pathOnly)) return false;
   if (!getToken()) {
-    rememberAuthIntent(pathOnly);
-    open(`/pages/login/index?intent=${encodeURIComponent(pathOnly)}`);
+    rememberAuthIntent(fullRoute);
+    open(`/pages/login/index?intent=${encodeURIComponent(fullRoute)}`);
     return false;
   }
   return true;

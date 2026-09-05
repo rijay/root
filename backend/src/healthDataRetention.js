@@ -1,6 +1,7 @@
 const auditLog = require("./auditLog");
 const { createCloudbaseObjectStorageAdapter } = require("./cloudbaseObjectStorageAdapter");
 const { addDays, nowISO } = require("./dates");
+const { HEALTH_AI_DATA_LIMITS } = require("./healthAiDataPolicy");
 const { consentConfig } = require("./privacyConsent");
 
 const DEFAULT_CLEANUP_LIMIT = 50;
@@ -199,6 +200,29 @@ function candidateSpecs() {
       },
     },
     {
+      kind: "HEALTH_ASSESSMENT_ATTEMPT",
+      collection: "healthAssessmentAttempts",
+      id: (item) => item.assessment_id,
+      time: (item) => item.completed_at || item.updated_at || item.created_at,
+      media: () => [],
+      redact(item, redactedAt) {
+        item.answers_json = {};
+        item.dimensions_json = [];
+        item.result_json = {};
+        item.safety_state = "";
+        item.status = "EXPIRED";
+        markRedaction(item, redactedAt);
+      },
+    },
+    {
+      kind: "HEALTH_ADVICE_SNAPSHOT",
+      collection: "healthAdviceSnapshots",
+      id: (item) => item.health_advice_snapshot_id,
+      time: (item) => item.generated_at || item.updated_at || item.created_at,
+      media: () => [],
+      remove: true,
+    },
+    {
       kind: "CHECKIN_RECORD",
       collection: "checkinRecords",
       id: (item) => item.record_id,
@@ -313,7 +337,10 @@ function resolveHealthDataRetentionConfig(context = {}) {
     ...consent,
     cleanupEnabled: enabled(env.ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED),
     retentionConfigured: Boolean(
-      consent.required && consent.controllerName && consent.contact && consent.retentionDays
+      consent.required
+      && consent.controllerName
+      && consent.contact
+      && consent.retentionDays === HEALTH_AI_DATA_LIMITS.healthContentRetentionDays
     ),
     cleanupLimit: clampInteger(
       env.ROOT_HEALTH_DATA_RETENTION_CLEANUP_LIMIT,
@@ -516,6 +543,7 @@ function appendCleanupAudit(data, options, result) {
       eligibleCount: result.eligibleCount,
       redactedByKind: kindCounts(result.results, "redacted"),
       partialRedactedByKind: kindCounts(result.results, "partialRedacted"),
+      removedByKind: kindCounts(result.results, "removed"),
       failedByKind: kindCounts(result.results, "failed"),
     },
   });

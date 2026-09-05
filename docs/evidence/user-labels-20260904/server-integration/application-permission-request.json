@@ -1,0 +1,25 @@
+{
+  "capturedAt": "2026-09-04T10:45:38.008049+00:00",
+  "status": "PREPARED_NOT_SUBMITTED",
+  "appId": "cli_aa904d2635b8dbd7",
+  "appName": "rijay的飞书 CLI",
+  "appSelectionConfirmed": true,
+  "applicationScopes": [
+    "base:field:read",
+    "base:record:retrieve",
+    "base:record:read"
+  ],
+  "scopeSelectionCount": 3,
+  "targetBaseToken": "XO5sbmYGRa0bALsPKH8ck4ZUnJJ",
+  "targetTableId": "tbl9PI8eKv6aQE3S",
+  "documentPermission": "可阅读",
+  "sendNotification": false,
+  "permissionsChanged": false,
+  "recordWrites": 0,
+  "deploymentPerformed": false,
+  "localTargetedTests": {
+    "pass": 20,
+    "fail": 0
+  },
+  "rollback": "关闭本次新增的三项应用身份权限，并移除本次新增的目标文档应用协作者；保留既有用户权限及其他协作者。"
+}

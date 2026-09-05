@@ -1,4 +1,4 @@
-page { min-height: 100%; background: #f7f4ec; }
-.content-link-state { display: flex; min-height: 100vh; align-items: center; justify-content: center; flex-direction: column; gap: 24px; color: #433e34; font-size: 14px; }
-.content-link-state button { min-width: 112px; border: 0; border-radius: 8px; background: #586b3f; color: #fff; font-size: 14px; }
+page { min-height: 100%; background: var(--color-ui-grouped); }
+.content-link-state { display: flex; min-height: 100vh; align-items: center; justify-content: center; flex-direction: column; gap: 24px; color: var(--color-graphite); font-size: 14px; }
+.content-link-state button { min-width: 112px; border: 0; border-radius: 8px; background: var(--color-brand-olive); color: var(--color-brand-white); font-size: 14px; }
 .content-link-state button::after { border: 0; }

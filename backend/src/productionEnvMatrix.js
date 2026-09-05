@@ -6,9 +6,23 @@ const {
 } = require("./keyRotationConfiguration");
 const { parseScopedJobRouteTokens } = require("./jobRouteToken");
 const { resolveWechatOpenApiUrl } = require("./wechatOpenApiEndpoint");
+const { defaultHealthAdvicePool } = require("./healthAdvicePool");
 
 const FORMAL_JOB_ROUTES = Object.freeze([
   "/api/v1/jobs/health-data-retention-cleanup",
+]);
+
+const FORBIDDEN_HEALTH_ADVICE_RUNTIME_ENV = Object.freeze([
+  "ROOT_HEALTH_ADVICE_MODEL_ENABLED",
+  "ROOT_HEALTH_ADVICE_MODEL_BASE_URL",
+  "ROOT_HEALTH_ADVICE_MODEL_ENDPOINT",
+  "ROOT_HEALTH_ADVICE_MODEL_API_KEY",
+  "ROOT_HEALTH_ADVICE_MODEL_NAME",
+  "ROOT_HEALTH_ADVICE_CATALOG_MODEL_ENABLED",
+  "ROOT_HEALTH_ADVICE_CATALOG_MODEL_BASE_URL",
+  "ROOT_HEALTH_ADVICE_CATALOG_MODEL_ENDPOINT",
+  "ROOT_HEALTH_ADVICE_CATALOG_MODEL_API_KEY",
+  "ROOT_HEALTH_ADVICE_CATALOG_MODEL_NAME",
 ]);
 
 const ENV_GROUPS = [
@@ -65,6 +79,7 @@ const ENV_GROUPS = [
     ],
     requiredValues: {
       ROOT_REQUIRE_HEALTH_CONSENT: ["true", "1"],
+      ROOT_HEALTH_DATA_RETENTION_DAYS: ["180"],
       ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED: ["true", "1"],
     },
     requiredRules: {
@@ -73,6 +88,20 @@ const ENV_GROUPS = [
     },
     optional: ["ROOT_HEALTH_DATA_RETENTION_CLEANUP_LIMIT"],
     action: "开启健康类敏感信息单独同意，配置处理者、联系方式和保存天数，并启用可审计的到期脱敏与 CloudBase 图片清理 Job。",
+  },
+  {
+    id: "health_advice_pool",
+    label: "健康建议审核池",
+    ownerRole: "产品/研发/内容审核",
+    required: [
+      "ROOT_HEALTH_ADVICE_POOL_VERSION",
+      "ROOT_HEALTH_ADVICE_POOL_REVIEWED",
+    ],
+    requiredValues: {
+      ROOT_HEALTH_ADVICE_POOL_VERSION: ["root4u-health-advice-pool-v1"],
+      ROOT_HEALTH_ADVICE_POOL_REVIEWED: ["true"],
+    },
+    action: "发布前确认 88 个建议组件全部通过内容与安全审核，五条固定纤维首条逐字一致，并将审核人、审核时间、建议池版本和候选工件证据归档；正式运行环境不得配置模型 API Key，也不得发起实时模型调用。",
   },
   {
     id: "store",
@@ -101,6 +130,28 @@ const ENV_GROUPS = [
       MYSQL_PORT: "integer_1_65535",
     },
     action: "正式环境使用 MySQL Store Adapter，运行时固定 verify_only 并以独立迁移 Adapter 升级 schema；运行时账号只保留数据读写权限，再确认快照、备份和回滚路径。",
+  },
+  {
+    id: "member_commerce",
+    label: "Root 会员商城只读接入",
+    ownerRole: "研发/商城运营",
+    required: ["ROOT_YOUZAN_ACCESS_TOKEN"],
+    requiredRules: {
+      ROOT_YOUZAN_ACCESS_TOKEN: "nonblank_secret",
+    },
+    anyOf: [["ROOT_YOUZAN_KDT_ID", "YOUZAN_GRANT_ID"]],
+    anyOfRules: {
+      ROOT_YOUZAN_KDT_ID: "positive_integer",
+      YOUZAN_GRANT_ID: "positive_integer",
+    },
+    optional: [
+      "ROOT_YOUZAN_TIMEOUT_MS",
+      "ROOT_YOUZAN_IDENTITY_CACHE_TTL_MS",
+      "ROOT_YOUZAN_MAX_CONCURRENT_REQUESTS",
+      "ROOT_YOUZAN_SUMMARY_CACHE_TTL_MS",
+      "ROOT_YOUZAN_PRODUCT_CACHE_TTL_MS",
+    ],
+    action: "在服务端密钥配置中注入 ROOT 店铺只读 token 和店铺 kdt/grant id，确认商品详情、订单、用户与优惠券读取权限；不得把 token 或会员原始数据下发到小程序。",
   },
   {
     id: "cloudbase_store",
@@ -457,6 +508,8 @@ function envRows(env, names = [], requiredValues = {}, requiredRules = {}) {
         ? isMysqlAddress(raw)
       : rule === "nonblank_value"
         ? isNonblankValue(raw)
+      : rule === "nonblank_secret"
+        ? isNonblankSecret(raw)
       : rule === "mysql_role_username"
         ? isMysqlRoleUsername(raw)
       : rule === "mysql_role_password"
@@ -518,6 +571,7 @@ function envRows(env, names = [], requiredValues = {}, requiredRules = {}) {
         : rule === "opaque_ascii_255" ? "1 至 255 位稳定 ASCII 标识"
         : rule === "mysql_address" ? "host:port（端口为 1 至 65535）"
         : rule === "nonblank_value" ? "非空、无控制字符且不超过 4096 位"
+        : rule === "nonblank_secret" ? "至少 16 位、无首尾空白或控制字符的服务端密钥"
         : rule === "mysql_role_username" ? "1 至 128 位、无首尾空白或控制字符的 MySQL 角色用户名"
         : rule === "mysql_role_password" ? "16 至 4096 位、无首尾空白或控制字符的 MySQL 角色凭据"
         : rule === "mysql_current_user" ? "3 至 288 位、含 @ 且仅含非空白可打印 ASCII 的 CURRENT_USER"
@@ -548,6 +602,8 @@ function anyOfRows(env, groups = [], rules = {}) {
       if (rule === "job_route_token_rotation") return isJobRouteTokenRotation(env[name]);
       if (rule === "job_token_rotation") return isJobTokenRotation(env[name]);
       if (rule === "admin_token_rotation") return isAdminTokenRotation(env[name]);
+      if (rule === "https_endpoint") return isHttpsEndpoint(env[name]);
+      if (rule === "positive_integer") return /^\d+$/.test(String(env[name] || "")) && Number(env[name]) > 0;
       if (rule === "opaque_ascii_128") return isOpaqueAscii(env[name], 128);
       if (rule === "sha256_digest") return /^[0-9a-f]{64}$/.test(String(env[name] || ""));
       return true;
@@ -564,12 +620,27 @@ function anyOfRows(env, groups = [], rules = {}) {
   });
 }
 
-function crossGroupMissing(group, env) {
-  if (group.id !== "cloudbase_jobs") return [];
-  return String(env && env.ROOT_REQUIRE_SCOPED_JOB_TOKENS || "") === "true"
-    && !isJobRouteTokenRotation(env && env.ROOT_ADMIN_JOB_ROUTE_TOKENS)
-    ? ["ROOT_ADMIN_JOB_ROUTE_TOKENS=每个 exact Job route 的独立轮换 token"]
-    : [];
+function crossGroupMissing(group, env, context = {}) {
+  if (group.id === "health_advice_pool") {
+    const pool = context.healthAdvicePool || defaultHealthAdvicePool;
+    const pendingReviewCount = Number(pool && pool.pendingReviewCount);
+    const approvedComponentCount = Number.isFinite(pendingReviewCount)
+      ? Math.max(0, 88 - pendingReviewCount)
+      : 0;
+    const missing = pool && pool.configured
+      ? []
+      : [`health-advice-pool=需要 88/88 个已审核组件（当前 ${approvedComponentCount}/88）`];
+    const forbidden = FORBIDDEN_HEALTH_ADVICE_RUNTIME_ENV.filter((name) => present(env, name));
+    if (forbidden.length) missing.push(`health-advice-runtime-model-env=必须移除 ${forbidden.join(", ")}`);
+    return missing;
+  }
+  if (group.id === "cloudbase_jobs") {
+    return String(env && env.ROOT_REQUIRE_SCOPED_JOB_TOKENS || "") === "true"
+      && !isJobRouteTokenRotation(env && env.ROOT_ADMIN_JOB_ROUTE_TOKENS)
+      ? ["ROOT_ADMIN_JOB_ROUTE_TOKENS=每个 exact Job route 的独立轮换 token"]
+      : [];
+  }
+  return [];
 }
 
 function groupStatus(group, target, missingRequired, missingAnyOf) {
@@ -586,14 +657,14 @@ function groupMessage(group, missingRequired, missingAnyOf) {
   return parts.length ? `${parts.join("；")}。${group.action}` : "必要环境变量已配置。";
 }
 
-function buildGroup(group, env, target) {
+function buildGroup(group, env, target, context = {}) {
   const required = envRows(env, group.required || [], group.requiredValues || {}, group.requiredRules || {});
   const anyOf = anyOfRows(env, group.anyOf || [], group.anyOfRules || {});
   const optional = envRows(env, group.optional || [], {}, group.optionalRules || {});
   const missingRequired = required
     .filter((item) => !item.present || !item.valid)
     .map((item) => item.valid ? item.name : `${item.name}=${item.expectedValues[0] || item.expectedDescription}`);
-  missingRequired.push(...crossGroupMissing(group, env));
+  missingRequired.push(...crossGroupMissing(group, env, context));
   missingRequired.push(...optional
     .filter((item) => item.present && !item.valid)
     .map((item) => `${item.name}=${item.expectedDescription}`));
@@ -644,7 +715,7 @@ function flattenMissingEnv(groups) {
 
 function buildProductionEnvMatrix(env = process.env, options = {}) {
   const target = normalizeTarget(options.target);
-  const groups = ENV_GROUPS.map((group) => buildGroup(group, env, target));
+  const groups = ENV_GROUPS.map((group) => buildGroup(group, env, target, options));
   const summary = summarize(groups);
   return {
     title: "ROOT 生产环境变量矩阵",
@@ -658,7 +729,7 @@ function buildProductionEnvMatrix(env = process.env, options = {}) {
       return group && group.status !== "OPTIONAL";
     }),
     sequence: [
-      "先配置运行、隐私、数据仓库和 CloudBase Store 决策。",
+      "先配置运行、隐私、数据仓库、Root 会员商城只读凭据和 CloudBase Store 决策。",
       "再配置对象存储与健康数据清理 Job，并完成 scoped token 校验。",
       "最后通过正式接口、性能和 Candidate 证据门禁，不以本地配置替代真实发布证明。",
     ],

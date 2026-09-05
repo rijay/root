@@ -1,0 +1,27 @@
+<view class="brand-foundation">
+  <page-navigation tone="dark" show-home="{{false}}" />
+  <swiper
+    class="brand-foundation__swiper"
+    current="{{current}}"
+    duration="360"
+    bindchange="changeSlide"
+    aria-label="ROOT 原料与品牌理念，共 5 页，可左右滑动查看"
+  >
+    <swiper-item wx:for="{{slides}}" wx:key="id" class="brand-foundation__slide brand-foundation__slide--{{index + 1}}">
+      <image
+        class="brand-foundation__image"
+        src="{{item.imageUrl}}"
+        mode="aspectFit"
+        lazy-load="{{index > 0}}"
+        show-menu-by-longpress="{{false}}"
+        aria-label="ROOT 原料与品牌理念第 {{index + 1}} 页"
+      />
+    </swiper-item>
+  </swiper>
+  <view class="brand-foundation__progress" aria-label="当前第 {{current + 1}} 页，共 {{slides.length}} 页">
+    <view class="brand-foundation__dots">
+      <view wx:for="{{slides}}" wx:key="id" class="brand-foundation__dot {{current === index ? 'is-active' : ''}}"></view>
+    </view>
+    <text class="brand-foundation__count">{{current + 1}} / {{slides.length}}</text>
+  </view>
+</view>

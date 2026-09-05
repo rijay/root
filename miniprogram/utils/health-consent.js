@@ -1,9 +1,37 @@
 const { request } = require("./request");
+const { currentLoginSession } = require("./login-session");
 
 let navigating = false;
+let cachedConsent = null;
 
-async function getHealthConsentStatus() {
-  return request({ url: "/api/v1/privacy/health-consent" });
+function sessionId() {
+  return String((currentLoginSession() || {}).sessionId || "").trim();
+}
+
+function clearHealthConsentCache() {
+  cachedConsent = null;
+}
+
+function updateHealthConsentCache(status) {
+  const currentSessionId = sessionId();
+  if (!currentSessionId || !status) {
+    clearHealthConsentCache();
+    return status;
+  }
+  cachedConsent = { sessionId: currentSessionId, status };
+  return status;
+}
+
+async function getHealthConsentStatus(options = {}) {
+  const currentSessionId = sessionId();
+  if (!options.force && currentSessionId && cachedConsent && cachedConsent.sessionId === currentSessionId) {
+    return cachedConsent.status;
+  }
+  const status = await request({ url: "/api/v1/privacy/health-consent" });
+  if (currentSessionId && sessionId() === currentSessionId) {
+    cachedConsent = { sessionId: currentSessionId, status };
+  }
+  return status;
 }
 
 async function ensureHealthConsent(options = {}) {
@@ -36,6 +64,8 @@ async function ensureHealthConsent(options = {}) {
 }
 
 module.exports = {
+  clearHealthConsentCache,
   ensureHealthConsent,
   getHealthConsentStatus,
+  updateHealthConsentCache,
 };

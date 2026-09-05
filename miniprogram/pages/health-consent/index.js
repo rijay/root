@@ -1,7 +1,12 @@
-const { getHealthConsentStatus } = require("../../utils/health-consent");
+const {
+  clearHealthConsentCache,
+  getHealthConsentStatus,
+  updateHealthConsentCache,
+} = require("../../utils/health-consent");
 const { openLegalPage } = require("../../utils/legal");
 const { request } = require("../../utils/request");
 const router = require("../../utils/router");
+const { defaultOnShareAppMessage } = require("../../utils/page-share");
 
 Page({
   data: {
@@ -18,6 +23,7 @@ Page({
       dataCategories: [],
       necessity: "",
       refusalImpact: "",
+      modelProcessingText: "",
       controllerName: "",
       contact: "",
       retentionText: "",
@@ -33,7 +39,7 @@ Page({
   async load() {
     this.setData({ loading: true });
     try {
-      const status = await getHealthConsentStatus();
+      const status = await getHealthConsentStatus({ force: true });
       if ((!status.required || status.active) && !this.data.manageMode) {
         this.finishAgreement();
         return;
@@ -68,6 +74,7 @@ Page({
         },
       });
       if (!result.active) throw new Error("同意记录未生效，请重试");
+      updateHealthConsentCache(result);
       this.finishAgreement();
     } catch (error) {
       wx.showToast({ title: error.message || "确认失败", icon: "none" });
@@ -81,7 +88,7 @@ Page({
     this.setData({ submitting: true });
     try {
       if (this.data.configured && this.data.notice.policyVersion) {
-        await request({
+        const result = await request({
           url: "/api/v1/privacy/health-consent",
           method: "POST",
           data: {
@@ -90,6 +97,9 @@ Page({
             sourceChannel: "MINIPROGRAM_HEALTH_CONSENT",
           },
         });
+        updateHealthConsentCache(result);
+      } else {
+        clearHealthConsentCache();
       }
     } catch (_) {
       // Declining must remain available even if the audit write temporarily fails.
@@ -113,6 +123,7 @@ Page({
         },
       });
       if (result.active) throw new Error("撤回未生效，请重试");
+      updateHealthConsentCache(result);
       this.setData({ active: false, confirmed: false });
       wx.showToast({ title: "已撤回", icon: "success" });
     } catch (error) {
@@ -134,4 +145,6 @@ Page({
     }
     wx.switchTab({ url: "/pages/home/index" });
   },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

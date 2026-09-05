@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-09-04T14:43:17.385778+00:00",
+  "operation": "grant_confirmed_application_document_view",
+  "applicationId": "cli_aa904d2635b8dbd7",
+  "targetBaseToken": "XO5sbmYGRa0bALsPKH8ck4ZUnJJ",
+  "documentPermission": "view",
+  "sendNotification": false,
+  "identity": "user",
+  "exitCode": 3,
+  "ok": false,
+  "recordWrites": 0,
+  "error": {
+    "type": "authorization",
+    "subtype": "permission_denied",
+    "code": 1063002,
+    "message": "user lacks permission for the requested resource",
+    "hint": "check the resource owner has granted access to this user"
+  },
+  "uiAttempt": {
+    "route": "更多 > 添加文档应用",
+    "submitted": true,
+    "applicationName": "rijay的飞书 CLI",
+    "applicationOrganization": "竞化游戏",
+    "documentOrganization": "浙江凤凰生命科学技术有限公司",
+    "permissionSelected": "可阅读",
+    "errorObservedAt": "2026-09-04T14:45:13.065Z",
+    "pageError": "无权限",
+    "permissionGrantVerified": false,
+    "readback": "返回文档应用列表后，仅显示既有 CozeClaw，未显示目标应用。",
+    "notificationControlPresent": false,
+    "explicitNotificationRequestSent": false
+  },
+  "status": "BLOCKED_RESOURCE_APPLICATION_GRANT_DENIED",
+  "existingCollaboratorsChanged": false,
+  "deploymentPerformed": false,
+  "databaseMigrationPerformed": false,
+  "rootCause": "目标资源拒绝该应用授权；具体策略未由接口或页面说明。"
+}

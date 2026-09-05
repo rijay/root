@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-09-04T14:53:47.550240+00:00",
+  "stage": "complete_user_authorization",
+  "exitCode": 0,
+  "ok": true,
+  "responseKeys": [
+    "already_granted",
+    "event",
+    "granted",
+    "missing",
+    "newly_granted",
+    "requested",
+    "scope",
+    "user_name",
+    "user_open_id"
+  ],
+  "recordWrites": 0
+}

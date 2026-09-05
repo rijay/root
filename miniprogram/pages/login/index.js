@@ -3,8 +3,23 @@ const { consume: consumeAuthIntent, remember: rememberAuthIntent } = require("..
 const router = require("../../utils/router");
 const { openLegalPage } = require("../../utils/legal");
 const { authenticateWechat, showLoginFailure } = require("../../utils/wechat-login-flow");
+const { startLoginSession } = require("../../utils/login-session");
+const { defaultOnShareAppMessage } = require("../../utils/page-share");
+const { writeProfileCache } = require("../../utils/profile-cache");
+const {
+  commitPendingFirstChannel,
+  confirmPendingAttribution,
+  pendingSourceChannel,
+} = require("../../utils/channel-attribution");
 
 const REGISTRATION_CONTEXT_STORAGE_KEY = "ROOT_REGISTRATION_CONTEXT_V1";
+// Older servers return these as HTTP errors instead of a session outcome.
+const IDENTITY_CONFLICT_CODES = new Set([
+  "WECHAT_APP_OPENID_AMBIGUOUS",
+  "WECHAT_APP_IDENTITY_AMBIGUOUS",
+  "WECHAT_UNIONID_BINDING_AMBIGUOUS",
+  "WECHAT_IDENTITY_BINDING_CONFLICT",
+]);
 
 function decodeIntent(value) {
   try {
@@ -62,6 +77,7 @@ Page({
       const data = await authenticateWechat({
         request,
         phoneCode: detail.code,
+        sourceChannel: pendingSourceChannel(),
         onStage: (loginStatusText) => this.setData({ loginStatusText }),
       });
       if (data.sessionOutcome === "IDENTITY_CONFLICT") {
@@ -70,6 +86,14 @@ Page({
       }
       if (!data.token) throw new Error("手机号验证未完成");
       setToken(data.token);
+      startLoginSession(data.session || {});
+      if (data.profile) writeProfileCache(data.profile);
+      commitPendingFirstChannel();
+      try {
+        await confirmPendingAttribution();
+      } catch (_) {
+        // 首触达归因失败不阻断已完成的用户登录；下一次登录仍可重试。
+      }
       const outcome = data.sessionOutcome || (data.nextRoute === "/pages/register/index" ? "NEW_USER" : "REGISTERED");
       if (["NEW_USER", "PROFILE_REQUIRED"].includes(outcome)) {
         wx.setStorageSync(REGISTRATION_CONTEXT_STORAGE_KEY, {
@@ -83,7 +107,7 @@ Page({
       wx.showToast({ title: "手机号已验证", icon: "success" });
       router.go(consumeAuthIntent() || "/pages/home/index");
     } catch (error) {
-      if (String(error && error.code || "").includes("IDENTITY") && String(error && error.code || "").includes("CONFLICT")) {
+      if (IDENTITY_CONFLICT_CODES.has(error && error.code)) {
         this.setData({ identityConflict: true, loginStatusText: "" });
         return;
       }
@@ -95,4 +119,6 @@ Page({
       this.setData({ loading: false });
     }
   },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

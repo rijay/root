@@ -13,6 +13,7 @@
   </view>
 
   <view class="about-page__links">
+    <view class="about-page__row" bindtap="openPhggReference"><text>ROOT 核心原料 PHGG 科学参考文献集</text><view class="about-page__arrow"></view></view>
     <view class="about-page__row" data-type="agreement" bindtap="openLegal"><text>用户协议</text><view class="about-page__arrow"></view></view>
     <view class="about-page__row" data-type="privacy" bindtap="openLegal"><text>隐私政策</text><view class="about-page__arrow"></view></view>
     <view class="about-page__row" bindtap="openPrivacyAccount"><text>隐私与账号</text><view class="about-page__arrow"></view></view>

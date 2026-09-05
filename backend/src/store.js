@@ -14,7 +14,7 @@ const {
 
 const SQLITE_SCHEMA_VERSION = 1;
 const SQLITE_STORE_KEY = "root-checkin";
-const MYSQL_SCHEMA_VERSION = 28;
+const MYSQL_SCHEMA_VERSION = 29;
 const MYSQL_STORE_KEY = "root-checkin";
 
 function clone(value) {
@@ -111,6 +111,9 @@ function validateSnapshot(snapshot, options = {}) {
     ["contentPreviewRecords", "content_preview_record_id"],
     ["healthContentVersions", "health_content_version_id"],
     ["healthScaleResponses", "health_scale_response_id"],
+    ["assessmentSourceSurveyConfigs", "assessment_source_config_id"],
+    ["userLabelMappings", "user_label_mapping_id"],
+    ["userLabelSyncStates", "user_label_sync_state_id"],
     ["activityDefinitionVersions", "activity_version_id"],
     ["activitySessions", "activity_session_id"],
     ["activitySessionEvents", "activity_session_event_id"],
@@ -120,6 +123,11 @@ function validateSnapshot(snapshot, options = {}) {
     ["activityEnrollmentEvents", "request_id"],
     ["userContactMethods", "contact_method_id"],
     ["userLifecycleEvents", "lifecycle_event_id"],
+    ["channelDefinitions", "channel_definition_id"],
+    ["channelQrCodes", "channel_qr_code_id"],
+    ["channelAttributions", "channel_attribution_id"],
+    ["channelFunnelVisits", "channel_funnel_visit_id"],
+    ["channelFunnelEvents", "channel_funnel_event_id"],
     ["auditLogs", "audit_id"],
     ["commandIdempotencyRecords", "recordId"],
   ];

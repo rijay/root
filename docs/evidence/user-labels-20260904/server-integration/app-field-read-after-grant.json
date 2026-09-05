@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-09-04T12:13:42.106025+00:00",
+  "appId": "cli_aa904d2635b8dbd7",
+  "identity": "bot",
+  "exit": 1,
+  "recordWrites": 0,
+  "ok": false,
+  "fieldCount": null,
+  "error": {
+    "type": "api",
+    "subtype": "unknown",
+    "code": 91403,
+    "message": "you don't have permission"
+  }
+}

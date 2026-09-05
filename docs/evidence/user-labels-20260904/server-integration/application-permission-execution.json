@@ -1,0 +1,79 @@
+{
+  "reportedAt": "2026-09-04T12:21:23.741550+00:00",
+  "status": "PARTIAL_APPLICATION_SCOPES_GRANTED_DOCUMENT_GRANT_DENIED",
+  "authorization": {
+    "userConfirmedSubmission": true,
+    "applicationId": "cli_aa904d2635b8dbd7",
+    "applicationName": "rijay的飞书 CLI",
+    "targetBaseToken": "XO5sbmYGRa0bALsPKH8ck4ZUnJJ",
+    "targetTableId": "tbl9PI8eKv6aQE3S",
+    "documentPermission": "view",
+    "sendNotification": false
+  },
+  "applicationPermissionResult": {
+    "submitted": true,
+    "readbackSource": "Feishu developer console permission page",
+    "applicationScopes": [
+      "base:field:read",
+      "base:record:retrieve",
+      "base:record:read"
+    ],
+    "allEnabled": true,
+    "identityType": "application",
+    "publicationReadback": "当前修改均已发布",
+    "existingPermissionsPreserved": true
+  },
+  "documentPermissionResult": {
+    "submittedViaUi": true,
+    "uiSubmitAttempts": 2,
+    "uiSuccessVerified": false,
+    "readbackAfterReload": {
+      "existingCollaboratorCount": 3,
+      "targetApplicationPresent": false,
+      "currentUserRole": "可编辑"
+    },
+    "cli": {
+      "commandFamily": "drive +member-add",
+      "memberType": "appid",
+      "memberId": "cli_aa904d2635b8dbd7",
+      "permission": "view",
+      "needNotification": false,
+      "identity": "user",
+      "exitCode": 3,
+      "ok": false,
+      "errorCode": 1063002,
+      "errorType": "authorization",
+      "errorSubtype": "permission_denied",
+      "errorMessage": "user lacks permission for the requested resource"
+    },
+    "granted": false,
+    "requiredAction": "具备授权权限的文档管理员向已确认应用授予目标文档可阅读权限并回读确认"
+  },
+  "applicationReadProbes": [
+    {
+      "apiFamily": "base/v3",
+      "identity": "bot",
+      "ok": false,
+      "errorCode": 91403,
+      "fieldCount": null
+    },
+    {
+      "apiFamily": "bitable/v1",
+      "identity": "bot",
+      "ok": false,
+      "errorCode": 91403,
+      "fieldCount": null
+    }
+  ],
+  "recordWrites": 0,
+  "messagesSent": 0,
+  "deploymentPerformed": false,
+  "databaseMigrationPerformed": false,
+  "endToEndIntegrationPassed": false,
+  "rollback": "如需撤销本次已生效变更，仅关闭新增三项应用身份权限；本次目标文档新增协作者未成功，不移除既有协作者。",
+  "limitations": [
+    "API 字段读取被拒绝，记录搜索和按 ID 回读尚未进行真实验证。",
+    "应用与文档所属组织不同，但现有错误未证明跨租户是具体原因。",
+    "云端仍缺少标签接口、迁移 075 和飞书运行时配置。"
+  ]
+}

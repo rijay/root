@@ -262,3 +262,35 @@ export function postAdminForm(path, body, options = {}) {
     body,
   });
 }
+
+export async function downloadAdminFile(path, options = {}) {
+  const adminToken = getAdminToken();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Number(options.timeoutMs || ADMIN_WRITE_TIMEOUT_MS));
+  try {
+    const response = await fetch(candidateAdminRequestPath(path), {
+      method: "GET",
+      signal: controller.signal,
+      headers: adminToken ? { "X-Admin-Token": adminToken } : {},
+    });
+    const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+    if (!response.ok || contentType.includes("application/json")) {
+      let payload = null;
+      try { payload = await response.json(); } catch (_) { /* no-op */ }
+      const error = new Error(payload?.message || "渠道码下载失败");
+      error.code = payload?.code || "ADMIN_FILE_DOWNLOAD_FAILED";
+      error.status = response.status;
+      throw error;
+    }
+    return {
+      blob: await response.blob(),
+      contentType,
+      disposition: response.headers.get("content-disposition") || "",
+    };
+  } catch (error) {
+    if (error?.name === "AbortError") throw new Error("渠道码生成超时，请稍后重试");
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}

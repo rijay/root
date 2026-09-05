@@ -158,7 +158,7 @@ function issueToken(data, userId) {
   return { ...session, token };
 }
 
-function findUserByToken(data, token) {
+function findSessionByToken(data, token, options = {}) {
   if (!token) return null;
   const tokenHash = sessionTokenDigest(token);
   let session = ensureList(data, "sessions").find((item) => item.token_hash === tokenHash && !item.revoked_at);
@@ -176,11 +176,18 @@ function findUserByToken(data, token) {
       delete data.tokens[tokenHash];
       return null;
     }
-    session.last_seen_at = nowISO();
+    if (options.touch !== false) session.last_seen_at = nowISO();
     data.tokens[tokenHash] = session.user_id;
-    return data.users.find((user) => user.user_id === session.user_id) || null;
+    return session;
   }
   return null;
+}
+
+function findUserByToken(data, token) {
+  const session = findSessionByToken(data, token);
+  return session
+    ? data.users.find((user) => user.user_id === session.user_id) || null
+    : null;
 }
 
 function stableRootUserIdForToken(data, token) {
@@ -439,6 +446,7 @@ function loginByPhone(data, body, phone, identityContext = {}) {
   return response({
     token: session.token,
     session: {
+      loginSessionId: session.session_id,
       expiresAt: session.expires_at,
     },
     autoMatch: null,
@@ -488,6 +496,7 @@ async function loginWithWechat(data, body = {}, context = process.env) {
     return response({
       token: session.token,
       session: {
+        loginSessionId: session.session_id,
         expiresAt: session.expires_at,
       },
       autoMatch: null,
@@ -565,6 +574,7 @@ async function loginWithWechat(data, body = {}, context = process.env) {
 
 function getUserState(data, token, context = {}) {
   const user = requireUser(data, token);
+  const activeSession = findSessionByToken(data, token, { touch: false });
   const env = context.env || context || process.env;
   const identitySummary = verifiedUnionIdSummary(data, user, { env });
   const formalSession = sessionModule.present({ data, user, created: false });
@@ -576,6 +586,10 @@ function getUserState(data, token, context = {}) {
       appCode: user.app_code || "MYROOT",
     },
     route: formalSession.nextRoute,
+    session: activeSession ? {
+      loginSessionId: activeSession.session_id,
+      expiresAt: activeSession.expires_at,
+    } : null,
     sessionOutcome: formalSession.sessionOutcome,
     profile: formalSession.profile,
   });

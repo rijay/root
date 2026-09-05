@@ -1,24 +1,24 @@
 const env = require("../../config/env");
 const { appVersion } = require("../../config/version");
 const router = require("../../utils/router");
-const { clearToken, getToken } = require("../../utils/request");
+const { getToken } = require("../../utils/request");
 const { syncTabBar } = require("../../utils/tab-bar");
-const { clearLegacyTransientHealthStorage, clearTransientHealthData } = require("../../utils/transient-health-state");
 const { FORMAL_ACCESS_STATE, inspectFormalAccess } = require("../../utils/formal-access");
+const { defaultOnShareAppMessage } = require("../../utils/page-share");
+const { readProfileCache, writeProfileCache } = require("../../utils/profile-cache");
+const { currentLoginSession, ensureLoginSession } = require("../../utils/login-session");
+const { getMemberCommerceSummary, presentSummary, readMemberCommerceSummaryEntry } = require("../../utils/member-commerce");
+const { performanceMonitor } = require("../../utils/performance-monitor");
+const { cachedImageUrl, prewarmSessionImage } = require("../../utils/session-image-cache");
+const { failureReason, track } = require("../../utils/analytics");
 
 const PROFILE_ROUTE = "/pages/profile/index";
 const PENDING_MEMBER_TARGET_KEY = "ROOT_PROFILE_MEMBER_TARGET_V1";
-const LOCAL_SESSION_KEYS = [
-  "ROOT_AUTH_INTENT_V1",
-  "ROOT_REGISTRATION_CONTEXT_V1",
-  "ROOT_PROFILE_SUBMIT_KEY_V1",
-  "ROOT4U_START_PENDING_V1",
-  "ROOT4U_INITIAL_SUBMIT_KEY_V1",
-  "MYROOT_ACTIVITY_ROUTE_INTENT_V1",
-  "MYROOT_ACTIVITY_PENDING_COMMANDS_V1",
-  PENDING_MEMBER_TARGET_KEY,
-];
-
+const DEFAULT_PROFILE = Object.freeze({ nickname: "Root用户", avatarUrl: "" });
+const GUEST_PROFILE = Object.freeze({ nickname: "未登录", avatarUrl: "" });
+function displayProfile(profile = {}) {
+  return { ...profile, displayAvatarUrl: cachedImageUrl(profile.avatarUrl) };
+}
 function runtimeVersion() {
   try {
     const info = wx.getAccountInfoSync();
@@ -28,44 +28,178 @@ function runtimeVersion() {
   }
 }
 
+function initialProfileState() {
+  if (!getToken()) {
+    return { loggedIn: false, sessionChecking: false, profile: GUEST_PROFILE, profileRefreshFailed: false };
+  }
+  ensureLoginSession();
+  const cached = readProfileCache();
+  return cached
+    ? { loggedIn: true, sessionChecking: false, profile: displayProfile(cached.profile), profileRefreshFailed: false }
+    : { loggedIn: true, sessionChecking: true, profile: displayProfile(DEFAULT_PROFILE), profileRefreshFailed: false };
+}
+
+const firstProfileState = initialProfileState();
+const firstMemberCommerceEntry = firstProfileState.loggedIn ? readMemberCommerceSummaryEntry() : null;
+
 Page({
   data: {
-    loggedIn: false,
-    sessionChecking: false,
-    profile: { nickname: "未登录", avatarUrl: "" },
+    ...firstProfileState,
     version: appVersion,
     memberLinkFailure: false,
     failedMemberKey: "",
+    profileRefreshFailed: false,
+    profileImageFailed: false,
+    memberCommerce: firstMemberCommerceEntry ? firstMemberCommerceEntry.value : presentSummary(),
   },
 
   onLoad() {
-    this.setData({ version: runtimeVersion() });
+    this._pageStartedAt = Date.now();
+    this._avatarStartedAt = Date.now();
+    this.setData({ version: runtimeVersion() }, () => this.recordUsableContent());
   },
 
   onShow() {
-    syncTabBar(this, 3);
+    syncTabBar(this, 4);
     const hasSession = Boolean(getToken());
+    if (hasSession) ensureLoginSession();
+    const cached = hasSession ? readProfileCache() : null;
+    const memberCommerceEntry = hasSession ? readMemberCommerceSummaryEntry() : null;
+    const memberCommerce = memberCommerceEntry && memberCommerceEntry.value;
+    this._avatarStartedAt = Date.now();
     this.setData(hasSession
-      ? { loggedIn: false, sessionChecking: true }
-      : { loggedIn: false, sessionChecking: false, memberLinkFailure: false, failedMemberKey: "" });
+      ? cached
+        ? { loggedIn: true, sessionChecking: false, profile: displayProfile(cached.profile), profileRefreshFailed: false, profileImageFailed: false, ...(memberCommerce ? { memberCommerce } : {}) }
+        : { loggedIn: true, sessionChecking: true, profile: displayProfile(DEFAULT_PROFILE), profileRefreshFailed: false, profileImageFailed: false, ...(memberCommerce ? { memberCommerce } : {}) }
+      : {
+        loggedIn: false,
+        sessionChecking: false,
+        profile: displayProfile(GUEST_PROFILE),
+        memberLinkFailure: false,
+        failedMemberKey: "",
+        profileRefreshFailed: false,
+        profileImageFailed: false,
+        memberCommerce: presentSummary(),
+      });
     if (hasSession) {
-      this.loadProfile();
+      if (!cached || !cached.fresh) this.loadProfile({ preserveCached: Boolean(cached) });
+      if (!memberCommerceEntry || !memberCommerceEntry.fresh) this.loadMemberCommerce({ preserveCached: Boolean(memberCommerceEntry) });
+      if (cached && cached.profile.avatarUrl) this.prewarmAvatar(cached.profile.avatarUrl);
     }
   },
 
-  async loadProfile() {
-    try {
-      const access = await inspectFormalAccess("profile-home");
-      const loggedIn = access.state !== FORMAL_ACCESS_STATE.PHONE_REQUIRED;
-      this.setData({
-        loggedIn,
-        sessionChecking: false,
-        profile: access.profile || { nickname: loggedIn ? "Root用户" : "未登录", avatarUrl: "" },
+  loadProfile(options = {}) {
+    if (this._profileLoadPromise) return this._profileLoadPromise;
+    const startedAt = Date.now();
+    const expectedSessionId = currentLoginSession().sessionId;
+    let refreshStatus = "REFRESH_FAILED";
+    const pending = (async () => {
+      try {
+        const access = await inspectFormalAccess("profile-home");
+        if (!getToken() || currentLoginSession().sessionId !== expectedSessionId) {
+          refreshStatus = "SESSION_CHANGED";
+          return;
+        }
+        const loggedIn = access.state !== FORMAL_ACCESS_STATE.PHONE_REQUIRED;
+        const profile = access.profile || { nickname: loggedIn ? "Root用户" : "未登录", avatarUrl: "" };
+        refreshStatus = loggedIn ? "REFRESH_SUCCESS" : "REFRESH_GUEST";
+        if (loggedIn) writeProfileCache(profile);
+        this._avatarStartedAt = Date.now();
+        this.setData({
+          loggedIn,
+          sessionChecking: false,
+          profile: displayProfile(profile),
+          profileRefreshFailed: false,
+          profileImageFailed: false,
+        });
+        if (loggedIn && profile.avatarUrl) this.prewarmAvatar(profile.avatarUrl);
+        if (loggedIn) this.resumeMemberTarget();
+      } catch (error) {
+        if (!getToken() || currentLoginSession().sessionId !== expectedSessionId) {
+          refreshStatus = "SESSION_CHANGED";
+          return;
+        }
+        if (options.preserveCached && getToken()) {
+          refreshStatus = "REFRESH_STALE_CACHE";
+          this.setData({ sessionChecking: false, profileRefreshFailed: true });
+          return;
+        }
+        this.setData({
+          loggedIn: false,
+          sessionChecking: false,
+          profile: displayProfile(GUEST_PROFILE),
+          profileRefreshFailed: false,
+          profileImageFailed: false,
+        });
+      }
+    })();
+    this._profileLoadPromise = pending;
+    return pending.finally(() => {
+      performanceMonitor.recordPageMetric({
+        page: "pages/profile/index",
+        entry: "profile_refresh",
+        durationMs: Date.now() - startedAt,
+        status: refreshStatus,
       });
-      if (loggedIn) this.resumeMemberTarget();
-    } catch (error) {
-      this.setData({ loggedIn: false, sessionChecking: false, profile: { nickname: "未登录", avatarUrl: "" } });
-    }
+      if (this._profileLoadPromise === pending) this._profileLoadPromise = null;
+    });
+  },
+
+  recordUsableContent() {
+    if (this._usableContentRecorded) return;
+    this._usableContentRecorded = true;
+    performanceMonitor.recordPageMetric({
+      page: "pages/profile/index",
+      entry: "usable_content",
+      durationMs: Date.now() - this._pageStartedAt,
+      status: "FIRST_FRAME_READY",
+    });
+  },
+
+  prewarmAvatar(avatarUrl) {
+    prewarmSessionImage(avatarUrl).then((displayAvatarUrl) => {
+      if (!displayAvatarUrl || this.data.profile.avatarUrl !== avatarUrl || this.data.profile.displayAvatarUrl === displayAvatarUrl) return;
+      this._avatarStartedAt = Date.now();
+      this.setData({ profile: { ...this.data.profile, displayAvatarUrl }, profileImageFailed: false });
+    });
+  },
+
+  profileImageLoaded() {
+    performanceMonitor.recordImageResult({
+      page: "pages/profile/index",
+      entry: "profile_avatar",
+      durationMs: Date.now() - this._avatarStartedAt,
+      status: "LOAD_SUCCESS",
+    });
+  },
+
+  profileImageFailed() {
+    this.setData({ profileImageFailed: true });
+    performanceMonitor.recordImageResult({
+      page: "pages/profile/index",
+      entry: "profile_avatar",
+      durationMs: Date.now() - this._avatarStartedAt,
+      status: "LOAD_FAILED",
+      errorCode: "IMAGE_LOAD_FAILED",
+    });
+  },
+
+  loadMemberCommerce(options = {}) {
+    if (this._memberCommercePromise || !getToken()) return this._memberCommercePromise;
+    const expectedSessionId = currentLoginSession().sessionId;
+    const pending = getMemberCommerceSummary()
+      .then((memberCommerce) => {
+        if (getToken() && currentLoginSession().sessionId === expectedSessionId) this.setData({ memberCommerce });
+      })
+      .catch(() => {
+        if (!options.preserveCached && getToken() && currentLoginSession().sessionId === expectedSessionId) this.setData({
+          memberCommerce: presentSummary(),
+        });
+      });
+    this._memberCommercePromise = pending;
+    return pending.finally(() => {
+      if (this._memberCommercePromise === pending) this._memberCommercePromise = null;
+    });
   },
 
   resumeMemberTarget() {
@@ -93,6 +227,12 @@ Page({
     if (this.data.sessionChecking) return;
     const key = event.currentTarget.dataset.key;
     if (!this.data.loggedIn) {
+      track("member_center_entry", {
+        entryKey: key,
+        result: "LOGIN_REQUIRED",
+        failureReason: "",
+        sourcePage: PROFILE_ROUTE,
+      });
       wx.setStorageSync(PENDING_MEMBER_TARGET_KEY, key);
       this.openLogin();
       return;
@@ -101,17 +241,56 @@ Page({
   },
 
   openMemberPath(key) {
+    if (!["orders", "coupons"].includes(key)) {
+      this.setData({ memberLinkFailure: true, failedMemberKey: "orders" });
+      track("member_center_entry", {
+        entryKey: "UNKNOWN",
+        result: "FAILED",
+        failureReason: "MEMBER_ENTRY_INVALID",
+        sourcePage: PROFILE_ROUTE,
+      });
+      return;
+    }
+    track("member_center_entry", {
+      entryKey: key,
+      result: "STARTED",
+      failureReason: "",
+      sourcePage: PROFILE_ROUTE,
+    });
     const shortLink = key === "orders"
       ? env.rootMemberCenterOrdersShortLink
       : env.rootMemberCenterCouponsShortLink;
     if (!shortLink) {
       this.setData({ memberLinkFailure: true, failedMemberKey: key });
+      track("member_center_entry", {
+        entryKey: key,
+        result: "FAILED",
+        failureReason: "MEMBER_SHORT_LINK_UNCONFIGURED",
+        sourcePage: PROFILE_ROUTE,
+      });
       return;
     }
     wx.navigateToMiniProgram({
       shortLink,
-      success: () => this.setData({ memberLinkFailure: false, failedMemberKey: "" }),
-      fail: () => this.setData({ memberLinkFailure: true, failedMemberKey: key }),
+      success: () => {
+        this.setData({ memberLinkFailure: false, failedMemberKey: "" });
+        track("member_center_entry", {
+          entryKey: key,
+          result: "SUCCESS",
+          failureReason: "",
+          sourcePage: PROFILE_ROUTE,
+        });
+      },
+      fail: (error) => {
+        const reason = failureReason(error);
+        this.setData({ memberLinkFailure: true, failedMemberKey: key });
+        track("member_center_entry", {
+          entryKey: key,
+          result: "FAILED",
+          failureReason: reason === "REQUEST_FAILED" ? "MINIPROGRAM_JUMP_FAILED" : reason,
+          sourcePage: PROFILE_ROUTE,
+        });
+      },
     });
   },
 
@@ -133,18 +312,5 @@ Page({
     router.open("/subpkg/profile/pages/about/index");
   },
 
-  logout() {
-    clearToken();
-    LOCAL_SESSION_KEYS.forEach((key) => wx.removeStorageSync(key));
-    clearTransientHealthData();
-    clearLegacyTransientHealthStorage(wx);
-    this.setData({
-      loggedIn: false,
-      sessionChecking: false,
-      profile: { nickname: "未登录", avatarUrl: "" },
-      memberLinkFailure: false,
-      failedMemberKey: "",
-    });
-    wx.showToast({ title: "已退出登录", icon: "success" });
-  },
+  onShareAppMessage: defaultOnShareAppMessage,
 });

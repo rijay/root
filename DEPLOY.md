@@ -39,6 +39,7 @@ MYSQL_CONNECT_TIMEOUT_MS=10000
 ROOT_ENFORCE_MYSQL_LEAST_PRIVILEGE=true
 ROOT_CLOUDBASE_STORE_DECISION=MYSQL_ON_CLOUDBASE
 ROOT_CLOUDBASE_ENV_ID=myroot-prod-d5gl3gzg7115f149a
+ROOT_WECHAT_APP_CODE=MYROOT
 ROOT_CLOUDBASE_REGION=ap-shanghai
 ROOT_CLOUDBASE_STORE_BACKUP_PLAN=发布前快照+每日备份
 ROOT_CLOUDBASE_STORE_ROLLBACK_PLAN=按发布前快照回滚
@@ -46,6 +47,8 @@ ROOT_CLOUDBASE_STORE_PROOF=生产证明引用
 ```
 
 本轮内测直接使用 CloudBase MySQL，不再以容器临时 SQLite 承接业务数据。小程序始终通过 `wx.cloud.callContainer -> myroot-api -> MySQL`，不允许直连数据库。Store Module 使用连接池、迁移锁、修订号行锁和事务内核心关系表同步；20 并发写、容器重启、双实例、跨实例幂等、结算奖励幂等和数据库恢复均已实测。生产启动还会读取 `SHOW GRANTS FOR CURRENT_USER()`：运行账号必须只在 `MYSQL_DATABASE` 上具备 `SELECT / INSERT / UPDATE / DELETE / CREATE / ALTER`，存在 `*.*` 数据权限、额外 schema 权限或 `GRANT OPTION` 时失败关闭。正式发布仍需完成真机跳转、业务回滚和批准的外部 Gate。
+
+CloudBase 微信身份 Adapter 只在同时配置环境 ID 与 `WECHAT_APPID`/`ROOT_WECHAT_APPID` 时启用；它要求平台注入的 `X-WX-ENV`、`X-WX-APPID`、`X-WX-SOURCE` 与 `X-WX-PLATFORM` 全部匹配后才接受 openid/unionid。普通公网请求、环境或 AppID 不匹配、来源/平台组合异常，以及资源复用身份头均保持 fail-close。
 
 CloudBase 生产环境与 MySQL Store 决策见 `docs/cloudbase_mysql_store_decision.md`；该文件只记录占位变量、验证步骤和证明要求，真实 secret 仍只放 CloudBase 环境变量或密钥管理。
 

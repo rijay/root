@@ -92,16 +92,21 @@ test("apply requires an exact release-bound write confirmation", async () => {
   });
 });
 
-test("package builder copies the immutable 68 migration set", () => {
+test("package builder copies the immutable 75 migration set", () => {
   const parent = fs.mkdtempSync(path.join(os.tmpdir(), "myroot-migration-channel-test-"));
   const output = path.join(parent, "package");
   try {
     const result = build(output);
-    assert.equal(result.migrationCount, 68);
+    assert.equal(result.migrationCount, 75);
     assert.equal(fs.existsSync(path.join(output, "index.js")), true);
     assert.equal(fs.existsSync(path.join(output, "package-lock.json")), true);
     assert.equal(fs.existsSync(path.join(output, "src", "mysqlMigrations.js")), true);
     assert.equal(fs.existsSync(path.join(output, "db", "migrations", "068_formal_launch_confirmed_prelaunch_cleanup.sql")), true);
+    assert.equal(fs.existsSync(path.join(output, "db", "migrations", "071_product_analytics.sql")), true);
+    assert.equal(fs.existsSync(path.join(output, "db", "migrations", "072_health_advice_snapshot.sql")), true);
+    assert.equal(fs.existsSync(path.join(output, "db", "migrations", "073_channel_code_funnel.sql")), true);
+    assert.equal(fs.existsSync(path.join(output, "db", "migrations", "074_assessment_source_survey.sql")), true);
+    assert.equal(fs.existsSync(path.join(output, "db", "migrations", "075_user_labels.sql")), true);
   } finally {
     fs.rmSync(parent, { recursive: true, force: true });
   }

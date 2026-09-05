@@ -2,8 +2,8 @@
   <page-navigation tone="light" show-home="{{false}}" />
   <block wx:if="{{state === 'ready'}}">
     <block wx:if="{{item.assets && item.assets.length}}">
-      <view wx:for="{{item.assets}}" wx:for-item="asset" wx:for-index="assetIndex" wx:key="assetId" class="content-detail__asset">
-        <image class="content-detail__image" src="{{asset.imageUrl}}" mode="widthFix" />
+      <view wx:for="{{item.assets}}" wx:for-item="asset" wx:for-index="assetIndex" wx:key="assetId" class="content-detail__asset {{asset.displayHeightRpx ? 'content-detail__asset--reserved' : ''}}" style="{{asset.displayStyle}}">
+        <image class="content-detail__image" src="{{asset.imageUrl}}" mode="{{asset.displayMode}}" lazy-load="{{assetIndex > 0}}" />
         <button
           wx:for="{{asset.hotspots}}"
           wx:for-item="hotspot"
@@ -19,7 +19,7 @@
       </view>
     </block>
     <block wx:else>
-      <image wx:for="{{item.detailImages}}" wx:key="*this" class="content-detail__image" src="{{item}}" mode="widthFix" />
+      <image wx:for="{{item.detailImages}}" wx:for-index="detailIndex" wx:key="*this" class="content-detail__image" src="{{item}}" mode="widthFix" lazy-load="{{detailIndex > 0}}" />
     </block>
     <view wx:if="{{(!item.assets || item.assets.length === 0) && item.detailImages.length === 0}}" class="content-detail__placeholder">
       <view class="content-detail__wordmark" style="top: {{wordmarkTop}}px;"><root-wordmark tone="light" /></view>

@@ -1,0 +1,19 @@
+{
+  "validation": "LOCAL_SCHEMA_SIMULATION_ONLY",
+  "realUsersRead": 0,
+  "actualWrites": 0,
+  "beforeBlockers": [
+    "缺少字段：首次可识别访问日期",
+    "字段类型不符：是否下单1元体验装",
+    "字段类型不符：是否添加企业微信",
+    "缺少字段：来源依据",
+    "缺少字段：来源核验状态",
+    "缺少字段：系统来源建议",
+    "缺少字段：数据更新时间",
+    "单选项未配置：来源活动 / 待确认",
+    "单选项未配置：用户类型 / 待确认"
+  ],
+  "afterBlockers": [],
+  "fieldsBefore": 18,
+  "fieldsAfter": 22
+}

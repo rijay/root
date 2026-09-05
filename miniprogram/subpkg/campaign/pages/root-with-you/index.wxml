@@ -1,0 +1,37 @@
+<view class="root-with-you">
+  <page-navigation tone="dark" show-home="{{false}}" />
+  <scroll-view class="root-with-you__scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="root-with-you__art">
+      <view wx:if="{{imageLoading}}" class="root-with-you__image-skeleton"></view>
+      <view wx:if="{{imageFailed}}" class="root-with-you__image-fallback">
+        <text>ROOT 陪伴计划</text>
+        <text>活动内容暂未完整加载，请稍后重试</text>
+      </view>
+      <image
+        wx:if="{{!imageFailed}}"
+        class="root-with-you__image"
+        src="{{imageUrl}}"
+        mode="widthFix"
+        lazy-load="{{false}}"
+        fade-show="{{false}}"
+        show-menu-by-longpress="{{false}}"
+        aria-label="ROOT 陪伴计划说明：完成肠道自测后可前往 ROOT 会员商城领取 5 支体验装"
+        bindload="imageLoaded"
+        binderror="imageFailed"
+      />
+      <button
+        class="root-with-you__art-action"
+        loading="{{opening}}"
+        disabled="{{opening}}"
+        bindtap="startAssessment"
+        aria-label="开始肠道自测"
+      >开始肠道自测</button>
+    </view>
+    <view class="root-with-you__terms">完成肠道自测后可前往 ROOT 会员商城领取 5 支益生元体验装；体验装已上架，库存有限，领完即止，最终领取结果以商城页面为准。</view>
+    <view class="root-with-you__spacer"></view>
+  </scroll-view>
+
+  <view class="root-with-you__dock">
+    <button class="root-with-you__primary" loading="{{opening}}" disabled="{{opening}}" bindtap="startAssessment">开始肠道自测</button>
+  </view>
+</view>

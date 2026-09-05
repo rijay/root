@@ -61,5 +61,6 @@ assert.ok(legacyReport.packages.main.bytes > 0);
 assert.ok(legacyReport.packages.total.bytes >= legacyReport.packages.main.bytes);
 assert.ok(Array.isArray(legacyReport.packages.subpackages));
 assert.ok(legacyReport.warnings.includes("旧产品数据不得作为正式上线 Gate 通过证据"));
+assert.notEqual(legacyReport.status, "BLOCK", "Bundled source exceeds a package or media hard limit; inspect miniprogram-performance-report.js output");
 
 console.log("mini-program performance budget tests ok");

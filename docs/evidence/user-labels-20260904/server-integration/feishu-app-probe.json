@@ -1,0 +1,21 @@
+{
+  "source": "Observed lark-cli response during 2026-09-04 server integration",
+  "identity": "bot",
+  "configuredCliAppId": "cli_aa904d2635b8dbd7",
+  "productionAppSelected": false,
+  "command": "lark-cli base +field-list --as bot",
+  "apiFamily": "base/v3",
+  "tableId": "tbl9PI8eKv6aQE3S",
+  "ok": false,
+  "exit": 3,
+  "error": {
+    "type": "authorization",
+    "subtype": "app_scope_not_applied",
+    "code": 99991672,
+    "missing_scopes": [
+      "base:field:read"
+    ]
+  },
+  "serverBitableV1Tested": false,
+  "permissionsChanged": false
+}

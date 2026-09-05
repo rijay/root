@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "0.6.0",
+  "reviewedAt": "2026-08-17T19:05:27+08:00",
+  "status": "PASS_LOCAL_VISUAL_REVIEW",
+  "releaseGateEligible": false,
+  "runtimeAcceptance": "NOT_CANDIDATE",
+  "dataMode": "SYNTHETIC_LOCAL_ONLY",
+  "clinicalContentApproval": "NOT_ASSERTED",
+  "checks": {
+    "bottomNavigationAlignment": "PASS",
+    "safeArea": "PASS",
+    "contentClipping": "PASS",
+    "primaryActionReachability": "PASS",
+    "textWrapping": "PASS",
+    "selectedAndUnselectedStates": "PASS",
+    "designImplementationHierarchy": "PASS"
+  },
+  "reviewedScreens": 5,
+  "openVisualDefects": [],
+  "nonProductArtifacts": [
+    "The raw simulator capture may include pixels from the WeChat DevTools chrome outside the phone bezel; these are not part of the mini-program page."
+  ],
+  "remainingExternalChecks": [
+    "candidate environment real API states",
+    "real-device iOS safe-area review",
+    "real-device Android safe-area review",
+    "formal health-content approval and publication authorization"
+  ]
+}

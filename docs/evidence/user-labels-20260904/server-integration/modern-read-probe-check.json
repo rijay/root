@@ -1,0 +1,15 @@
+{
+  "mode": "LOCAL_MOCK_VERIFICATION_ONLY",
+  "writeFlagForcedOff": true,
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/open-apis/bitable/v1/apps/localSchemaTest/tables/tblLocalTest/fields"
+    },
+    {
+      "method": "POST",
+      "path": "/open-apis/bitable/v1/apps/localSchemaTest/tables/tblLocalTest/records/search"
+    }
+  ],
+  "liveServerAdapterTested": false
+}

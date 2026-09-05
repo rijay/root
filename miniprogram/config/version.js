@@ -1,3 +1,3 @@
 module.exports = {
-  appVersion: "0.5.25",
+  appVersion: "0.8.7",
 };

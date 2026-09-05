@@ -1,6 +1,7 @@
 const { executeContentAction } = require("../../../../utils/content-action");
 const { request } = require("../../../../utils/request");
 const { presentDetail } = require("../../../../utils/content-presenter");
+const { defaultOnShareAppMessage } = require("../../../../utils/page-share");
 
 function resolveWordmarkTop() {
   try {
@@ -51,4 +52,6 @@ Page({
     const hotspot = this.data.item.assets?.[assetIndex]?.hotspots?.[hotspotIndex];
     if (hotspot?.action) executeContentAction(hotspot.action);
   },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

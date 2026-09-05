@@ -7,6 +7,9 @@ const { createApp } = require("../src/app");
 const {
   resolveTrustedWechatIdentity,
 } = require("../src/trustedWechatIdentity");
+const {
+  createCloudbaseTrustedWechatIdentityAdapter,
+} = require("../src/cloudbaseTrustedWechatIdentityAdapter");
 
 function listen(server) {
   return new Promise((resolve) => {
@@ -103,6 +106,53 @@ test("HTTP Adapter cannot elevate raw X-WX headers without a verified Adapter", 
   assert.equal(result.code, 1007);
   assert.equal(server.store.rootUsers.length, 0);
   assert.equal(server.store.wechatIdentities.length, 0);
+});
+
+test("HTTP login falls back to code2session when CloudBase source metadata is unknown", async (t) => {
+  const upstream = http.createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      openid: "code2session_fallback_openid",
+      unionid: "code2session_fallback_unionid",
+    }));
+  });
+  const wechatBaseUrl = await listen(upstream);
+  t.after(() => upstream.close());
+
+  const env = {
+    NODE_ENV: "test",
+    ROOT_WECHAT_APPID: "wx_myroot_app",
+    ROOT_WECHAT_APPSECRET: "test_secret",
+    ROOT_WECHAT_APP_CODE: "MYROOT",
+    ROOT_WECHAT_OPENAPI_BASE_URL: wechatBaseUrl,
+  };
+  const server = createApp({
+    env,
+    trustedWechatIdentityAdapter: createCloudbaseTrustedWechatIdentityAdapter({
+      ...env,
+      ROOT_CLOUDBASE_ENV_ID: "myroot-prod",
+    }),
+  });
+  const baseUrl = await listen(server);
+  t.after(() => server.close());
+
+  const result = await postJson(baseUrl, "/api/v1/auth/login", {
+    "X-WX-ENV": "myroot-prod",
+    "X-WX-APPID": "wx_myroot_app",
+    "X-WX-SOURCE": "wx_client",
+    "X-WX-PLATFORM": "harmonyos",
+    "X-WX-OPENID": "untrusted_cloudbase_openid",
+    "X-WX-UNIONID": "untrusted_cloudbase_unionid",
+  }, {
+    appCode: "MYROOT",
+    wxCode: "fresh_wechat_code",
+    flowVersion: "FORMAL_LAUNCH_V1",
+  });
+
+  assert.equal(result.code, 0);
+  assert.equal(server.store.wechatIdentities.length, 1);
+  assert.equal(server.store.wechatIdentities[0].openid, "code2session_fallback_openid");
+  assert.equal(server.store.wechatIdentities[0].unionid, "code2session_fallback_unionid");
 });
 
 test("domain accepts only the verified identity supplied through its Interface", async () => {

@@ -1,0 +1,42 @@
+{
+  "checkedAt": "2026-09-04T14:54:17.179Z",
+  "mode": "READ_ONLY_ADAPTER_WITH_CLI_USER_TRANSPORT",
+  "recordWrites": 0,
+  "liveUserSyncTested": false,
+  "status": "PASS",
+  "fieldCount": 22,
+  "recordCount": 0,
+  "requiredFieldCount": 15,
+  "schemaBlockers": [],
+  "writesEnabled": false,
+  "healthFieldsExcluded": true,
+  "identity": "user",
+  "applicationId": "cli_aa904d2635b8dbd7",
+  "targetTableId": "tbl9PI8eKv6aQE3S",
+  "calls": [
+    {
+      "method": "GET",
+      "endpoint": "/fields",
+      "ok": true,
+      "identity": "user",
+      "errorCode": null,
+      "hasMore": false,
+      "itemCount": 22,
+      "requestedFieldCount": null
+    },
+    {
+      "method": "POST",
+      "endpoint": "/records/search",
+      "ok": true,
+      "identity": "user",
+      "errorCode": null,
+      "hasMore": false,
+      "itemCount": 0,
+      "requestedFieldCount": 15
+    }
+  ],
+  "applicationIdentityPassed": false,
+  "cloudServiceDeployed": false,
+  "recordReadbackByIdTested": false,
+  "credentialHandling": "Existing CLI user authorization; no token exported or configured in cloud."
+}

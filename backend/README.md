@@ -45,6 +45,8 @@ ROOT_PRIVACY_CONTACT=hydennis@foxmail.com
 ROOT_HEALTH_DATA_RETENTION_DAYS=180
 ROOT_HEALTH_DATA_RETENTION_CLEANUP_ENABLED=true
 ROOT_HEALTH_DATA_RETENTION_CLEANUP_LIMIT=50
+ROOT_HEALTH_ADVICE_POOL_VERSION=root4u-health-advice-pool-v1
+ROOT_HEALTH_ADVICE_POOL_REVIEWED=true
 ROOT_CLOUDBASE_ENV_ID=CloudBase环境ID
 ROOT_STORE_ADAPTER=mysql
 MYSQL_ADDRESS=MySQL私网地址:3306
@@ -66,9 +68,17 @@ ROOT_COMMAND_RESULT_KEY_ID=command-result-v1
 ROOT_COMMAND_RESULT_DECRYPTION_KEYS_JSON={}
 ROOT_KEY_INVENTORY_RETIRED_KEY_IDS_JSON={"REQUEST_DIGEST":[],"COMMAND_RESULT":[],"INBOX_CONTENT":[],"NOTIFICATION_RECEIPT":[]}
 ROOT_ADMIN_TOKEN=由正式环境密钥配置注入
+ROOT_YOUZAN_ACCESS_TOKEN=由正式环境密钥配置注入的只读token
+ROOT_YOUZAN_KDT_ID=ROOT店铺kdt_id
+ROOT_YOUZAN_SUMMARY_CACHE_TTL_MS=300000
+ROOT_YOUZAN_IDENTITY_CACHE_TTL_MS=86400000
+ROOT_YOUZAN_MAX_CONCURRENT_REQUESTS=2
+ROOT_YOUZAN_PRODUCT_CACHE_TTL_MS=60000
 ```
 
 正式环境登录会使用 `wx.login` 和 `getPhoneNumber` 返回的 code，到微信服务端换取 openid 和手机号。未配置 `WECHAT_APPID` / `WECHAT_APPSECRET` 时，正式手机号登录会拒绝执行，避免无授权手机号进入。
+
+健康建议线上运行时不调用模型：服务端只从仓库内的已审核建议池按两个结果代码组合建议，建议池不完整、未审核或内容无效时 fail-close 到固定建议。当前建议池由 Codex 离线起草，只使用 6 类健康起点和 5 类肠道状态的产品定义，不读取真实用户数据；池内包含 36 条健康起点行动、30 条肠道行动、6 条回测提示、11 条状态摘要和 5 条安全提醒，共 88 个已验收组件。每个用户结果固定展示 3 条行动：第一条逐字使用上一版本的肠道膳食纤维规则，后两条分别从对应的起点组和肠道组中稳定选择；30 个状态组合各有 36 种行动组合，共 1080 种。88 个组件和整体状态已标记 `APPROVED` 并接入运行时；安全拦截分支仍优先停止普通生活方式建议。生产环境不得配置健康建议模型 API Key，配置声明不能替代内容审核记录和候选工件证据。详见 [`健康 AI 数据管理规范`](../docs/v0.7.0_health_ai_data_management_standard_2026-08-26.md)和[`建议池审核清单`](../docs/v0.7.0_health_advice_pool_review_2026-08-27.md)。
 
 微信订阅发送只允许 `https://api.weixin.qq.com/cgi-bin/message/subscribe/send`。即使配置了 `ROOT_WECHAT_OPENAPI_BASE_URL` 或 `ROOT_WECHAT_SUBSCRIBE_SEND_URL`，受保护运行时也拒绝非官方 origin、明文、userinfo、额外 query/fragment、端口或路径漂移；订阅 access token 永不发送到 loopback。发送 Adapter 在获取 token 前和网络调用前分别校验，服务器在 `ROOT_CHECKIN_REMINDER_SEND_ENABLED=true` 时启动前再次校验，底层 HTTP Implementation 不跟随 redirect。该本地防护不代表 Candidate/生产网络出口、模板、额度或真实送达已经验收。
 
@@ -94,6 +104,9 @@ MySQL Adapter 使用连接池和数据库级迁移锁，应用启动时幂等执
 - `GET /api/v1/privacy/notice`
 - `GET|POST /api/v1/privacy/health-consent`
 - `GET /api/v1/user/state`
+- `GET /api/v1/products`、`GET /api/v1/products/:productId`
+- `POST /api/v1/products/jump`
+- `GET /api/v1/member-commerce/summary`
 - `GET|POST /api/v1/user/formal-profile`
 - `GET /api/v1/public/content/welcome|home|detail|action`
 - `GET|POST /api/v1/health/root4u/*`
@@ -101,7 +114,7 @@ MySQL Adapter 使用连接池和数据库级迁移锁，应用启动时幂等执
 - `POST /api/v1/jobs/health-data-retention-cleanup`
 - `/api/v1/admin/*`：只保留正式内容、活动、Root4U、用户查询、审计和发布记录 Interface。
 
-任务、奖励、打卡、内部订单、退款、咨询、外部 Adapter 与旧 Admin Interface 均返回 `404`。
+任务、奖励、打卡、内部订单、退款、咨询、已退役写入型外部 Adapter 与旧 Admin Interface 均返回 `404`；Root 会员商城只读摘要与商品接口按上表保留。
 
 本地管理台：`/` 或 `/admin`。
 

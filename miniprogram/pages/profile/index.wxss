@@ -1,35 +1,30 @@
 page,
 .profile-page {
   height: 100vh;
-  background: #fdfbf6;
+  background: var(--color-brand-white);
 }
 
 .profile-page__content {
-  position: relative;
-  min-height: 760px;
+  min-height: calc(100vh - 52px - env(safe-area-inset-bottom));
+  padding: 78px 20px calc(92px + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
 .profile-page__title {
-  position: absolute;
-  top: 78px;
-  left: 20px;
-  width: calc(100% - 40px);
-  height: 38px;
-  color: #080806;
+  display: block;
+  color: var(--color-brand-black);
   font-size: 30px;
   font-weight: 600;
   line-height: 38px;
 }
 
 .profile-identity {
-  position: absolute;
-  top: 130px;
-  left: 20px;
+  position: relative;
   display: flex;
   align-items: center;
-  width: calc(100% - 40px);
+  width: 100%;
   height: 72px;
+  margin-top: 14px;
 }
 
 .profile-identity__avatar {
@@ -37,7 +32,7 @@ page,
   width: 72px;
   height: 72px;
   overflow: hidden;
-  background: #080806;
+  background: var(--color-brand-black);
   border-radius: 20px;
 }
 
@@ -67,7 +62,7 @@ page,
 .profile-identity__name {
   max-width: 178px;
   overflow: hidden;
-  color: #080806;
+  color: var(--color-brand-black);
   font-size: 21px;
   font-weight: 600;
   line-height: 28px;
@@ -77,7 +72,7 @@ page,
 
 .profile-identity__hint {
   margin-top: 6px;
-  color: #8a8172;
+  color: var(--color-neutral-grey);
   font-size: 13px;
   line-height: 20px;
 }
@@ -89,103 +84,79 @@ page,
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #8a8172;
+  color: var(--color-neutral-grey);
   font-size: 12px;
   line-height: 20px;
 }
 
 .profile-login {
-  position: absolute;
-  top: 226px;
-  left: 20px;
   height: 52px;
   min-height: 52px;
-  margin: 0 !important;
+  margin: 24px 0 0 !important;
   padding: 0;
-  color: #fff;
-  background: #586b3f;
+  color: var(--color-brand-white);
+  background: var(--color-brand-olive);
   border-radius: 12px;
   font-size: 16px;
   font-weight: 600;
   line-height: 52px;
-  width: calc(100% - 40px) !important;
+  width: 100% !important;
 }
 
 .profile-login::after,
-.profile-logout::after,
 .profile-member-failure__retry::after {
   border: 0;
 }
 
 .profile-card {
-  position: absolute;
-  left: 20px;
-  width: calc(100% - 40px);
-  overflow: hidden;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 8px;
   box-sizing: border-box;
-  padding: 0 16px;
-  background: #fff;
-  border-radius: 14px;
+  padding: 0;
+  background: transparent;
 }
 
 .profile-page__content--guest .profile-card--member {
-  top: 306px;
-  height: 128px;
+  margin-top: 20px;
 }
 
 .profile-page__content--member .profile-card--member,
 .profile-page__content--failure .profile-card--member {
-  top: 226px;
-  height: 128px;
-  border-radius: 16px;
+  margin-top: 24px;
 }
 
 .profile-row {
-  position: relative;
   display: flex;
   align-items: center;
   width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
   box-sizing: border-box;
-  color: #433e34;
-  border-bottom: 1px solid #e8e0d0;
+  color: var(--color-graphite);
+  background: var(--color-ui-grouped);
+  border-radius: 12px;
   font-size: 14px;
 }
 
 .profile-card--member .profile-row {
-  height: 64px;
-  color: #080806;
+  min-height: 60px;
+  color: var(--color-brand-black);
+  background: var(--color-olive-tint);
   font-weight: 500;
 }
 
 .profile-page__content--guest .profile-card--support {
-  top: 446px;
-  height: 220px;
-}
-
-.profile-page__content--guest .profile-card--support .profile-row {
-  height: 55px;
+  margin-top: 16px;
 }
 
 .profile-page__content--member .profile-card--support {
-  top: 382px;
-  height: 176px;
-}
-
-.profile-page__content--member .profile-card--support .profile-row {
-  height: 44px;
+  margin-top: 16px;
 }
 
 .profile-page__content--failure .profile-card--support {
-  top: 500px;
-  height: 138px;
-}
-
-.profile-page__content--failure .profile-card--support .profile-row {
-  height: 34.5px;
-}
-
-.profile-row:last-child {
-  border-bottom: 0;
+  margin-top: 16px;
 }
 
 .profile-row__label {
@@ -199,7 +170,7 @@ page,
 .profile-row__hint {
   width: 96px;
   margin-right: 10px;
-  color: #8a8172;
+  color: var(--color-neutral-grey);
   font-size: 11px;
   font-weight: 400;
   line-height: 18px;
@@ -207,24 +178,23 @@ page,
 }
 
 .profile-row__arrow {
-  flex: 0 0 4px;
-  width: 4px;
-  height: 8px;
-  margin-right: 1px;
-  border-top: 1px solid #8a8172;
-  border-right: 1px solid #8a8172;
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  margin-right: 3px;
+  border-top: 1px solid var(--color-neutral-grey);
+  border-right: 1px solid var(--color-neutral-grey);
   transform: rotate(45deg);
 }
 
 .profile-member-failure {
-  position: absolute;
-  top: 374px;
-  left: 20px;
-  width: calc(100% - 40px);
-  height: 100px;
+  position: relative;
+  width: 100%;
+  min-height: 100px;
+  margin-top: 16px;
   box-sizing: border-box;
   padding: 18px 16px;
-  background: #f1f5e6;
+  background: var(--color-olive-tint);
   border-radius: 14px;
 }
 
@@ -234,7 +204,7 @@ page,
 }
 
 .profile-member-failure__title {
-  color: #080806;
+  color: var(--color-brand-black);
   font-size: 15px;
   font-weight: 500;
   line-height: 22px;
@@ -242,7 +212,7 @@ page,
 
 .profile-member-failure__copy {
   margin-top: 10px;
-  color: #8a8172;
+  color: var(--color-neutral-grey);
   font-size: 11px;
   line-height: 18px;
 }
@@ -255,58 +225,20 @@ page,
   min-height: 34px;
   margin: 0 !important;
   padding: 0;
-  color: #586b3f;
-  background: #fff;
+  color: var(--color-brand-olive);
+  background: var(--color-brand-white);
   border-radius: 10px;
   font-size: 12px;
   font-weight: 500;
   line-height: 34px;
 }
 
-.profile-logout {
-  position: absolute;
-  left: 20px;
-  height: 44px;
-  min-height: 44px;
-  margin: 0 !important;
-  padding: 0;
-  color: #b5523c;
-  background: #fff;
-  border: 1px solid #e8e0d0;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 42px;
-  width: calc(100% - 40px) !important;
-}
-
-.profile-page__content--member .profile-logout {
-  top: 574px;
-}
-
-.profile-page__content--failure .profile-logout {
-  top: 656px;
-}
-
 .profile-version {
-  position: absolute;
-  left: 20px;
-  width: calc(100% - 40px);
-  height: 18px;
-  color: #8a8172;
+  display: block;
+  width: 100%;
+  margin-top: 28px;
+  color: var(--color-neutral-grey);
   font-size: 11px;
   line-height: 18px;
   text-align: center;
-}
-
-.profile-page__content--guest .profile-version {
-  top: 706px;
-}
-
-.profile-page__content--member .profile-version {
-  top: 628px;
-}
-
-.profile-page__content--failure .profile-version {
-  top: 710px;
 }

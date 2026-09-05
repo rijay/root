@@ -3,7 +3,7 @@ const { remember: rememberAuthIntent } = require("../utils/auth-intent");
 const { getToken } = require("../utils/request");
 
 // 健康 Tab 对访客开放介绍内容；只有用户主动开始评测时才进入登录流程。
-const PROTECTED_TAB_INDEXES = new Set([3]);
+const PROTECTED_TAB_INDEXES = new Set([4]);
 
 Component({
   data: {

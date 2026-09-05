@@ -7,9 +7,58 @@ const {
 } = require("../utils/cloud-route");
 
 const validValue = "preview_route_12345678";
+const trialCandidateValue = "5a9f237e88948739367da8cc29ab79332f9ddf358bcb1694";
 
 clearCloudRoute();
 assert.equal(appendCloudRoute("/health", "trial"), "/health");
+assert.equal(
+  appendCloudRoute("/api/v1/channels/resolve", "trial"),
+  `/api/v1/channels/resolve?myroot_canary=${trialCandidateValue}`
+);
+assert.equal(
+  appendCloudRoute("/api/v1/channels/funnel", "trial"),
+  `/api/v1/channels/funnel?myroot_canary=${trialCandidateValue}`
+);
+assert.equal(
+  appendCloudRoute("/api/v1/health/assessments/catalog", "trial"),
+  `/api/v1/health/assessments/catalog?myroot_canary=${trialCandidateValue}`
+);
+assert.equal(
+  appendCloudRoute("/api/v1/health/assessments/history?assessmentType=INITIAL", "trial"),
+  `/api/v1/health/assessments/history?assessmentType=INITIAL&myroot_canary=${trialCandidateValue}`
+);
+assert.equal(
+  appendCloudRoute("/api/v1/privacy/health-consent", "trial"),
+  `/api/v1/privacy/health-consent?myroot_canary=${trialCandidateValue}`
+);
+assert.equal(
+  appendCloudRoute("/api/v1/privacy/health-consent?mode=decision", "trial"),
+  `/api/v1/privacy/health-consent?mode=decision&myroot_canary=${trialCandidateValue}`
+);
+assert.equal(
+  appendCloudRoute("/api/v1/products", "trial"),
+  `/api/v1/products?myroot_canary=${trialCandidateValue}`
+);
+assert.equal(
+  appendCloudRoute("/api/v1/products/4749049439", "trial"),
+  `/api/v1/products/4749049439?myroot_canary=${trialCandidateValue}`
+);
+assert.equal(
+  appendCloudRoute("/api/v1/member-commerce/summary", "trial"),
+  `/api/v1/member-commerce/summary?myroot_canary=${trialCandidateValue}`
+);
+assert.equal(
+  appendCloudRoute("/api/v1/health/overview", "develop"),
+  "/api/v1/health/overview"
+);
+assert.equal(
+  appendCloudRoute("/api/v1/health/overview", "release"),
+  "/api/v1/health/overview"
+);
+assert.equal(
+  appendCloudRoute("/api/v1/privacy/health-consent", "release"),
+  "/api/v1/privacy/health-consent"
+);
 
 assert.equal(initializeCloudRoute({ query: { myroot_canary: validValue } }, "trial"), true);
 assert.equal(
@@ -29,6 +78,10 @@ assert.equal(appendCloudRoute("/health", "trial"), `/health?myroot_canary=${refr
 
 assert.equal(refreshCloudRoute({ query: { myroot_canary: "bad&route=1" } }, "trial"), false);
 assert.equal(appendCloudRoute("/health", "trial"), "/health");
+assert.equal(
+  appendCloudRoute("/api/v1/health/overview", "trial"),
+  `/api/v1/health/overview?myroot_canary=${trialCandidateValue}`
+);
 
 assert.equal(initializeCloudRoute({ query: { myroot_canary: validValue } }, "trial"), true);
 assert.equal(
@@ -47,4 +100,4 @@ assert.equal(initializeCloudRoute({ query: { myroot_canary: validValue } }, "tri
 assert.equal(refreshCloudRoute({}, "release"), false);
 assert.equal(appendCloudRoute("/health", "trial"), "/health");
 
-console.log("cloud route scenarios: 20/20 PASS");
+console.log("cloud route scenarios: trial v0.8.0 data binding and release isolation PASS");

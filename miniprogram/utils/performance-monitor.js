@@ -152,6 +152,28 @@ function createPerformanceMonitor(options = {}) {
     });
   }
 
+  function recordPageMetric(input = {}) {
+    return record({
+      name: "page",
+      page: input.page,
+      entry: input.entry,
+      durationMs: input.durationMs,
+      status: input.status || "OBSERVED",
+      errorCode: input.errorCode || "",
+    });
+  }
+
+  function recordImageResult(input = {}) {
+    return record({
+      name: "image",
+      page: input.page,
+      entry: input.entry,
+      durationMs: input.durationMs,
+      status: input.status === "LOAD_FAILED" ? "LOAD_FAILED" : "LOAD_SUCCESS",
+      errorCode: input.errorCode || "",
+    });
+  }
+
   async function flush() {
     if (flushTimer && typeof clearTimeout === "function") clearTimeout(flushTimer);
     flushTimer = null;
@@ -228,6 +250,8 @@ function createPerformanceMonitor(options = {}) {
     flush,
     getSnapshot,
     record,
+    recordImageResult,
+    recordPageMetric,
     recordRequest,
     setUploadEnabled,
     startNativeObservation,

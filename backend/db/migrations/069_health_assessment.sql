@@ -1,0 +1,51 @@
+CREATE TABLE IF NOT EXISTS health_assessment_definition (
+  assessment_definition_id VARCHAR(32) PRIMARY KEY,
+  assessment_type VARCHAR(32) NOT NULL,
+  questionnaire_id VARCHAR(64) NOT NULL,
+  questionnaire_version INT NOT NULL,
+  title VARCHAR(128) NOT NULL,
+  description TEXT NULL,
+  estimated_minutes INT NOT NULL DEFAULT 0,
+  status VARCHAR(24) NOT NULL,
+  content_review_status VARCHAR(24) NOT NULL,
+  professional_review_status VARCHAR(24) NOT NULL,
+  compliance_review_status VARCHAR(24) NOT NULL,
+  result_copy_version INT NOT NULL,
+  questions_json JSON NOT NULL,
+  dimensions_json JSON NOT NULL,
+  safety_rules_json JSON NOT NULL,
+  result_rules_json JSON NOT NULL,
+  result_copies_json JSON NOT NULL,
+  default_result_code VARCHAR(64) NOT NULL,
+  created_at DATETIME(3) NOT NULL,
+  updated_at DATETIME(3) NOT NULL,
+  UNIQUE KEY uk_health_assessment_definition_questionnaire (questionnaire_id, questionnaire_version),
+  KEY idx_health_assessment_definition_type_status (assessment_type, status, questionnaire_version)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS health_assessment_attempt (
+  assessment_id VARCHAR(32) PRIMARY KEY,
+  root_user_id VARCHAR(32) NOT NULL,
+  assessment_definition_id VARCHAR(32) NOT NULL,
+  assessment_type VARCHAR(32) NOT NULL,
+  questionnaire_id VARCHAR(64) NOT NULL,
+  questionnaire_version INT NOT NULL,
+  status VARCHAR(24) NOT NULL,
+  safety_state VARCHAR(32) NOT NULL,
+  is_retest TINYINT(1) NOT NULL DEFAULT 0,
+  answers_json JSON NOT NULL,
+  dimensions_json JSON NOT NULL,
+  result_json JSON NOT NULL,
+  result_copy_version INT NOT NULL,
+  source_channel VARCHAR(64) NULL,
+  started_at DATETIME(3) NOT NULL,
+  completed_at DATETIME(3) NULL,
+  health_data_redacted_at DATETIME(3) NULL,
+  created_at DATETIME(3) NOT NULL,
+  updated_at DATETIME(3) NOT NULL,
+  KEY idx_health_assessment_attempt_user_type_time (root_user_id, assessment_type, completed_at),
+  KEY idx_health_assessment_attempt_questionnaire (questionnaire_id, questionnaire_version, status),
+  CONSTRAINT fk_health_assessment_attempt_definition
+    FOREIGN KEY (assessment_definition_id)
+    REFERENCES health_assessment_definition (assessment_definition_id)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

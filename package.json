@@ -29,14 +29,20 @@
     "v1:mysql-production-preflight:check": "node --test backend/tests/mysql_production_preflight.test.js backend/tests/formal_launch_mysql_disposition_report.test.js",
     "v1:mysql-runtime-migration:check": "node --test backend/tests/mysql_runtime_migration_mode.test.js backend/tests/mysql_production_migrate_command.test.js backend/tests/mysql_privilege_policy.test.js",
     "v1:mysql-001-068-authorized:check": "node --test --test-reporter=tap --test-concurrency=1 backend/tests/mysql_local_readiness.integration.test.js",
+    "v1:user-labels-mysql:check": "node --test --test-reporter=tap backend/tests/user_labels_mysql.integration.test.js",
     "v1:mysql-local-authorized:run": "node backend/scripts/mysql-local-authorized-runner.js",
     "v1:release-evidence:check": "node --test backend/tests/release_evidence_contract_registry.test.js",
     "v1:schema-snapshot:check": "node --test backend/tests/mysql_schema_snapshot.test.js backend/tests/mysql_migration_structure_guard.test.js",
     "v1:foundation:check": "npm run v1:baseline-signoff:check && npm run v1:platform-control-evidence:check && npm run v1:content-ued-authorization:check && npm run v1:formal-evidence:check && npm run v1:activity:check && npm run v1:artifact-provenance:check && npm run v1:deployment-artifact-binding:check && npm run v1:mysql-production-preflight:check && npm run v1:mysql-runtime-migration:check && npm run v1:release-evidence:check && npm run v1:schema-snapshot:check",
     "verify:canary": "node scripts/production-canary-verify.js",
-    "verify": "node scripts/final-verification.js"
+    "verify": "node scripts/final-verification.js",
+    "setup": "npm ci --prefix backend --ignore-scripts && npm ci --prefix admin --ignore-scripts",
+    "doctor": "node scripts/doctor.js",
+    "dev:local": "node scripts/dev-local.js",
+    "dev:admin": "npm run dev --prefix admin",
+    "qa:local": "node --test --test-reporter=spec scripts/local-qa.test.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   }
 }

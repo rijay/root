@@ -24,9 +24,9 @@ function sourceFiles(directory) {
 assert.deepEqual(
   app.tabBar.list.map(({ pagePath, text }) => ({ pagePath, text })),
   routes.FORMAL_TABS.map(({ pagePath, text }) => ({ pagePath, text })),
-  "正式上线 Tab 必须精确为首页、健康、活动、我的",
+  "v0.6.0 Tab 必须精确为首页、产品、健康、活动、我的",
 );
-assert.equal(app.tabBar.custom, true, "正式上线必须使用批准的四 Tab 自定义导航");
+assert.equal(app.tabBar.custom, true, "v0.6.0 必须使用批准的五 Tab 自定义导航");
 assert.equal(app.pages[0], routes.WELCOME_ROUTE, "欢迎页必须是首次启动入口");
 assert.equal(app.lazyCodeLoading, "requiredComponents");
 assert.deepEqual(Object.keys(app.usingComponents || {}), [], "低频 UI 不得注册为全局依赖");
@@ -62,7 +62,6 @@ const forbiddenReference = new RegExp(routes.FORBIDDEN_ROUTE_PREFIXES
 const references = sourceFiles(root)
   .filter((file) => !file.includes(`${path.sep}scripts${path.sep}`))
   .filter((file) => !file.includes(`${path.sep}fixtures${path.sep}`))
-  .filter((file) => !file.includes(`${path.sep}pages${path.sep}dev-identity-probe${path.sep}`))
   .filter((file) => !file.endsWith("formal-launch-scope.test.js"))
   .filter((file) => !file.endsWith("formal-launch-routes.js"))
   .filter((file) => forbiddenReference.test(fs.readFileSync(file, "utf8")));

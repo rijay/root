@@ -1,5 +1,6 @@
 const { appVersion } = require("../../../../config/version");
 const router = require("../../../../utils/router");
+const { defaultOnShareAppMessage } = require("../../../../utils/page-share");
 
 function runtimeVersion() {
   try {
@@ -25,4 +26,10 @@ Page({
   openPrivacyAccount() {
     router.open("/subpkg/profile/pages/privacy-account/index");
   },
+
+  openPhggReference() {
+    router.open("/subpkg/content/pages/phgg-reference/index?source=about");
+  },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

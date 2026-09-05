@@ -1,0 +1,120 @@
+.source-page {
+  min-height: 100vh;
+  background: var(--color-root-bg);
+}
+
+.source-state,
+.source-content {
+  box-sizing: border-box;
+  padding: 96rpx var(--spacing-md) calc(240rpx + env(safe-area-inset-bottom));
+}
+
+.source-state {
+  text-align: center;
+}
+
+.source-retry {
+  margin-top: var(--spacing-lg);
+}
+
+.source-kicker {
+  color: var(--color-root-sprout);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  letter-spacing: 3rpx;
+}
+
+.source-title {
+  margin-top: 24rpx;
+  color: var(--color-root-ink);
+  font-size: 48rpx;
+  font-weight: 780;
+  line-height: 1.3;
+}
+
+.source-subtitle {
+  margin-top: 20rpx;
+  color: var(--color-root-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+}
+
+.source-options {
+  display: grid;
+  gap: 16rpx;
+  margin-top: 48rpx;
+}
+
+.source-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100% !important;
+  min-height: 96rpx;
+  margin: 0;
+  padding: 0 var(--spacing-md);
+  box-sizing: border-box;
+  color: var(--color-root-ink);
+  background: var(--color-root-surface);
+  border: 2rpx solid transparent;
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-base);
+  font-weight: 650;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.source-option.is-selected {
+  color: var(--color-root-moss);
+  background: var(--color-primary-tint);
+  border-color: var(--color-root-sprout);
+}
+
+.source-option::after,
+.source-confirm::after,
+.source-skip::after {
+  border: 0;
+}
+
+.source-option__mark {
+  flex: 0 0 40rpx;
+  margin-left: 16rpx;
+  text-align: center;
+}
+
+.source-actions {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  padding: 20rpx var(--spacing-md) calc(16rpx + env(safe-area-inset-bottom));
+  background: var(--color-root-bg);
+  border-top: 1rpx solid var(--color-root-line);
+  box-shadow: 0 -8rpx 24rpx rgba(0, 0, 0, 0.05);
+}
+
+.source-confirm {
+  width: 100% !important;
+  min-height: 96rpx;
+  margin: 0;
+  color: var(--color-root-nav);
+  background: var(--color-root-ink);
+  border: 0;
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-base);
+  font-weight: 720;
+  line-height: 96rpx;
+}
+
+.source-skip {
+  width: 100% !important;
+  min-height: 72rpx;
+  margin: 8rpx 0 0;
+  padding: 0;
+  color: var(--color-root-muted);
+  background: transparent;
+  border: 0;
+  font-size: var(--font-size-sm);
+  line-height: 72rpx;
+}

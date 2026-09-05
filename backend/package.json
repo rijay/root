@@ -1,6 +1,6 @@
 {
   "name": "root-seven-day-checkin-backend",
-  "version": "0.5.13",
+  "version": "0.8.0",
   "private": true,
   "description": "myRoot formal-launch API and operations admin",
   "scripts": {
@@ -9,6 +9,10 @@
     "jobs:manifest": "node scripts/cloudbase-job-manifest.js",
     "production-env": "node scripts/production-env-matrix.js",
     "dev": "node src/server.js",
+    "dev:miniprogram": "node scripts/dev-miniprogram.js",
+    "verify:health-advice:local": "node scripts/verify-local-health-advice.js",
+    "verify:health-advice:fallback": "node scripts/verify-local-health-advice.js --expected-source=REVIEWED_FALLBACK",
+    "verify:youzan:local": "node scripts/verify-youzan-commerce-live.js",
     "dev:ued-review": "node scripts/ued-review-server.js",
     "store:migrate:mysql": "node scripts/store-migrate.js",
     "db:migrate": "node scripts/mysql-migrate.js",

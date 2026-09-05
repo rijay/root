@@ -3,21 +3,20 @@
     <swiper-item>
       <view class="welcome__slide welcome__slide--first">
         <view class="welcome__media welcome__media--first" data-release-asset="{{screens[0].assetState}}">
-          <image wx:if="{{screens[0].assetUrl}}" class="welcome__image" src="{{screens[0].assetUrl}}" mode="aspectFill" />
+          <image wx:if="{{screens[0].assetUrl}}" class="welcome__image" src="{{screens[0].assetUrl}}" mode="aspectFill" lazy-load="{{false}}" fade-in="{{false}}" show-menu-by-longpress="{{false}}" />
         </view>
         <view class="welcome__shade welcome__shade--first"></view>
         <immersive-header tone="light" />
         <view class="welcome__copy welcome__copy--first">
           <text class="welcome__kicker">ROOT MEMBER CLUB</text>
-          <text class="welcome__title">{{screens[0].copy || '欢迎加入\nRoot Member Club'}}</text>
-          <text class="welcome__subtitle">Sustained Foundation Balance</text>
+          <text class="welcome__title">{{screens[0].copy || '欢迎加入\nROOT Member Club'}}</text>
         </view>
       </view>
     </swiper-item>
     <swiper-item>
       <view class="welcome__slide welcome__slide--second">
         <view class="welcome__media welcome__media--second" data-release-asset="{{screens[1].assetState}}">
-          <image wx:if="{{screens[1].assetUrl}}" class="welcome__image" src="{{screens[1].assetUrl}}" mode="aspectFill" />
+          <image wx:if="{{screens[1].assetUrl}}" class="welcome__image" src="{{screens[1].assetUrl}}" mode="aspectFill" lazy-load="{{true}}" fade-in="{{false}}" show-menu-by-longpress="{{false}}" />
         </view>
         <view class="welcome__shade welcome__shade--second"></view>
         <immersive-header tone="light" />

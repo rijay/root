@@ -1,0 +1,36 @@
+<view class="source-page">
+  <view wx:if="{{loading}}" class="source-state">
+    <view class="root-section-title">正在确认下一步</view>
+    <view class="root-helper-text">评测结果已经生成。</view>
+  </view>
+
+  <view wx:elif="{{errorText}}" class="source-state">
+    <view class="root-section-title">渠道选项暂时无法加载</view>
+    <view class="root-helper-text">{{errorText}}</view>
+    <button class="root-button source-retry" bindtap="load">重新加载</button>
+    <button class="source-skip" bindtap="goResult">直接查看评测结果</button>
+  </view>
+
+  <view wx:else class="source-content">
+    <view class="source-kicker">ONE MORE STEP</view>
+    <view class="source-title">{{title}}</view>
+    <view class="source-subtitle">{{subtitle}}</view>
+
+    <view class="source-options">
+      <button
+        wx:for="{{options}}"
+        wx:key="optionId"
+        class="source-option {{item.selected ? 'is-selected' : ''}}"
+        data-option-id="{{item.optionId}}"
+        bindtap="selectOption"
+      >
+        <text>{{item.label}}</text>
+        <text class="source-option__mark">{{item.selected ? '✓' : ''}}</text>
+      </button>
+    </view>
+
+    <view class="source-actions">
+      <button class="source-confirm" loading="{{submitting}}" disabled="{{!selectedOptionId || submitting}}" bindtap="confirm">确认并查看结果</button>
+    </view>
+  </view>
+</view>

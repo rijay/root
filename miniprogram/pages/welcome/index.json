@@ -1,5 +1,10 @@
 {
   "navigationStyle": "custom",
+  "navigationBarBackgroundColor": "#000000",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#000000",
+  "backgroundColorTop": "#000000",
+  "backgroundColorBottom": "#000000",
   "disableScroll": true,
   "usingComponents": {
     "immersive-header": "/components/immersive-header/index"

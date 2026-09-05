@@ -10,6 +10,8 @@ const envScript = read("config/env.js");
 const wxml = read("pages/profile/index.wxml");
 const wxss = read("pages/profile/index.wxss");
 const supportScript = read("subpkg/profile/pages/support/index.js");
+const registerScript = read("pages/register/index.js");
+const registerWxml = read("pages/register/index.wxml");
 
 assert.match(formalAccessScript, /\/api\/v1\/user\/formal-profile/);
 assert.match(script, /inspectFormalAccess\("profile-home"\)/);
@@ -20,14 +22,16 @@ assert.match(envScript, /rootMemberCenterOrdersShortLink:\s*"#小程序:\/\/ROOT
 assert.match(envScript, /rootMemberCenterCouponsShortLink:\s*"#小程序:\/\/ROOT会员中心\/vTORPdF67tiEwCb"/);
 assert.match(envScript, /corpId:\s*"ww4c7f2598188d97db"/);
 assert.match(envScript, /url:\s*"https:\/\/work\.weixin\.qq\.com\/kfid\/kfc9a886fb6a493c66b"/);
-assert.match(script, /clearToken/);
+assert.doesNotMatch(script, /clearToken|logout\(\)/);
 assert.match(wxml, /我的订单/);
 assert.match(wxml, /优惠券/);
 assert.match(wxml, /常见问题/);
 assert.match(wxml, /联系客服/);
 assert.match(wxml, /建议与反馈/);
 assert.match(wxml, /关于 Root/);
-assert.match(wxml, /退出登录/);
+assert.doesNotMatch(wxml, /退出登录/);
+assert.match(registerScript, /clearToken/);
+assert.match(registerWxml, /class="register-page__logout"[^>]*bindtap="logout">退出登录<\/button>/);
 assert.doesNotMatch(wxml, /会员等级|积分|余额/);
 assert.doesNotMatch(wxml, /›|＞|&gt;/);
 assert.match(wxss, /profile-row__arrow/);

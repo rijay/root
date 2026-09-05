@@ -189,7 +189,7 @@ page {
 .option-card.active {
   background: var(--color-primary-tint);
   border-color: var(--color-primary);
-  box-shadow: 0 8rpx 24rpx rgba(88, 107, 63, 0.12);
+  box-shadow: 0 8rpx 24rpx rgba(36, 42, 11, 0.12);
 }
 
 .list-item {
@@ -334,7 +334,7 @@ page {
 .root-option.active {
   background: var(--color-primary-tint);
   border-color: var(--color-root-moss);
-  box-shadow: 0 8rpx 24rpx rgba(88, 107, 63, 0.12);
+  box-shadow: 0 8rpx 24rpx rgba(36, 42, 11, 0.12);
 }
 
 .root-option__mark {

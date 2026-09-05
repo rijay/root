@@ -9,16 +9,17 @@ function read(relativePath) {
 }
 
 const listScript = read("pages/activities/index.js");
+const feedCacheScript = read("utils/activity-feed-cache.js");
 const listWxml = read("pages/activities/index.wxml");
 const detailScript = read("subpkg/activity/pages/detail/index.js");
 const detailJson = read("subpkg/activity/pages/detail/index.json");
 const detailWxml = read("subpkg/activity/pages/detail/index.wxml");
 const detailWxss = read("subpkg/activity/pages/detail/index.wxss");
 
-assert.match(listScript, /\/api\/v1\/activities\?pageSize=20/);
+assert.match(feedCacheScript, /\/api\/v1\/activities\?pageSize=20/);
 assert.match(listScript, /presentActivityList/);
-assert.match(listScript, /readPublicPageCache/);
-assert.match(listScript, /requestWithDeadline/);
+assert.match(listScript, /readActivityFeedCache/);
+assert.match(feedCacheScript, /requestWithDeadline/);
 assert.match(listScript, /listingState === "AVAILABLE"/);
 assert.match(listScript, /routeGuard\("\/subpkg\/activity\/pages\/enrollments\/index"\)/);
 assert.match(listScript, /我的报名/);
@@ -30,6 +31,8 @@ assert.match(detailScript, /commandReachedAuthorityState/);
 assert.match(detailJson, /page-navigation/);
 assert.match(detailJson, /root-wordmark/);
 assert.match(detailWxml, /detail-action-bar/);
+assert.match(detailWxml, /action\.kind !== 'NONE'/);
+assert.match(detailWxml, /\{\{action\.explanation\}\}/);
 assert.match(detailWxml, /confirmSheetVisible/);
 assert.match(detailWxml, /重复点击不会产生重复报名/);
 assert.match(detailWxss, /position:\s*fixed/);

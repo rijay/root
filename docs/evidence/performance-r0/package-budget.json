@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-06T04:08:14.658Z",
+  "generatedAt": "2026-09-05T08:57:43.140Z",
   "evidenceClass": "LOCAL_FORMAL_SOURCE_ESTIMATE",
   "releaseGateEligible": false,
   "packageState": "LOCAL_SOURCE_ESTIMATE",
@@ -29,11 +29,11 @@
   },
   "packages": {
     "main": {
-      "bytes": 469287,
-      "fileCount": 99,
+      "bytes": 690972,
+      "fileCount": 156,
       "budget": {
         "status": "PASS",
-        "value": 469287,
+        "value": 690972,
         "target": 1363148.8,
         "hardLimit": 1572864
       }
@@ -41,65 +41,76 @@
     "subpackages": [
       {
         "root": "subpkg/content",
-        "bytes": 7701,
-        "fileCount": 8,
+        "bytes": 820175,
+        "fileCount": 21,
+        "budget": {
+          "status": "WARN",
+          "value": 820175,
+          "target": 819200,
+          "hardLimit": 1258291.2
+        }
+      },
+      {
+        "root": "subpkg/campaign",
+        "bytes": 301415,
+        "fileCount": 5,
         "budget": {
           "status": "PASS",
-          "value": 7701,
+          "value": 301415,
           "target": 819200,
           "hardLimit": 1258291.2
         }
       },
       {
         "root": "subpkg/health",
-        "bytes": 23240,
-        "fileCount": 8,
+        "bytes": 123167,
+        "fileCount": 21,
         "budget": {
           "status": "PASS",
-          "value": 23240,
+          "value": 123167,
           "target": 819200,
           "hardLimit": 1258291.2
         }
       },
       {
         "root": "subpkg/activity",
-        "bytes": 54156,
+        "bytes": 56567,
         "fileCount": 9,
         "budget": {
           "status": "PASS",
-          "value": 54156,
+          "value": 56567,
           "target": 819200,
           "hardLimit": 1258291.2
         }
       },
       {
         "root": "subpkg/profile",
-        "bytes": 20930,
+        "bytes": 22571,
         "fileCount": 12,
         "budget": {
           "status": "PASS",
-          "value": 20930,
+          "value": 22571,
           "target": 819200,
           "hardLimit": 1258291.2
         }
       }
     ],
     "total": {
-      "bytes": 575314,
-      "fileCount": 136,
+      "bytes": 2014867,
+      "fileCount": 224,
       "budget": {
         "status": "PASS",
-        "value": 575314,
+        "value": 2014867,
         "target": 6291456,
         "hardLimit": 8388608
       }
     },
     "mainLocalMedia": {
-      "bytes": 260629,
-      "fileCount": 12,
+      "bytes": 295653,
+      "fileCount": 25,
       "budget": {
         "status": "WARN",
-        "value": 260629,
+        "value": 295653,
         "target": 204800,
         "hardLimit": 307200
       }
@@ -130,6 +141,39 @@
         "value": 18543,
         "target": 20480,
         "hardLimit": 40960
+      }
+    },
+    {
+      "path": "static/campaign/root-with-you-home.jpg",
+      "bytes": 19309,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 19309,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/home/banner1.jpg",
+      "bytes": 50407,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 50407,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/home/banner2.jpg",
+      "bytes": 47452,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 47452,
+        "target": 409600,
+        "hardLimit": 614400
       }
     },
     {
@@ -199,6 +243,28 @@
       }
     },
     {
+      "path": "static/icons/tab-product-active.svg",
+      "bytes": 384,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 384,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/icons/tab-product.svg",
+      "bytes": 384,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 384,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
       "path": "static/icons/tab-profile-active.svg",
       "bytes": 335,
       "category": "GENERAL_LOCAL_MEDIA",
@@ -221,23 +287,188 @@
       }
     },
     {
-      "path": "static/welcome/welcome-01.jpg",
-      "bytes": 103613,
+      "path": "static/products/rt-prb-01.jpg",
+      "bytes": 9712,
       "category": "GENERAL_LOCAL_MEDIA",
       "budget": {
         "status": "PASS",
-        "value": 103613,
+        "value": 9712,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/products/rt-prb-02.jpg",
+      "bytes": 9500,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 9500,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "static/tabbar/activity_active.png",
+      "bytes": 915,
+      "category": "LOGO_OR_TAB_ICON",
+      "budget": {
+        "status": "PASS",
+        "value": 915,
+        "target": 20480,
+        "hardLimit": 40960
+      }
+    },
+    {
+      "path": "static/tabbar/activity.png",
+      "bytes": 904,
+      "category": "LOGO_OR_TAB_ICON",
+      "budget": {
+        "status": "PASS",
+        "value": 904,
+        "target": 20480,
+        "hardLimit": 40960
+      }
+    },
+    {
+      "path": "static/tabbar/health_active.png",
+      "bytes": 1784,
+      "category": "LOGO_OR_TAB_ICON",
+      "budget": {
+        "status": "PASS",
+        "value": 1784,
+        "target": 20480,
+        "hardLimit": 40960
+      }
+    },
+    {
+      "path": "static/tabbar/health.png",
+      "bytes": 1745,
+      "category": "LOGO_OR_TAB_ICON",
+      "budget": {
+        "status": "PASS",
+        "value": 1745,
+        "target": 20480,
+        "hardLimit": 40960
+      }
+    },
+    {
+      "path": "static/tabbar/product_active.png",
+      "bytes": 1104,
+      "category": "LOGO_OR_TAB_ICON",
+      "budget": {
+        "status": "PASS",
+        "value": 1104,
+        "target": 20480,
+        "hardLimit": 40960
+      }
+    },
+    {
+      "path": "static/tabbar/product.png",
+      "bytes": 1081,
+      "category": "LOGO_OR_TAB_ICON",
+      "budget": {
+        "status": "PASS",
+        "value": 1081,
+        "target": 20480,
+        "hardLimit": 40960
+      }
+    },
+    {
+      "path": "static/welcome/welcome-01.jpg",
+      "bytes": 55101,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 55101,
         "target": 409600,
         "hardLimit": 614400
       }
     },
     {
       "path": "static/welcome/welcome-02.jpg",
-      "bytes": 126573,
+      "bytes": 65428,
       "category": "GENERAL_LOCAL_MEDIA",
       "budget": {
         "status": "PASS",
-        "value": 126573,
+        "value": 65428,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "subpkg/campaign/assets/root-with-you-intro.jpg",
+      "bytes": 294383,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 294383,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "subpkg/content/assets/brand-foundation/1.jpg",
+      "bytes": 84681,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 84681,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "subpkg/content/assets/brand-foundation/2.jpg",
+      "bytes": 106895,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 106895,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "subpkg/content/assets/brand-foundation/3.jpg",
+      "bytes": 119364,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 119364,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "subpkg/content/assets/brand-foundation/4.jpg",
+      "bytes": 223305,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 223305,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "subpkg/content/assets/brand-foundation/5.jpg",
+      "bytes": 237773,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 237773,
+        "target": 409600,
+        "hardLimit": 614400
+      }
+    },
+    {
+      "path": "subpkg/health/assets/bristol-stool-scale.jpg",
+      "bytes": 51097,
+      "category": "GENERAL_LOCAL_MEDIA",
+      "budget": {
+        "status": "PASS",
+        "value": 51097,
         "target": 409600,
         "hardLimit": 614400
       }

@@ -70,12 +70,14 @@
     </view>
     <view wx:else class="detail-scroll-spacer"></view>
 
-    <view class="detail-action-bar">
+    <view class="detail-action-bar {{action.kind === 'NONE' ? 'detail-action-bar--status-only' : ''}}">
       <view class="detail-action-state">
         <text class="detail-action-state__label">{{availabilityText}}</text>
-        <text wx:if="{{activity.enrollment}}" class="detail-action-state__hint">状态以 myRoot 为准</text>
+        <text wx:if="{{action.kind === 'NONE'}}" class="detail-action-state__hint">{{action.explanation}}</text>
+        <text wx:elif="{{activity.enrollment}}" class="detail-action-state__hint">报名状态以当前页面为准</text>
       </view>
       <button
+        wx:if="{{action.kind !== 'NONE'}}"
         class="detail-action-button"
         style="width: 198px;"
         disabled="{{action.disabled}}"

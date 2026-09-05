@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "root4u-health-advice-catalog-v1",
+  "taxonomyVersion": "root4u-health-advice-taxonomy-v1",
+  "promptVersion": "root4u-health-advice-catalog-prompt-v2",
+  "modelName": "hy3",
+  "generatedAt": "",
+  "reviewStatus": "DRAFT",
+  "reviewedAt": "",
+  "reviewer": "",
+  "entries": []
+}

@@ -8,6 +8,7 @@ const {
   presentActivityWriteError,
 } = require("../../../../utils/activity-actions");
 const { createActivityPendingCommandRegistry } = require("../../../../utils/activity-command-recovery");
+const { defaultOnShareAppMessage } = require("../../../../utils/page-share");
 const {
   PAGE_SIZE,
   buildEnrollmentsUrl,
@@ -346,4 +347,6 @@ Page({
   openSupport() {
     router.open("/subpkg/profile/pages/support/index?topic=activity&source=my_enrollments");
   },
+
+  onShareAppMessage: defaultOnShareAppMessage,
 });

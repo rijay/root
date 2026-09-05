@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-08-17T19:30:00+08:00",
+  "authorizationStatus": "WAITING_EXPLICIT_USER_APPROVAL",
+  "release": {
+    "version": "0.6.0",
+    "branch": "codex/v0.6.0-integration-20260817",
+    "commit": "5779c54",
+    "releaseId": "v0.6.0+5779c54-candidate-20260817"
+  },
+  "target": {
+    "environmentId": "myroot-prod-d5gl3gzg7115f149a",
+    "database": "myroot-prod-d5gl3gzg7115f149a",
+    "service": "myroot-api",
+    "currentDefaultVersion": "myroot-api-051",
+    "currentDefaultReleaseId": "v1.0.0+ca8057ba-activity-datetime-projection-hotfix-20260805",
+    "currentSchemaVersion": "068_formal_launch_confirmed_prelaunch_cleanup.sql",
+    "targetSchemaVersion": "071_product_analytics.sql"
+  },
+  "recoveryPoint": {
+    "backupId": 10180815,
+    "backupType": "snapshot",
+    "snapshotType": "full",
+    "snapshotTime": "2026-08-17 19:21:58",
+    "status": "success",
+    "copyStatus": "done",
+    "usable": true
+  },
+  "migrations": [
+    {
+      "version": "069_health_assessment.sql",
+      "sha256": "2d04281d7af291c349c4fbce7b1dba8a9c80c2c49a4677f2db5475dc4a503a1c",
+      "changeClass": "CREATE_TABLE_ONLY"
+    },
+    {
+      "version": "070_growth_engagement.sql",
+      "sha256": "db4f76619459c058b0a7bb8be44d3986131bb363affa472eee5600e4e8315e0c",
+      "changeClass": "CREATE_TABLE_ONLY"
+    },
+    {
+      "version": "071_product_analytics.sql",
+      "sha256": "646f786fde31acbf3f2009a2dfb27f01e80fa35dc12d3e7e15138cd8722d1f35",
+      "changeClass": "CREATE_TABLE_ONLY"
+    }
+  ],
+  "candidateArtifact": {
+    "archive": "/private/tmp/myroot-api-v060-5779c54.zip",
+    "archiveBytes": 991190,
+    "archiveEntryCount": 316,
+    "archiveSha256": "f5ef38b7668438942c7dc8de2bc4c303f6133edd2dd80a51ca03cedf1789eea6",
+    "sourceManifestSha256": "e6b0961f2828a2ecaa27b697fb80862e0e222de3a3148fd59d65f8bb303d50ec"
+  },
+  "requestedProductionActions": [
+    {
+      "order": 1,
+      "action": "CREATE_TEMPORARY_MIGRATION_ACCOUNT",
+      "principal": "myroot_migrator_069_071",
+      "hostScope": "172.17.0.0/255.255.240.0",
+      "schemaScope": "myroot-prod-d5gl3gzg7115f149a.*",
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "CREATE",
+        "ALTER",
+        "DROP",
+        "INDEX",
+        "REFERENCES"
+      ],
+      "restriction": "No global scope, no GRANT OPTION, no routine privileges"
+    },
+    {
+      "order": 2,
+      "action": "DEPLOY_TEMPORARY_MIGRATION_FUNCTION",
+      "functionName": "myroot-migration-069-071",
+      "runtime": "Nodejs18.15",
+      "triggers": 0,
+      "initialMode": "plan",
+      "timeoutSeconds": 900,
+      "network": "same VPC and subnet as myroot-api"
+    },
+    {
+      "order": 3,
+      "action": "RUN_READ_ONLY_PLAN",
+      "expectedAppliedCount": 68,
+      "expectedPending": [
+        "069_health_assessment.sql",
+        "070_growth_engagement.sql",
+        "071_product_analytics.sql"
+      ]
+    },
+    {
+      "order": 4,
+      "action": "ENABLE_APPLY_AND_INVOKE_ONCE",
+      "confirmationBinding": "APPLY:production:v0.6.0+5779c54-candidate-20260817:<packet-sha256>",
+      "stopCondition": "Stop immediately on checksum, order, permission, lock, DDL or verification error"
+    },
+    {
+      "order": 5,
+      "action": "CLEAN_UP_TEMPORARY_ACCESS",
+      "steps": [
+        "restore function to plan mode",
+        "delete myroot-migration-069-071",
+        "drop myroot_migrator_069_071",
+        "read back account_count=0 and function absent"
+      ],
+      "maximumLifetime": "current task only; target under 2 hours"
+    },
+    {
+      "order": 6,
+      "action": "VERIFY_AND_DEPLOY_ZERO_PERCENT_CANDIDATE",
+      "traffic": "URL_PARAMS with 0 percent default flow",
+      "stableDefaultMustRemain": "myroot-api-051"
+    }
+  ],
+  "rollback": {
+    "normalCodeRollback": "Keep myroot-api-051 as the default version and remove the 0 percent candidate route.",
+    "schemaCompatibility": "069-071 only add empty tables, so the stable 0.5.13 runtime can continue without using them.",
+    "databaseRestore": "Backup 10180815 is the last-resort cluster recovery point. Restoring it can remove writes made after 2026-08-17 19:21:58 and therefore requires a separate incident decision; it is not an automatic rollback step."
+  },
+  "excludedFromThisAuthorization": [
+    "promoting candidate traffic above 0 percent",
+    "publishing or marking health questionnaire content as approved",
+    "creating formal channel IDs or channel signing secrets",
+    "restoring or deleting database backups",
+    "changing myroot-api-051 environment variables or traffic"
+  ]
+}

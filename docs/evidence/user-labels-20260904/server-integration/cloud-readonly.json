@@ -1,0 +1,123 @@
+{
+  "capturedAt": "2026-09-04T10:28:46.080675+00:00",
+  "environmentId": "myroot-prod-d5gl3gzg7115f149a",
+  "serviceName": "myroot-api",
+  "cloudWrites": 0,
+  "recordWrites": 0,
+  "realUserDetailsRead": 0,
+  "versions": [
+    {
+      "releaseRole": "CurrentVersion",
+      "name": "myroot-api-074",
+      "status": "normal",
+      "releaseId": "v0.8.0+7490ba1-member-commerce-candidate-20260831-r2",
+      "storeAdapter": "mysql",
+      "migrationMode": "verify_only",
+      "labelConfigPresent": {
+        "ROOT_LABEL_FEISHU_APP_TOKEN": false,
+        "ROOT_LABEL_FEISHU_TABLE_ID": false,
+        "ROOT_LABEL_FEISHU_ACCESS_TOKEN": false,
+        "ROOT_LABEL_FEISHU_WRITE_ENABLED": false
+      }
+    },
+    {
+      "releaseRole": "ReleaseVersion",
+      "name": "myroot-api-075",
+      "status": "normal",
+      "releaseId": "v0.8.0+7490ba1-member-commerce-candidate-20260831-r2",
+      "storeAdapter": "mysql",
+      "migrationMode": "verify_only",
+      "labelConfigPresent": {
+        "ROOT_LABEL_FEISHU_APP_TOKEN": false,
+        "ROOT_LABEL_FEISHU_TABLE_ID": false,
+        "ROOT_LABEL_FEISHU_ACCESS_TOKEN": false,
+        "ROOT_LABEL_FEISHU_WRITE_ENABLED": false
+      }
+    }
+  ],
+  "release": {
+    "TrafficType": "FLOW",
+    "FlowRatio": 100,
+    "GrayStatus": "success",
+    "ReleaseStatus": "success",
+    "IsReleasing": false
+  },
+  "http": {
+    "/health": {
+      "status": 200,
+      "code": 0,
+      "dataKeys": [
+        "service",
+        "version",
+        "releaseId",
+        "releaseIdConfigured",
+        "adminPerformanceDatasetVersion",
+        "adminPerformanceDatasetConfigured"
+      ],
+      "releaseId": "v0.8.0+7490ba1-member-commerce-candidate-20260831-r2"
+    },
+    "/ready": {
+      "status": 200,
+      "code": 0,
+      "dataKeys": [
+        "service",
+        "version",
+        "releaseId",
+        "releaseIdConfigured",
+        "adminPerformanceDatasetVersion",
+        "adminPerformanceDatasetConfigured",
+        "store",
+        "commandRequestDigest",
+        "commandResultProtection"
+      ],
+      "releaseId": "v0.8.0+7490ba1-member-commerce-candidate-20260831-r2",
+      "readiness": {
+        "service": "root-checkin",
+        "version": "0.8.0",
+        "releaseId": "v0.8.0+7490ba1-member-commerce-candidate-20260831-r2",
+        "releaseIdConfigured": true,
+        "adminPerformanceDatasetVersion": "ADMIN_PERFORMANCE_R0",
+        "adminPerformanceDatasetConfigured": true,
+        "store": {
+          "kind": "mysql",
+          "connected": true,
+          "migrationVersion": "074_assessment_source_survey.sql",
+          "revision": 15508,
+          "persistenceStatus": "PERSISTENT_STORE_READY",
+          "runtimeMode": "cloud",
+          "transactional": true,
+          "multiInstanceSafe": true,
+          "leastPrivilegeReady": true,
+          "privilegeScope": "SCHEMA",
+          "privilegePolicyEnforced": true
+        },
+        "commandRequestDigest": {
+          "ready": true,
+          "status": "COMMAND_REQUEST_DIGEST_READY",
+          "canonicalVersion": "canonical-json:v1",
+          "digestVersion": "hmac-sha256:v1",
+          "keyId": "production-request-20260730-v1"
+        },
+        "commandResultProtection": {
+          "ready": true,
+          "enabled": true,
+          "status": "COMMAND_RESULT_PROTECTION_READY"
+        }
+      }
+    },
+    "/api/v1/admin/user-labels/config": {
+      "status": 404,
+      "code": 404,
+      "dataKeys": []
+    }
+  },
+  "database": {
+    "readOnly": true,
+    "tables": [
+      {
+        "TABLE_NAME": "schema_migrations"
+      }
+    ]
+  },
+  "httpCapturedAt": "2026-09-04T10:29:27.985Z"
+}
