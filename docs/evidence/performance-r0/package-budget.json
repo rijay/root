@@ -4,7 +4,7 @@
   "evidenceClass": "LOCAL_FORMAL_SOURCE_ESTIMATE",
   "releaseGateEligible": false,
   "packageState": "LOCAL_SOURCE_ESTIMATE",
-  "status": "BLOCK",
+  "status": "PASS",
   "baseLibrary": {
     "minimum": "2.32.3",
     "acceptanceStable": "3.15.2",
@@ -29,11 +29,11 @@
   },
   "packages": {
     "main": {
-      "bytes": 1488277,
+      "bytes": 690768,
       "fileCount": 156,
       "budget": {
-        "status": "WARN",
-        "value": 1488277,
+        "status": "PASS",
+        "value": 690768,
         "target": 1363148.8,
         "hardLimit": 1572864
       }
@@ -96,21 +96,21 @@
       }
     ],
     "total": {
-      "bytes": 2812172,
+      "bytes": 2014663,
       "fileCount": 224,
       "budget": {
         "status": "PASS",
-        "value": 2812172,
+        "value": 2014663,
         "target": 6291456,
         "hardLimit": 8388608
       }
     },
     "mainLocalMedia": {
-      "bytes": 1093162,
+      "bytes": 295653,
       "fileCount": 25,
       "budget": {
-        "status": "BLOCK",
-        "value": 1093162,
+        "status": "WARN",
+        "value": 295653,
         "target": 204800,
         "hardLimit": 307200
       }
@@ -156,22 +156,22 @@
     },
     {
       "path": "static/home/banner1.jpg",
-      "bytes": 511110,
+      "bytes": 50407,
       "category": "GENERAL_LOCAL_MEDIA",
       "budget": {
-        "status": "WARN",
-        "value": 511110,
+        "status": "PASS",
+        "value": 50407,
         "target": 409600,
         "hardLimit": 614400
       }
     },
     {
       "path": "static/home/banner2.jpg",
-      "bytes": 274601,
+      "bytes": 47452,
       "category": "GENERAL_LOCAL_MEDIA",
       "budget": {
         "status": "PASS",
-        "value": 274601,
+        "value": 47452,
         "target": 409600,
         "hardLimit": 614400
       }
@@ -376,22 +376,22 @@
     },
     {
       "path": "static/welcome/welcome-01.jpg",
-      "bytes": 103613,
+      "bytes": 55101,
       "category": "GENERAL_LOCAL_MEDIA",
       "budget": {
         "status": "PASS",
-        "value": 103613,
+        "value": 55101,
         "target": 409600,
         "hardLimit": 614400
       }
     },
     {
       "path": "static/welcome/welcome-02.jpg",
-      "bytes": 126573,
+      "bytes": 65428,
       "category": "GENERAL_LOCAL_MEDIA",
       "budget": {
         "status": "PASS",
-        "value": 126573,
+        "value": 65428,
         "target": 409600,
         "hardLimit": 614400
       }

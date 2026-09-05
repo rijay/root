@@ -5,13 +5,16 @@ const mysql = require("mysql2/promise");
 const { createMysqlStore, createEmptyData } = require("../src/store");
 const sync = require("../src/feishuUserLabels");
 const { fixture, fakeAdapter } = require("./fixtures/userLabelsFixture");
+const { configFromEnv } = require("../scripts/mysql-schema-snapshot");
+const { assertDisposableSnapshotServer } = require("../src/mysqlSchemaSnapshot");
 
 test("MySQL persists label mappings and sync intent before external I/O; restart reconciles an interrupted write", {
   skip: process.env.USER_LABELS_MYSQL_INTEGRATION !== "true",
 }, async () => {
-  // Only the separately provisioned, loopback-only disposable test instance is accepted.
-  const config = { host: "127.0.0.1", port: Number(process.env.SCHEMA_SNAPSHOT_MYSQL_PORT), user: "root", password: "" };
-  assert.equal(config.port, 13316);
+  // Local and CI instances share the same loopback and empty-marker guards.
+  const config = configFromEnv();
+  assert.ok(["127.0.0.1", "localhost", "::1"].includes(String(config.host).toLowerCase()), "MySQL integration requires a loopback host");
+  assert.ok(Number.isSafeInteger(config.port) && config.port > 0 && config.port <= 65535);
   const server = await mysql.createConnection(config);
   const database = `myroot_labels_test_${crypto.randomBytes(6).toString("hex")}`;
   const testUser = `labels_${crypto.randomBytes(6).toString("hex")}`;
@@ -24,8 +27,7 @@ test("MySQL persists label mappings and sync intent before external I/O; restart
     ROOT_COMMAND_RESULT_ENCRYPTION_KEY: crypto.randomBytes(32).toString("hex"), ROOT_COMMAND_RESULT_KEY_ID: "labels-test",
   } };
   try {
-    const [marker] = await server.execute("SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'myroot_schema_snapshot_sandbox_marker'");
-    assert.equal(marker.length, 1);
+    await assertDisposableSnapshotServer(server);
     await server.query(`CREATE DATABASE \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
     created = true;
     await server.query("CREATE USER ?@'%' IDENTIFIED BY ?", [testUser, testPassword]);

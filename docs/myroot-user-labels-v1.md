@@ -112,7 +112,7 @@ node --test backend/tests/user_labels.test.js backend/tests/user_labels_api.test
 npm run verify
 ```
 
-专用 MySQL 集成测试在 `backend/tests/user_labels_mysql.integration.test.js`。只有显式开启 `USER_LABELS_MYSQL_INTEGRATION=true` 且使用本地 13316 端口、专用标识库时运行；测试创建并清理临时数据库和随机测试账号。验证实际 MySQL 提交 PENDING 后才调用虚构外部 Adapter，以及中断重启后回读、无重复记录。
+专用 MySQL 集成测试在 `backend/tests/user_labels_mysql.integration.test.js`。只有显式开启 `USER_LABELS_MYSQL_INTEGRATION=true` 时运行；连接读取 `SCHEMA_SNAPSHOT_MYSQL_*` 配置，仅允许回环地址，并确认实例中除系统库外只有空的 `myroot_schema_snapshot_sandbox_marker` 标识库。本地可用 13316，CI 使用其专用服务端口；测试创建并清理临时数据库和随机测试账号。验证实际 MySQL 提交 PENDING 后才调用虚构外部 Adapter，以及中断重启后回读、无重复记录。CI 专项阶段要求一项通过、零跳过。
 
 页面验收已实际检查：查询、健康开关、详情中的多选答案、可读日期与同步预览、禁用实际写入、保存来源映射 v2 后旧用户仍保留 v1 来源。
 

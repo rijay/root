@@ -13,6 +13,7 @@ const {
   applyMysqlMigrations,
   listMigrationFiles,
 } = require("../src/mysqlMigrations");
+const { assertDisposableSnapshotServer } = require("../src/mysqlSchemaSnapshot");
 
 const ENABLED = process.env.MYSQL_LOCAL_READINESS_INTEGRATION_ENABLED === "true";
 
@@ -58,12 +59,16 @@ test("068 accepts only empty or confirmed pre-launch data and blocks later drift
     dateStrings: true,
   };
   const migrationsDir = path.join(__dirname, "..", "db", "migrations");
+  assert.equal(serverConfig.host, LOOPBACK_HOST);
+  assert.equal(Number.isInteger(serverConfig.port) && serverConfig.port > 0 && serverConfig.port <= 65535, true);
   const through067Dir = fs.mkdtempSync(path.join(os.tmpdir(), "myroot-migrations-through-067-"));
+  const through068Dir = fs.mkdtempSync(path.join(os.tmpdir(), "myroot-migrations-through-068-"));
   const suffix = `${process.pid}_${Date.now()}`;
   const acceptedDatabase = `myroot_068_accepted_${suffix}`;
   const driftedDatabase = `myroot_068_drifted_${suffix}`;
   const dependencyDatabase = `myroot_068_dependency_${suffix}`;
-  const server = await mysql.createConnection(serverConfig);
+  let server;
+  const createdDatabases = [];
 
   function pool(database) {
     return mysql.createPool({
@@ -97,18 +102,24 @@ test("068 accepts only empty or confirmed pre-launch data and blocks later drift
   }
 
   try {
-    for (const fileName of listMigrationFiles(migrationsDir).filter((name) => name < "068_")) {
-      fs.copyFileSync(path.join(migrationsDir, fileName), path.join(through067Dir, fileName));
+    server = await mysql.createConnection(serverConfig);
+    await assertDisposableSnapshotServer(server);
+    // This suite exercises the historical 068 boundary; the schema-snapshot
+    // check separately applies every current migration, including 069 onward.
+    for (const fileName of listMigrationFiles(migrationsDir).filter((name) => name < "069_")) {
+      fs.copyFileSync(path.join(migrationsDir, fileName), path.join(through068Dir, fileName));
+      if (fileName < "068_") fs.copyFileSync(path.join(migrationsDir, fileName), path.join(through067Dir, fileName));
     }
-    await server.query(`CREATE DATABASE \`${acceptedDatabase}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin`);
-    await server.query(`CREATE DATABASE \`${driftedDatabase}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin`);
-    await server.query(`CREATE DATABASE \`${dependencyDatabase}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin`);
+    for (const database of [acceptedDatabase, driftedDatabase, dependencyDatabase]) {
+      await server.query(`CREATE DATABASE \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin`);
+      createdDatabases.push(database);
+    }
 
     const acceptedPool = pool(acceptedDatabase);
     try {
       await applyMysqlMigrations(acceptedPool, { database: acceptedDatabase, migrationsDir: through067Dir });
       await seedCampaign(acceptedDatabase, "2026-07-11 16:15:04.000");
-      const result = await applyMysqlMigrations(acceptedPool, { database: acceptedDatabase, migrationsDir });
+      const result = await applyMysqlMigrations(acceptedPool, { database: acceptedDatabase, migrationsDir: through068Dir });
       assert.equal(result.latestVersion, "068_formal_launch_confirmed_prelaunch_cleanup.sql");
       const [tables] = await acceptedPool.query(
         "SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND table_type = 'BASE TABLE' ORDER BY table_name",
@@ -129,7 +140,7 @@ test("068 accepts only empty or confirmed pre-launch data and blocks later drift
       await applyMysqlMigrations(driftedPool, { database: driftedDatabase, migrationsDir: through067Dir });
       await seedCampaign(driftedDatabase, "2026-08-05 00:00:00.000");
       await assert.rejects(
-        () => applyMysqlMigrations(driftedPool, { database: driftedDatabase, migrationsDir }),
+        () => applyMysqlMigrations(driftedPool, { database: driftedDatabase, migrationsDir: through068Dir }),
         (error) => error.code === "ER_SIGNAL_EXCEPTION" && /timestamp drifted/.test(error.message)
       );
       const [tables] = await driftedPool.query(
@@ -157,7 +168,7 @@ test("068 accepts only empty or confirmed pre-launch data and blocks later drift
           FOREIGN KEY (campaign_id) REFERENCES campaign_definition (campaign_id)
       ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
       await assert.rejects(
-        () => applyMysqlMigrations(dependencyPool, { database: dependencyDatabase, migrationsDir }),
+        () => applyMysqlMigrations(dependencyPool, { database: dependencyDatabase, migrationsDir: through068Dir }),
         (error) => error.code === "ER_SIGNAL_EXCEPTION" && /unexpected inbound dependency/.test(error.message)
       );
       const [tables] = await dependencyPool.query(
@@ -173,10 +184,15 @@ test("068 accepts only empty or confirmed pre-launch data and blocks later drift
       await dependencyPool.end();
     }
   } finally {
-    await server.query(`DROP DATABASE IF EXISTS \`${acceptedDatabase}\``);
-    await server.query(`DROP DATABASE IF EXISTS \`${driftedDatabase}\``);
-    await server.query(`DROP DATABASE IF EXISTS \`${dependencyDatabase}\``);
-    await server.end();
-    fs.rmSync(through067Dir, { recursive: true, force: true });
+    try {
+      for (const database of createdDatabases) await server.query(`DROP DATABASE IF EXISTS \`${database}\``);
+    } finally {
+      try {
+        if (server) await server.end();
+      } finally {
+        fs.rmSync(through067Dir, { recursive: true, force: true });
+        fs.rmSync(through068Dir, { recursive: true, force: true });
+      }
+    }
   }
 });
