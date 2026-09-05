@@ -34,6 +34,60 @@ assert.deepEqual(launching.sanitizeOptions(
   { q: "invalid-code!" },
 ), {});
 
+const gutRoute = "/subpkg/campaign/pages/root-with-you/index";
+const scannedEntry = {
+  __rootChannelEntry: true,
+  path: gutRoute.slice(1),
+  scene: 1048,
+  query: { q: "BVHTPDEV", token: "must-not-follow-target" },
+};
+for (const oldOptions of [{ q: "JSVFNCAG" }, { scene: "q%3DJSVFNCAG" }, {}]) {
+  assert.deepEqual(launching.resolveEntryTarget(scannedEntry, [
+    { route: gutRoute.slice(1), options: oldOptions },
+  ]), { route: gutRoute, options: { q: "BVHTPDEV" } }, "同页扫码必须使用本次渠道参数");
+}
+
+for (const currentRoute of ["", "pages/home/index", gutRoute.slice(1),
+  "subpkg/health/pages/assessment/index", "pages/welcome/index"]) {
+  for (const alreadyHandled of [false, true]) {
+    const scannedApp = { globalData: {
+      launchingHandledThisSession: alreadyHandled,
+      launchingTarget: { route: gutRoute, options: { q: "JSVFNCAG" } },
+    } };
+    const scanned = launching.prepareLaunchingEntry(scannedApp, scannedEntry,
+      currentRoute ? [{ route: currentRoute, options: { q: "JSVFNCAG" } }] : []);
+    assert.deepEqual(scanned, {
+      relaunch: false,
+      navigateDirect: true,
+      target: { route: gutRoute, options: { q: "BVHTPDEV" } },
+      reason: "CHANNEL_ENTRY_DIRECT",
+    }, `渠道扫码必须直达，不受当前页面或会话标记影响：${currentRoute || "empty"}`);
+    assert.equal(scannedApp.globalData.launchingHandledThisSession, true);
+    assert.equal(scannedApp.globalData.launchingTarget, undefined, "不得保留上一次启动目标");
+  }
+}
+
+for (const scene of [1001, 1089, undefined]) {
+  const resumed = launching.prepareLaunchingEntry(
+    { globalData: { launchingHandledThisSession: true } },
+    { ...scannedEntry, scene },
+    [{ route: "subpkg/health/pages/assessment/index", options: { assessmentId: "in-progress" } }],
+  );
+  assert.equal(resumed.relaunch, false, "普通回前台不得因残留渠道参数中断答题");
+  assert.equal(resumed.navigateDirect, false);
+  assert.equal(resumed.reason, "SESSION_ALREADY_HANDLED");
+}
+
+for (const options of [
+  { path: gutRoute.slice(1), query: { q: "BVHTPDEV" } },
+  { __rootChannelEntry: true, path: gutRoute.slice(1), query: {} },
+  { __rootChannelEntry: true, path: gutRoute.slice(1), query: { q: "invalid-code!" } },
+]) {
+  const ordinary = launching.prepareLaunchingEntry({ globalData: {} }, options, []);
+  assert.equal(ordinary.relaunch, true, "非有效渠道入口保留普通启动策略");
+  assert.equal(ordinary.navigateDirect, false);
+}
+
 const app = { globalData: {} };
 const entry = launching.prepareLaunchingEntry(app, {}, [
   { route: "pages/products/index", options: { productId: "4875324599", source: "member_return" } },
@@ -114,7 +168,6 @@ assert.match(appScript, /prepareLaunchingEntry/);
 assert.match(appScript, /wx\.reLaunch\(\{ url: "\/pages\/welcome\/index\?mode=launching" \}\)/);
 assert.match(appScript, /entry\.navigateDirect/);
 assert.match(appScript, /launchingHandledThisSession:\s*false/);
-assert.match(appScript, /channelEntry\.result === "VALID_SHORT_CODE"[\s\S]*launchingHandledThisSession = false/);
 assert.doesNotMatch(welcomeScript, /LAUNCHING_DURATION_MS/);
 assert.doesNotMatch(welcomeScript, /setTimeout\(\(\) => this\.enterTarget/);
 assert.match(welcomeScript, /skipWelcome\(\)[\s\S]*this\.enterTarget\(\)/);

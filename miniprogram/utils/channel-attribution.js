@@ -14,6 +14,8 @@ const LEGACY_GUT_ASSESSMENT_PATH = "subpkg/health/pages/assessment/index";
 const ACTIVE_VISIT_TTL_MS = 2 * 60 * 60 * 1000;
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 const QR_ENTRY_SCENES = new Set(attributionConfig.qrEntryScenes);
+let scanVisitEntry = null;
+let latestVisitRequest = null;
 const SAFE_TARGET_PAGES = new Set([
   "/pages/home/index",
   "/pages/products/index",
@@ -146,6 +148,7 @@ function parseScannedAttribution(options = {}) {
         present: true,
         kind: "SHORT_CODE",
         shortCode: generalCode,
+        inferred: true,
         payload: { shortCode: generalCode },
         reason: "",
       };
@@ -176,20 +179,32 @@ function createClientVisitId() {
   return `scan_${Date.now()}_${Math.random().toString(36).slice(2, 14)}`;
 }
 
-async function beginChannelVisit(options = {}, requestImpl = request) {
-  const parsed = parseScannedAttribution(options);
-  const code = parsed.shortCode || shortCode(options.q || options.shortCode);
-  if (!code) {
+// 每次真实渠道入口单独建上下文；同一次入口的原生加载与主动导航共用请求。
+// 普通回前台只结束复用范围，不清除已有访问，也不取消尚未完成的有效请求。
+function prepareChannelVisitEntry(code = "") {
+  const normalized = shortCode(code);
+  scanVisitEntry = normalized
+    ? { shortCode: normalized, clientVisitId: createClientVisitId(), promise: null }
+    : null;
+  if (scanVisitEntry) {
+    latestVisitRequest = scanVisitEntry;
     safeRemove(ACTIVE_VISIT_STORAGE_KEY);
-    return { active: false, reason: "NO_SHORT_CODE", visit: null };
   }
-  const clientVisitId = createClientVisitId();
+}
+
+function supersededVisit() {
+  return { active: false, reason: "SCAN_ENTRY_SUPERSEDED", visit: null };
+}
+
+async function resolveChannelVisit(entry, requestImpl) {
+  const clientVisitId = entry.clientVisitId;
   const visit = await requestImpl({
     url: "/api/v1/channels/resolve",
     method: "POST",
     idempotencyKey: `channel-resolve:${clientVisitId}`,
-    data: { shortCode: code, clientVisitId },
+    data: { shortCode: entry.shortCode, clientVisitId },
   });
+  if (latestVisitRequest !== entry) return supersededVisit();
   const activatedVisit = { ...visit, activatedAt: new Date().toISOString() };
   safeWrite(ACTIVE_VISIT_STORAGE_KEY, activatedVisit);
   safeWrite(PENDING_STORAGE_KEY, { visitId: visit.visitId, shortCode: visit.shortCode, capturedAt: new Date().toISOString() });
@@ -198,18 +213,44 @@ async function beginChannelVisit(options = {}, requestImpl = request) {
   } catch (_) {
     // 未登录时保留待确认记录；完成登录后会再次提交，不能阻断扫码入口。
   }
+  if (latestVisitRequest !== entry) return supersededVisit();
   return { active: true, reason: "", visit: activatedVisit };
 }
 
+async function beginChannelVisit(options = {}, requestImpl = request) {
+  const parsed = parseScannedAttribution(options);
+  const code = parsed.shortCode || shortCode(options.q || options.shortCode || options.short_code);
+  if (scanVisitEntry && code !== scanVisitEntry.shortCode) return supersededVisit();
+  if (!code) {
+    latestVisitRequest = null;
+    safeRemove(ACTIVE_VISIT_STORAGE_KEY);
+    return { active: false, reason: "NO_SHORT_CODE", visit: null };
+  }
+  const entry = scanVisitEntry || { shortCode: code, clientVisitId: createClientVisitId(), promise: null };
+  latestVisitRequest = entry;
+  if (!entry.promise) {
+    entry.promise = resolveChannelVisit(entry, requestImpl).catch((error) => {
+      // 响应不确定时允许重试，仍使用本次入口的幂等键，不额外创建访问。
+      entry.promise = null;
+      throw error;
+    });
+  }
+  return entry.promise;
+}
+
 async function beginGeneralGutVisit(options = {}, requestImpl = request) {
+  const query = options.query || {};
+  const scene = parseScene(query.scene || options.scene || options.scenePayload || "");
   const hasExplicitCode = ["q", "shortCode", "short_code"]
-    .some((key) => Object.prototype.hasOwnProperty.call(options, key));
+    .some((key) => [options, query, scene].some((source) => Object.prototype.hasOwnProperty.call(source, key)));
   if (hasExplicitCode) return beginChannelVisit(options, requestImpl);
   const generalCode = shortCode(attributionConfig.generalGutShortCode);
   if (!generalCode) {
     safeRemove(ACTIVE_VISIT_STORAGE_KEY);
     return { active: false, reason: "GENERAL_SHORT_CODE_NOT_CONFIGURED", visit: null };
   }
+  // 无参数的站内介绍页仍按原规则归入通用入口。
+  if (scanVisitEntry && scanVisitEntry.shortCode !== generalCode) prepareChannelVisitEntry();
   return beginChannelVisit({ ...options, q: generalCode }, requestImpl);
 }
 
@@ -259,7 +300,10 @@ async function confirmPendingAttribution(options = {}) {
   });
   if (result && result.accepted === true) {
     safeWrite(ATTRIBUTED_STORAGE_KEY, true);
-    safeRemove(PENDING_STORAGE_KEY);
+    const current = safeRead(PENDING_STORAGE_KEY);
+    if (current && current.visitId === pending.visitId && current.channelId === pending.channelId) {
+      safeRemove(PENDING_STORAGE_KEY);
+    }
     return { state: "CONFIRMED", result };
   }
   return { state: "REJECTED", result };
@@ -277,7 +321,7 @@ function channelCandidate(options = {}) {
 function resolveChannel(options = {}, now = Date.now(), channels = marketing.channels) {
   const scanned = parseScannedAttribution(options);
   if (scanned.kind === "SHORT_CODE") {
-    return { result: "VALID_SHORT_CODE", shortCode: scanned.shortCode, target: { type: "GUT_INTRO" }, capturedAt: new Date(now).toISOString() };
+    return { result: "VALID_SHORT_CODE", shortCode: scanned.shortCode, inferred: scanned.inferred === true, target: { type: "GUT_INTRO" }, capturedAt: new Date(now).toISOString() };
   }
   const candidate = channelCandidate(options);
   if (!candidate.channelId) return { result: "NO_CHANNEL", channelId: "" };
@@ -361,6 +405,7 @@ module.exports = Object.freeze({
   parseScene,
   isGeneralGutQrEntry,
   pendingSourceChannel,
+  prepareChannelVisitEntry,
   recordFunnelStage,
   resolveChannel,
 });

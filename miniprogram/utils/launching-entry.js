@@ -1,10 +1,13 @@
 const { FORMAL_TABS, REGISTERED_FORMAL_ROUTES, WELCOME_ROUTE } = require("../config/formal-launch-routes");
 const { setPendingProductFocus } = require("./product-navigation");
+const { GUT_INTRO_PATH } = require("./gut-assessment-entry");
+const { qrEntryScenes } = require("../config/channel-attribution");
 
 const HOME_ROUTE = "/pages/home/index";
 const WELCOME_PATH = `/${WELCOME_ROUTE}`;
 const REGISTERED_ROUTES = new Set(REGISTERED_FORMAL_ROUTES.map((route) => `/${route}`));
 const TAB_ROUTES = new Set(FORMAL_TABS.map((tab) => `/${tab.pagePath}`));
+const QR_ENTRY_SCENES = new Set(qrEntryScenes);
 const LAUNCHING_BYPASS_ROUTES = new Set([
   "/pages/login/index",
   "/pages/register/index",
@@ -86,7 +89,7 @@ function resolveEntryTarget(showOptions = {}, pages = []) {
       ? optionRoute
       : HOME_ROUTE;
   const registeredRoute = REGISTERED_ROUTES.has(route) && route !== WELCOME_PATH ? route : HOME_ROUTE;
-  const sourceOptions = pageRoute === registeredRoute
+  const sourceOptions = !forceOptionRoute && pageRoute === registeredRoute
     ? (current && (current.options || current.__rootShareOptions)) || {}
     : showOptions.query || {};
   return {
@@ -101,6 +104,23 @@ function prepareLaunchingEntry(app, showOptions = {}, pages = []) {
     || (!currentRoute && normalizeRoute(showOptions.path) === WELCOME_PATH);
   const target = resolveEntryTarget(showOptions, pages);
   const state = app && app.globalData;
+  const channelEntry = showOptions.__rootChannelEntry === true
+    && target.route === GUT_INTRO_PATH && Boolean(target.options.q);
+  const freshEntry = !(state && state.launchingHandledThisSession)
+    || QR_ENTRY_SCENES.has(Number(showOptions.scene));
+  // 新扫码优先于旧页面；普通回前台即使残留 q，也不打断当前流程。
+  if (channelEntry && freshEntry) {
+    if (state) {
+      state.launchingHandledThisSession = true;
+      delete state.launchingTarget;
+    }
+    return {
+      relaunch: false,
+      navigateDirect: true,
+      target,
+      reason: "CHANNEL_ENTRY_DIRECT",
+    };
+  }
   if (state && state.launchingHandledThisSession) {
     return {
       relaunch: false,

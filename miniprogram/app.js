@@ -5,8 +5,9 @@ const { initializeCloudRoute, refreshCloudRoute } = require("./utils/cloud-route
 const { performanceMonitor } = require("./utils/performance-monitor");
 const { initializePrivacyAuthorization } = require("./utils/privacy-authorization");
 const { installGlobalSharePolicy } = require("./utils/page-share");
-const { navigateToLaunchingTarget, prepareLaunchingEntry } = require("./utils/launching-entry");
-const { captureFirstChannel, channelEntryOptions } = require("./utils/channel-attribution");
+const { navigateToLaunchingTarget, normalizeRoute, prepareLaunchingEntry, serializeTarget } = require("./utils/launching-entry");
+const { captureFirstChannel, channelEntryOptions, prepareChannelVisitEntry } = require("./utils/channel-attribution");
+const { GUT_INTRO_PATH } = require("./utils/gut-assessment-entry");
 const { FORMAL_ACCESS_STATE, inspectFormalAccess } = require("./utils/formal-access");
 const { readProfileCache, writeProfileCache } = require("./utils/profile-cache");
 const { ensureLoginSession } = require("./utils/login-session");
@@ -80,6 +81,10 @@ App({
     initializeCloudRoute(options, env.envVersion);
     const channelEntry = captureFirstChannel(options);
     if (channelEntry.result !== "NO_CHANNEL") this.globalData.pendingChannelEntry = channelEntry;
+    // 显式渠道码的原生首屏已是手绘页时，首个 onShow 无需再次重开。
+    this.globalData.pendingNativeChannelCode = channelEntry.result === "VALID_SHORT_CODE"
+      && !channelEntry.inferred && normalizeRoute(options.path) === GUT_INTRO_PATH
+      ? channelEntry.shortCode : "";
     initializePrivacyAuthorization();
     const runtimeRequestConfig = resolveRuntimeRequestConfig(env, wx);
     this.globalData.requestRuntimeMode = runtimeRequestConfig.mode;
@@ -99,17 +104,26 @@ App({
   onShow(options = {}) {
     refreshCloudRoute(options, env.envVersion);
     const capturedChannel = captureFirstChannel(options);
-    const channelEntry = this.globalData.pendingChannelEntry || capturedChannel;
+    // 当前显式扫码优先；首屏丢参时保留启动捕获，避免被通用码推断覆盖。
+    const channelEntry = capturedChannel.result !== "NO_CHANNEL" && !capturedChannel.inferred
+      ? capturedChannel
+      : this.globalData.pendingChannelEntry || capturedChannel;
+    const nativeChannelCode = this.globalData.pendingNativeChannelCode;
     delete this.globalData.pendingChannelEntry;
-    if (channelEntry.result === "VALID_SHORT_CODE") {
-      this.globalData.launchingHandledThisSession = false;
-      delete this.globalData.launchingTarget;
-    }
+    delete this.globalData.pendingNativeChannelCode;
     const entryOptions = channelEntryOptions(channelEntry, options);
     const pages = typeof getCurrentPages === "function" ? getCurrentPages() : [];
     const entry = prepareLaunchingEntry(this, entryOptions, pages);
-    if (entry.relaunch) wx.reLaunch({ url: "/pages/welcome/index?mode=launching" });
-    else if (entry.navigateDirect) navigateToLaunchingTarget(entry.target);
+    if (entry.reason === "CHANNEL_ENTRY_DIRECT") {
+      prepareChannelVisitEntry(entry.target.options.q);
+      if (pages.length || nativeChannelCode !== entry.target.options.q) {
+        wx.reLaunch({ url: serializeTarget(entry.target) });
+      }
+    } else {
+      prepareChannelVisitEntry();
+      if (entry.relaunch) wx.reLaunch({ url: "/pages/welcome/index?mode=launching" });
+      else if (entry.navigateDirect) navigateToLaunchingTarget(entry.target);
+    }
   },
 
   onHide() {

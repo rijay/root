@@ -23,8 +23,10 @@ Page({
       sourcePage: options.source || "direct",
     });
     try {
-      await beginGeneralGutVisit(options);
-      await recordFunnelStage("INTRO_VIEW");
+      const result = await beginGeneralGutVisit(options);
+      if (result.active && result.visit) {
+        await recordFunnelStage("INTRO_VIEW", { visitId: result.visit.visitId });
+      }
     } catch (_) {
       // 渠道归因不可用不阻断公开的自测介绍和评测入口。
     }

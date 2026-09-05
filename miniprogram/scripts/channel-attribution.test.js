@@ -113,6 +113,9 @@ async function run() {
   }, Date.parse("2026-09-03T10:00:00.000Z"));
   assert.equal(legacyGeneralEntry.result, "VALID_SHORT_CODE");
   assert.equal(legacyGeneralEntry.shortCode, "O78NQGAX");
+  assert.equal(legacyGeneralEntry.inferred, true, "无显式参数的通用码应标记为推断");
+  assert.equal(resolveChannel({ query: { q: "O78NQGAX" } }).inferred, false,
+    "显式携带通用短码也必须优先于旧启动捕获");
   assert.deepEqual(channelEntryOptions(legacyGeneralEntry), {
     __rootChannelEntry: true,
     path: "subpkg/campaign/pages/root-with-you/index",
